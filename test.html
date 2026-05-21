@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nexus AI | Your Premium Productivity Companion</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-error-container": "#ffdad6",
+                    "tertiary-fixed-dim": "#ffb1c5",
+                    "surface-tint": "#cdbdff",
+                    "on-secondary-fixed-variant": "#005047",
+                    "primary-container": "#7c4dff",
+                    "outline": "#948ea1",
+                    "surface-container-highest": "#32343e",
+                    "secondary-fixed": "#6ef9e2",
+                    "on-tertiary-fixed": "#3f001b",
+                    "on-secondary": "#003730",
+                    "on-secondary-container": "#003f37",
+                    "surface-container": "#1d1f29",
+                    "error": "#ffb4ab",
+                    "background": "#11131c",
+                    "on-tertiary-container": "#fff6f6",
+                    "on-secondary-fixed": "#00201b",
+                    "secondary": "#4ddcc6",
+                    "on-primary": "#370096",
+                    "surface-variant": "#32343e",
+                    "surface-dim": "#11131c",
+                    "on-primary-container": "#fcf6ff",
+                    "inverse-on-surface": "#2e303a",
+                    "secondary-container": "#00b4a0",
+                    "error-container": "#93000a",
+                    "outline-variant": "#494455",
+                    "primary-fixed": "#e8deff",
+                    "on-surface-variant": "#cac3d8",
+                    "surface-container-lowest": "#0c0e17",
+                    "on-background": "#e1e1ef",
+                    "surface-container-high": "#282933",
+                    "on-surface": "#e1e1ef",
+                    "on-tertiary": "#650030",
+                    "tertiary-fixed": "#ffd9e1",
+                    "surface": "#11131c",
+                    "secondary-fixed-dim": "#4ddcc6",
+                    "tertiary-container": "#c63f71",
+                    "surface-bright": "#373943",
+                    "on-tertiary-fixed-variant": "#8c0a46",
+                    "inverse-surface": "#e1e1ef",
+                    "tertiary": "#ffb1c5",
+                    "primary-fixed-dim": "#cdbdff",
+                    "on-error": "#690005",
+                    "primary": "#cdbdff",
+                    "inverse-primary": "#6833ea",
+                    "surface-container-low": "#191b24",
+                    "on-primary-fixed": "#20005f",
+                    "on-primary-fixed-variant": "#4f00d0"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter": "24px",
+                    "sm": "16px",
+                    "margin-mobile": "16px",
+                    "md": "24px",
+                    "margin-desktop": "48px",
+                    "xs": "8px",
+                    "lg": "40px",
+                    "xl": "64px",
+                    "base": "4px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "display-lg": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ],
+                    "label-sm": [
+                            "JetBrains Mono"
+                    ],
+                    "label-md": [
+                            "JetBrains Mono"
+                    ],
+                    "headline-md": [
+                            "Plus Jakarta Sans"
+                    ],
+                    "headline-lg": [
+                            "Plus Jakarta Sans"
+                    ]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": [
+                            "28px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "display-lg": [
+                            "48px",
+                            {
+                                    "lineHeight": "1.1",
+                                    "letterSpacing": "-0.04em",
+                                    "fontWeight": "800"
+                            }
+                    ],
+                    "body-lg": [
+                            "18px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "body-md": [
+                            "16px",
+                            {
+                                    "lineHeight": "1.6",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "label-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "1.4",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "500"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "1.3",
+                                    "fontWeight": "600"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "1.2",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        /* Glassmorphism Utilities */
+        .glass-panel {
+            background: rgba(26, 29, 46, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .nexus-glow {
+            box-shadow: 0 0 30px rgba(124, 77, 255, 0.2);
+        }
+        .nexus-glow-active {
+            box-shadow: 0 0 40px rgba(77, 220, 198, 0.3);
+            animation: pulse-glow 3s infinite alternate;
+        }
+        @keyframes pulse-glow {
+            0% { box-shadow: 0 0 20px rgba(124, 77, 255, 0.2); }
+            100% { box-shadow: 0 0 50px rgba(124, 77, 255, 0.4); }
+        }
+        .text-gradient {
+            background: linear-gradient(135deg, #cdbdff, #4ddcc6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        /* Grid Background Pattern */
+        .bg-grid-pattern {
+            background-image: linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+                              linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+            background-size: 40px 40px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md text-body-md antialiased overflow-x-hidden selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar from JSON -->
+<header class="bg-surface/70 backdrop-blur-xl fixed top-0 w-full z-50 border-b border-outline-variant/20 shadow-2xl flex justify-between items-center w-full px-margin-mobile md:px-margin-desktop py-4 transition-all duration-300">
+<div class="flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-[28px]" style="font-variation-settings: 'FILL' 1;">bubble_chart</span>
+<span class="text-headline-md font-headline-md font-extrabold tracking-tight text-primary">Nexus AI</span>
+</div>
+<nav class="hidden md:flex items-center gap-md">
+<a class="text-primary font-bold border-b-2 border-primary pb-1 text-label-md font-label-md transition-colors duration-300" href="#">Product</a>
+<a class="text-on-surface-variant font-medium text-label-md font-label-md hover:text-secondary transition-colors duration-300" href="#">Solutions</a>
+<a class="text-on-surface-variant font-medium text-label-md font-label-md hover:text-secondary transition-colors duration-300" href="#">Pricing</a>
+</nav>
+<button class="bg-gradient-to-r from-primary-container to-secondary-container text-white px-sm py-xs rounded-lg text-label-md font-label-md font-bold hover:shadow-[0_0_20px_rgba(124,77,255,0.4)] transition-all duration-300 hover:scale-95">
+            Get Started
+        </button>
+</header>
+<main class="pt-[100px] relative">
+<!-- Hero Section -->
+<section class="relative min-h-[795px] flex items-center justify-center px-margin-mobile md:px-margin-desktop py-xl overflow-hidden">
+<!-- Background Elements -->
+<div class="absolute inset-0 bg-grid-pattern opacity-50 z-0 pointer-events-none"></div>
+<div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary-container/20 rounded-full blur-[120px] z-0 pointer-events-none"></div>
+<div class="absolute top-1/4 right-1/4 w-[400px] h-[400px] bg-secondary-container/10 rounded-full blur-[100px] z-0 pointer-events-none"></div>
+<div class="max-w-7xl mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-lg items-center relative z-10">
+<!-- Hero Content -->
+<div class="flex flex-col gap-sm">
+<div class="inline-flex items-center gap-xs bg-surface-container-high/50 border border-outline-variant/30 px-sm py-xs rounded-full w-fit backdrop-blur-md mb-xs">
+<span class="material-symbols-outlined text-secondary text-[16px]">bolt</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant uppercase tracking-wider">Nexus Engine v2.0 Live</span>
+</div>
+<h1 class="text-display-lg font-display-lg text-on-surface leading-tight">
+                        Your Premium <br/>
+<span class="text-gradient">Productivity Companion</span>
+</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant max-w-lg mt-xs">
+                        Master your flow with AI-driven task management, deep work optimization, and seamless context switching. Built for visionaries.
+                    </p>
+<div class="flex flex-col sm:flex-row items-center gap-sm mt-md">
+<button class="w-full sm:w-auto bg-gradient-to-r from-primary-container to-secondary-container text-white px-md py-sm rounded-lg text-label-md font-label-md font-bold nexus-glow hover:shadow-[0_0_30px_rgba(77,220,198,0.4)] transition-all duration-300 transform hover:-translate-y-1">
+                            Get Started Free
+                        </button>
+<button class="w-full sm:w-auto glass-panel text-on-surface px-md py-sm rounded-lg text-label-md font-label-md font-medium hover:bg-surface-bright/50 transition-all duration-300 flex items-center justify-center gap-xs group">
+<span class="material-symbols-outlined group-hover:text-primary transition-colors">play_circle</span>
+                            Watch Demo
+                        </button>
+</div>
+<!-- Trust Indicators -->
+<div class="mt-lg pt-sm border-t border-outline-variant/20 flex flex-col gap-xs">
+<p class="text-label-sm font-label-sm text-outline uppercase tracking-widest">Trusted by innovative teams</p>
+<div class="flex items-center gap-md opacity-60 grayscale hover:grayscale-0 transition-all duration-500">
+<!-- Placeholder Logos (CSS Only) -->
+<div class="flex items-center gap-xs font-bold text-lg"><span class="material-symbols-outlined">api</span> Vertex</div>
+<div class="flex items-center gap-xs font-bold text-lg"><span class="material-symbols-outlined">layers</span> Synapse</div>
+<div class="flex items-center gap-xs font-bold text-lg"><span class="material-symbols-outlined">all_inclusive</span> Infinity</div>
+</div>
+</div>
+</div>
+<!-- Hero Visual (Glass Mockup) -->
+<div class="relative w-full aspect-square md:aspect-[4/3] rounded-xl glass-panel nexus-glow-active overflow-hidden group">
+<img alt="Abstract digital rendering representing AI consciousness" class="w-full h-full object-cover opacity-80 mix-blend-screen group-hover:scale-105 transition-transform duration-700" data-alt="A highly complex, futuristic 3D digital rendering representing an artificial intelligence core or 'Nexus'. The composition features intricate, glowing geometric structures resembling neural pathways or data streams in a deep space environment. The lighting is ethereal and high-contrast, utilizing a sophisticated dark mode color palette dominated by deep obsidian, vibrant primary purples, and luminous secondary teals. The mood is cutting-edge, precise, and visionary, perfectly reflecting a high-performance, glassmorphic UI aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBoalDNmmbsVuq0H4tK8dVXA2LoMgviLBcRt8tV1PXqMG6qC3MDvbIQQkHJggioUj3_KHLjWgKeXxcmg7ScUEuXYsS06sWJecPICgAARLVmhYrqr1SoQ0QPaCePO30v5IwhpTluKN2ucvqoNm4DQHckfUC6xu1ur2OXzY45RmdRoqZ-Vee4ogf67f0z7Z5KfYojI-Ao30H_fkH1bIo3yJVDn6dbz_bYKuv0CSqbG-OmZ5ENGvLPVLr5AmLYxMdebGOnnuZcW2LuUbE"/>
+<!-- Overlay UI Elements -->
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent pointer-events-none"></div>
+<div class="absolute bottom-md left-md right-md glass-panel p-sm rounded-lg border-l-4 border-l-secondary flex items-start gap-sm transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-500 delay-100">
+<span class="material-symbols-outlined text-secondary bg-secondary-container/20 p-xs rounded-full">auto_awesome</span>
+<div>
+<p class="text-label-md font-label-md text-on-surface font-bold">Deep Work Achieved</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant mt-1">Nexus optimized your schedule, saving 2.4 hours today.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Features Bento Grid -->
+<section class="py-xl px-margin-mobile md:px-margin-desktop max-w-7xl mx-auto relative z-10">
+<div class="text-center mb-lg">
+<h2 class="text-headline-lg font-headline-lg text-on-surface mb-xs">Engineered for Focus</h2>
+<p class="text-body-lg font-body-lg text-on-surface-variant max-w-2xl mx-auto">Abandon the clutter. Nexus AI structures your workload with crystalline precision.</p>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-sm md:gap-md auto-rows-[300px]">
+<!-- Feature 1: Large Span -->
+<div class="md:col-span-2 glass-panel rounded-xl p-md flex flex-col justify-between relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+<div class="absolute top-0 right-0 w-64 h-64 bg-primary/10 rounded-full blur-3xl -mr-20 -mt-20"></div>
+<div class="relative z-10">
+<span class="material-symbols-outlined text-primary text-[32px] mb-sm bg-surface-container p-xs rounded-lg inline-block border border-outline-variant/30">account_tree</span>
+<h3 class="text-headline-md font-headline-md text-on-surface mb-xs">AI Task Breakdown</h3>
+<p class="text-body-md font-body-md text-on-surface-variant max-w-md">Input a massive project, and watch Nexus fracture it into actionable, hyper-specific micro-tasks instantly.</p>
+</div>
+<!-- Decorative Visual -->
+<div class="relative z-10 w-full h-32 mt-sm border-t border-outline-variant/20 pt-sm flex gap-xs items-end">
+<div class="w-1/4 h-1/2 bg-surface-container rounded-t-sm border border-b-0 border-outline-variant/30"></div>
+<div class="w-1/4 h-3/4 bg-primary/20 rounded-t-sm border border-b-0 border-primary/50 relative">
+<div class="absolute -top-3 left-1/2 -translate-x-1/2 w-2 h-2 rounded-full bg-primary animate-pulse"></div>
+</div>
+<div class="w-1/4 h-full bg-surface-container rounded-t-sm border border-b-0 border-outline-variant/30"></div>
+<div class="w-1/4 h-1/4 bg-surface-container rounded-t-sm border border-b-0 border-outline-variant/30"></div>
+</div>
+</div>
+<!-- Feature 2 -->
+<div class="glass-panel rounded-xl p-md flex flex-col relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+<div class="absolute bottom-0 right-0 w-40 h-40 bg-secondary/10 rounded-full blur-2xl"></div>
+<span class="material-symbols-outlined text-secondary text-[32px] mb-sm bg-surface-container p-xs rounded-lg inline-block w-fit border border-outline-variant/30">monitoring</span>
+<h3 class="text-headline-md font-headline-md text-on-surface mb-xs text-lg">Focus Analytics</h3>
+<p class="text-body-md font-body-md text-on-surface-variant">Real-time telemetry on your cognitive flow. Understand when you peak.</p>
+<div class="mt-auto self-end">
+<span class="material-symbols-outlined text-on-surface-variant opacity-30 text-6xl transform -rotate-12 group-hover:scale-110 transition-transform">timeline</span>
+</div>
+</div>
+<!-- Feature 3 -->
+<div class="glass-panel rounded-xl p-md flex flex-col relative overflow-hidden group hover:-translate-y-1 transition-all duration-300">
+<span class="material-symbols-outlined text-tertiary text-[32px] mb-sm bg-surface-container p-xs rounded-lg inline-block w-fit border border-outline-variant/30">hub</span>
+<h3 class="text-headline-md font-headline-md text-on-surface mb-xs text-lg">Seamless Integrations</h3>
+<p class="text-body-md font-body-md text-on-surface-variant">Syncs silently with your existing stack. No friction, pure output.</p>
+</div>
+<!-- Feature 4: Wide -->
+<div class="md:col-span-2 glass-panel rounded-xl p-md flex flex-col justify-center items-center text-center relative overflow-hidden group border-primary/30">
+<div class="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 z-0"></div>
+<div class="relative z-10 flex flex-col items-center">
+<span class="material-symbols-outlined text-primary text-[48px] mb-sm">mindfulness</span>
+<h3 class="text-headline-md font-headline-md text-on-surface mb-xs">Enter The Flow State</h3>
+<p class="text-body-md font-body-md text-on-surface-variant max-w-lg mb-md">Nexus silences notifications and orchestrates your environment when it detects deep work patterns.</p>
+<button class="text-label-md font-label-md text-secondary hover:text-primary transition-colors flex items-center gap-xs">
+                            Explore Focus Mode <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</section>
+<!-- Social Proof / Testimonial -->
+<section class="py-xl px-margin-mobile md:px-margin-desktop max-w-5xl mx-auto relative z-10">
+<div class="glass-panel rounded-2xl p-lg relative border-l-4 border-l-secondary-container nexus-glow">
+<span class="material-symbols-outlined absolute top-md right-md text-6xl text-outline-variant/20">format_quote</span>
+<p class="text-headline-md font-headline-md text-on-surface leading-relaxed mb-md relative z-10">
+                    "Nexus doesn't just manage my tasks; it manages my cognitive load. The UI is so clean it almost disappears, leaving only the work that matters. It's like having a brilliant, silent partner."
+                </p>
+<div class="flex items-center gap-sm mt-md">
+<div class="w-12 h-12 rounded-full bg-surface-container-high border border-outline-variant/50 overflow-hidden">
+<img alt="Portrait of a professional user" class="w-full h-full object-cover" data-alt="A professional headshot of a visionary tech founder in their late 30s. The portrait is sharply focused with a modern, high-key lighting setup that casts subtle shadows, fitting perfectly into a premium dark mode UI aesthetic. The background is a deeply blurred, cool-toned dark gray. The subject has a confident, serene expression, embodying the precise and sophisticated user persona of a high-end AI productivity tool." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0PxbrKWFkUHyLX6rCBO1xncSE52ITwunYHpnp5jfmZ5jxTcRx2O7wHUs7Ilf4eGTv0szae_TPePIqPRKF1cTLADtP7QIbapuayYM7-Ha4_qpunCHL6TkG35aQN5tZmlvGlAYjUMWpPtpOzQO0oCos-tlgdB34rMwRB5CEqWS9oJ_b4c5oe6gTpJlZdvC-J7n-jL8HX3UUOFxYrdrh3SDspGPEqOv9OyXd6YyFpYnTqnIJydiRCK6-bVGFKlXFHUmRnRxfTiAbSig"/>
+</div>
+<div>
+<p class="text-label-md font-label-md text-on-surface font-bold">Elias Thorne</p>
+<p class="text-label-sm font-label-sm text-on-surface-variant">Lead Architect, Quantum Dynamics</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Footer from JSON -->
+<footer class="bg-surface-container-lowest w-full py-xl border-t border-outline-variant/10 relative z-20 mt-xl">
+<div class="max-w-7xl mx-auto px-margin-mobile md:px-margin-desktop flex flex-col md:flex-row justify-between items-center gap-md">
+<div class="flex flex-col items-center md:items-start gap-xs">
+<span class="text-headline-sm font-headline-sm font-bold text-on-surface flex items-center gap-xs">
+<span class="material-symbols-outlined text-primary text-xl" style="font-variation-settings: 'FILL' 1;">bubble_chart</span>
+                    Nexus AI
+                </span>
+<p class="text-body-md font-body-md text-on-surface-variant text-sm text-center md:text-left">
+                    © 2024 Nexus AI. Precision in every prompt.
+                </p>
+</div>
+<nav class="flex flex-wrap justify-center gap-md">
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all underline-offset-4 hover:underline" href="#">Features</a>
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all underline-offset-4 hover:underline" href="#">Pricing</a>
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all underline-offset-4 hover:underline" href="#">Security</a>
+<a class="text-label-md font-label-md text-on-surface-variant hover:text-primary transition-all underline-offset-4 hover:underline" href="#">Privacy</a>
+</nav>
+</div>
+</footer>
+</body></html>
