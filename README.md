@@ -1,76 +1,143 @@
 # Nexus AI (to_do_app)
 
-Ứng dụng Flutter theo hướng **productivity / task management** với giao diện dark-mode, đăng nhập/đăng ký qua **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
+Ứng dụng Flutter theo hướng **productivity / task management** (dark mode) với xác thực bằng **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
 
-> Lưu ý: Tên package hiện tại là `to_do_app` nhưng UI/branding trong app đang hiển thị là **Nexus AI**.
+> Ghi chú: Tên package hiện tại là `to_do_app` nhưng UI/branding trong app đang hiển thị là **Nexus AI**.
 
-## Tính năng chính
+## Mục lục
 
-- Landing page (marketing) + điều hướng sang trang đăng nhập.
+- [Tính năng](#tính-năng)
+- [Luồng ứng dụng](#luồng-ứng-dụng)
+- [Tech stack](#tech-stack)
+- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Cấu hình môi trường](#cấu-hình-môi-trường)
+- [Supabase: schema + bảo mật](#supabase-schema--bảo-mật)
+- [Chạy dự án](#chạy-dự-án)
+- [Troubleshooting](#troubleshooting)
+- [Ghi chú bảo mật](#ghi-chú-bảo-mật)
+
+## Tính năng
+
+- Landing page (marketing) + điều hướng sang đăng nhập.
 - Đăng nhập / đăng ký bằng email & password (Supabase).
-- Dashboard sau khi đăng nhập (tab Home/Tasks/AI; một số màn hình mang tính demo/UI).
-- Mẫu schema Supabase cho bảng `users`, `tasks`, RLS policies và trigger tạo profile người dùng.
+- Dashboard sau khi đăng nhập (Home / Tasks / AI; một số màn hình hiện tại mang tính demo UI).
+- Mẫu schema Supabase: bảng `users`, `tasks`, RLS policies và trigger tạo profile.
 
-## Công nghệ sử dụng
+## Luồng ứng dụng
+
+Luồng đang được dùng bởi entrypoint hiện tại:
+
+```mermaid
+flowchart LR
+	A[main.dart] --> B[Home (landing)]
+	B --> C[SignInPage]
+	C --> D[BlankPage (dashboard tabs)]
+	D -->|Sign out| C
+```
+
+Các module theo hướng “feature-first” (router/auth/tasks/...) đã có sẵn trong `lib/features/` và `lib/core/`, nhưng **chưa được nối vào entrypoint** (phù hợp khi bạn đang refactor dần).
+
+## Tech stack
+
+Đang được sử dụng bởi app hiện tại:
 
 - Flutter / Dart (SDK: `^3.7.0`)
 - Supabase: `supabase_flutter`
-- Quản lý biến môi trường: `flutter_dotenv` (load `.env` như asset)
+- Biến môi trường: `flutter_dotenv` (load `.env` như asset)
 
-## Cấu trúc thư mục (rút gọn)
+Trong codebase có sẵn (phục vụ hướng kiến trúc feature-first) nhưng có thể chưa tích hợp hoàn chỉnh:
 
-- `lib/main.dart`: Entry point, load `.env`, khởi tạo Supabase.
-- `lib/screens/`: Landing + Sign in/Sign up + dashboard shell đang được dùng bởi entrypoint.
-- `lib/features/`: Các module theo hướng feature-first (auth/tasks/ai/calendar/profile). Một số phần có thể đang trong quá trình tích hợp.
-- `supabase_schema.sql`: SQL tạo bảng + RLS policies + trigger cho Supabase.
+- Riverpod / GoRouter / Dio / secure storage (xuất hiện trong `lib/core` và `lib/features`)
 
-## Yêu cầu
+## Cấu trúc thư mục
 
-- Flutter SDK (khuyến nghị dùng Flutter stable)
-- Một project Supabase (URL + anon key)
+- `pubspec.yaml`: dependencies + khai báo asset `.env`.
+- `lib/main.dart`: load `.env`, khởi tạo Supabase, chạy `MyApp`.
+- `lib/screens/`:
+  - `home.dart`: landing page.
+  - `sign_in_page.dart`, `sign_up_page.dart`: auth UI (Supabase).
+  - `blank_page.dart`: dashboard tabs + sign out.
+- `lib/features/`: modules theo feature-first (auth/tasks/ai/calendar/profile) và router.
+- `supabase_schema.sql`: schema + RLS policies + trigger.
 
-## Cài đặt & chạy nhanh
+## Cấu hình môi trường
 
-### 1) Cài dependencies
+### File `.env`
+
+Project dùng `.env` ở root (cùng cấp `pubspec.yaml`). File này đã được ignore trong `.gitignore`.
+
+Có sẵn file mẫu: `.env.example`.
+
+Trên Windows (PowerShell):
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Các biến môi trường:
+
+| Key                 | Bắt buộc | Mô tả                                                       |
+| ------------------- | -------: | ----------------------------------------------------------- |
+| `SUPABASE_URL`      |       ✅ | URL project Supabase                                        |
+| `SUPABASE_ANON_KEY` |       ✅ | Anon public key (client-side)                               |
+| `API_BASE_URL`      |       ⛔ | Optional. Nếu không set, code sẽ fallback về `SUPABASE_URL` |
+
+Bạn có thể lấy `SUPABASE_URL` và `SUPABASE_ANON_KEY` tại Supabase Dashboard → Project Settings → API.
+
+Quy ước khuyến nghị cho `.env`:
+
+- Không bọc giá trị bằng dấu nháy.
+- Tránh khoảng trắng ở đầu/cuối (code có `.trim()` ở entrypoint).
+- Chỉ dùng key public (`anon`), không dùng `service_role`.
+
+> Nếu bạn chỉnh `assets:` trong `pubspec.yaml`, hãy chạy lại `flutter pub get`.
+
+## Supabase: schema + bảo mật
+
+### 1) Tạo project & bật Auth
+
+- Tạo project trên Supabase.
+- Authentication → Providers → bật **Email**.
+
+### 2) Apply schema
+
+Mở file `supabase_schema.sql` và chạy trong **Supabase SQL Editor**.
+
+Nếu gặp lỗi kiểu `function gen_random_uuid() does not exist`, hãy bật extension `pgcrypto` trong Supabase (Database → Extensions) rồi chạy lại.
+
+Schema hiện có:
+
+- `public.users`: bảng profile, tham chiếu `auth.users(id)`.
+- `public.tasks`: bảng tasks, có `user_id` tham chiếu `auth.users(id)`.
+
+RLS & policies (tóm tắt):
+
+- `public.users`: user chỉ đọc/insert/update chính họ (`auth.uid() = id`).
+- `public.tasks`: user chỉ thao tác tasks của họ (`auth.uid() = user_id`).
+
+Trigger:
+
+- `handle_new_user()` chạy sau khi tạo `auth.users` để upsert profile vào `public.users`.
+
+### 3) (Tuỳ chọn) Realtime cho tasks
+
+Nếu bạn dùng stream realtime (ví dụ code ở `lib/features/tasks/data/datasource/task_remote_datasource.dart`), hãy đảm bảo table `tasks` được bật Realtime trong Supabase (Database → Replication / Realtime). Tùy cấu hình dự án, bạn có thể cần bật publication cho table.
+
+## Chạy dự án
+
+### Cài dependencies
 
 ```bash
 flutter pub get
 ```
 
-### 2) Tạo file `.env`
-
-Tạo file `.env` ở thư mục gốc project (cùng cấp `pubspec.yaml`). File này đã được ignore trong `.gitignore`.
-
-Bạn có thể lấy `SUPABASE_URL` và `SUPABASE_ANON_KEY` tại Supabase Dashboard → Project Settings → API.
-
-Ví dụ:
-
-```env
-SUPABASE_URL=https://YOUR_PROJECT.supabase.co
-SUPABASE_ANON_KEY=YOUR_SUPABASE_ANON_KEY
-
-# Optional: nếu bạn có backend riêng (mặc định sẽ fallback về SUPABASE_URL)
-API_BASE_URL=
-```
-
-### 3) Khởi tạo database trên Supabase
-
-Mở `supabase_schema.sql` và chạy trong **Supabase SQL Editor** để tạo:
-
-- `public.users` (profile)
-- `public.tasks`
-- Row Level Security (RLS) + policies
-- Trigger `handle_new_user()` để tự tạo/cập nhật profile khi có user mới
-
-Ngoài ra, hãy bật Email/Password provider trong Supabase Auth (Authentication → Providers).
-
-### 4) Run app
+### Run
 
 ```bash
 flutter run
 ```
 
-Chạy web (ví dụ Chrome):
+Chạy web (Chrome):
 
 ```bash
 flutter run -d chrome
@@ -78,40 +145,69 @@ flutter run -d chrome
 
 ## Lệnh hữu ích
 
-Format code:
+Format:
 
 ```bash
 dart format .
 ```
 
-Phân tích/lint:
+Analyze:
 
 ```bash
 flutter analyze
 ```
 
-Chạy test:
+Test:
 
 ```bash
 flutter test
 ```
 
-Build release:
+Build:
 
 ```bash
 flutter build apk
-flutter build ios
 flutter build web
+flutter build ios
 ```
 
 Ghi chú: `flutter build ios` chỉ chạy được trên macOS.
 
-## Ghi chú
+## Troubleshooting
 
-- `.env` được khai báo trong `pubspec.yaml` (assets) và được load ở runtime trong `lib/main.dart`.
-- Nếu bạn muốn version hóa schema DB, hãy cân nhắc **bỏ `supabase_schema.sql` khỏi `.gitignore`** (hiện tại file này đang bị ignore).
+### 1) App crash: “Missing SUPABASE_URL in .env” / “Missing SUPABASE_ANON_KEY in .env”
 
-## Tài liệu tham khảo
+- Kiểm tra file `.env` có tồn tại ở root và đúng key.
+- Đảm bảo bạn đã chạy `flutter pub get` (vì `.env` đang được khai báo trong assets).
+
+### 2) Sign in thất bại (AuthException)
+
+- Kiểm tra Email provider đã bật trong Supabase.
+- Kiểm tra email/password đúng, hoặc user đã được tạo.
+
+### 3) Query bị “permission denied” / không thấy data
+
+- Kiểm tra RLS policies trong `supabase_schema.sql` đã apply.
+- Đảm bảo đang đăng nhập và `auth.uid()` match đúng với `users.id` / `tasks.user_id`.
+
+### 4) Stream realtime không cập nhật
+
+- Kiểm tra Realtime đã bật cho table `tasks`.
+- Kiểm tra table có primary key đúng (code stream đang dùng `primaryKey: ['id']`).
+
+### 5) `flutter analyze` báo thiếu package (ví dụ Riverpod/GoRouter/Dio/secure storage)
+
+Trong repo có một số module theo hướng feature-first đang refactor dần, có import các package như `flutter_riverpod`, `go_router`, `dio`, `flutter_secure_storage`.
+
+- Nếu bạn muốn dùng các module này, hãy thêm dependencies tương ứng vào `pubspec.yaml`.
+- Nếu bạn chỉ muốn chạy luồng `lib/screens/` hiện tại, có thể tạm thời bỏ qua các cảnh báo phân tích (hoặc cấu hình analyze/exclude theo nhu cầu đội).
+
+## Ghi chú bảo mật
+
+- Chỉ dùng `SUPABASE_ANON_KEY` (public) ở client. **Không** đưa `service_role` key vào app.
+- Với Flutter web, `.env` là asset và sẽ nằm trong bundle build; vì vậy chỉ nên chứa thông tin “public” (URL + anon key là chấp nhận được theo mô hình Supabase).
+
+## Tham khảo
 
 - Flutter docs: https://docs.flutter.dev/
 - Supabase Flutter: https://supabase.com/docs/guides/getting-started/tutorials/with-flutter
