@@ -1,27 +1,57 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/colors.dart';
+import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 
-class BlankPage extends StatelessWidget {
+class BlankPage extends StatefulWidget {
   const BlankPage({super.key});
 
   @override
+  State<BlankPage> createState() => _BlankPageState();
+}
+
+class _BlankPageState extends State<BlankPage> {
+  int _selectedIndex = 0;
+
+  void _selectTab(int index) => setState(() => _selectedIndex = index);
+
+  @override
   Widget build(BuildContext context) {
-    return const Scaffold(
+    return Scaffold(
       body: _DashboardBackground(
         child: SafeArea(
           bottom: false,
           child: Column(
             children: [
-              _DashboardTopBar(),
-              Expanded(child: _DashboardContent()),
+              _DashboardTopBar(
+                selectedIndex: _selectedIndex,
+                onTabSelected: _selectTab,
+              ),
+              Expanded(child: _DashboardTabView(selectedIndex: _selectedIndex)),
             ],
           ),
         ),
       ),
-      bottomNavigationBar: _MobileBottomNav(),
+      bottomNavigationBar: _MobileBottomNav(
+        selectedIndex: _selectedIndex,
+        onTabSelected: _selectTab,
+      ),
     );
+  }
+}
+
+class _DashboardTabView extends StatelessWidget {
+  const _DashboardTabView({required this.selectedIndex});
+
+  final int selectedIndex;
+
+  @override
+  Widget build(BuildContext context) {
+    return switch (selectedIndex) {
+      1 => const TasksScreen(),
+      _ => const _DashboardContent(),
+    };
   }
 }
 
@@ -77,14 +107,27 @@ class _GlowOrb extends StatelessWidget {
 }
 
 class _DashboardTopBar extends StatelessWidget {
-  const _DashboardTopBar();
+  const _DashboardTopBar({
+    required this.selectedIndex,
+    required this.onTabSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
     final isWide = MediaQuery.sizeOf(context).width >= 760;
     final user = Supabase.instance.client.auth.currentUser;
-    final username = (user?.userMetadata?['username'] ?? user?.userMetadata?['full_name'] ?? user?.email ?? 'U').toString().trim();
-    final initial = username.isEmpty ? 'U' : username.characters.first.toUpperCase();
+    final username =
+        (user?.userMetadata?['username'] ??
+                user?.userMetadata?['full_name'] ??
+                user?.email ??
+                'U')
+            .toString()
+            .trim();
+    final initial =
+        username.isEmpty ? 'U' : username.characters.first.toUpperCase();
 
     return Container(
       decoration: BoxDecoration(
@@ -126,17 +169,28 @@ class _DashboardTopBar extends StatelessWidget {
                   ),
                 ),
                 const Spacer(),
-                if (isWide) ...const [
+                if (isWide) ...[
                   _TopNavItem(
                     icon: Icons.home_rounded,
                     label: 'Home',
-                    active: true,
+                    active: selectedIndex == 0,
+                    onTap: () => onTabSelected(0),
                   ),
-                  SizedBox(width: 12),
-                  _TopNavItem(icon: Icons.check_circle_rounded, label: 'Tasks'),
-                  SizedBox(width: 12),
-                  _TopNavItem(icon: Icons.smart_toy_rounded, label: 'Nexus'),
-                  SizedBox(width: 20),
+                  const SizedBox(width: 12),
+                  _TopNavItem(
+                    icon: Icons.check_circle_rounded,
+                    label: 'Tasks',
+                    active: selectedIndex == 1,
+                    onTap: () => onTabSelected(1),
+                  ),
+                  const SizedBox(width: 12),
+                  _TopNavItem(
+                    icon: Icons.smart_toy_rounded,
+                    label: 'Nexus',
+                    active: selectedIndex == 2,
+                    onTap: () => onTabSelected(2),
+                  ),
+                  const SizedBox(width: 20),
                 ],
                 Tooltip(
                   message: 'Sign out',
@@ -172,43 +226,64 @@ class _DashboardTopBar extends StatelessWidget {
   }
 }
 
-class _TopNavItem extends StatelessWidget {
+class _TopNavItem extends StatefulWidget {
   const _TopNavItem({
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  State<_TopNavItem> createState() => _TopNavItemState();
+}
+
+class _TopNavItemState extends State<_TopNavItem> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: active ? Colors.white.withOpacity(0.08) : Colors.transparent,
+    final highlighted = widget.active || _hovered;
+    final color =
+        highlighted ? NexusColors.primary : NexusColors.onSurfaceVariant;
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: InkWell(
+        onTap: widget.onTap,
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            icon,
-            size: 20,
-            color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color:
+                highlighted
+                    ? Colors.white.withOpacity(0.08)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color:
-                  active ? NexusColors.primary : NexusColors.onSurfaceVariant,
-              fontWeight: FontWeight.w700,
-              fontSize: 14,
-            ),
+          child: Row(
+            children: [
+              Icon(widget.icon, size: 20, color: color),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
@@ -1032,7 +1107,13 @@ class _DashboardGlassPanel extends StatelessWidget {
 }
 
 class _MobileBottomNav extends StatelessWidget {
-  const _MobileBottomNav();
+  const _MobileBottomNav({
+    required this.selectedIndex,
+    required this.onTabSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -1049,15 +1130,31 @@ class _MobileBottomNav extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: const [
+            children: [
               _BottomNavItem(
                 icon: Icons.home_rounded,
                 label: 'Home',
-                active: true,
+                active: selectedIndex == 0,
+                onTap: () => onTabSelected(0),
               ),
-              _BottomNavItem(icon: Icons.check_circle_rounded, label: 'Tasks'),
-              _BottomNavItem(icon: Icons.smart_toy_rounded, label: 'Nexus'),
-              _BottomNavItem(icon: Icons.person_rounded, label: 'Profile'),
+              _BottomNavItem(
+                icon: Icons.check_circle_rounded,
+                label: 'Tasks',
+                active: selectedIndex == 1,
+                onTap: () => onTabSelected(1),
+              ),
+              _BottomNavItem(
+                icon: Icons.smart_toy_rounded,
+                label: 'Nexus',
+                active: selectedIndex == 2,
+                onTap: () => onTabSelected(2),
+              ),
+              _BottomNavItem(
+                icon: Icons.person_rounded,
+                label: 'Profile',
+                active: selectedIndex == 3,
+                onTap: () => onTabSelected(3),
+              ),
             ],
           ),
         ),
@@ -1071,31 +1168,39 @@ class _BottomNavItem extends StatelessWidget {
     required this.icon,
     required this.label,
     this.active = false,
+    this.onTap,
   });
 
   final IconData icon;
   final String label;
   final bool active;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          icon,
-          color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
+    final color = active ? NexusColors.primary : NexusColors.onSurfaceVariant;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: color),
+            const SizedBox(height: 3),
+            Text(
+              label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ),
-        const SizedBox(height: 3),
-        Text(
-          label,
-          style: TextStyle(
-            color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-          ),
-        ),
-      ],
+      ),
     );
   }
 }
