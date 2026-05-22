@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/colors.dart';
+import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 
@@ -50,6 +51,7 @@ class _DashboardTabView extends StatelessWidget {
   Widget build(BuildContext context) {
     return switch (selectedIndex) {
       1 => const TasksScreen(),
+      2 => const AiScreen(),
       _ => const _DashboardContent(),
     };
   }
