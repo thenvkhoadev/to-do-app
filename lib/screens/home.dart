@@ -1,23 +1,6 @@
 import 'package:flutter/material.dart';
-
-class NexusColors {
-  static const background = Color(0xFF11131C);
-  static const surface = Color(0xFF11131C);
-  static const surfaceLow = Color(0xFF191B24);
-  static const surfaceContainer = Color(0xFF1D1F29);
-  static const surfaceContainerHigh = Color(0xFF282933);
-  static const surfaceContainerHighest = Color(0xFF32343E);
-  static const onSurface = Color(0xFFE1E1EF);
-  static const onSurfaceVariant = Color(0xFFCAC3D8);
-  static const outline = Color(0xFF948EA1);
-  static const outlineVariant = Color(0xFF494455);
-  static const primary = Color(0xFFCDBDFF);
-  static const primaryContainer = Color(0xFF7C4DFF);
-  static const onPrimary = Color(0xFF370096);
-  static const secondary = Color(0xFF4DDCC6);
-  static const secondaryContainer = Color(0xFF00B4A0);
-  static const tertiary = Color(0xFFFFB1C5);
-}
+import 'package:to_do_app/constants/colors.dart';
+import 'package:to_do_app/screens/sign_in_page.dart';
 
 class Home extends StatelessWidget {
   const Home({super.key});
@@ -34,6 +17,7 @@ class NexusLandingPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Stack(
+      fit: StackFit.expand,
       children: [
         const _PageBackground(),
         SafeArea(
@@ -133,7 +117,14 @@ class _TopBar extends StatelessWidget {
             _NavLink(label: 'Pricing'),
             SizedBox(width: 24),
           ],
-          const _GradientButton(label: 'Get Started', compact: true),
+          _GradientButton(
+            label: 'Get Started',
+            compact: true,
+            onTap:
+                () => Navigator.of(context).push(
+                  MaterialPageRoute(builder: (_) => const SignInPage()),
+                ),
+          ),
         ],
       ),
     );
@@ -238,9 +229,15 @@ class _HeroCopy extends StatelessWidget {
         Wrap(
           spacing: 16,
           runSpacing: 12,
-          children: const [
-            _GradientButton(label: 'Get Started Free'),
-            _GlassButton(
+          children: [
+            _GradientButton(
+              label: 'Get Started Free',
+              onTap:
+                  () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const SignInPage()),
+                  ),
+            ),
+            const _GlassButton(
               label: 'Watch Demo',
               icon: Icons.play_circle_outline_rounded,
             ),
@@ -813,10 +810,11 @@ class _FooterBrand extends StatelessWidget {
 }
 
 class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.label, this.compact = false});
+  const _GradientButton({required this.label, this.compact = false, this.onTap});
 
   final String label;
   final bool compact;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -840,7 +838,7 @@ class _GradientButton extends StatelessWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(12),
-          onTap: () {},
+          onTap: onTap,
           child: Padding(
             padding: EdgeInsets.symmetric(
               horizontal: compact ? 16 : 24,
@@ -1035,27 +1033,29 @@ class _PageBackground extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const Positioned.fill(child: ColoredBox(color: NexusColors.background)),
-        Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-        Positioned(
-          top: 120,
-          left: MediaQuery.sizeOf(context).width * 0.24,
-          child: _BlurOrb(
-            size: 520,
-            color: NexusColors.primaryContainer.withOpacity(0.22),
+    return SizedBox.expand(
+      child: Stack(
+        children: [
+          const Positioned.fill(child: ColoredBox(color: NexusColors.background)),
+          Positioned.fill(child: CustomPaint(painter: _GridPainter())),
+          Positioned(
+            top: 120,
+            left: MediaQuery.sizeOf(context).width * 0.24,
+            child: _BlurOrb(
+              size: 520,
+              color: NexusColors.primaryContainer.withOpacity(0.22),
+            ),
           ),
-        ),
-        Positioned(
-          top: 220,
-          right: 80,
-          child: _BlurOrb(
-            size: 360,
-            color: NexusColors.secondaryContainer.withOpacity(0.12),
+          Positioned(
+            top: 220,
+            right: 80,
+            child: _BlurOrb(
+              size: 360,
+              color: NexusColors.secondaryContainer.withOpacity(0.12),
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
