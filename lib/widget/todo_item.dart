@@ -4,10 +4,15 @@ import '../constants/colors.dart';
 
 class ToDoItem extends StatelessWidget {
   final ToDo toDo;
-  final onToDoChange;
-  final onDeleteItem;
+  final ValueChanged<ToDo> onToDoChange;
+  final ValueChanged<String?> onDeleteItem;
 
-  const ToDoItem({Key? key, required this.toDo, required this.onToDoChange, required this.onDeleteItem}) : super(key: key);
+  const ToDoItem({
+    super.key,
+    required this.toDo,
+    required this.onToDoChange,
+    required this.onDeleteItem,
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:to_do_app/constants/colors.dart';
 import 'package:to_do_app/screens/blank_page.dart';
 import 'package:to_do_app/screens/sign_up_page.dart';
 
@@ -9,78 +8,52 @@ class SignInPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      body: Stack(
-        children: [
-          _AuthBackground(),
-          SafeArea(child: _AuthContent()),
-        ],
-      ),
-    );
+    return const Scaffold(body: _LoginPage());
   }
 }
 
-class _AuthContent extends StatelessWidget {
-  const _AuthContent();
+class _LoginPage extends StatelessWidget {
+  const _LoginPage();
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final padding = width >= 760 ? 48.0 : 16.0;
+    final size = MediaQuery.sizeOf(context);
+    final horizontalPadding = size.width < 560 ? 24.0 : 32.0;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: EdgeInsets.symmetric(horizontal: padding, vertical: padding),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 440),
-          child: const Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _AuthLogoHeader(),
-              SizedBox(height: 40),
-              _AuthCard(),
-              SizedBox(height: 40),
-              _SignUpPrompt(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AuthLogoHeader extends StatelessWidget {
-  const _AuthLogoHeader();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
+    return Stack(
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.bubble_chart_rounded, color: NexusColors.primary, size: 32),
-            SizedBox(width: 8),
-            Text(
-              'Nexus AI',
-              style: TextStyle(
-                color: NexusColors.onSurface,
-                fontSize: 48,
-                height: 1.1,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -1.8,
+        const Positioned.fill(child: _AnimatedBackground()),
+        const Positioned(
+          top: -120,
+          left: -120,
+          child: _BackgroundBlob(size: 600, color: Color(0x12C0C1FF)),
+        ),
+        const Positioned(
+          right: -120,
+          bottom: -120,
+          child: _BackgroundBlob(size: 600, color: Color(0x0DADC6FF)),
+        ),
+        SafeArea(
+          child: Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: horizontalPadding,
+                vertical: 32,
+              ),
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 480),
+                child: const Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _BrandHeader(),
+                    SizedBox(height: 32),
+                    _LoginCard(),
+                    SizedBox(height: 32),
+                    _FooterLinks(),
+                  ],
+                ),
               ),
             ),
-          ],
-        ),
-        SizedBox(height: 8),
-        Text(
-          'Welcome back. Please enter your details.',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: NexusColors.onSurfaceVariant,
-            fontSize: 18,
-            height: 1.6,
           ),
         ),
       ],
@@ -88,16 +61,103 @@ class _AuthLogoHeader extends StatelessWidget {
   }
 }
 
-class _AuthCard extends StatefulWidget {
-  const _AuthCard();
+class _AnimatedBackground extends StatelessWidget {
+  const _AnimatedBackground();
 
   @override
-  State<_AuthCard> createState() => _AuthCardState();
+  Widget build(BuildContext context) {
+    return const DecoratedBox(
+      decoration: BoxDecoration(
+        color: Color(0xFF0D1322),
+        gradient: RadialGradient(
+          center: Alignment.center,
+          radius: 1.05,
+          colors: [Color(0xFF151B2B), Color(0xFF0D1322)],
+        ),
+      ),
+    );
+  }
 }
 
-class _AuthCardState extends State<_AuthCard> {
+class _BrandHeader extends StatelessWidget {
+  const _BrandHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 64,
+          height: 64,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFFC0C1FF), Color(0xFFDDB7FF)],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x26C0C1FF),
+                blurRadius: 40,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: Color(0xFF1000A9),
+            size: 40,
+          ),
+        ),
+        const SizedBox(height: 16),
+        ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback:
+              (bounds) => const LinearGradient(
+                colors: [Color(0xFFC0C1FF), Color(0xFFDDB7FF)],
+              ).createShader(bounds),
+          child: const Text(
+            'TaskFlow AI',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 48,
+              height: 1.1,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -1.0,
+            ),
+          ),
+        ),
+        const SizedBox(height: 8),
+        const Text(
+          'DEEP WORK ACCESS',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            color: Color(0xCCC0C1FF),
+            fontSize: 12,
+            height: 1,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 2.4,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _LoginCard extends StatefulWidget {
+  const _LoginCard();
+
+  @override
+  State<_LoginCard> createState() => _LoginCardState();
+}
+
+class _LoginCardState extends State<_LoginCard> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _signInFocusNode = FocusNode();
   bool _isPasswordHidden = true;
   bool _isLoading = false;
 
@@ -105,6 +165,9 @@ class _AuthCardState extends State<_AuthCard> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _signInFocusNode.dispose();
     super.dispose();
   }
 
@@ -124,9 +187,9 @@ class _AuthCardState extends State<_AuthCard> {
         password: password,
       );
       if (mounted) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const BlankPage()),
-        );
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const BlankPage()));
       }
     } on AuthException catch (error) {
       _showMessage(error.message);
@@ -138,72 +201,94 @@ class _AuthCardState extends State<_AuthCard> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.all(MediaQuery.sizeOf(context).width >= 760 ? 40 : 24),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: NexusColors.surfaceContainer.withOpacity(0.6),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
-        boxShadow: [
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.black.withOpacity(0.4),
-            blurRadius: 40,
-            offset: const Offset(0, 20),
+            color: Color(0x66000000),
+            blurRadius: 32,
+            offset: Offset(0, 20),
           ),
         ],
       ),
       child: Column(
         children: [
-          _AuthTextField(
+          _AuthField(
             controller: _emailController,
             label: 'Email',
-            hint: 'Enter your email',
-            icon: Icons.mail_outline_rounded,
+            hint: 'name@company.com',
+            icon: Icons.alternate_email_rounded,
             keyboardType: TextInputType.emailAddress,
+            focusNode: _emailFocusNode,
+            textInputAction: TextInputAction.next,
+            onSubmitted: () => _passwordFocusNode.requestFocus(),
           ),
-          const SizedBox(height: 24),
-          _AuthTextField(
+          const SizedBox(height: 16),
+          _AuthField(
             controller: _passwordController,
             label: 'Password',
             hint: '••••••••',
-            icon: Icons.lock_outline_rounded,
+            icon: Icons.lock_rounded,
             obscureText: _isPasswordHidden,
-            trailing: Icon(
-              _isPasswordHidden ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-              size: 20,
+            focusNode: _passwordFocusNode,
+            textInputAction: TextInputAction.done,
+            onSubmitted: () {
+              _signInFocusNode.requestFocus();
+              if (!_isLoading) _signIn();
+            },
+            topAction: 'Forgot password?',
+            trailing: IconButton(
+              onPressed:
+                  () => setState(() => _isPasswordHidden = !_isPasswordHidden),
+              icon: Icon(
+                _isPasswordHidden
+                    ? Icons.visibility_outlined
+                    : Icons.visibility_off_outlined,
+                color: const Color(0xFFC7C4D7),
+              ),
             ),
-            trailingLabel: 'Forgot Password?',
-            onTrailingPressed: () => setState(() => _isPasswordHidden = !_isPasswordHidden),
           ),
-          const SizedBox(height: 24),
-          _PrimaryAuthButton(isLoading: _isLoading, onTap: _isLoading ? null : _signIn),
-          const SizedBox(height: 24),
+          const SizedBox(height: 22),
+          _SignInButton(
+            focusNode: _signInFocusNode,
+            isLoading: _isLoading,
+            onTap: _isLoading ? null : _signIn,
+          ),
+          const SizedBox(height: 20),
           const _DividerLabel(),
-          const SizedBox(height: 24),
-          const _SocialActions(),
+          const SizedBox(height: 20),
+          const _SocialButtons(),
         ],
       ),
     );
   }
 }
 
-class _AuthTextField extends StatelessWidget {
-  const _AuthTextField({
+class _AuthField extends StatelessWidget {
+  const _AuthField({
     required this.controller,
     required this.label,
     required this.hint,
     required this.icon,
     this.keyboardType,
     this.obscureText = false,
+    this.focusNode,
+    this.textInputAction,
+    this.onSubmitted,
+    this.topAction,
     this.trailing,
-    this.trailingLabel,
-    this.onTrailingPressed,
   });
 
   final TextEditingController controller;
@@ -212,74 +297,86 @@ class _AuthTextField extends StatelessWidget {
   final IconData icon;
   final TextInputType? keyboardType;
   final bool obscureText;
+  final FocusNode? focusNode;
+  final TextInputAction? textInputAction;
+  final VoidCallback? onSubmitted;
+  final String? topAction;
   final Widget? trailing;
-  final String? trailingLabel;
-  final VoidCallback? onTrailingPressed;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              label,
-              style: const TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.7,
-              ),
-            ),
-            if (trailingLabel != null)
-              TextButton(
-                onPressed: () {},
-                style: TextButton.styleFrom(
-                  foregroundColor: NexusColors.primary,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                  padding: EdgeInsets.zero,
-                  minimumSize: Size.zero,
-                ),
-                child: Text(
-                  trailingLabel!,
-                  style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Row(
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFC7C4D7),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
-          ],
+              const Spacer(),
+              if (topAction != null)
+                TextButton(
+                  onHover: (_) {},
+                  onPressed: () {},
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFC0C1FF),
+                    padding: EdgeInsets.zero,
+                    minimumSize: const Size(44, 28),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                  child: Text(
+                    topAction!,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         TextField(
           controller: controller,
+          focusNode: focusNode,
           keyboardType: keyboardType,
+          textInputAction: textInputAction,
+          onSubmitted: (_) => onSubmitted?.call(),
           obscureText: obscureText,
-          style: const TextStyle(color: NexusColors.onSurface, fontSize: 16),
+          style: const TextStyle(
+            color: Color(0xFFDDE2F8),
+            fontSize: 16,
+            height: 1.5,
+          ),
           decoration: InputDecoration(
             hintText: hint,
-            hintStyle: const TextStyle(color: NexusColors.outline),
-            prefixIcon: Icon(icon, color: NexusColors.outline, size: 20),
-            suffixIcon: trailing == null
-                ? null
-                : IconButton(
-                    onPressed: onTrailingPressed,
-                    color: NexusColors.outline,
-                    icon: trailing!,
-                  ),
+            hintStyle: const TextStyle(color: Color(0x80464554), fontSize: 16),
+            prefixIcon: Icon(icon, color: const Color(0xFF908FA0), size: 22),
+            suffixIcon: trailing,
             filled: true,
-            fillColor: NexusColors.surfaceContainerHigh,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: NexusColors.outlineVariant.withOpacity(0.3)),
-            ),
+            fillColor: const Color(0xFF080E1D).withValues(alpha: 0.5),
+            contentPadding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: NexusColors.outlineVariant.withOpacity(0.3)),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0x4D464554)),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: NexusColors.primaryContainer.withOpacity(0.5)),
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(
+                color: Color(0xFFC0C1FF),
+                width: 1.3,
+              ),
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: Color(0x4D464554)),
             ),
           ),
         ),
@@ -288,9 +385,14 @@ class _AuthTextField extends StatelessWidget {
   }
 }
 
-class _PrimaryAuthButton extends StatelessWidget {
-  const _PrimaryAuthButton({required this.isLoading, required this.onTap});
+class _SignInButton extends StatelessWidget {
+  const _SignInButton({
+    required this.focusNode,
+    required this.isLoading,
+    required this.onTap,
+  });
 
+  final FocusNode focusNode;
   final bool isLoading;
   final VoidCallback? onTap;
 
@@ -298,52 +400,56 @@ class _PrimaryAuthButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
       child: Ink(
         width: double.infinity,
+        height: 56,
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [NexusColors.primaryContainer, NexusColors.secondary],
+            colors: [Color(0xFF8083FF), Color(0xFF6F00BE)],
           ),
-          borderRadius: BorderRadius.circular(8),
-          boxShadow: [
-            BoxShadow(
-              color: NexusColors.primaryContainer.withOpacity(0.3),
-              blurRadius: 15,
-              offset: const Offset(0, 4),
-            ),
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: const [
+            BoxShadow(color: Color(0x1AC0C1FF), blurRadius: 18),
           ],
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          mouseCursor: SystemMouseCursors.click,
+          focusNode: focusNode,
           onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (isLoading)
-                  const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                else ...const [
-                  Text(
-                    'Sign In',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 0.7,
+          borderRadius: BorderRadius.circular(12),
+          child: Center(
+            child:
+                isLoading
+                    ? const SizedBox(
+                      width: 22,
+                      height: 22,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: Colors.white,
+                      ),
+                    )
+                    : const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          'Sign in',
+                          style: TextStyle(
+                            color: Color(0xFF0D0096),
+                            fontSize: 24,
+                            fontWeight: FontWeight.w800,
+                            height: 1.3,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward_rounded,
+                          color: Color(0xFF0D0096),
+                          size: 24,
+                        ),
+                      ],
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(Icons.arrow_forward_rounded, color: Colors.white, size: 18),
-                ],
-              ],
-            ),
           ),
         ),
       ),
@@ -358,37 +464,41 @@ class _DividerLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Divider(color: NexusColors.outlineVariant.withOpacity(0.3))),
+        Expanded(
+          child: Divider(color: const Color(0xFF464554).withValues(alpha: 0.2)),
+        ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'OR CONTINUE WITH',
             style: TextStyle(
-              color: NexusColors.onSurfaceVariant,
+              color: Color(0xFF464554),
               fontSize: 12,
               fontWeight: FontWeight.w600,
             ),
           ),
         ),
-        Expanded(child: Divider(color: NexusColors.outlineVariant.withOpacity(0.3))),
+        Expanded(
+          child: Divider(color: const Color(0xFF464554).withValues(alpha: 0.2)),
+        ),
       ],
     );
   }
 }
 
-class _SocialActions extends StatelessWidget {
-  const _SocialActions();
+class _SocialButtons extends StatelessWidget {
+  const _SocialButtons();
 
   @override
   Widget build(BuildContext context) {
-    final isNarrow = MediaQuery.sizeOf(context).width < 360;
+    final stack = MediaQuery.sizeOf(context).width < 380;
 
-    if (isNarrow) {
+    if (stack) {
       return const Column(
         children: [
           _SocialButton(label: 'Google', icon: _GoogleMark()),
-          SizedBox(height: 12),
-          _SocialButton(label: 'Apple', icon: Icon(Icons.apple_rounded, size: 20)),
+          SizedBox(height: 8),
+          _SocialButton(label: 'GitHub', icon: _GitHubMark()),
         ],
       );
     }
@@ -396,8 +506,8 @@ class _SocialActions extends StatelessWidget {
     return const Row(
       children: [
         Expanded(child: _SocialButton(label: 'Google', icon: _GoogleMark())),
-        SizedBox(width: 16),
-        Expanded(child: _SocialButton(label: 'Apple', icon: Icon(Icons.apple_rounded, size: 20))),
+        SizedBox(width: 8),
+        Expanded(child: _SocialButton(label: 'GitHub', icon: _GitHubMark())),
       ],
     );
   }
@@ -413,34 +523,34 @@ class _SocialButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
       child: Ink(
+        height: 48,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.white.withOpacity(0.08)),
+          color: const Color(0xFF2F3445).withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: const Color(0xFF464554).withValues(alpha: 0.2),
+          ),
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(8),
+          mouseCursor: SystemMouseCursors.click,
           onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                icon,
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Text(
-                    label,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
-                      color: NexusColors.onSurface,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
+          borderRadius: BorderRadius.circular(12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              icon,
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFDDE2F8),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -453,81 +563,110 @@ class _GoogleMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const SizedBox(
+    return Image.network(
+      'https://lh3.googleusercontent.com/aida-public/AB6AXuDpCQZFSTBBulXROPYFearaXA6ngGtQ9-ry7ajMdSsU0toXNLoZPVujSnHKtOAJDjnzu5ga24jw5u4G-pw2_bEtz8z3AEUJ3uASUmYrQI-ErvVn0rKa-q2SGaPvSCiC3W0yELqivvIQ6g_IgxKb3_GZyrgX7bWTYYcy-CQZ1I9HrXw4JxKVEkWSnFMT-W_C8Oa6-mR-d3HMrxq3-2C_HgjEMD1LIMsc6NLyFHuRlVgkqrJiFjD2OeRYMArw-Ved5qe3i-2uku3_KvLL',
       width: 20,
       height: 20,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Text('G', style: TextStyle(color: Color(0xFF4285F4), fontSize: 18, fontWeight: FontWeight.w800)),
-          Positioned(right: 0, bottom: 2, child: Icon(Icons.circle, color: Color(0xFF34A853), size: 5)),
-          Positioned(left: 1, bottom: 2, child: Icon(Icons.circle, color: Color(0xFFFBBC05), size: 5)),
-          Positioned(right: 1, top: 1, child: Icon(Icons.circle, color: Color(0xFFEA4335), size: 4)),
-        ],
-      ),
+      fit: BoxFit.contain,
+      errorBuilder:
+          (_, __, ___) => const Icon(
+            Icons.g_mobiledata_rounded,
+            color: Color(0xFFDDE2F8),
+            size: 20,
+          ),
     );
   }
 }
 
-class _SignUpPrompt extends StatelessWidget {
-  const _SignUpPrompt();
+class _GitHubMark extends StatelessWidget {
+  const _GitHubMark();
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
+    return Image.network(
+      'https://lh3.googleusercontent.com/aida/ADBb0ujwdgyV34o4oCm-aQwCOUOR694gdAxC9XtrTsWm-33XdUBT4Oeeqbbm3GUcRS61ESx9syc7PJUXFjGhETKn-vQm39AlI2wFJ-7otkqS_7x-DBM4nm7xNdisYELru2xAtg3mLgaSKcgy-BGCv9N5sQVe4s7nvUsu6YWvQ9h8Wvs0vSNKEOcF5_XU_TNcV3Bth3zhjwMex6Vrl_YDTBkvPUo4Zz8HXhQXYjbd9lwEda0e0RrOjBrlIjxdnV3w',
+      width: 20,
+      height: 20,
+      fit: BoxFit.contain,
+      errorBuilder:
+          (_, __, ___) => const Icon(
+            Icons.code_rounded,
+            color: Color(0xFFDDE2F8),
+            size: 20,
+          ),
+    );
+  }
+}
+
+class _FooterLinks extends StatelessWidget {
+  const _FooterLinks();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
       children: [
-        const Text(
-          "Don't have an account? ",
-          style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 16),
-        ),
-        TextButton(
-          onPressed:
-              () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const SignUpPage()),
+        Wrap(
+          alignment: WrapAlignment.center,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Text(
+              "Don't have an account? ",
+              style: TextStyle(
+                color: Color(0xFFC7C4D7),
+                fontSize: 16,
+                height: 1.5,
               ),
-          style: TextButton.styleFrom(
-            foregroundColor: NexusColors.primary,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            padding: EdgeInsets.zero,
-            minimumSize: Size.zero,
-          ),
-          child: const Text(
-            'Sign Up',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
+            ),
+            TextButton(
+              onHover: (_) {},
+              onPressed:
+                  () => Navigator.of(
+                    context,
+                  ).push(MaterialPageRoute(builder: (_) => const SignUpPage())),
+              style: TextButton.styleFrom(
+                foregroundColor: const Color(0xFFC0C1FF),
+                padding: EdgeInsets.zero,
+                minimumSize: const Size(44, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: const Text(
+                'Sign up',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        const Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 24,
+          runSpacing: 8,
+          children: [
+            Text(
+              'Privacy Policy',
+              style: TextStyle(
+                color: Color(0xFF464554),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            Text(
+              'Status: All Systems Optimal',
+              style: TextStyle(
+                color: Color(0xFF464554),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _AuthBackground extends StatelessWidget {
-  const _AuthBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        const Positioned.fill(child: ColoredBox(color: NexusColors.background)),
-        Positioned(
-          left: -120,
-          top: MediaQuery.sizeOf(context).height * 0.35,
-          child: _GlowOrb(size: 360, color: NexusColors.primaryContainer.withOpacity(0.08)),
-        ),
-        Positioned(
-          right: -100,
-          top: MediaQuery.sizeOf(context).height * 0.12,
-          child: _GlowOrb(size: 320, color: NexusColors.secondary.withOpacity(0.05)),
-        ),
-      ],
-    );
-  }
-}
-
-class _GlowOrb extends StatelessWidget {
-  const _GlowOrb({required this.size, required this.color});
+class _BackgroundBlob extends StatelessWidget {
+  const _BackgroundBlob({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -539,7 +678,7 @@ class _GlowOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 80)],
+        boxShadow: [BoxShadow(color: color, blurRadius: 80, spreadRadius: 120)],
       ),
     );
   }

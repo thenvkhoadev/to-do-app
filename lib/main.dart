@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:to_do_app/constants/colors.dart';
-import 'package:to_do_app/screens/home.dart';
+import 'package:to_do_app/app.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,36 +27,5 @@ Future<void> main() async {
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
 
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Nexus AI',
-      theme: ThemeData(
-        useMaterial3: true,
-        brightness: Brightness.dark,
-        colorScheme: const ColorScheme.dark(
-          primary: NexusColors.primary,
-          onPrimary: NexusColors.onPrimary,
-          primaryContainer: NexusColors.primaryContainer,
-          secondary: NexusColors.secondary,
-          secondaryContainer: NexusColors.secondaryContainer,
-          tertiary: NexusColors.tertiary,
-          surface: NexusColors.surface,
-          onSurface: NexusColors.onSurface,
-          surfaceContainerHighest: NexusColors.surfaceContainerHighest,
-          outline: NexusColors.outline,
-        ),
-        scaffoldBackgroundColor: NexusColors.background,
-        fontFamily: 'Inter',
-      ),
-      home: const Home(),
-    );
-  }
+  runApp(const ProviderScope(child: NexusApp()));
 }

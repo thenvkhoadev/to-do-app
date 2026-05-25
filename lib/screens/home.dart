@@ -16,367 +16,134 @@ class NexusLandingPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
+
     return Stack(
-      fit: StackFit.expand,
       children: [
-        const _PageBackground(),
-        SafeArea(
-          bottom: false,
-          child: CustomScrollView(
-            slivers: [
-              const SliverToBoxAdapter(child: _TopBar()),
-              SliverToBoxAdapter(
-                child: _ResponsiveSection(
-                  child: Column(
-                    children: const [
-                      _HeroSection(),
-                      _FeatureSection(),
-                      _TestimonialSection(),
-                    ],
-                  ),
-                ),
-              ),
-              const SliverToBoxAdapter(child: _Footer()),
-            ],
-          ),
+        const Positioned.fill(child: ColoredBox(color: Color(0xFF0D1322))),
+        const Positioned(
+          top: -160,
+          left: -120,
+          child: _GlowOrb(size: 420, color: Color(0x267C4DFF)),
         ),
+        const Positioned(
+          top: 260,
+          right: -160,
+          child: _GlowOrb(size: 520, color: Color(0x204DDCC6)),
+        ),
+        CustomScrollView(
+          slivers: [
+            SliverToBoxAdapter(
+              child:
+                  isDesktop ? const _DesktopLanding() : const _MobileLanding(),
+            ),
+          ],
+        ),
+        const Positioned(top: 0, left: 0, right: 0, child: _LandingTopNav()),
       ],
     );
   }
 }
 
-class _ResponsiveSection extends StatelessWidget {
-  const _ResponsiveSection({required this.child});
-
-  final Widget child;
+class _DesktopLanding extends StatelessWidget {
+  const _DesktopLanding();
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final horizontalPadding = width >= 1024 ? 48.0 : 16.0;
-
-    return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 1280),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-          child: child,
-        ),
-      ),
+    return Column(
+      children: const [
+        _DesktopHero(),
+        _SocialProofSection(),
+        _DesktopFeaturesSection(),
+        _DesktopTestimonialSection(),
+        _FinalCtaSection(),
+        _LandingFooter(),
+      ],
     );
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar();
+class _MobileLanding extends StatelessWidget {
+  const _MobileLanding();
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
+    return Column(
+      children: const [
+        _MobileHero(),
+        _MobileValueProps(),
+        _MobileTestimonial(),
+        _MobileIntegrations(),
+        _LandingFooter(),
+      ],
+    );
+  }
+}
+
+class _LandingTopNav extends StatelessWidget {
+  const _LandingTopNav();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 16, vertical: 16),
+      height: 64,
+      padding: EdgeInsets.symmetric(horizontal: isDesktop ? 32 : 24),
       decoration: BoxDecoration(
-        color: NexusColors.surface.withOpacity(0.82),
+        color: const Color(0xFF0D1322).withValues(alpha: 0.84),
         border: Border(
-          bottom: BorderSide(
-            color: NexusColors.outlineVariant.withOpacity(0.24),
-          ),
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.24),
-            blurRadius: 24,
-            offset: const Offset(0, 12),
+            color: NexusColors.primary.withValues(alpha: 0.12),
+            blurRadius: 30,
           ),
         ],
       ),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.bubble_chart_rounded,
-            color: NexusColors.primary,
-            size: 30,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Nexus AI',
-            style: TextStyle(
-              color: NexusColors.primary,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.5,
-            ),
-          ),
-          const Spacer(),
-          if (isWide) ...const [
-            _NavLink(label: 'Product', active: true),
-            SizedBox(width: 24),
-            _NavLink(label: 'Solutions'),
-            SizedBox(width: 24),
-            _NavLink(label: 'Pricing'),
-            SizedBox(width: 24),
-          ],
-          _GradientButton(
-            label: 'Get Started',
-            compact: true,
-            onTap:
-                () => Navigator.of(context).push(
-                  MaterialPageRoute(builder: (_) => const SignInPage()),
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _NavLink extends StatelessWidget {
-  const _NavLink({required this.label, this.active = false});
-
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      label,
-      style: TextStyle(
-        color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
-        fontSize: 14,
-        fontWeight: active ? FontWeight.w800 : FontWeight.w600,
-        letterSpacing: 0.7,
-      ),
-    );
-  }
-}
-
-class _HeroSection extends StatelessWidget {
-  const _HeroSection();
-
-  @override
-  Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 920;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 64),
-      child:
-          isWide
-              ? const Row(
-                children: [
-                  Expanded(child: _HeroCopy()),
-                  SizedBox(width: 40),
-                  Expanded(child: _HeroVisual()),
-                ],
-              )
-              : const Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [_HeroCopy(), SizedBox(height: 40), _HeroVisual()],
-              ),
-    );
-  }
-}
-
-class _HeroCopy extends StatelessWidget {
-  const _HeroCopy();
-
-  @override
-  Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
-
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const _StatusPill(),
-        const SizedBox(height: 16),
-        Text.rich(
-          TextSpan(
-            text: 'Your Premium\n',
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1280),
+          child: Row(
             children: [
-              WidgetSpan(
-                child: _GradientText(
-                  'Productivity Companion',
-                  style: TextStyle(
-                    fontSize: isWide ? 48 : 34,
-                    fontWeight: FontWeight.w900,
-                    height: 1.1,
-                  ),
+              const Text(
+                'TaskFlow AI',
+                style: TextStyle(
+                  color: Color(0xFFDDE2F8),
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -0.8,
                 ),
               ),
-            ],
-          ),
-          style: TextStyle(
-            color: NexusColors.onSurface,
-            fontSize: isWide ? 48 : 34,
-            fontWeight: FontWeight.w900,
-            height: 1.1,
-            letterSpacing: -1.4,
-          ),
-        ),
-        const SizedBox(height: 16),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 560),
-          child: Text(
-            'Master your flow with AI-driven task management, deep work optimization, and seamless context switching. Built for visionaries.',
-            style: TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 18,
-              height: 1.6,
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-        Wrap(
-          spacing: 16,
-          runSpacing: 12,
-          children: [
-            _GradientButton(
-              label: 'Get Started Free',
-              onTap:
-                  () => Navigator.of(context).push(
-                    MaterialPageRoute(builder: (_) => const SignInPage()),
-                  ),
-            ),
-            const _GlassButton(
-              label: 'Watch Demo',
-              icon: Icons.play_circle_outline_rounded,
-            ),
-          ],
-        ),
-        const SizedBox(height: 40),
-        Container(
-          height: 1,
-          width: 360,
-          color: NexusColors.outlineVariant.withOpacity(0.35),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'TRUSTED BY INNOVATIVE TEAMS',
-          style: TextStyle(
-            color: NexusColors.outline,
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.6,
-          ),
-        ),
-        const SizedBox(height: 12),
-        Wrap(
-          spacing: 24,
-          runSpacing: 12,
-          children: const [
-            _LogoChip(icon: Icons.api_rounded, label: 'Vertex'),
-            _LogoChip(icon: Icons.layers_rounded, label: 'Synapse'),
-            _LogoChip(icon: Icons.all_inclusive_rounded, label: 'Infinity'),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusPill extends StatelessWidget {
-  const _StatusPill();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _GlassPanel(
-      borderRadius: 999,
-      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(Icons.bolt_rounded, color: NexusColors.secondary, size: 18),
-          SizedBox(width: 8),
-          Text(
-            'NEXUS ENGINE V2.0 LIVE',
-            style: TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.2,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroVisual extends StatelessWidget {
-  const _HeroVisual();
-
-  @override
-  Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 4 / 3,
-      child: _GlassPanel(
-        padding: EdgeInsets.zero,
-        borderRadius: 20,
-        glowColor: NexusColors.primaryContainer.withOpacity(0.32),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(20),
-          child: Stack(
-            children: [
-              Positioned.fill(
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    gradient: RadialGradient(
-                      center: const Alignment(0.1, -0.25),
-                      radius: 1.0,
-                      colors: [
-                        NexusColors.primaryContainer.withOpacity(0.72),
-                        NexusColors.secondaryContainer.withOpacity(0.34),
-                        NexusColors.surfaceLow,
-                      ],
-                    ),
+              const Spacer(),
+              if (isDesktop) ...const [
+                _LandingNavLink(label: 'Features', active: true),
+                SizedBox(width: 32),
+                _LandingNavLink(label: 'Pricing'),
+                SizedBox(width: 32),
+                _LandingNavLink(label: 'Intelligence'),
+                SizedBox(width: 24),
+              ],
+              if (isDesktop) ...[
+                const _GlassButton(
+                  label: 'Watch Demo',
+                  icon: Icons.play_circle_outline_rounded,
+                ),
+                const SizedBox(width: 12),
+                _GradientButton(
+                  label: 'Get Started',
+                  compact: true,
+                  onTap: () => _goSignIn(context),
+                ),
+              ] else
+                IconButton(
+                  onPressed: () => _goSignIn(context),
+                  icon: const Icon(
+                    Icons.menu_rounded,
+                    color: Color(0xFFDDE2F8),
                   ),
                 ),
-              ),
-              Positioned.fill(child: CustomPaint(painter: _OrbitalPainter())),
-              Positioned(
-                left: 24,
-                right: 24,
-                bottom: 24,
-                child: _GlassPanel(
-                  borderRadius: 12,
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      _IconTile(
-                        icon: Icons.auto_awesome_rounded,
-                        color: NexusColors.secondary,
-                      ),
-                      SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              'Deep Work Achieved',
-                              style: TextStyle(
-                                color: NexusColors.onSurface,
-                                fontSize: 14,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            SizedBox(height: 4),
-                            Text(
-                              'Nexus optimized your schedule, saving 2.4 hours today.',
-                              style: TextStyle(
-                                color: NexusColors.onSurfaceVariant,
-                                fontSize: 12,
-                                height: 1.4,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
             ],
           ),
         ),
@@ -385,342 +152,218 @@ class _HeroVisual extends StatelessWidget {
   }
 }
 
-class _FeatureSection extends StatelessWidget {
-  const _FeatureSection();
+class _DesktopHero extends StatelessWidget {
+  const _DesktopHero();
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 860;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 64),
+    return _LandingSection(
+      top: 128,
+      bottom: 128,
       child: Column(
         children: [
-          const Text(
-            'Engineered for Focus',
+          const _StatusPill(label: 'AI-POWERED FLOW STATE'),
+          const SizedBox(height: 28),
+          const Text.rich(
+            TextSpan(
+              text: 'Master your focus with\n',
+              children: [
+                TextSpan(
+                  text: 'machine intelligence.',
+                  style: TextStyle(color: Color(0xFFC0C1FF)),
+                ),
+              ],
+            ),
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: NexusColors.onSurface,
-              fontSize: 32,
-              height: 1.2,
-              fontWeight: FontWeight.w800,
+              color: Color(0xFFDDE2F8),
+              fontSize: 72,
+              height: 1.05,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -2.2,
             ),
           ),
-          const SizedBox(height: 8),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 680),
+          const SizedBox(height: 28),
+          const SizedBox(
+            width: 720,
             child: Text(
-              'Abandon the clutter. Nexus AI structures your workload with crystalline precision.',
+              'The premium productivity command center for high-performing professionals. Eliminate friction, automate scheduling, and enter deep work faster with TaskFlow AI.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: NexusColors.onSurfaceVariant,
+                color: Color(0xFFC7C4D7),
                 fontSize: 18,
                 height: 1.6,
               ),
             ),
           ),
           const SizedBox(height: 40),
-          if (isWide)
-            const _DesktopFeatureGrid()
-          else
-            const _MobileFeatureList(),
-        ],
-      ),
-    );
-  }
-}
-
-class _DesktopFeatureGrid extends StatelessWidget {
-  const _DesktopFeatureGrid();
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: const [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(flex: 2, child: _TaskBreakdownCard()),
-            SizedBox(width: 24),
-            Expanded(
-              child: _FeatureCard(
-                icon: Icons.bar_chart_rounded,
-                color: NexusColors.secondary,
-                title: 'Focus Analytics',
-                body:
-                    'Real-time telemetry on your cognitive flow. Understand when you peak.',
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 24),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Expanded(
-              child: _FeatureCard(
-                icon: Icons.hub_rounded,
-                color: NexusColors.tertiary,
-                title: 'Seamless Integrations',
-                body:
-                    'Syncs silently with your existing stack. No friction, pure output.',
-              ),
-            ),
-            SizedBox(width: 24),
-            Expanded(flex: 2, child: _FlowStateCard()),
-          ],
-        ),
-      ],
-    );
-  }
-}
-
-class _MobileFeatureList extends StatelessWidget {
-  const _MobileFeatureList();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      children: [
-        _TaskBreakdownCard(),
-        SizedBox(height: 16),
-        _FeatureCard(
-          icon: Icons.bar_chart_rounded,
-          color: NexusColors.secondary,
-          title: 'Focus Analytics',
-          body:
-              'Real-time telemetry on your cognitive flow. Understand when you peak.',
-        ),
-        SizedBox(height: 16),
-        _FeatureCard(
-          icon: Icons.hub_rounded,
-          color: NexusColors.tertiary,
-          title: 'Seamless Integrations',
-          body:
-              'Syncs silently with your existing stack. No friction, pure output.',
-        ),
-        SizedBox(height: 16),
-        _FlowStateCard(),
-      ],
-    );
-  }
-}
-
-class _TaskBreakdownCard extends StatelessWidget {
-  const _TaskBreakdownCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassPanel(
-      minHeight: 300,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          const Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 24,
+            runSpacing: 16,
             children: [
-              _IconTile(
-                icon: Icons.account_tree_rounded,
-                color: NexusColors.primary,
+              _GradientButton(
+                label: 'Get Started Free',
+                onTap: () => _goSignIn(context),
               ),
-              SizedBox(height: 16),
-              Text(
-                'AI Task Breakdown',
-                style: TextStyle(
-                  color: NexusColors.onSurface,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Input a massive project, and watch Nexus fracture it into actionable, hyper-specific micro-tasks instantly.',
-                style: TextStyle(
-                  color: NexusColors.onSurfaceVariant,
-                  fontSize: 16,
-                  height: 1.55,
-                ),
+              const _GlassButton(
+                label: 'Watch Demo',
+                icon: Icons.play_circle_outline_rounded,
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          SizedBox(
-            height: 96,
-            child: CustomPaint(
-              painter: _BarPainter(),
-              child: const SizedBox.expand(),
-            ),
-          ),
+          const SizedBox(height: 80),
+          const SizedBox(width: double.infinity, child: _DesktopPreviewCard()),
         ],
       ),
     );
   }
 }
 
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.icon,
-    required this.color,
-    required this.title,
-    required this.body,
-  });
-
-  final IconData icon;
-  final Color color;
-  final String title;
-  final String body;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassPanel(
-      minHeight: 300,
-      padding: const EdgeInsets.all(24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _IconTile(icon: icon, color: color),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: const TextStyle(
-              color: NexusColors.onSurface,
-              fontSize: 22,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            body,
-            style: const TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 16,
-              height: 1.55,
-            ),
-          ),
-          const SizedBox(height: 24),
-          Align(
-            alignment: Alignment.bottomRight,
-            child: Icon(
-              icon,
-              color: NexusColors.onSurfaceVariant.withOpacity(0.18),
-              size: 64,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _FlowStateCard extends StatelessWidget {
-  const _FlowStateCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassPanel(
-      minHeight: 300,
-      padding: const EdgeInsets.all(24),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(
-              Icons.self_improvement_rounded,
-              color: NexusColors.primary,
-              size: 52,
-            ),
-            SizedBox(height: 16),
-            Text(
-              'Enter The Flow State',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: NexusColors.onSurface,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Nexus silences notifications and orchestrates your environment when it detects deep work patterns.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 16,
-                height: 1.55,
-              ),
-            ),
-            SizedBox(height: 24),
-            _TextAction(label: 'Explore Focus Mode'),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TestimonialSection extends StatelessWidget {
-  const _TestimonialSection();
+class _MobileHero extends StatelessWidget {
+  const _MobileHero();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 64),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 980),
-        child: _GlassPanel(
-          padding: const EdgeInsets.all(40),
-          borderRadius: 24,
-          glowColor: NexusColors.primaryContainer.withOpacity(0.2),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                '“Nexus does not just manage my tasks; it manages my cognitive load. The UI is so clean it almost disappears, leaving only the work that matters. It is like having a brilliant, silent partner.”',
-                style: TextStyle(
-                  color: NexusColors.onSurface,
-                  fontSize: 24,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
+      padding: const EdgeInsets.fromLTRB(24, 96, 24, 64),
+      child: Column(
+        children: [
+          const Text.rich(
+            TextSpan(
+              text: 'Focus at the\n',
+              children: [
+                TextSpan(
+                  text: 'speed of thought.',
+                  style: TextStyle(
+                    color: Color(0xFFC0C1FF),
+                    fontStyle: FontStyle.italic,
+                  ),
                 ),
+              ],
+            ),
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Color(0xFFDDE2F8),
+              fontSize: 32,
+              height: 1.12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.8,
+            ),
+          ),
+          const SizedBox(height: 24),
+          const SizedBox(
+            width: 330,
+            child: Text(
+              'TaskFlow AI streamlines your mental cycles by automating deep work logistics.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFC7C4D7),
+                fontSize: 16,
+                height: 1.5,
               ),
-              SizedBox(height: 24),
-              Row(
-                children: [
-                  CircleAvatar(
-                    radius: 24,
-                    backgroundColor: NexusColors.surfaceContainerHighest,
-                    child: Icon(
-                      Icons.person_rounded,
-                      color: NexusColors.primary,
-                    ),
-                  ),
-                  SizedBox(width: 16),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Elias Thorne',
-                        style: TextStyle(
-                          color: NexusColors.onSurface,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        'Lead Architect, Quantum Dynamics',
-                        style: TextStyle(
-                          color: NexusColors.onSurfaceVariant,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+            ),
+          ),
+          const SizedBox(height: 36),
+          _GradientButton(
+            label: 'Get Started',
+            onTap: () => _goSignIn(context),
+          ),
+          const SizedBox(height: 56),
+          const _MobilePreviewCard(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopPreviewCard extends StatelessWidget {
+  const _DesktopPreviewCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(32),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            boxShadow: [
+              BoxShadow(
+                color: NexusColors.primary.withValues(alpha: 0.20),
+                blurRadius: 44,
               ),
             ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(24),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Image.network(
+                'https://lh3.googleusercontent.com/aida-public/AB6AXuB6jL30XEV5SBz8WHOPFvHgBzOjDSOJ6gzSdpz0oSUX3dyK0eorDpDbF1M76gRH3s8nWQKbZVW2d8J1hFf2giRU7xmp9Fw4jkdfVIYHCCq8dUoxWYxdormHPjeEn7Y1CQYPDRDp9v1WiH2GHn9z46Y_QYqqWzO7hDEBTJxn_u9mcGAz46DnCbTO6MYKnf7d7snLZEwYUVFbhvXvyGTog3KJ-Cm1wcSNs4oIn3-2G3Qpxprl-tTqFD2ff4J0R9Wepo5Ci6DApjj57UZv',
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        ),
+        Positioned(
+          top: 48,
+          right: 48,
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: NexusColors.primary.withValues(alpha: 0.4),
+              ),
+            ),
+            child: const Row(
+              children: [
+                _PulseDot(),
+                SizedBox(width: 10),
+                Text(
+                  'AI FOCUS MODE ACTIVE',
+                  style: TextStyle(
+                    color: Color(0xFFDDE2F8),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MobilePreviewCard extends StatelessWidget {
+  const _MobilePreviewCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 430),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+        child: SizedBox(
+          height: 430,
+          child: Image.network(
+            'https://lh3.googleusercontent.com/aida-public/AB6AXuC9EMQo5LCiU19k6tqO5cjc7YWbi_fHFsOVZ4UnQUM1psvLqmFWWc4C0lkmEwPaJrOojjSdIneHHTMX8uIGaYK-Z98DNF0jUV09HrpdrdiE-ZEPvYEjc947SJtrTIE6SZ3G5AJRmaIt5YCBioG4Ci27NVu20Hrkha6ALswMqChKTnCIhkl5oOhoUtqsX-Z-UStMi53hepd0K7AEv4h6EqV318F_G3ItcDg7jnVXs_vStberX5IyH8My_Yd8l7PfvFp9NcydIWtbfGoX',
+            fit: BoxFit.cover,
+            alignment: Alignment.topCenter,
           ),
         ),
       ),
@@ -728,45 +371,381 @@ class _TestimonialSection extends StatelessWidget {
   }
 }
 
-class _Footer extends StatelessWidget {
-  const _Footer();
+class _SocialProofSection extends StatelessWidget {
+  const _SocialProofSection();
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 48),
+      decoration: BoxDecoration(
+        color: const Color(0xFF080E1D).withValues(alpha: 0.5),
+        border: Border.symmetric(
+          horizontal: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+        ),
+      ),
+      child: const Column(
+        children: [
+          Text(
+            'TRUSTED BY ENGINEERS AT',
+            style: TextStyle(
+              color: Color(0xFF908FA0),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2.4,
+            ),
+          ),
+          SizedBox(height: 32),
+          Wrap(
+            alignment: WrapAlignment.center,
+            spacing: 72,
+            runSpacing: 22,
+            children: [
+              _LogoText('GOOGLE'),
+              _LogoText('GITHUB'),
+              _LogoText('STRIPE'),
+              _LogoText('VERCEL'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopFeaturesSection extends StatelessWidget {
+  const _DesktopFeaturesSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _LandingSection(
+      top: 128,
+      bottom: 96,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            'Engineered for deep work.',
+            style: TextStyle(
+              color: Color(0xFFDDE2F8),
+              fontSize: 32,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          SizedBox(height: 14),
+          SizedBox(
+            width: 560,
+            child: Text(
+              'Every feature is designed to reduce your cognitive load and maximize your creative output.',
+              style: TextStyle(
+                color: Color(0xFFC7C4D7),
+                fontSize: 16,
+                height: 1.5,
+              ),
+            ),
+          ),
+          SizedBox(height: 64),
+          Row(
+            children: [
+              Expanded(
+                child: _FeatureCard(
+                  icon: Icons.psychology_rounded,
+                  title: 'Deep Work Detection',
+                  body:
+                      'TaskFlow monitors digital patterns to silence notifications during peak focus periods.',
+                  color: Color(0xFFC0C1FF),
+                ),
+              ),
+              SizedBox(width: 24),
+              Expanded(
+                child: _FeatureCard(
+                  icon: Icons.calendar_month_rounded,
+                  title: 'Intelligent Scheduling',
+                  body:
+                      'Reorganizes your calendar based on priority, energy levels, and upcoming deadlines.',
+                  color: Color(0xFFDDB7FF),
+                ),
+              ),
+              SizedBox(width: 24),
+              Expanded(
+                child: _FeatureCard(
+                  icon: Icons.sync_rounded,
+                  title: 'Ecosystem Sync',
+                  body:
+                      'Native integrations unify Slack, Jira, GitHub, and Figma under one intelligent engine.',
+                  color: Color(0xFFADC6FF),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileValueProps extends StatelessWidget {
+  const _MobileValueProps();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 80),
+      child: Column(
+        children: [
+          _FeatureCard(
+            icon: Icons.auto_awesome_rounded,
+            title: 'Predictive Focus',
+            body:
+                'AI suggests the optimal time for deep work based on your rhythms and past performance.',
+            color: Color(0xFFC0C1FF),
+          ),
+          SizedBox(height: 24),
+          _FeatureCard(
+            icon: Icons.layers_rounded,
+            title: 'Contextual Ghosting',
+            body:
+                'Hide non-essential notifications by understanding your current task context.',
+            color: Color(0xFFDDB7FF),
+          ),
+          SizedBox(height: 24),
+          _FeatureCard(
+            icon: Icons.bolt_rounded,
+            title: 'Atomic Execution',
+            body:
+                'Break complex goals into AI-generated sub-tasks aligned with your time blocks.',
+            color: Color(0xFFADC6FF),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopTestimonialSection extends StatelessWidget {
+  const _DesktopTestimonialSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _LandingSection(
+      top: 48,
+      bottom: 96,
+      child: const _TestimonialCard(desktop: true),
+    );
+  }
+}
+
+class _MobileTestimonial extends StatelessWidget {
+  const _MobileTestimonial();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 80),
+      child: _TestimonialCard(desktop: false),
+    );
+  }
+}
+
+class _MobileIntegrations extends StatelessWidget {
+  const _MobileIntegrations();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.fromLTRB(24, 0, 24, 80),
+      child: Column(
+        children: [
+          Text(
+            'UNIFIED WITH YOUR ECOSYSTEM',
+            style: TextStyle(
+              color: Color(0xFF908FA0),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.8,
+            ),
+          ),
+          SizedBox(height: 24),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _LogoText('SLACK'),
+              _LogoText('GOOGLE'),
+              _LogoText('NOTION'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FinalCtaSection extends StatelessWidget {
+  const _FinalCtaSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return _LandingSection(
+      top: 64,
+      bottom: 96,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 64, vertical: 72),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF151B2B), Color(0xFF0D1322)],
+          ),
+          borderRadius: BorderRadius.circular(48),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        ),
+        child: Column(
+          children: [
+            const Text(
+              'Ready to reclaim your time?',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFFDDE2F8),
+                fontSize: 56,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1.6,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const SizedBox(
+              width: 620,
+              child: Text(
+                'Join 50,000+ high-performers who have optimized their lives with TaskFlow AI. Start your free trial today.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Color(0xFFC7C4D7),
+                  fontSize: 18,
+                  height: 1.55,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            _GradientButton(
+              label: 'Get Started Free',
+              icon: Icons.arrow_forward_rounded,
+              onTap: () => _goSignIn(context),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              'No credit card required. Cancel anytime.',
+              style: TextStyle(color: Color(0xFF908FA0), fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LandingFooter extends StatelessWidget {
+  const _LandingFooter();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 900;
 
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: isWide ? 48 : 16, vertical: 56),
+      width: double.infinity,
+      margin: EdgeInsets.only(top: isDesktop ? 80 : 0),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 32 : 24,
+        vertical: 32,
+      ),
       decoration: BoxDecoration(
-        color: const Color(0xFF0C0E17),
+        color: const Color(0xFF080E1D),
         border: Border(
-          top: BorderSide(color: NexusColors.outlineVariant.withOpacity(0.18)),
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
         ),
       ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1280),
-          child: Wrap(
-            alignment: WrapAlignment.spaceBetween,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 24,
-            runSpacing: 24,
-            children: const [
-              _FooterBrand(),
-              Wrap(
-                spacing: 24,
-                runSpacing: 12,
-                children: [
-                  _NavLink(label: 'Features'),
-                  _NavLink(label: 'Pricing'),
-                  _NavLink(label: 'Security'),
-                  _NavLink(label: 'Privacy'),
-                ],
-              ),
-            ],
-          ),
+          child:
+              isDesktop
+                  ? const _DesktopFooterContent()
+                  : const _MobileFooterContent(),
         ),
       ),
+    );
+  }
+}
+
+class _DesktopFooterContent extends StatelessWidget {
+  const _DesktopFooterContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _FooterBrand()),
+            Expanded(
+              child: _FooterLinks(
+                title: 'Product',
+                items: ['Features', 'Pricing', 'Intelligence'],
+                desktopTitleColor: NexusColors.primary,
+              ),
+            ),
+            Expanded(
+              child: _FooterLinks(
+                title: 'Company',
+                items: ['About', 'Security', 'Privacy'],
+                desktopTitleColor: NexusColors.primary,
+              ),
+            ),
+            Expanded(child: _FooterSubscribe()),
+          ],
+        ),
+        SizedBox(height: 64),
+        _FooterCopyright(center: true),
+      ],
+    );
+  }
+}
+
+class _MobileFooterContent extends StatelessWidget {
+  const _MobileFooterContent();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'TaskFlow AI',
+          style: TextStyle(
+            color: Color(0xFFDDE2F8),
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 32),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              child: _FooterLinks(
+                title: 'Product',
+                items: ['Features', 'Intelligence', 'Pricing'],
+              ),
+            ),
+            Expanded(
+              child: _FooterLinks(
+                title: 'Company',
+                items: ['About', 'Security', 'Privacy'],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 32),
+        _FooterCopyright(center: false),
+      ],
     );
   }
 }
@@ -778,41 +757,336 @@ class _FooterBrand extends StatelessWidget {
   Widget build(BuildContext context) {
     return const Column(
       crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.bubble_chart_rounded,
-              color: NexusColors.primary,
-              size: 22,
-            ),
-            SizedBox(width: 8),
-            Text(
-              'Nexus AI',
-              style: TextStyle(
-                color: NexusColors.onSurface,
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 8),
         Text(
-          '© 2024 Nexus AI. Precision in every prompt.',
-          style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 14),
+          'TaskFlow AI',
+          style: TextStyle(
+            color: Color(0xFFDDE2F8),
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        SizedBox(height: 16),
+        SizedBox(
+          width: 300,
+          child: Text(
+            'Engineered for deep work. The ultimate productivity platform for the modern professional.',
+            style: TextStyle(
+              color: Color(0xFFC7C4D7),
+              height: 1.5,
+              fontSize: 16,
+            ),
+          ),
         ),
       ],
     );
   }
 }
 
+class _FooterSubscribe extends StatelessWidget {
+  const _FooterSubscribe();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 260,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'SUBSCRIBE',
+            style: TextStyle(
+              color: NexusColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: TextField(
+                  style: const TextStyle(
+                    color: Color(0xFFDDE2F8),
+                    fontSize: 14,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'Email address',
+                    hintStyle: const TextStyle(
+                      color: Color(0xFF908FA0),
+                      fontSize: 14,
+                    ),
+                    isDense: true,
+                    filled: true,
+                    fillColor: const Color(0xFF0D1322).withValues(alpha: 0.5),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 12,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(12),
+                      ),
+                      borderSide: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.08),
+                      ),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: const BorderRadius.horizontal(
+                        left: Radius.circular(12),
+                      ),
+                      borderSide: BorderSide(
+                        color: NexusColors.primary.withValues(alpha: 0.8),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              Container(
+                height: 45,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: NexusColors.primary,
+                  borderRadius: BorderRadius.horizontal(
+                    right: Radius.circular(12),
+                  ),
+                ),
+                child: const Text(
+                  'Join',
+                  style: TextStyle(
+                    color: Color(0xFF1000A9),
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FooterCopyright extends StatelessWidget {
+  const _FooterCopyright({required this.center});
+
+  final bool center;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.only(top: 32),
+      decoration: BoxDecoration(
+        border: Border(
+          top: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+      ),
+      child: Text(
+        center
+            ? '© 2024 TaskFlow AI. Engineered for deep work.'
+            : '© 2024 TaskFlow AI.\nEngineered for deep work.',
+        textAlign: center ? TextAlign.center : TextAlign.start,
+        style: const TextStyle(
+          color: Color(0xFFC7C4D7),
+          fontSize: 14,
+          height: 1.45,
+        ),
+      ),
+    );
+  }
+}
+
+class _LandingSection extends StatelessWidget {
+  const _LandingSection({required this.child, this.top = 0, this.bottom = 0});
+
+  final Widget child;
+  final double top;
+  final double bottom;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.fromLTRB(32, top, 32, bottom),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1280),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _FeatureCard extends StatelessWidget {
+  const _FeatureCard({
+    required this.icon,
+    required this.title,
+    required this.body,
+    required this.color,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      padding: const EdgeInsets.all(28),
+      radius: 28,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: Icon(icon, color: color, size: 30),
+          ),
+          const SizedBox(height: 28),
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFFDDE2F8),
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            body,
+            style: const TextStyle(
+              color: Color(0xFFC7C4D7),
+              fontSize: 16,
+              height: 1.55,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TestimonialCard extends StatelessWidget {
+  const _TestimonialCard({required this.desktop});
+
+  final bool desktop;
+
+  @override
+  Widget build(BuildContext context) {
+    final isNarrow = MediaQuery.sizeOf(context).width < 360;
+
+    return _GlassPanel(
+      padding: EdgeInsets.all(desktop ? 48 : (isNarrow ? 24 : 32)),
+      radius: desktop ? 48 : 28,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.format_quote_rounded,
+            color: NexusColors.primary.withValues(alpha: 0.55),
+            size: desktop ? 64 : 42,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            desktop
+                ? '“TaskFlow AI changed how our engineering team operates. We have seen a 40% increase in sprint completion rates since AI started managing our focus blocks.”'
+                : '“TaskFlow AI is the first tool that actually respects my mental state. It manages my attention.”',
+            style: TextStyle(
+              color: const Color(0xFFDDE2F8),
+              fontSize: desktop ? 28 : 22,
+              height: 1.35,
+              fontStyle: FontStyle.italic,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 32),
+          Row(
+            children: [
+              _AvatarMark(desktop: desktop),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Marcus Thorne',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFFDDE2F8),
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    Text(
+                      'CTO at TechFlow Systems',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Color(0xFFC7C4D7),
+                        fontSize: 12,
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GlassPanel extends StatelessWidget {
+  const _GlassPanel({
+    required this.child,
+    this.padding = const EdgeInsets.all(24),
+    this.radius = 24,
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.035),
+        borderRadius: BorderRadius.circular(radius),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: NexusColors.primary.withValues(alpha: 0.08),
+            blurRadius: 28,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
 class _GradientButton extends StatelessWidget {
-  const _GradientButton({required this.label, this.compact = false, this.onTap});
+  const _GradientButton({
+    required this.label,
+    this.icon,
+    this.compact = false,
+    this.onTap,
+  });
 
   final String label;
+  final IconData? icon;
   final bool compact;
   final VoidCallback? onTap;
 
@@ -820,77 +1094,43 @@ class _GradientButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
       child: Ink(
         decoration: BoxDecoration(
           gradient: const LinearGradient(
-            colors: [
-              NexusColors.primaryContainer,
-              NexusColors.secondaryContainer,
-            ],
+            colors: [Color(0xFFC0C1FF), Color(0xFFDDB7FF)],
           ),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
-              color: NexusColors.primaryContainer.withOpacity(0.28),
-              blurRadius: 28,
+              color: NexusColors.primary.withValues(alpha: 0.22),
+              blurRadius: 24,
             ),
           ],
         ),
         child: InkWell(
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(999),
           onTap: onTap,
           child: Padding(
             padding: EdgeInsets.symmetric(
-              horizontal: compact ? 16 : 24,
-              vertical: compact ? 10 : 16,
+              horizontal: compact ? 24 : 36,
+              vertical: compact ? 12 : 18,
             ),
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.4,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  const _GlassButton({required this.label, required this.icon});
-
-  final String label;
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassPanel(
-      borderRadius: 12,
-      padding: EdgeInsets.zero,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(12),
-          onTap: () {},
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(icon, color: NexusColors.onSurface, size: 20),
-                const SizedBox(width: 8),
                 Text(
                   label,
                   style: const TextStyle(
-                    color: NexusColors.onSurface,
-                    fontSize: 14,
-                    fontWeight: FontWeight.w700,
+                    color: Color(0xFF1000A9),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 16,
                   ),
                 ),
+                if (icon != null) ...[
+                  const SizedBox(width: 10),
+                  Icon(icon, color: const Color(0xFF1000A9), size: 20),
+                ],
               ],
             ),
           ),
@@ -900,47 +1140,88 @@ class _GlassButton extends StatelessWidget {
   }
 }
 
-class _TextAction extends StatelessWidget {
-  const _TextAction({required this.label});
+class _GlassButton extends StatelessWidget {
+  const _GlassButton({required this.label, this.icon});
 
   final String label;
+  final IconData? icon;
 
   @override
   Widget build(BuildContext context) {
-    return TextButton.icon(
-      onPressed: () {},
-      iconAlignment: IconAlignment.end,
-      icon: const Icon(Icons.arrow_forward_rounded, size: 18),
-      label: Text(label),
-      style: TextButton.styleFrom(
-        foregroundColor: NexusColors.secondary,
-        textStyle: const TextStyle(fontWeight: FontWeight.w700),
+    return Material(
+      color: Colors.white.withValues(alpha: 0.05),
+      borderRadius: BorderRadius.circular(999),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(icon, color: const Color(0xFFDDE2F8)),
+                const SizedBox(width: 8),
+              ],
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Color(0xFFDDE2F8),
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
-class _LogoChip extends StatelessWidget {
-  const _LogoChip({required this.icon, required this.label});
+class _LandingNavLink extends StatelessWidget {
+  const _LandingNavLink({required this.label, this.active = false});
 
-  final IconData icon;
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      label,
+      style: TextStyle(
+        color: active ? NexusColors.primary : const Color(0xFFC7C4D7),
+        fontWeight: active ? FontWeight.w900 : FontWeight.w600,
+        fontSize: 16,
+      ),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({required this.label});
+
   final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.62,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: NexusColors.primary.withValues(alpha: 0.25)),
+      ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: NexusColors.onSurface, size: 20),
+          const Icon(Icons.bolt_rounded, color: NexusColors.primary, size: 15),
           const SizedBox(width: 8),
           Text(
             label,
             style: const TextStyle(
-              color: NexusColors.onSurface,
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
+              color: NexusColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
             ),
           ),
         ],
@@ -949,110 +1230,111 @@ class _LogoChip extends StatelessWidget {
   }
 }
 
-class _IconTile extends StatelessWidget {
-  const _IconTile({required this.icon, required this.color});
+class _LogoText extends StatelessWidget {
+  const _LogoText(this.label);
 
-  final IconData icon;
-  final Color color;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: NexusColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: NexusColors.outlineVariant.withOpacity(0.35)),
+    return Text(
+      label,
+      style: const TextStyle(
+        color: Color(0x99DDE2F8),
+        fontSize: 22,
+        fontWeight: FontWeight.w900,
+        letterSpacing: 1.4,
       ),
-      child: Icon(icon, color: color, size: 28),
     );
   }
 }
 
-class _GlassPanel extends StatelessWidget {
-  const _GlassPanel({
-    required this.child,
-    this.padding = const EdgeInsets.all(16),
-    this.borderRadius = 16,
-    this.minHeight,
-    this.glowColor,
+class _FooterLinks extends StatelessWidget {
+  const _FooterLinks({
+    required this.title,
+    required this.items,
+    this.desktopTitleColor,
   });
 
-  final Widget child;
-  final EdgeInsetsGeometry padding;
-  final double borderRadius;
-  final double? minHeight;
-  final Color? glowColor;
+  final String title;
+  final List<String> items;
+  final Color? desktopTitleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 160,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title.toUpperCase(),
+            style: TextStyle(
+              color: desktopTitleColor ?? const Color(0x80908FA0),
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+            ),
+          ),
+          const SizedBox(height: 14),
+          for (final item in items)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                item,
+                style: const TextStyle(color: Color(0xFFC7C4D7), fontSize: 16),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvatarMark extends StatelessWidget {
+  const _AvatarMark({required this.desktop});
+
+  final bool desktop;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(minHeight: minHeight ?? 0),
-      padding: padding,
+      width: desktop ? 64 : 48,
+      height: desktop ? 64 : 48,
       decoration: BoxDecoration(
-        color: NexusColors.surfaceContainer.withOpacity(0.72),
-        borderRadius: BorderRadius.circular(borderRadius),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: NexusColors.primary.withValues(alpha: 0.35),
+          width: 2,
+        ),
+      ),
+      child: ClipOval(
+        child: Image.network(
+          desktop
+              ? 'https://lh3.googleusercontent.com/aida-public/AB6AXuBNIw_BxAnbCE3OcxvBkfXgUPGWSmBgP3f0u1bV_P5bORchnWWXerbRYx0LRBOig2XfsjWsAZ39-w9jQauE_27AL-DK70hKzZnkh4M7prdoXKLegf3pV10T5AideKqpLRQIhsHBtjRmG7mb1Rf2zr9lTuGAony8gBb_4zJ3VhBTbzGYrSNA_ABGgpKDW3orNirD1TW795D03qW7Xc_sxtIRhqNO26I7v9ca54CLOB4WvWokkkJHbTX7YJu2kDOJAUUqkuUJQWoHFXQZ'
+              : 'https://lh3.googleusercontent.com/aida-public/AB6AXuDhptjq-2ecb7hH2q_O3gHw9SUY5j9UtcACqRQcWoDrX_5mcvbPHQMh5YQWd5OW_APd9vXnMweIgn7FI1xJU5oEyjsJUMhl-dWT_0kBstMbYtlT-xZqspwsMDBn8anZlogx1gDph62UEYWZ-9tcACa5NX1pQJ2WTUg7oklrPhTsSOkCrxL2mjtythCnW2a-DMOoYBmfPOLLqL0ZdJPAZjDOxFGqdF2IdKsc7iSPpdifdRf-uI-Eo-XXV4vluhf6t1Hf1xE5ou8DvTq7',
+          fit: BoxFit.cover,
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseDot extends StatelessWidget {
+  const _PulseDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 10,
+      height: 10,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: NexusColors.primary,
         boxShadow: [
-          if (glowColor != null)
-            BoxShadow(color: glowColor!, blurRadius: 42, spreadRadius: 2),
           BoxShadow(
-            color: Colors.black.withOpacity(0.22),
-            blurRadius: 28,
-            offset: const Offset(0, 16),
-          ),
-        ],
-      ),
-      child: child,
-    );
-  }
-}
-
-class _GradientText extends StatelessWidget {
-  const _GradientText(this.text, {required this.style});
-
-  final String text;
-  final TextStyle style;
-
-  @override
-  Widget build(BuildContext context) {
-    return ShaderMask(
-      blendMode: BlendMode.srcIn,
-      shaderCallback:
-          (bounds) => const LinearGradient(
-            colors: [NexusColors.primary, NexusColors.secondary],
-          ).createShader(bounds),
-      child: Text(text, style: style),
-    );
-  }
-}
-
-class _PageBackground extends StatelessWidget {
-  const _PageBackground();
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox.expand(
-      child: Stack(
-        children: [
-          const Positioned.fill(child: ColoredBox(color: NexusColors.background)),
-          Positioned.fill(child: CustomPaint(painter: _GridPainter())),
-          Positioned(
-            top: 120,
-            left: MediaQuery.sizeOf(context).width * 0.24,
-            child: _BlurOrb(
-              size: 520,
-              color: NexusColors.primaryContainer.withOpacity(0.22),
-            ),
-          ),
-          Positioned(
-            top: 220,
-            right: 80,
-            child: _BlurOrb(
-              size: 360,
-              color: NexusColors.secondaryContainer.withOpacity(0.12),
-            ),
+            color: NexusColors.primary.withValues(alpha: 0.65),
+            blurRadius: 14,
           ),
         ],
       ),
@@ -1060,8 +1342,8 @@ class _PageBackground extends StatelessWidget {
   }
 }
 
-class _BlurOrb extends StatelessWidget {
-  const _BlurOrb({required this.size, required this.color});
+class _GlowOrb extends StatelessWidget {
+  const _GlowOrb({required this.size, required this.color});
 
   final double size;
   final Color color;
@@ -1073,89 +1355,14 @@ class _BlurOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 60)],
+        boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 80)],
       ),
     );
   }
 }
 
-class _GridPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint =
-        Paint()
-          ..color = Colors.white.withOpacity(0.03)
-          ..strokeWidth = 1;
-
-    for (double x = 0; x < size.width; x += 40) {
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (double y = 0; y < size.height; y += 40) {
-      canvas.drawLine(Offset(0, y), Offset(size.width, y), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _OrbitalPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width * 0.52, size.height * 0.42);
-    final linePaint =
-        Paint()
-          ..color = NexusColors.primary.withOpacity(0.32)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.4;
-    final dotPaint = Paint()..color = NexusColors.secondary.withOpacity(0.9);
-
-    for (var i = 0; i < 9; i++) {
-      final radius = 42.0 + i * 24;
-      canvas.drawCircle(center, radius, linePaint);
-      canvas.drawCircle(
-        Offset(center.dx + radius * 0.72, center.dy - radius * 0.36),
-        3.5,
-        dotPaint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
-}
-
-class _BarPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    final borderPaint =
-        Paint()
-          ..color = NexusColors.outlineVariant.withOpacity(0.5)
-          ..style = PaintingStyle.stroke;
-    final fillPaint =
-        Paint()..color = NexusColors.surfaceContainerHighest.withOpacity(0.82);
-    final activePaint = Paint()..color = NexusColors.primary.withOpacity(0.22);
-    final widths = size.width / 4;
-    final heights = [0.5, 0.76, 1.0, 0.34];
-
-    for (var i = 0; i < 4; i++) {
-      final left = i * widths + 6;
-      final top = size.height - (size.height * heights[i]);
-      final rect = RRect.fromRectAndRadius(
-        Rect.fromLTWH(left, top, widths - 12, size.height - top),
-        const Radius.circular(8),
-      );
-      canvas.drawRRect(rect, i == 1 ? activePaint : fillPaint);
-      canvas.drawRRect(rect, borderPaint);
-    }
-
-    canvas.drawCircle(
-      Offset(widths * 1.5, size.height * 0.18),
-      5,
-      Paint()..color = NexusColors.primary,
-    );
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+void _goSignIn(BuildContext context) {
+  Navigator.of(
+    context,
+  ).push(MaterialPageRoute(builder: (_) => const SignInPage()));
 }

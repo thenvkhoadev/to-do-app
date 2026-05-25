@@ -22,7 +22,7 @@ supabase_schema.sql
 
 .claude/
 test.html
-
+test1.html
 # The .vscode folder contains launch configuration and tasks you configure in
 # VS Code which you may wish to be included in version control, so this line
 # is commented out by default.

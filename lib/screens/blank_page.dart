@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/colors.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
+import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 
@@ -14,51 +16,598 @@ class BlankPage extends StatefulWidget {
 
 class _BlankPageState extends State<BlankPage> {
   int _selectedIndex = 0;
+  bool _sidebarCollapsed = false;
 
   void _selectTab(int index) => setState(() => _selectedIndex = index);
+  void _toggleSidebar() {
+    setState(() => _sidebarCollapsed = !_sidebarCollapsed);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1024;
+
     return Scaffold(
-      body: _DashboardBackground(
-        child: SafeArea(
-          bottom: false,
-          child: Column(
-            children: [
-              _DashboardTopBar(
-                selectedIndex: _selectedIndex,
-                onTabSelected: _selectTab,
-              ),
-              Expanded(child: _DashboardTabView(selectedIndex: _selectedIndex)),
-            ],
-          ),
-        ),
-      ),
-      bottomNavigationBar: _MobileBottomNav(
-        selectedIndex: _selectedIndex,
-        onTabSelected: _selectTab,
+      extendBody: true,
+      body: _NexusBackground(
+        child:
+            isDesktop
+                ? _DesktopDashboardShell(
+                  selectedIndex: _selectedIndex,
+                  sidebarCollapsed: _sidebarCollapsed,
+                  onTabSelected: _selectTab,
+                  onToggleSidebar: _toggleSidebar,
+                )
+                : _MobileDashboardShell(
+                  selectedIndex: _selectedIndex,
+                  onTabSelected: _selectTab,
+                ),
       ),
     );
   }
 }
 
-class _DashboardTabView extends StatelessWidget {
-  const _DashboardTabView({required this.selectedIndex});
+class _DesktopDashboardShell extends StatelessWidget {
+  const _DesktopDashboardShell({
+    required this.selectedIndex,
+    required this.sidebarCollapsed,
+    required this.onTabSelected,
+    required this.onToggleSidebar,
+  });
+
+  final int selectedIndex;
+  final bool sidebarCollapsed;
+  final ValueChanged<int> onTabSelected;
+  final VoidCallback onToggleSidebar;
+
+  @override
+  Widget build(BuildContext context) {
+    final sidebarWidth = sidebarCollapsed ? 88.0 : 280.0;
+
+    return Stack(
+      children: [
+        Positioned.fill(
+          top: 64,
+          left: sidebarWidth,
+          child: _TabContent(selectedIndex: selectedIndex),
+        ),
+        Positioned(
+          left: 0,
+          top: 64,
+          bottom: 0,
+          child: _DesktopSidebar(
+            collapsed: sidebarCollapsed,
+            selectedIndex: selectedIndex,
+            onTabSelected: onTabSelected,
+          ),
+        ),
+        Positioned(
+          left: 0,
+          top: 0,
+          right: 0,
+          child: _DesktopTopBar(
+            sidebarWidth: sidebarWidth,
+            sidebarCollapsed: sidebarCollapsed,
+            onToggleSidebar: onToggleSidebar,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MobileDashboardShell extends StatelessWidget {
+  const _MobileDashboardShell({
+    required this.selectedIndex,
+    required this.onTabSelected,
+  });
+
+  final int selectedIndex;
+  final ValueChanged<int> onTabSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      children: [
+        Column(
+          children: [
+            const _MobileTopBar(),
+            Expanded(child: _TabContent(selectedIndex: selectedIndex)),
+          ],
+        ),
+        Positioned(
+          left: 16,
+          right: 16,
+          bottom: 24 + MediaQuery.paddingOf(context).bottom,
+          child: _FloatingMobileNav(
+            selectedIndex: selectedIndex,
+            onTabSelected: onTabSelected,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TabContent extends StatelessWidget {
+  const _TabContent({required this.selectedIndex});
 
   final int selectedIndex;
 
   @override
   Widget build(BuildContext context) {
     return switch (selectedIndex) {
-      1 => const TasksScreen(),
-      2 => const AiScreen(),
-      _ => const _DashboardContent(),
+      1 => const CalendarScreen(),
+      2 => const TasksScreen(),
+      3 => const AiScreen(),
+      4 => const ProfileScreen(),
+      _ => const _HomeDashboardContent(),
     };
   }
 }
 
-class _DashboardBackground extends StatelessWidget {
-  const _DashboardBackground({required this.child});
+class _HomeDashboardContent extends StatelessWidget {
+  const _HomeDashboardContent();
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final isDesktop = width >= 1024;
+    final isTablet = width >= 720;
+
+    return SingleChildScrollView(
+      padding: EdgeInsets.fromLTRB(
+        isDesktop ? 40 : 16,
+        isDesktop ? 32 : 24,
+        isDesktop ? 40 : 16,
+        isDesktop ? 48 : 132,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1240),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (isDesktop)
+                const _DesktopHomeGrid()
+              else
+                Column(
+                  children: [
+                    if (isTablet)
+                      const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: _FlowStateCard()),
+                          SizedBox(width: 16),
+                          Expanded(child: _NexusIntelligenceCard()),
+                        ],
+                      )
+                    else
+                      const Column(
+                        children: [
+                          _FlowStateCard(),
+                          SizedBox(height: 16),
+                          _NexusIntelligenceCard(),
+                        ],
+                      ),
+                    const SizedBox(height: 16),
+                    const _ActivePrioritiesCard(),
+                    const SizedBox(height: 16),
+                    const _DeepWorkCard(),
+                    const SizedBox(height: 16),
+                    const _TimelineCard(),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopHomeGrid extends StatelessWidget {
+  const _DesktopHomeGrid();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth < 1180) {
+          return const Column(
+            children: [
+              _DesktopActiveSprintBoard(),
+              SizedBox(height: 24),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      children: [_DesktopAiInsightsCard(), SizedBox(height: 24), _DesktopQuickActionsCard()],
+                    ),
+                  ),
+                  SizedBox(width: 24),
+                  Expanded(
+                    child: Column(
+                      children: [_DesktopNexusFlowCard(), SizedBox(height: 24), _DesktopSmartScheduleCard()],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          );
+        }
+
+        return const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [_DesktopAiInsightsCard(), SizedBox(height: 24), _DesktopQuickActionsCard()],
+              ),
+            ),
+            SizedBox(width: 24),
+            Expanded(flex: 6, child: _DesktopActiveSprintBoard()),
+            SizedBox(width: 24),
+            Expanded(
+              flex: 3,
+              child: Column(
+                children: [_DesktopNexusFlowCard(), SizedBox(height: 24), _DesktopSmartScheduleCard()],
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DesktopAiInsightsCard extends StatelessWidget {
+  const _DesktopAiInsightsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _SectionLabel(icon: Icons.psychology_rounded, label: 'AI Insights Focus', color: NexusColors.secondary),
+          const SizedBox(height: 24),
+          Center(
+            child: SizedBox(
+              width: 132,
+              height: 132,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox.expand(
+                    child: CircularProgressIndicator(
+                      value: 0.86,
+                      strokeWidth: 7,
+                      strokeCap: StrokeCap.round,
+                      backgroundColor: Colors.white.withValues(alpha: 0.05),
+                      valueColor: const AlwaysStoppedAnimation(NexusColors.primary),
+                    ),
+                  ),
+                  const Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('86', style: TextStyle(color: NexusColors.primary, fontSize: 34, fontWeight: FontWeight.w900, height: 1)),
+                      SizedBox(height: 4),
+                      Text('Flow Score', style: TextStyle(color: NexusColors.outline, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 22),
+          const _DesktopMetricBlock(label: 'Deep Work', value: '4h 12m', progress: 0.7),
+          const SizedBox(height: 14),
+          const _DesktopWarningBlock(),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopQuickActionsCard extends StatelessWidget {
+  const _DesktopQuickActionsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _SectionLabel(icon: Icons.bolt_rounded, label: 'Quick Actions', color: NexusColors.onSurfaceVariant),
+          SizedBox(height: 16),
+          _DesktopActionRow(icon: Icons.add_task_rounded, label: 'New AI Task', color: NexusColors.primary),
+          SizedBox(height: 10),
+          _DesktopActionRow(icon: Icons.summarize_rounded, label: 'Generate Daily Brief', color: NexusColors.secondary),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopActiveSprintBoard extends StatelessWidget {
+  const _DesktopActiveSprintBoard();
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final stacked = constraints.maxWidth < 620;
+        final columns = [
+          const _DesktopKanbanColumn(title: 'To Do', count: '3', tasks: [_DesktopTask.auth, _DesktopTask.typography]),
+          const _DesktopKanbanColumn(title: 'In Progress', count: '1', active: true, tasks: [_DesktopTask.prompts]),
+          const _DesktopKanbanColumn(title: 'Done', count: '4', tasks: [_DesktopTask.audit]),
+        ];
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const _DesktopSprintHeader(),
+            const SizedBox(height: 18),
+            if (stacked)
+              Column(
+                children: [
+                  for (final column in columns) ...[column, const SizedBox(height: 16)],
+                ],
+              )
+            else
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: columns[0]),
+                  const SizedBox(width: 16),
+                  Expanded(child: columns[1]),
+                  const SizedBox(width: 16),
+                  Expanded(child: columns[2]),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _DesktopSprintHeader extends StatelessWidget {
+  const _DesktopSprintHeader();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(child: Text('Active Sprint', style: TextStyle(color: NexusColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900))),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+          child: const Row(children: [_SmallPulseDot(), SizedBox(width: 8), Text('Syncing', style: TextStyle(color: NexusColors.secondary, fontSize: 12, fontWeight: FontWeight.w900))]),
+        ),
+      ],
+    );
+  }
+}
+
+class _DesktopKanbanColumn extends StatelessWidget {
+  const _DesktopKanbanColumn({required this.title, required this.count, required this.tasks, this.active = false});
+
+  final String title;
+  final String count;
+  final List<_DesktopTask> tasks;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(child: Text(title.toUpperCase(), style: TextStyle(color: active ? NexusColors.primary : NexusColors.outline, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2))),
+            _DesktopCountPill(label: count, active: active),
+          ],
+        ),
+        const SizedBox(height: 12),
+        ...tasks.map((task) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _DesktopTaskCard(task: task))),
+      ],
+    );
+  }
+}
+
+class _DesktopTaskCard extends StatelessWidget {
+  const _DesktopTaskCard({required this.task});
+
+  final _DesktopTask task;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      padding: const EdgeInsets.all(16),
+      radius: 14,
+      glow: task.active ? NexusColors.primaryContainer : null,
+      child: Stack(
+        children: [
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(children: [_TinyBadge(label: task.priority, color: task.color), const Spacer(), Icon(Icons.more_horiz_rounded, color: NexusColors.outline.withValues(alpha: 0.7), size: 18)]),
+              const SizedBox(height: 14),
+              Text(task.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurface, fontSize: 15, fontWeight: FontWeight.w800, height: 1.3)),
+              if (task.description != null) ...[
+                const SizedBox(height: 8),
+                Text(task.description!, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.outline, fontSize: 12, height: 1.45)),
+              ],
+              const SizedBox(height: 16),
+              Row(children: [_DesktopAvatarChip(label: task.assignee), const Spacer(), const Icon(Icons.chat_bubble_outline_rounded, color: NexusColors.outline, size: 15), const SizedBox(width: 4), Text(task.comments, style: const TextStyle(color: NexusColors.outline, fontSize: 11, fontWeight: FontWeight.w700))]),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopNexusFlowCard extends StatelessWidget {
+  const _DesktopNexusFlowCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _SectionLabel(icon: Icons.timer_rounded, label: 'Nexus Flow', color: NexusColors.secondary),
+          SizedBox(height: 18),
+          Text('42m', style: TextStyle(color: NexusColors.secondary, fontSize: 46, fontWeight: FontWeight.w900, height: 1)),
+          SizedBox(height: 8),
+          Text('Remaining in deep work', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w700)),
+          SizedBox(height: 18),
+          _DesktopMetricBlock(label: 'Focus Guard', value: 'Active', progress: 0.82),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopSmartScheduleCard extends StatelessWidget {
+  const _DesktopSmartScheduleCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          _SectionLabel(icon: Icons.event_rounded, label: 'Smart Schedule', color: NexusColors.primary),
+          SizedBox(height: 18),
+          _TimelineItem(time: '10:30 AM', title: 'Design Review', active: true),
+          _TimelineItem(time: '2:00 PM', title: 'API Sync'),
+          _TimelineItem(time: '4:30 PM', title: 'Sprint Planning'),
+        ],
+      ),
+    );
+  }
+}
+
+class _DesktopMetricBlock extends StatelessWidget {
+  const _DesktopMetricBlock({required this.label, required this.value, required this.progress});
+
+  final String label;
+  final String value;
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+      child: Column(children: [
+        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800)), Text(value, style: const TextStyle(color: NexusColors.secondary, fontSize: 12, fontWeight: FontWeight.w900))]),
+        const SizedBox(height: 9),
+        ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: Colors.white.withValues(alpha: 0.10), valueColor: const AlwaysStoppedAnimation(NexusColors.secondary))),
+      ]),
+    );
+  }
+}
+
+class _DesktopWarningBlock extends StatelessWidget {
+  const _DesktopWarningBlock();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(color: NexusColors.tertiary.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12), border: Border.all(color: NexusColors.tertiary.withValues(alpha: 0.22))),
+      child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.warning_amber_rounded, color: NexusColors.tertiary, size: 20), SizedBox(width: 10), Expanded(child: Text('Continuous context switching detected. Suggesting a 15-min disconnect protocol.', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, height: 1.4)))]),
+    );
+  }
+}
+
+class _DesktopActionRow extends StatelessWidget {
+  const _DesktopActionRow({required this.icon, required this.label, required this.color});
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: () {},
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
+          child: Row(children: [Icon(icon, color: color), const SizedBox(width: 12), Expanded(child: Text(label, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w800)))]),
+        ),
+      ),
+    );
+  }
+}
+
+class _DesktopCountPill extends StatelessWidget {
+  const _DesktopCountPill({required this.label, this.active = false});
+
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: active ? NexusColors.primary.withValues(alpha: 0.20) : NexusColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
+      child: Text(label, style: TextStyle(color: active ? NexusColors.primary : NexusColors.outline, fontSize: 11, fontWeight: FontWeight.w900)),
+    );
+  }
+}
+
+class _DesktopAvatarChip extends StatelessWidget {
+  const _DesktopAvatarChip({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 26, height: 26, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.10), border: Border.all(color: NexusColors.surfaceContainerHigh)), child: Text(label, style: const TextStyle(color: NexusColors.onSurface, fontSize: 10, fontWeight: FontWeight.w900)));
+  }
+}
+
+class _SmallPulseDot extends StatelessWidget {
+  const _SmallPulseDot();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: NexusColors.secondary, boxShadow: [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.75), blurRadius: 10)]));
+  }
+}
+
+class _DesktopTask {
+  const _DesktopTask({required this.title, required this.priority, required this.color, required this.assignee, required this.comments, this.description, this.active = false});
+
+  final String title;
+  final String priority;
+  final Color color;
+  final String assignee;
+  final String comments;
+  final String? description;
+  final bool active;
+
+  static const auth = _DesktopTask(title: 'Refactor Authentication Microservice', priority: 'High', color: NexusColors.tertiary, assignee: 'AR', comments: '2', description: 'Migrate legacy OAuth flow to the unified identity provider.');
+  static const typography = _DesktopTask(title: 'Update UI Typography Tokens', priority: 'Low', color: NexusColors.primary, assignee: 'JD', comments: '0');
+  static const prompts = _DesktopTask(title: 'Design System Generative Prompts', priority: 'Med', color: NexusColors.secondary, assignee: 'AI', comments: '5', description: 'Draft structural prompts for consistent Nexus UI output.', active: true);
+  static const audit = _DesktopTask(title: 'Clean Flutter Analyzer Warnings', priority: 'Done', color: NexusColors.secondary, assignee: 'KV', comments: '1');
+}
+
+class _NexusBackground extends StatelessWidget {
+  const _NexusBackground({required this.child});
 
   final Widget child;
 
@@ -66,22 +615,16 @@ class _DashboardBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const Positioned.fill(child: ColoredBox(color: Color(0xFF11131C))),
+        const Positioned.fill(child: ColoredBox(color: Color(0xFF070B14))),
         Positioned(
-          top: -120,
+          top: -180,
           left: -120,
-          child: _GlowOrb(
-            size: 420,
-            color: NexusColors.primaryContainer.withOpacity(0.22),
-          ),
+          child: _GlowOrb(size: 520, color: NexusColors.primaryContainer.withValues(alpha: 0.14)),
         ),
         Positioned(
-          right: -100,
-          bottom: MediaQuery.sizeOf(context).height * 0.18,
-          child: _GlowOrb(
-            size: 360,
-            color: NexusColors.secondary.withOpacity(0.12),
-          ),
+          right: -130,
+          bottom: -120,
+          child: _GlowOrb(size: 460, color: NexusColors.secondary.withValues(alpha: 0.12)),
         ),
         Positioned.fill(child: child),
       ],
@@ -102,302 +645,216 @@ class _GlowOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color, blurRadius: 120, spreadRadius: 70)],
+        boxShadow: [BoxShadow(color: color, blurRadius: 130, spreadRadius: 80)],
       ),
     );
   }
 }
 
-class _DashboardTopBar extends StatelessWidget {
-  const _DashboardTopBar({
+class _DesktopSidebar extends StatelessWidget {
+  const _DesktopSidebar({
+    required this.collapsed,
     required this.selectedIndex,
     required this.onTabSelected,
   });
 
+  final bool collapsed;
   final int selectedIndex;
   final ValueChanged<int> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
-    final user = Supabase.instance.client.auth.currentUser;
-    final username =
-        (user?.userMetadata?['username'] ??
-                user?.userMetadata?['full_name'] ??
-                user?.email ??
-                'U')
-            .toString()
-            .trim();
-    final initial =
-        username.isEmpty ? 'U' : username.characters.first.toUpperCase();
-
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      width: collapsed ? 88 : 280,
+      padding: EdgeInsets.fromLTRB(collapsed ? 12 : 24, 24, collapsed ? 12 : 24, 20),
       decoration: BoxDecoration(
-        color: NexusColors.surface.withOpacity(0.72),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withOpacity(0.08)),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.26),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        color: NexusColors.surfaceContainer.withValues(alpha: 0.72),
+        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 24)],
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1280),
-          child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? 48 : 16,
-              vertical: 14,
-            ),
-            child: Row(
+      child: CustomScrollView(
+        slivers: [
+          SliverFillRemaining(
+            hasScrollBody: false,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const CircleAvatar(
-                  radius: 20,
-                  backgroundColor: NexusColors.primaryContainer,
-                  child: Icon(Icons.person_rounded, color: Colors.white),
-                ),
-                const SizedBox(width: 14),
-                const Text(
-                  'Nexus AI',
-                  style: TextStyle(
-                    color: NexusColors.onSurface,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.8,
-                  ),
-                ),
+                _DesktopBrandHeader(collapsed: collapsed),
+                const SizedBox(height: 28),
+                _DesktopProfileCard(collapsed: collapsed),
+                const SizedBox(height: 28),
+                _DesktopDrawerItem(icon: Icons.dashboard_rounded, label: 'Dashboard', active: selectedIndex == 0, collapsed: collapsed, onTap: () => onTabSelected(0)),
+                _DesktopDrawerItem(icon: Icons.folder_open_rounded, label: 'Projects', active: selectedIndex == 1, collapsed: collapsed, onTap: () => onTabSelected(1)),
+                _DesktopDrawerItem(icon: Icons.biotech_rounded, label: 'AI Labs', active: selectedIndex == 2, collapsed: collapsed, onTap: () => onTabSelected(2)),
+                _DesktopDrawerItem(icon: Icons.auto_stories_rounded, label: 'Library', active: selectedIndex == 3, collapsed: collapsed, onTap: () => onTabSelected(3)),
+                _DesktopDrawerItem(icon: Icons.person_rounded, label: 'Profile', active: selectedIndex == 4, collapsed: collapsed, onTap: () => onTabSelected(4)),
                 const Spacer(),
-                if (isWide) ...[
-                  _TopNavItem(
-                    icon: Icons.home_rounded,
-                    label: 'Home',
-                    active: selectedIndex == 0,
-                    onTap: () => onTabSelected(0),
-                  ),
-                  const SizedBox(width: 12),
-                  _TopNavItem(
-                    icon: Icons.check_circle_rounded,
-                    label: 'Tasks',
-                    active: selectedIndex == 1,
-                    onTap: () => onTabSelected(1),
-                  ),
-                  const SizedBox(width: 12),
-                  _TopNavItem(
-                    icon: Icons.smart_toy_rounded,
-                    label: 'Nexus',
-                    active: selectedIndex == 2,
-                    onTap: () => onTabSelected(2),
-                  ),
-                  const SizedBox(width: 20),
-                ],
-                Tooltip(
-                  message: 'Sign out',
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(999),
-                    onTap: () async {
-                      await Supabase.instance.client.auth.signOut();
-                      if (context.mounted) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(builder: (_) => const SignInPage()),
-                        );
-                      }
-                    },
-                    child: CircleAvatar(
-                      radius: 20,
-                      backgroundColor: NexusColors.surfaceContainerHigh,
-                      child: Text(
-                        initial,
-                        style: const TextStyle(
-                          color: NexusColors.onSurface,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
+                _DesktopDrawerItem(icon: Icons.settings_rounded, label: 'Settings', active: false, collapsed: collapsed, onTap: () {}),
               ],
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _TopNavItem extends StatefulWidget {
-  const _TopNavItem({
-    required this.icon,
-    required this.label,
-    this.active = false,
-    this.onTap,
+class _DesktopBrandHeader extends StatelessWidget {
+  const _DesktopBrandHeader({required this.collapsed});
+
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (collapsed) {
+      return const Center(child: _GradientIconBox(icon: Icons.graphic_eq_rounded, size: 36));
+    }
+
+    return const Row(
+      children: [
+        _GradientIconBox(icon: Icons.graphic_eq_rounded, size: 40),
+        SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Nexus AI',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DesktopProfileCard extends StatelessWidget {
+  const _DesktopProfileCard({required this.collapsed});
+
+  final bool collapsed;
+
+  @override
+  Widget build(BuildContext context) {
+    if (collapsed) {
+      return const Center(child: _UserAvatar(small: true));
+    }
+
+    return const Row(
+      children: [
+        _UserAvatar(small: false),
+        SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Alex Rivera', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NexusColors.primary, fontSize: 16, fontWeight: FontWeight.w900)),
+              Text('Pro Plan', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NexusColors.secondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _DesktopTopBar extends StatelessWidget {
+  const _DesktopTopBar({
+    required this.sidebarWidth,
+    required this.sidebarCollapsed,
+    required this.onToggleSidebar,
   });
 
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback? onTap;
-
-  @override
-  State<_TopNavItem> createState() => _TopNavItemState();
-}
-
-class _TopNavItemState extends State<_TopNavItem> {
-  bool _hovered = false;
+  final double sidebarWidth;
+  final bool sidebarCollapsed;
+  final VoidCallback onToggleSidebar;
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = widget.active || _hovered;
-    final color =
-        highlighted ? NexusColors.primary : NexusColors.onSurfaceVariant;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
-      child: InkWell(
-        onTap: widget.onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            color:
-                highlighted
-                    ? Colors.white.withOpacity(0.08)
-                    : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Row(
-            children: [
-              Icon(widget.icon, size: 20, color: color),
-              const SizedBox(width: 8),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: color,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 14,
-                ),
-              ),
-            ],
-          ),
-        ),
+    return Container(
+      height: 64,
+      padding: const EdgeInsets.symmetric(horizontal: 24),
+      decoration: BoxDecoration(
+        color: NexusColors.surfaceContainer.withValues(alpha: 0.72),
+        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 24)],
       ),
-    );
-  }
-}
-
-class _DashboardContent extends StatelessWidget {
-  const _DashboardContent();
-
-  @override
-  Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final isWide = width >= 900;
-    final horizontalPadding = width >= 760 ? 48.0 : 16.0;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.fromLTRB(
-        horizontalPadding,
-        32,
-        horizontalPadding,
-        120,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1280),
-          child: Column(
-            children: [
-              isWide
-                  ? const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 8, child: _WelcomeSection()),
-                      SizedBox(width: 24),
-                      Expanded(flex: 4, child: _DailyScoreCard()),
-                    ],
-                  )
-                  : const Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _WelcomeSection(),
-                      SizedBox(height: 24),
-                      _DailyScoreCard(),
-                    ],
-                  ),
-              const SizedBox(height: 24),
-              const _NexusInsightCard(),
-              const SizedBox(height: 24),
-              isWide
-                  ? const Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 8, child: _ActivePrioritiesSection()),
-                      SizedBox(width: 24),
-                      Expanded(flex: 4, child: _RightRail()),
-                    ],
-                  )
-                  : const Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _ActivePrioritiesSection(),
-                      SizedBox(height: 24),
-                      _RightRail(),
-                    ],
-                  ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WelcomeSection extends StatelessWidget {
-  const _WelcomeSection();
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
+      child: Row(
         children: [
-          const Text(
-            'Good morning, Alex',
-            style: TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 18,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            'Ready for deep focus?',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 48,
-              height: 1.08,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.8,
-            ),
-          ),
-          const SizedBox(height: 16),
-          const SizedBox(
-            width: 620,
-            child: Text(
-              'Your optimal flow state usually begins around 9:30 AM. You have 3 high-priority tasks queued.',
-              style: TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 16,
-                height: 1.6,
+          SizedBox(
+            width: sidebarWidth - 24,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: IconButton(
+                tooltip: sidebarCollapsed ? 'Open sidebar' : 'Close sidebar',
+                onPressed: onToggleSidebar,
+                icon: Icon(sidebarCollapsed ? Icons.menu_rounded : Icons.chevron_left_rounded, color: NexusColors.primary),
               ),
             ),
+          ),
+          const Text('Nexus AI', style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
+          const Spacer(),
+          const _SearchField(wide: true),
+          const SizedBox(width: 18),
+          _RoundAction(icon: Icons.notifications_none_rounded, badge: true, onTap: () {}),
+          const SizedBox(width: 12),
+          const _UserAvatar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _MobileTopBar extends StatelessWidget {
+  const _MobileTopBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Container(
+        height: 72,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF070B14).withValues(alpha: 0.78),
+          border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const Align(alignment: Alignment.centerLeft, child: _UserAvatar(small: true)),
+            const Text('Nexus AI', style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1)),
+            Align(alignment: Alignment.centerRight, child: _RoundAction(icon: Icons.notifications_none_rounded, onTap: () {})),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchField extends StatelessWidget {
+  const _SearchField({this.wide = false});
+
+  final bool wide;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 44,
+      constraints: BoxConstraints(maxWidth: wide ? 520 : 420),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: BoxDecoration(
+        color: NexusColors.surfaceContainerHigh.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.search_rounded, color: NexusColors.onSurfaceVariant, size: 20),
+          const SizedBox(width: 12),
+          Text(
+            wide ? 'Search tasks, insights, or commands (/)' : 'Search Nexus...',
+            style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 14),
           ),
         ],
       ),
@@ -405,77 +862,142 @@ class _WelcomeSection extends StatelessWidget {
   }
 }
 
-class _DailyScoreCard extends StatelessWidget {
-  const _DailyScoreCard();
+class _UserAvatar extends StatelessWidget {
+  const _UserAvatar({this.small = false});
+
+  final bool small;
 
   @override
   Widget build(BuildContext context) {
-    return _DashboardGlassPanel(
-      minHeight: 220,
+    final user = Supabase.instance.client.auth.currentUser;
+    final username = (user?.userMetadata?['username'] ?? user?.userMetadata?['full_name'] ?? user?.email ?? 'U').toString().trim();
+    final initial = username.isEmpty ? 'U' : username.characters.first.toUpperCase();
+
+    return Tooltip(
+      message: 'Sign out',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(999),
+        onTap: () async {
+          await Supabase.instance.client.auth.signOut();
+          if (context.mounted) {
+            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const SignInPage()));
+          }
+        },
+        child: CircleAvatar(
+          radius: small ? 20 : 22,
+          backgroundColor: NexusColors.surfaceContainerHigh,
+          child: Text(initial, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w900)),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundAction extends StatelessWidget {
+  const _RoundAction({required this.icon, required this.onTap, this.badge = false});
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool badge;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Material(
+          color: NexusColors.surfaceContainer.withValues(alpha: 0.65),
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: onTap,
+            child: SizedBox(width: 44, height: 44, child: Icon(icon, color: NexusColors.onSurfaceVariant)),
+          ),
+        ),
+        if (badge)
+          Positioned(
+            top: 8,
+            right: 9,
+            child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: NexusColors.tertiary)),
+          ),
+      ],
+    );
+  }
+}
+
+class _NexusIntelligenceCard extends StatelessWidget {
+  const _NexusIntelligenceCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final isMobile = MediaQuery.sizeOf(context).width < 720;
+
+    return _GlassPanel(
+      glow: NexusColors.primaryContainer,
       child: Stack(
         children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [
-                    NexusColors.primaryContainer.withOpacity(0.22),
-                    Colors.transparent,
-                  ],
+          Positioned(right: -18, top: -18, child: Icon(Icons.insights_rounded, size: 132, color: NexusColors.primary.withValues(alpha: 0.10))),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _SectionLabel(icon: Icons.auto_awesome_rounded, label: 'Nexus Intelligence', color: NexusColors.primary),
+              const SizedBox(height: 14),
+              Text.rich(
+                const TextSpan(
+                  text: 'Based on your current flow, begin the ',
+                  children: [TextSpan(text: 'Product Design Task', style: TextStyle(color: Colors.white)), TextSpan(text: ' now.')],
                 ),
+                style: TextStyle(color: NexusColors.onSurface, fontSize: isMobile ? 24 : 30, height: 1.2, fontWeight: FontWeight.w900),
               ),
-            ),
-          ),
-          const Positioned(
-            left: 0,
-            top: 0,
-            child: Text(
-              'DAILY SCORE',
-              style: TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.8,
+              const SizedBox(height: 14),
+              const Text(
+                'Cognitive load is balanced. Starting now can increase deep work retention by 24%.',
+                style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 16, height: 1.55),
               ),
-            ),
+              const SizedBox(height: 24),
+              const _GradientButton(label: 'Initiate Task', icon: Icons.arrow_forward_rounded),
+            ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlowStateCard extends StatelessWidget {
+  const _FlowStateCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      glow: NexusColors.secondary,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Flow State', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+          const SizedBox(height: 24),
           Center(
             child: SizedBox(
-              width: 138,
-              height: 138,
+              width: 176,
+              height: 176,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox.expand(
                     child: CircularProgressIndicator(
                       value: 0.76,
-                      strokeWidth: 9,
-                      backgroundColor: Colors.white.withOpacity(0.10),
-                      valueColor: const AlwaysStoppedAnimation(
-                        NexusColors.primaryContainer,
-                      ),
+                      strokeWidth: 8,
                       strokeCap: StrokeCap.round,
+                      backgroundColor: Colors.white.withValues(alpha: 0.06),
+                      valueColor: const AlwaysStoppedAnimation(NexusColors.secondary),
                     ),
                   ),
                   const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(
-                        '76',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 34,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      Text(
-                        'FLOW',
-                        style: TextStyle(
-                          color: NexusColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
+                      Text('76', style: TextStyle(color: NexusColors.secondary, fontSize: 48, fontWeight: FontWeight.w900, height: 1)),
+                      SizedBox(height: 6),
+                      Text('Optimal', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
                     ],
                   ),
                 ],
@@ -488,619 +1010,228 @@ class _DailyScoreCard extends StatelessWidget {
   }
 }
 
-class _NexusInsightCard extends StatelessWidget {
-  const _NexusInsightCard();
-
-  @override
-  Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
-
-    return Container(
-      padding: const EdgeInsets.all(1),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(24),
-        gradient: LinearGradient(
-          colors: [
-            NexusColors.primaryContainer.withOpacity(0.5),
-            NexusColors.secondary.withOpacity(0.3),
-          ],
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: NexusColors.secondary.withOpacity(0.18),
-            blurRadius: 28,
-          ),
-        ],
-      ),
-      child: Container(
-        padding: EdgeInsets.all(isWide ? 28 : 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1D2E).withOpacity(0.92),
-          borderRadius: BorderRadius.circular(23),
-        ),
-        child:
-            isWide
-                ? const Row(
-                  children: [
-                    Expanded(child: _InsightCopy()),
-                    SizedBox(width: 24),
-                    _InitiateButton(),
-                  ],
-                )
-                : const Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _InsightCopy(),
-                    SizedBox(height: 20),
-                    _InitiateButton(),
-                  ],
-                ),
-      ),
-    );
-  }
-}
-
-class _InsightCopy extends StatelessWidget {
-  const _InsightCopy();
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: const [
-        _InsightIcon(),
-        SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    'NEXUS INSIGHT',
-                    style: TextStyle(
-                      color: NexusColors.secondary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 1.6,
-                    ),
-                  ),
-                  SizedBox(width: 8),
-                  _PulseDot(),
-                ],
-              ),
-              SizedBox(height: 6),
-              Text.rich(
-                TextSpan(
-                  text: 'Based on your flow, start your ',
-                  children: [
-                    TextSpan(
-                      text: 'Product Design',
-                      style: TextStyle(color: Color(0xFFA78BFA)),
-                    ),
-                    TextSpan(text: ' task now.'),
-                  ],
-                ),
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  height: 1.22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _InsightIcon extends StatelessWidget {
-  const _InsightIcon();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: NexusColors.secondary.withOpacity(0.18),
-        border: Border.all(color: NexusColors.secondary.withOpacity(0.4)),
-        boxShadow: [
-          BoxShadow(
-            color: NexusColors.secondary.withOpacity(0.25),
-            blurRadius: 20,
-          ),
-        ],
-      ),
-      child: const Icon(Icons.smart_toy_rounded, color: NexusColors.secondary),
-    );
-  }
-}
-
-class _PulseDot extends StatelessWidget {
-  const _PulseDot();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 7,
-      height: 7,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: NexusColors.secondary,
-      ),
-    );
-  }
-}
-
-class _InitiateButton extends StatelessWidget {
-  const _InitiateButton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: NexusColors.primaryContainer,
-      borderRadius: BorderRadius.circular(14),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: () {},
-        child: const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 28, vertical: 16),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.play_arrow_rounded, color: Colors.white, size: 20),
-              SizedBox(width: 8),
-              Text(
-                'Initiate Task',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ActivePrioritiesSection extends StatelessWidget {
-  const _ActivePrioritiesSection();
+class _ActivePrioritiesCard extends StatelessWidget {
+  const _ActivePrioritiesCard();
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: const [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Active Priorities',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              'View All',
-              style: TextStyle(
-                color: NexusColors.primary,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 18),
-        _TaskPriorityTile(
-          title: 'Design System Refactor',
-          subtitle: 'Due Today • 2h est.',
-          badge: 'High Priority',
-        ),
+        _CardHeader(title: 'Active Priorities', action: 'View All'),
+        SizedBox(height: 14),
+        _PriorityTile(title: 'Finalize Q3 Design System', badge: 'High Priority', time: '2h 30m', danger: true),
         SizedBox(height: 12),
-        _TaskPriorityTile(
-          title: 'Weekly Sync Preparation',
-          subtitle: 'In Progress • 45m left',
-          active: true,
-          progress: 0.6,
-        ),
+        _PriorityTile(title: 'Review API Documentation', badge: 'Medium', time: '45m'),
         SizedBox(height: 12),
-        _TaskPriorityTile(
-          title: 'Review Q3 Analytics',
-          subtitle: 'Completed at 8:42 AM',
-          completed: true,
-        ),
+        _PriorityTile(title: 'Prepare client presentation', badge: 'Today', time: '1h 15m'),
       ],
     );
   }
 }
 
-class _TaskPriorityTile extends StatelessWidget {
-  const _TaskPriorityTile({
-    required this.title,
-    required this.subtitle,
-    this.badge,
-    this.active = false,
-    this.completed = false,
-    this.progress,
-  });
-
-  final String title;
-  final String subtitle;
-  final String? badge;
-  final bool active;
-  final bool completed;
-  final double? progress;
+class _DeepWorkCard extends StatelessWidget {
+  const _DeepWorkCard();
 
   @override
   Widget build(BuildContext context) {
-    return _DashboardGlassPanel(
-      padding: const EdgeInsets.all(16),
-      radius: 16,
-      opacity: completed ? 0.45 : 0.62,
-      child: Row(
+    return _GlassPanel(
+      child: Stack(
         children: [
-          _TaskStatusIcon(active: active, completed: completed),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color:
-                        completed ? NexusColors.onSurfaceVariant : Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
-                    decoration: completed ? TextDecoration.lineThrough : null,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color:
-                        active
-                            ? NexusColors.secondary
-                            : NexusColors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+          Positioned(right: -28, bottom: -28, child: Icon(Icons.timer_rounded, size: 132, color: NexusColors.primary.withValues(alpha: 0.10))),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              Text('Deep Work', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+              SizedBox(height: 8),
+              Text('Block distractions for 90m', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 16)),
+              SizedBox(height: 18),
+              Row(children: [_DurationChip(label: '25m'), SizedBox(width: 8), _DurationChip(label: '50m'), SizedBox(width: 8), _DurationChip(label: '90m', active: true)]),
+              SizedBox(height: 18),
+              _OutlinedAction(label: 'Start Session', icon: Icons.play_circle_rounded),
+            ],
           ),
-          if (badge != null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: NexusColors.primaryContainer.withOpacity(0.18),
-                border: Border.all(color: NexusColors.primary.withOpacity(0.3)),
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: const Text(
-                'High Priority',
-                style: TextStyle(
-                  color: Color(0xFFB388FF),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ),
-          if (progress != null)
-            SizedBox(
-              width: 96,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 6,
-                  backgroundColor: NexusColors.surfaceContainerHigh,
-                  valueColor: const AlwaysStoppedAnimation(
-                    NexusColors.secondary,
-                  ),
-                ),
-              ),
-            ),
         ],
       ),
     );
   }
 }
 
-class _TaskStatusIcon extends StatelessWidget {
-  const _TaskStatusIcon({required this.active, required this.completed});
-
-  final bool active;
-  final bool completed;
+class _TimelineCard extends StatelessWidget {
+  const _TimelineCard();
 
   @override
   Widget build(BuildContext context) {
-    if (completed) {
-      return Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: NexusColors.secondary.withOpacity(0.16),
-          border: Border.all(color: NexusColors.secondary.withOpacity(0.45)),
-        ),
-        child: const Icon(
-          Icons.check_rounded,
-          color: NexusColors.secondary,
-          size: 16,
-        ),
-      );
-    }
-    if (active) {
-      return Container(
-        width: 24,
-        height: 24,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          color: NexusColors.secondary.withOpacity(0.16),
-          border: Border.all(color: NexusColors.secondary.withOpacity(0.35)),
-        ),
-        child: Center(
-          child: Container(
-            width: 8,
-            height: 8,
-            decoration: const BoxDecoration(
-              shape: BoxShape.circle,
-              color: NexusColors.secondary,
-            ),
-          ),
-        ),
-      );
-    }
-    return Container(
-      width: 24,
-      height: 24,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: NexusColors.outline, width: 2),
-      ),
-    );
-  }
-}
-
-class _RightRail extends StatelessWidget {
-  const _RightRail();
-
-  @override
-  Widget build(BuildContext context) {
-    return const Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        _FocusSessionCard(),
-        SizedBox(height: 24),
-        _UpcomingDeadlinesCard(),
-      ],
-    );
-  }
-}
-
-class _FocusSessionCard extends StatelessWidget {
-  const _FocusSessionCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return const SizedBox(
-      height: 190,
-      child: _DashboardGlassPanel(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _SmallIconBox(icon: Icons.timer_rounded),
-                Icon(
-                  Icons.arrow_outward_rounded,
-                  color: NexusColors.onSurfaceVariant,
-                ),
-              ],
-            ),
-            Spacer(),
-            Text(
-              'Deep Work',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            SizedBox(height: 4),
-            Text(
-              'Start a 90m focus session',
-              style: TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 16,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _UpcomingDeadlinesCard extends StatelessWidget {
-  const _UpcomingDeadlinesCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return const _DashboardGlassPanel(
+    return _GlassPanel(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'UPCOMING',
-            style: TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 1.6,
-            ),
-          ),
+        children: const [
+          Text('Timeline', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
           SizedBox(height: 18),
-          _DeadlineRow(
-            day: '14',
-            month: 'Oct',
-            title: 'Client Presentation',
-            subtitle: '2 days left',
-            warning: true,
-          ),
-          SizedBox(height: 18),
-          _DeadlineRow(
-            day: '18',
-            month: 'Oct',
-            title: 'Sprint Planning',
-            subtitle: 'Friday',
-          ),
+          _TimelineItem(time: 'In 15 mins', title: 'Client Presentation', active: true),
+          _TimelineItem(time: '2:00 PM', title: 'Tax Submission'),
+          _TimelineItem(time: '4:30 PM', title: 'Design Review'),
         ],
       ),
     );
   }
 }
 
-class _DeadlineRow extends StatelessWidget {
-  const _DeadlineRow({
-    required this.day,
-    required this.month,
-    required this.title,
-    required this.subtitle,
-    this.warning = false,
-  });
+class _FloatingMobileNav extends StatelessWidget {
+  const _FloatingMobileNav({required this.selectedIndex, required this.onTabSelected});
 
-  final String day;
-  final String month;
-  final String title;
-  final String subtitle;
-  final bool warning;
+  final int selectedIndex;
+  final ValueChanged<int> onTabSelected;
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Column(
-          children: [
-            Text(
-              day,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            Text(
-              month,
-              style: const TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 10,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.only(left: 14),
-            decoration: BoxDecoration(
-              border: Border(
-                left: BorderSide(color: Colors.white.withOpacity(0.18)),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color:
-                        warning
-                            ? const Color(0xFFFFB4AB)
-                            : NexusColors.onSurfaceVariant,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Container(
+          height: 64,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            color: const Color(0xFF121628).withValues(alpha: 0.78),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+            boxShadow: [
+              BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.20), blurRadius: 36, offset: const Offset(0, 12)),
+              BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.16), blurRadius: 28),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(child: _MobileNavItem(icon: Icons.dashboard_rounded, label: 'Home', active: selectedIndex == 0, onTap: () => onTabSelected(0))),
+              Expanded(child: _MobileNavItem(icon: Icons.event_rounded, label: 'Calendar', active: selectedIndex == 1, onTap: () => onTabSelected(1))),
+              Expanded(child: _MobileNavItem(icon: Icons.task_alt_rounded, label: 'Tasks', active: selectedIndex == 2, onTap: () => onTabSelected(2))),
+              Expanded(child: _MobileNavItem(icon: Icons.auto_awesome_rounded, label: 'Nexus', active: selectedIndex == 3, onTap: () => onTabSelected(3))),
+              Expanded(child: _MobileNavItem(icon: Icons.person_rounded, label: 'Profile', active: selectedIndex == 4, onTap: () => onTabSelected(4))),
+            ],
           ),
         ),
-      ],
+      ),
     );
   }
 }
 
-class _SmallIconBox extends StatelessWidget {
-  const _SmallIconBox({required this.icon});
+class _MobileNavItem extends StatelessWidget {
+  const _MobileNavItem({required this.icon, required this.label, required this.active, required this.onTap});
 
   final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 42,
-      height: 42,
-      decoration: BoxDecoration(
-        color: NexusColors.surfaceContainerHigh,
+    return Tooltip(
+      message: label,
+      child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 220),
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: active ? NexusColors.secondary.withValues(alpha: 0.18) : Colors.transparent,
+            boxShadow: active ? [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.32), blurRadius: 18)] : null,
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: active ? NexusColors.secondary : NexusColors.onSurfaceVariant.withValues(alpha: 0.55), size: active ? 25 : 22),
+              if (active) ...[
+                const SizedBox(height: 2),
+                Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: NexusColors.secondary)),
+              ],
+            ],
+          ),
+        ),
       ),
-      child: Icon(icon, color: Colors.white),
     );
   }
 }
 
-class _DashboardGlassPanel extends StatelessWidget {
-  const _DashboardGlassPanel({
+class _DesktopDrawerItem extends StatelessWidget {
+  const _DesktopDrawerItem({required this.icon, required this.label, required this.active, required this.collapsed, required this.onTap});
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final bool collapsed;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = active ? NexusColors.primary : NexusColors.onSurfaceVariant;
+    final item = Material(
+      color: active ? NexusColors.primaryContainer.withValues(alpha: 0.20) : Colors.transparent,
+      borderRadius: BorderRadius.circular(14),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: onTap,
+        child: Container(
+          height: 48,
+          padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 14),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(14),
+            border: active && !collapsed ? const Border(right: BorderSide(color: NexusColors.primary, width: 4)) : null,
+          ),
+          child:
+              collapsed
+                  ? Center(child: Icon(icon, color: color, size: 22))
+                  : Row(
+                    children: [
+                      Icon(icon, color: color, size: 22),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Text(
+                          label,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14),
+                        ),
+                      ),
+                    ],
+                  ),
+        ),
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Tooltip(message: label, child: item),
+    );
+  }
+}
+
+class _GlassPanel extends StatelessWidget {
+  const _GlassPanel({
     required this.child,
     this.padding = const EdgeInsets.all(24),
-    this.radius = 24,
-    this.minHeight,
-    this.opacity = 0.42,
+    this.radius = 28,
+    this.glow,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final double radius;
-  final double? minHeight;
-  final double opacity;
+  final Color? glow;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: BoxConstraints(minHeight: minHeight ?? 0),
       padding: padding,
       decoration: BoxDecoration(
-        color: NexusColors.surfaceContainer.withOpacity(opacity),
+        color: NexusColors.surface.withValues(alpha: 0.48),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: Colors.white.withOpacity(0.10)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.32),
-            blurRadius: 32,
-            offset: const Offset(0, 16),
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 30, offset: const Offset(0, 18)),
+          if (glow != null) BoxShadow(color: glow!.withValues(alpha: 0.14), blurRadius: 36),
         ],
       ),
       child: child,
@@ -1108,56 +1239,63 @@ class _DashboardGlassPanel extends StatelessWidget {
   }
 }
 
-class _MobileBottomNav extends StatelessWidget {
-  const _MobileBottomNav({
-    required this.selectedIndex,
-    required this.onTabSelected,
-  });
+class _GradientIconBox extends StatelessWidget {
+  const _GradientIconBox({required this.icon, this.size = 48});
 
-  final int selectedIndex;
-  final ValueChanged<int> onTabSelected;
+  final IconData icon;
+  final double size;
 
   @override
   Widget build(BuildContext context) {
-    final isWide = MediaQuery.sizeOf(context).width >= 760;
-    if (isWide) return const SizedBox.shrink();
-
     return Container(
+      width: size,
+      height: size,
       decoration: BoxDecoration(
-        color: NexusColors.surface.withOpacity(0.92),
-        border: Border(top: BorderSide(color: Colors.white.withOpacity(0.08))),
+        borderRadius: BorderRadius.circular(size * 0.28),
+        gradient: const LinearGradient(colors: [NexusColors.primary, NexusColors.primaryContainer]),
+        boxShadow: [BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.35), blurRadius: 18)],
       ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _BottomNavItem(
-                icon: Icons.home_rounded,
-                label: 'Home',
-                active: selectedIndex == 0,
-                onTap: () => onTabSelected(0),
-              ),
-              _BottomNavItem(
-                icon: Icons.check_circle_rounded,
-                label: 'Tasks',
-                active: selectedIndex == 1,
-                onTap: () => onTabSelected(1),
-              ),
-              _BottomNavItem(
-                icon: Icons.smart_toy_rounded,
-                label: 'Nexus',
-                active: selectedIndex == 2,
-                onTap: () => onTabSelected(2),
-              ),
-              _BottomNavItem(
-                icon: Icons.person_rounded,
-                label: 'Profile',
-                active: selectedIndex == 3,
-                onTap: () => onTabSelected(3),
-              ),
-            ],
+      child: Icon(icon, color: NexusColors.onPrimary),
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({required this.icon, required this.label, required this.color});
+
+  final IconData icon;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.4))]);
+  }
+}
+
+class _GradientButton extends StatelessWidget {
+  const _GradientButton({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(16),
+      child: Ink(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: const LinearGradient(colors: [NexusColors.primaryContainer, NexusColors.primary]),
+          boxShadow: [BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.28), blurRadius: 22)],
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {},
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)), const SizedBox(width: 8), Icon(icon, color: Colors.white, size: 18)]),
           ),
         ),
       ),
@@ -1165,43 +1303,153 @@ class _MobileBottomNav extends StatelessWidget {
   }
 }
 
-class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({
-    required this.icon,
-    required this.label,
-    this.active = false,
-    this.onTap,
-  });
+class _CardHeader extends StatelessWidget {
+  const _CardHeader({required this.title, required this.action});
 
-  final IconData icon;
-  final String label;
-  final bool active;
-  final VoidCallback? onTap;
+  final String title;
+  final String action;
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? NexusColors.primary : NexusColors.onSurfaceVariant;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+        Text(action, style: const TextStyle(color: NexusColors.primary, fontSize: 12, fontWeight: FontWeight.w900)),
+      ],
+    );
+  }
+}
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: color),
-            const SizedBox(height: 3),
-            Text(
-              label,
-              style: TextStyle(
-                color: color,
-                fontSize: 11,
-                fontWeight: FontWeight.w700,
-              ),
+class _PriorityTile extends StatelessWidget {
+  const _PriorityTile({required this.title, required this.badge, required this.time, this.danger = false});
+
+  final String title;
+  final String badge;
+  final String time;
+  final bool danger;
+
+  @override
+  Widget build(BuildContext context) {
+    final badgeColor = danger ? NexusColors.tertiary : NexusColors.secondary;
+
+    return _GlassPanel(
+      child: Row(
+        children: [
+          Container(width: 24, height: 24, decoration: BoxDecoration(borderRadius: BorderRadius.circular(7), border: Border.all(color: NexusColors.outlineVariant, width: 2))),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                const SizedBox(height: 7),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 6,
+                  children: [
+                    _TinyBadge(label: badge, color: badgeColor),
+                    Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.schedule_rounded, color: NexusColors.onSurfaceVariant, size: 14), const SizedBox(width: 4), Text(time, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12))]),
+                  ],
+                ),
+              ],
             ),
-          ],
+          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.play_arrow_rounded, color: NexusColors.onSurfaceVariant),
+        ],
+      ),
+    );
+  }
+}
+
+class _TinyBadge extends StatelessWidget {
+  const _TinyBadge({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: 0.22))),
+      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+    );
+  }
+}
+
+class _DurationChip extends StatelessWidget {
+  const _DurationChip({required this.label, this.active = false});
+
+  final String label;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(999),
+        color: active ? NexusColors.primaryContainer.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: active ? NexusColors.primary : Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Text(label, style: TextStyle(color: active ? NexusColors.primary : NexusColors.onSurfaceVariant, fontWeight: FontWeight.w800)),
+    );
+  }
+}
+
+class _OutlinedAction extends StatelessWidget {
+  const _OutlinedAction({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: NexusColors.surfaceContainerHighest.withValues(alpha: 0.22),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () {},
+        child: Container(
+          height: 48,
+          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
+          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: NexusColors.primary, size: 20), const SizedBox(width: 8), Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))]),
         ),
+      ),
+    );
+  }
+}
+
+class _TimelineItem extends StatelessWidget {
+  const _TimelineItem({required this.time, required this.title, this.active = false});
+
+  final String time;
+  final String title;
+  final bool active;
+
+  @override
+  Widget build(BuildContext context) {
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Column(
+            children: [
+              Container(width: 13, height: 13, decoration: BoxDecoration(shape: BoxShape.circle, color: active ? NexusColors.secondary : NexusColors.surfaceContainerHighest, border: Border.all(color: const Color(0xFF070B14), width: 2), boxShadow: active ? [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.55), blurRadius: 12)] : null)),
+              Expanded(child: Container(width: 1, color: Colors.white.withValues(alpha: 0.10))),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(time, style: TextStyle(color: active ? NexusColors.secondary : NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800))]),
+            ),
+          ),
+        ],
       ),
     );
   }
