@@ -1,8 +1,11 @@
-# Nexus AI (to_do_app)
+# NexusAI (to_do_app)
 
 Ứng dụng Flutter theo hướng **productivity / task management** (dark mode) với xác thực bằng **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
 
-> Ghi chú: Tên package hiện tại là `to_do_app` nhưng UI/branding trong app đang hiển thị là **Nexus AI**.
+> Ghi chú:
+>
+> - Package name hiện tại là `to_do_app`.
+> - Tên app trong code (ví dụ `AppConstants.appName`) là **NexusAI**; một vài màn hình legacy có thể hiển thị branding khác.
 
 ## Mục lục
 
@@ -20,22 +23,29 @@
 
 - Landing page (marketing) + điều hướng sang đăng nhập.
 - Đăng nhập / đăng ký bằng email & password (Supabase).
-- Dashboard sau khi đăng nhập (Home / Tasks / AI; một số màn hình hiện tại mang tính demo UI).
+- Dashboard sau khi đăng nhập (Home / Tasks / AI / Calendar / Profile; một số màn hình hiện tại mang tính demo UI).
 - Mẫu schema Supabase: bảng `users`, `tasks`, RLS policies và trigger tạo profile.
 
 ## Luồng ứng dụng
 
-Luồng đang được dùng bởi entrypoint hiện tại:
+Entrypoint hiện tại dùng `MaterialApp.router` + `GoRouter` (xem `lib/app.dart`, `lib/core/router/app_router.dart`). Router sẽ tự redirect dựa trên trạng thái đăng nhập Supabase session.
 
 ```mermaid
 flowchart LR
-	A[main.dart] --> B[Home (landing)]
-	B --> C[SignInPage]
-	C --> D[BlankPage (dashboard tabs)]
-	D -->|Sign out| C
+	A[main.dart] --> B[NexusApp (MaterialApp.router)]
+	B --> C[/splash]
+	C -->|chưa đăng nhập| D[/ (Landing)]
+	D --> E[/login]
+	E -->|đăng nhập| F[Dashboard]
+	F -->|sign out| E
 ```
 
-Các module theo hướng “feature-first” (router/auth/tasks/...) đã có sẵn trong `lib/features/` và `lib/core/`, nhưng **chưa được nối vào entrypoint** (phù hợp khi bạn đang refactor dần).
+Ghi chú về Dashboard hiện tại:
+
+- Router có route `/home` trỏ tới `DashboardScreen` (UI dashboard mới, có responsive desktop/mobile).
+- Màn `SignInPage` trong `lib/screens/sign_in_page.dart` hiện đang điều hướng sang `BlankPage` (legacy dashboard) bằng `Navigator.pushReplacement`.
+
+Vì vậy, tuỳ đường đi (GoRouter vs Navigator legacy), bạn có thể thấy dashboard khác nhau.
 
 ## Tech stack
 
@@ -44,21 +54,26 @@ Các module theo hướng “feature-first” (router/auth/tasks/...) đã có s
 - Flutter / Dart (SDK: `^3.7.0`)
 - Supabase: `supabase_flutter`
 - Biến môi trường: `flutter_dotenv` (load `.env` như asset)
-
-Trong codebase có sẵn (phục vụ hướng kiến trúc feature-first) nhưng có thể chưa tích hợp hoàn chỉnh:
-
-- Riverpod / GoRouter / Dio / secure storage (xuất hiện trong `lib/core` và `lib/features`)
+- State management: `flutter_riverpod`
+- Routing: `go_router`
+- HTTP client: `dio`
+- Secure storage: `flutter_secure_storage`
+- Fonts: `google_fonts`
+- i18n/date utils: `intl`
 
 ## Cấu trúc thư mục
 
 - `pubspec.yaml`: dependencies + khai báo asset `.env`.
-- `lib/main.dart`: load `.env`, khởi tạo Supabase, chạy `MyApp`.
-- `lib/screens/`:
+- `lib/main.dart`: load `.env`, khởi tạo Supabase, chạy `NexusApp` (bọc `ProviderScope`).
+- `lib/app.dart`: `MaterialApp.router` + theme dark.
+- `lib/core/router/app_router.dart`: cấu hình `GoRouter` + redirect theo session.
+- `lib/screens/` (một phần UI legacy):
   - `home.dart`: landing page.
-  - `sign_in_page.dart`, `sign_up_page.dart`: auth UI (Supabase).
-  - `blank_page.dart`: dashboard tabs + sign out.
-- `lib/features/`: modules theo feature-first (auth/tasks/ai/calendar/profile) và router.
-- `supabase_schema.sql`: schema + RLS policies + trigger.
+  - `sign_in_page.dart`, `sign_up_page.dart`: auth UI.
+  - `blank_page.dart`: legacy dashboard tabs + sign out.
+- `lib/screens/dashboard/`: dashboard UI mới (responsive).
+- `lib/features/`: modules theo feature-first (auth/tasks/ai/calendar/profile).
+- `supabase_schema.sql`: schema + RLS policies + trigger (file local; hiện đang bị ignore trong `.gitignore` nên clone repo có thể không có).
 
 ## Cấu hình môi trường
 
@@ -101,7 +116,9 @@ Quy ước khuyến nghị cho `.env`:
 
 ### 2) Apply schema
 
-Mở file `supabase_schema.sql` và chạy trong **Supabase SQL Editor**.
+Nếu workspace của bạn có file `supabase_schema.sql`, hãy mở và chạy trong **Supabase SQL Editor**.
+
+Nếu bạn clone repo mà không thấy file này, kiểm tra `.gitignore` (file đang được ignore theo mặc định) hoặc xin lại script schema từ owner.
 
 Nếu gặp lỗi kiểu `function gen_random_uuid() does not exist`, hãy bật extension `pgcrypto` trong Supabase (Database → Extensions) rồi chạy lại.
 
@@ -197,10 +214,12 @@ Ghi chú: `flutter build ios` chỉ chạy được trên macOS.
 
 ### 5) `flutter analyze` báo thiếu package (ví dụ Riverpod/GoRouter/Dio/secure storage)
 
-Trong repo có một số module theo hướng feature-first đang refactor dần, có import các package như `flutter_riverpod`, `go_router`, `dio`, `flutter_secure_storage`.
+Nếu bạn gặp lỗi analyze liên quan tới import/package:
 
-- Nếu bạn muốn dùng các module này, hãy thêm dependencies tương ứng vào `pubspec.yaml`.
-- Nếu bạn chỉ muốn chạy luồng `lib/screens/` hiện tại, có thể tạm thời bỏ qua các cảnh báo phân tích (hoặc cấu hình analyze/exclude theo nhu cầu đội).
+- Chạy lại `flutter pub get`.
+- Kiểm tra `pubspec.yaml` đã có dependency tương ứng.
+
+Repo hiện đã khai báo sẵn các package chính như `flutter_riverpod`, `go_router`, `dio`, `flutter_secure_storage`.
 
 ## Ghi chú bảo mật
 
