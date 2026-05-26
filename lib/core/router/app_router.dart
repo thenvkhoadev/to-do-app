@@ -7,7 +7,7 @@ import 'package:to_do_app/features/auth/presentation/screens/splash_screen.dart'
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
-import 'package:to_do_app/screens/blank_page.dart';
+import 'package:to_do_app/screens/dashboard/dashboard_screen.dart';
 import 'package:to_do_app/screens/home.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 import 'package:to_do_app/screens/sign_up_page.dart';
@@ -35,7 +35,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/', builder: (context, state) => const Home()),
       GoRoute(path: '/login', builder: (context, state) => const SignInPage()),
       GoRoute(path: '/signup', builder: (context, state) => const SignUpPage()),
-      GoRoute(path: '/home', builder: (context, state) => const BlankPage()),
+      GoRoute(path: '/home', builder: (context, state) => const DashboardScreen()),
       GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
       GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),
       GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
