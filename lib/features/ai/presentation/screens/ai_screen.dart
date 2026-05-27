@@ -49,7 +49,7 @@ class AiAssistantDesktopScreen extends StatelessWidget {
       case 3:
         context.go('/calendar');
       case 5:
-        context.go('/profile');
+        context.go('/settings');
       default:
         context.go('/home');
     }

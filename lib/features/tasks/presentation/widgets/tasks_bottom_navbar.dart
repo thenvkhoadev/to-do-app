@@ -21,7 +21,7 @@ class TasksBottomNavBar extends StatelessWidget {
             _Nav(icon: Icons.home_rounded, label: 'Home', onTap: () => context.go('/home')),
             _Nav(icon: Icons.calendar_month_rounded, label: 'Calendar', onTap: () => context.go('/calendar')),
             const _Nav(icon: Icons.assignment_rounded, label: 'Tasks', active: true),
-            _Nav(icon: Icons.auto_awesome_rounded, label: 'AI', onTap: () => context.go('/ai')),
+            _Nav(icon: Icons.bar_chart_rounded, label: 'Stats', onTap: () => context.go('/analytics')),
             _Nav(icon: Icons.person_rounded, label: 'Profile', onTap: () => context.go('/profile')),
           ]),
         ),

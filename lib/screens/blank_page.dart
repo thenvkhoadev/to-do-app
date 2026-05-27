@@ -5,7 +5,7 @@ import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
-import 'package:to_do_app/screens/sign_in_page.dart';
+import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 
 class BlankPage extends StatefulWidget {
   const BlankPage({super.key});
@@ -69,7 +69,12 @@ class _DesktopDashboardShell extends StatelessWidget {
         Positioned.fill(
           top: 64,
           left: sidebarWidth,
-          child: _TabContent(selectedIndex: selectedIndex),
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 250),
+            switchInCurve: Curves.easeInOut,
+            switchOutCurve: Curves.easeInOut,
+            child: _TabContent(key: ValueKey(selectedIndex), selectedIndex: selectedIndex),
+          ),
         ),
         Positioned(
           left: 0,
@@ -89,6 +94,7 @@ class _DesktopDashboardShell extends StatelessWidget {
             sidebarWidth: sidebarWidth,
             sidebarCollapsed: sidebarCollapsed,
             onToggleSidebar: onToggleSidebar,
+            onProfileSelected: () => onTabSelected(4),
           ),
         ),
       ],
@@ -111,7 +117,11 @@ class _MobileDashboardShell extends StatelessWidget {
       children: [
         Column(
           children: [
-            const _MobileTopBar(),
+            _MobileTopBar(
+              onProfileSelected: () {
+                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserProfileScreen()));
+              },
+            ),
             Expanded(child: _TabContent(selectedIndex: selectedIndex)),
           ],
         ),
@@ -130,7 +140,7 @@ class _MobileDashboardShell extends StatelessWidget {
 }
 
 class _TabContent extends StatelessWidget {
-  const _TabContent({required this.selectedIndex});
+  const _TabContent({required this.selectedIndex, super.key});
 
   final int selectedIndex;
 
@@ -683,7 +693,7 @@ class _DesktopSidebar extends StatelessWidget {
               children: [
                 _DesktopBrandHeader(collapsed: collapsed),
                 const SizedBox(height: 28),
-                _DesktopProfileCard(collapsed: collapsed),
+                _DesktopProfileCard(collapsed: collapsed, onTap: () => onTabSelected(4)),
                 const SizedBox(height: 28),
                 _DesktopDrawerItem(icon: Icons.dashboard_rounded, label: 'Dashboard', active: selectedIndex == 0, collapsed: collapsed, onTap: () => onTabSelected(0)),
                 _DesktopDrawerItem(icon: Icons.folder_open_rounded, label: 'Projects', active: selectedIndex == 1, collapsed: collapsed, onTap: () => onTabSelected(1)),
@@ -730,19 +740,20 @@ class _DesktopBrandHeader extends StatelessWidget {
 }
 
 class _DesktopProfileCard extends StatelessWidget {
-  const _DesktopProfileCard({required this.collapsed});
+  const _DesktopProfileCard({required this.collapsed, required this.onTap});
 
   final bool collapsed;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     if (collapsed) {
-      return const Center(child: _UserAvatar(small: true));
+      return Center(child: _UserAvatar(small: true, onTap: onTap));
     }
 
-    return const Row(
+    return Row(
       children: [
-        _UserAvatar(small: false),
+        _UserAvatar(small: false, onTap: onTap),
         SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -763,11 +774,13 @@ class _DesktopTopBar extends StatelessWidget {
     required this.sidebarWidth,
     required this.sidebarCollapsed,
     required this.onToggleSidebar,
+    required this.onProfileSelected,
   });
 
   final double sidebarWidth;
   final bool sidebarCollapsed;
   final VoidCallback onToggleSidebar;
+  final VoidCallback onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -798,7 +811,7 @@ class _DesktopTopBar extends StatelessWidget {
           const SizedBox(width: 18),
           _RoundAction(icon: Icons.notifications_none_rounded, badge: true, onTap: () {}),
           const SizedBox(width: 12),
-          const _UserAvatar(),
+          _UserAvatar(onTap: onProfileSelected),
         ],
       ),
     );
@@ -806,7 +819,9 @@ class _DesktopTopBar extends StatelessWidget {
 }
 
 class _MobileTopBar extends StatelessWidget {
-  const _MobileTopBar();
+  const _MobileTopBar({required this.onProfileSelected});
+
+  final VoidCallback onProfileSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -822,7 +837,7 @@ class _MobileTopBar extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            const Align(alignment: Alignment.centerLeft, child: _UserAvatar(small: true)),
+            Align(alignment: Alignment.centerLeft, child: _UserAvatar(small: true, onTap: onProfileSelected)),
             const Text('Nexus AI', style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1)),
             Align(alignment: Alignment.centerRight, child: _RoundAction(icon: Icons.notifications_none_rounded, onTap: () {})),
           ],
@@ -863,30 +878,29 @@ class _SearchField extends StatelessWidget {
 }
 
 class _UserAvatar extends StatelessWidget {
-  const _UserAvatar({this.small = false});
+  const _UserAvatar({this.small = false, required this.onTap});
 
   final bool small;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
-    final username = (user?.userMetadata?['username'] ?? user?.userMetadata?['full_name'] ?? user?.email ?? 'U').toString().trim();
-    final initial = username.isEmpty ? 'U' : username.characters.first.toUpperCase();
+    final metadata = user?.userMetadata;
+    final username = (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'U').toString().trim();
+    final avatarUrl = (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '').toString().trim();
+    final initial = username.isEmpty ? '?' : username.characters.first.toUpperCase();
 
     return Tooltip(
-      message: 'Sign out',
+      message: 'Open profile',
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
-        onTap: () async {
-          await Supabase.instance.client.auth.signOut();
-          if (context.mounted) {
-            Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const SignInPage()));
-          }
-        },
+        onTap: onTap,
         child: CircleAvatar(
           radius: small ? 20 : 22,
           backgroundColor: NexusColors.surfaceContainerHigh,
-          child: Text(initial, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w900)),
+          backgroundImage: avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
+          child: avatarUrl.isEmpty ? Text(initial, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w900)) : null,
         ),
       ),
     );

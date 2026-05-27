@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
@@ -253,20 +254,56 @@ class SectionTitle extends StatelessWidget {
 }
 
 class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({this.radius = 18, super.key});
+  const ProfileAvatar({this.radius = 18, this.onTap, this.showUsername = false, super.key});
 
   final double radius;
+  final VoidCallback? onTap;
+  final bool showUsername;
 
   @override
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
-    final label = (user?.userMetadata?['username'] ?? user?.userMetadata?['full_name'] ?? user?.email ?? 'A').toString();
-    final initial = label.trim().isEmpty ? 'A' : label.characters.first.toUpperCase();
-
-    return CircleAvatar(
+    final metadata = user?.userMetadata;
+    final label = (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'A').toString();
+    final avatarUrl = (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '').toString().trim();
+    final initial = label.trim().isEmpty ? '?' : label.characters.first.toUpperCase();
+    final avatar = CircleAvatar(
       radius: radius,
       backgroundColor: DashboardColors.surfaceHigh,
-      child: Text(initial, style: TextStyle(color: DashboardColors.onSurface, fontSize: radius * .78, fontWeight: FontWeight.w800)),
+      backgroundImage: avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
+      child: avatarUrl.isEmpty ? Text(initial, style: TextStyle(color: DashboardColors.onSurface, fontSize: radius * .78, fontWeight: FontWeight.w800)) : null,
+    );
+
+    final content = showUsername
+        ? Container(
+            padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+            decoration: BoxDecoration(
+              color: DashboardColors.surfaceHigh.withValues(alpha: .62),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                avatar,
+                const SizedBox(width: 9),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 130),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w800),
+                  ),
+                ),
+              ],
+            ),
+          )
+        : avatar;
+
+    return Tooltip(
+      message: 'Open profile',
+      child: GestureDetector(onTap: onTap ?? () => context.go('/profile'), child: content),
     );
   }
 }

@@ -6,6 +6,10 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:to_do_app/screens/analytics/analytics_screen.dart';
+import 'package:to_do_app/screens/settings/settings_screen.dart';
+import 'package:to_do_app/screens/profile/user_profile_screen.dart';
+import 'package:to_do_app/screens/support/support_screen.dart';
 import 'package:to_do_app/features/tasks/data/mock/mock_task_repository.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
@@ -38,10 +42,14 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
             switchInCurve: Curves.easeOutCubic,
             switchOutCurve: Curves.easeInCubic,
             child: switch (_selectedIndex) {
-              0 => const _DashboardMainPane(key: ValueKey('dashboard-main')),
-              1 => const _ProjectsBoardPane(key: ValueKey('projects-board')),
+              0 => _DashboardMainPane(key: const ValueKey('dashboard-main'), onProfileTap: () => setState(() => _selectedIndex = 7)),
+              1 => _ProjectsBoardPane(key: const ValueKey('projects-board'), onProfileTap: () => setState(() => _selectedIndex = 7)),
               2 => const DesktopAiAssistantContent(key: ValueKey('ai-assistant')),
               3 => const CalendarScreen(key: ValueKey('calendar')),
+              4 => const AnalyticsScreen(key: ValueKey('analytics'), embeddedInDashboard: true),
+              5 => const SettingsScreen(key: ValueKey('settings'), embeddedInDashboard: true),
+              6 => const SupportScreen(key: ValueKey('support'), embeddedInDashboard: true),
+              7 => const _ProfilePane(key: ValueKey('profile')),
               _ => _DashboardSectionPlaceholder(index: _selectedIndex),
             },
           ),
@@ -52,13 +60,15 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
 }
 
 class _DashboardMainPane extends StatelessWidget {
-  const _DashboardMainPane({super.key});
+  const _DashboardMainPane({super.key, required this.onProfileTap});
+
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const DesktopTopbar(),
+        DesktopTopbar(onProfileTap: onProfileTap),
         Expanded(
           child: CustomScrollView(
             slivers: [
@@ -81,8 +91,24 @@ class _DashboardMainPane extends StatelessWidget {
   }
 }
 
+class _ProfilePane extends StatelessWidget {
+  const _ProfilePane({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Column(
+      children: [
+        DesktopTopbar(),
+        Expanded(child: UserProfileScreen()),
+      ],
+    );
+  }
+}
+
 class _ProjectsBoardPane extends StatelessWidget {
-  const _ProjectsBoardPane({super.key});
+  const _ProjectsBoardPane({super.key, required this.onProfileTap});
+
+  final VoidCallback onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -96,7 +122,7 @@ class _ProjectsBoardPane extends StatelessWidget {
 
         return Column(
           children: [
-            const DesktopTopbar(),
+            DesktopTopbar(onProfileTap: onProfileTap),
             Container(
               height: 72,
               padding: const EdgeInsets.symmetric(horizontal: 32),
@@ -354,7 +380,9 @@ class _SidebarItem extends StatelessWidget {
 }
 
 class DesktopTopbar extends StatelessWidget {
-  const DesktopTopbar({super.key});
+  const DesktopTopbar({this.onProfileTap, super.key});
+
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -365,15 +393,15 @@ class DesktopTopbar extends StatelessWidget {
           height: 66,
           padding: const EdgeInsets.symmetric(horizontal: 32),
           decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .5), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
-          child: const Row(
+          child: Row(
             children: [
-              SearchBarWidget(),
-              Spacer(),
-              _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
-              SizedBox(width: 12),
-              _TopIcon(icon: Icons.bolt_rounded),
-              SizedBox(width: 12),
-              ProfileAvatar(),
+              const SearchBarWidget(),
+              const Spacer(),
+              const _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
+              const SizedBox(width: 12),
+              const _TopIcon(icon: Icons.bolt_rounded),
+              const SizedBox(width: 12),
+              ProfileAvatar(onTap: onProfileTap, showUsername: true),
             ],
           ),
         ),

@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/tasks/data/mock/mock_task_repository.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/floating_ai_button.dart';
@@ -73,7 +74,7 @@ class _MobileTasksTopBar extends StatelessWidget {
             height: 66,
             padding: const EdgeInsets.symmetric(horizontal: 24),
             decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .42), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
-            child: Row(children: [const ProfileAvatar(radius: 17), const SizedBox(width: 12), ShaderMask(shaderCallback: (rect) => const LinearGradient(colors: [DashboardColors.primary, DashboardColors.secondary]).createShader(rect), child: const Text('TaskFlow AI', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))), const Spacer(), IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, color: DashboardColors.primary)), IconButton(onPressed: () {}, icon: const Icon(Icons.settings_rounded, color: DashboardColors.primary))]),
+            child: Row(children: [const ProfileAvatar(radius: 17), const SizedBox(width: 12), ShaderMask(shaderCallback: (rect) => const LinearGradient(colors: [DashboardColors.primary, DashboardColors.secondary]).createShader(rect), child: const Text('TaskFlow AI', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900))), const Spacer(), IconButton(onPressed: () {}, icon: const Icon(Icons.search_rounded, color: DashboardColors.primary)), IconButton(onPressed: () => context.go('/settings'), icon: const Icon(Icons.settings_rounded, color: DashboardColors.primary))]),
           ),
         ),
       ),

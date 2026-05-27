@@ -7,7 +7,10 @@ import 'package:to_do_app/features/auth/presentation/screens/splash_screen.dart'
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
+import 'package:to_do_app/screens/analytics/analytics_screen.dart';
 import 'package:to_do_app/screens/dashboard/dashboard_screen.dart';
+import 'package:to_do_app/screens/settings/settings_screen.dart';
+import 'package:to_do_app/screens/support/support_screen.dart';
 import 'package:to_do_app/screens/home.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 import 'package:to_do_app/screens/sign_up_page.dart';
@@ -39,6 +42,9 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/tasks', builder: (context, state) => const TasksScreen()),
       GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),
       GoRoute(path: '/calendar', builder: (context, state) => const CalendarScreen()),
+      GoRoute(path: '/analytics', builder: (context, state) => const AnalyticsScreen()),
+      GoRoute(path: '/settings', builder: (context, state) => const SettingsScreen()),
+      GoRoute(path: '/support', builder: (context, state) => const SupportScreen()),
       GoRoute(path: '/profile', builder: (context, state) => const ProfileScreen()),
     ],
   );

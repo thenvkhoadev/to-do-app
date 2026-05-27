@@ -6,6 +6,8 @@ import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.
 import 'package:to_do_app/features/tasks/presentation/widgets/task_filter_chips.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_sidebar.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_topbar.dart';
+import 'package:to_do_app/screens/settings/settings_screen.dart';
+import 'package:to_do_app/screens/support/support_screen.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksDesktopLayout extends StatefulWidget {
@@ -70,7 +72,11 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                               ),
                             ],
                           )
-                        : _SidebarSectionPlaceholder(index: _selectedIndex),
+                        : _selectedIndex == 5
+                            ? const SettingsScreen(key: ValueKey('tasks-settings'), embeddedInDashboard: true)
+                            : _selectedIndex == 6
+                                ? const SupportScreen(key: ValueKey('tasks-support'), embeddedInDashboard: true)
+                                : _SidebarSectionPlaceholder(index: _selectedIndex),
                   ),
                 ),
               ],
