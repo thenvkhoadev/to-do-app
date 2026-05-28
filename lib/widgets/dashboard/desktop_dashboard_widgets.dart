@@ -37,21 +37,41 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
           onSelected: (index) => setState(() => _selectedIndex = index),
         ),
         Expanded(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 240),
-            switchInCurve: Curves.easeOutCubic,
-            switchOutCurve: Curves.easeInCubic,
-            child: switch (_selectedIndex) {
-              0 => _DashboardMainPane(key: const ValueKey('dashboard-main'), onProfileTap: () => setState(() => _selectedIndex = 7)),
-              1 => _ProjectsBoardPane(key: const ValueKey('projects-board'), onProfileTap: () => setState(() => _selectedIndex = 7)),
-              2 => const DesktopAiAssistantContent(key: ValueKey('ai-assistant')),
-              3 => const CalendarScreen(key: ValueKey('calendar')),
-              4 => const AnalyticsScreen(key: ValueKey('analytics'), embeddedInDashboard: true),
-              5 => const SettingsScreen(key: ValueKey('settings'), embeddedInDashboard: true),
-              6 => const SupportScreen(key: ValueKey('support'), embeddedInDashboard: true),
-              7 => const _ProfilePane(key: ValueKey('profile')),
-              _ => _DashboardSectionPlaceholder(index: _selectedIndex),
-            },
+          child: ProfileNavigationScope(
+            onProfileSelected: () => setState(() => _selectedIndex = 7),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: switch (_selectedIndex) {
+                0 => _DashboardMainPane(
+                  key: const ValueKey('dashboard-main'),
+                  onProfileTap: () => setState(() => _selectedIndex = 7),
+                ),
+                1 => _ProjectsBoardPane(
+                  key: const ValueKey('projects-board'),
+                  onProfileTap: () => setState(() => _selectedIndex = 7),
+                ),
+                2 => const DesktopAiAssistantContent(
+                  key: ValueKey('ai-assistant'),
+                ),
+                3 => const CalendarScreen(key: ValueKey('calendar')),
+                4 => const AnalyticsScreen(
+                  key: ValueKey('analytics'),
+                  embeddedInDashboard: true,
+                ),
+                5 => const SettingsScreen(
+                  key: ValueKey('settings'),
+                  embeddedInDashboard: true,
+                ),
+                6 => const SupportScreen(
+                  key: ValueKey('support'),
+                  embeddedInDashboard: true,
+                ),
+                7 => const _ProfilePane(key: ValueKey('profile')),
+                _ => _DashboardSectionPlaceholder(index: _selectedIndex),
+              },
+            ),
           ),
         ),
       ],
@@ -77,7 +97,9 @@ class _DashboardMainPane extends StatelessWidget {
                 sliver: SliverToBoxAdapter(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: DashboardSpacing.desktopMaxWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: DashboardSpacing.desktopMaxWidth,
+                      ),
                       child: const _DesktopDashboardContent(),
                     ),
                   ),
@@ -97,10 +119,7 @@ class _ProfilePane extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Column(
-      children: [
-        DesktopTopbar(),
-        Expanded(child: UserProfileScreen()),
-      ],
+      children: [DesktopTopbar(), Expanded(child: UserProfileScreen())],
     );
   }
 }
@@ -126,18 +145,33 @@ class _ProjectsBoardPane extends StatelessWidget {
             Container(
               height: 72,
               padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(color: DashboardColors.surfaceLowest.withValues(alpha: .28)),
+              decoration: BoxDecoration(
+                color: DashboardColors.surfaceLowest.withValues(alpha: .28),
+              ),
               child: const Row(
                 children: [
-                  Text('Active Board', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900)),
+                  Text(
+                    'Active Board',
+                    style: TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   SizedBox(width: 20),
                   TaskSearchField(desktop: true),
                   SizedBox(width: 16),
                   TaskFilterChips(desktop: true),
                   Spacer(),
-                  _ProjectToolbarButton(icon: Icons.filter_list_rounded, label: 'Filter'),
+                  _ProjectToolbarButton(
+                    icon: Icons.filter_list_rounded,
+                    label: 'Filter',
+                  ),
                   SizedBox(width: 10),
-                  _ProjectToolbarButton(icon: Icons.sort_rounded, label: 'Sort'),
+                  _ProjectToolbarButton(
+                    icon: Icons.sort_rounded,
+                    label: 'Sort',
+                  ),
                 ],
               ),
             ),
@@ -151,7 +185,9 @@ class _ProjectsBoardPane extends StatelessWidget {
                         scrollDirection: Axis.horizontal,
                         itemCount: columns.length,
                         separatorBuilder: (_, __) => const SizedBox(width: 24),
-                        itemBuilder: (context, index) => TaskColumn(column: columns[index]),
+                        itemBuilder:
+                            (context, index) =>
+                                TaskColumn(column: columns[index]),
                       ),
                     ),
                     if (showDetailPanel) ...[
@@ -179,8 +215,24 @@ class _ProjectToolbarButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: .1))),
-      child: Row(children: [Icon(icon, color: DashboardColors.onSurfaceVariant, size: 18), const SizedBox(width: 7), Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800))]),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: .1)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: DashboardColors.onSurfaceVariant, size: 18),
+          const SizedBox(width: 7),
+          Text(
+            label,
+            style: const TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -227,12 +279,22 @@ class _DashboardSectionPlaceholder extends StatelessWidget {
                   children: [
                     Icon(_icon, color: DashboardColors.primary, size: 44),
                     const SizedBox(height: 16),
-                    Text(_title, style: const TextStyle(color: DashboardColors.onSurface, fontSize: 30, fontWeight: FontWeight.w900)),
+                    Text(
+                      _title,
+                      style: const TextStyle(
+                        color: DashboardColors.onSurface,
+                        fontSize: 30,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     const SizedBox(height: 10),
                     const Text(
                       'Sidebar đang đứng yên trong Dashboard shell. Vùng nội dung bên phải đổi theo mục được chọn.',
                       textAlign: TextAlign.center,
-                      style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.5),
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),
@@ -283,7 +345,13 @@ class _DesktopDashboardContent extends StatelessWidget {
                   flex: 8,
                   child: Column(
                     children: [
-                      Row(children: [Expanded(child: FocusScoreCard()), SizedBox(width: DashboardSpacing.md), Expanded(child: AIRecommendationCard())]),
+                      Row(
+                        children: [
+                          Expanded(child: FocusScoreCard()),
+                          SizedBox(width: DashboardSpacing.md),
+                          Expanded(child: AIRecommendationCard()),
+                        ],
+                      ),
                       SizedBox(height: DashboardSpacing.md),
                       ProductivityChartCard(),
                     ],
@@ -292,7 +360,15 @@ class _DesktopDashboardContent extends StatelessWidget {
                 SizedBox(width: DashboardSpacing.md),
                 Expanded(
                   flex: 4,
-                  child: Column(children: [UpcomingScheduleCard(), SizedBox(height: DashboardSpacing.md), ActivityTimelineCard(), SizedBox(height: DashboardSpacing.md), InsightCard()]),
+                  child: Column(
+                    children: [
+                      UpcomingScheduleCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      ActivityTimelineCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      InsightCard(),
+                    ],
+                  ),
                 ),
               ],
             );
@@ -304,7 +380,11 @@ class _DesktopDashboardContent extends StatelessWidget {
 }
 
 class DesktopSidebar extends StatelessWidget {
-  const DesktopSidebar({required this.selectedIndex, required this.onSelected, super.key});
+  const DesktopSidebar({
+    required this.selectedIndex,
+    required this.onSelected,
+    super.key,
+  });
 
   final int selectedIndex;
   final ValueChanged<int> onSelected;
@@ -319,29 +399,95 @@ class DesktopSidebar extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(24, 32, 16, 20),
           decoration: BoxDecoration(
             color: DashboardColors.surfaceLowest.withValues(alpha: .8),
-            border: Border(right: BorderSide(color: Colors.white.withValues(alpha: .08))),
-            boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .28), blurRadius: 28)],
+            border: Border(
+              right: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .28),
+                blurRadius: 28,
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ShaderMask(
-                shaderCallback: (rect) => const LinearGradient(colors: [DashboardColors.primary, DashboardColors.secondary]).createShader(rect),
-                child: const Text('TaskFlow AI', style: TextStyle(color: Colors.white, fontSize: 29, fontWeight: FontWeight.w900, letterSpacing: -.8)),
+                shaderCallback:
+                    (rect) => const LinearGradient(
+                      colors: [
+                        DashboardColors.primary,
+                        DashboardColors.secondary,
+                      ],
+                    ).createShader(rect),
+                child: const Text(
+                  'TaskFlow AI',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 29,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.8,
+                  ),
+                ),
               ),
               const SizedBox(height: 4),
-              const Text('Deep Work Mode', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12)),
+              const Text(
+                'Deep Work Mode',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 12,
+                ),
+              ),
               const SizedBox(height: 40),
-              _SidebarItem(icon: Icons.dashboard_rounded, label: 'Dashboard', active: selectedIndex == 0, onTap: () => onSelected(0)),
-              _SidebarItem(icon: Icons.account_tree_rounded, label: 'Projects', active: selectedIndex == 1, onTap: () => onSelected(1)),
-              _SidebarItem(icon: Icons.psychology_rounded, label: 'Intelligence', active: selectedIndex == 2, onTap: () => onSelected(2)),
-              _SidebarItem(icon: Icons.calendar_month_rounded, label: 'Calendar', active: selectedIndex == 3, onTap: () => onSelected(3)),
-              _SidebarItem(icon: Icons.query_stats_rounded, label: 'Analytics', active: selectedIndex == 4, onTap: () => onSelected(4)),
+              _SidebarItem(
+                icon: Icons.dashboard_rounded,
+                label: 'Dashboard',
+                active: selectedIndex == 0,
+                onTap: () => onSelected(0),
+              ),
+              _SidebarItem(
+                icon: Icons.account_tree_rounded,
+                label: 'Projects',
+                active: selectedIndex == 1,
+                onTap: () => onSelected(1),
+              ),
+              _SidebarItem(
+                icon: Icons.psychology_rounded,
+                label: 'Intelligence',
+                active: selectedIndex == 2,
+                onTap: () => onSelected(2),
+              ),
+              _SidebarItem(
+                icon: Icons.calendar_month_rounded,
+                label: 'Calendar',
+                active: selectedIndex == 3,
+                onTap: () => onSelected(3),
+              ),
+              _SidebarItem(
+                icon: Icons.query_stats_rounded,
+                label: 'Analytics',
+                active: selectedIndex == 4,
+                onTap: () => onSelected(4),
+              ),
               const Spacer(),
-              const GradientButton(label: 'New Task', icon: Icons.add_rounded, expanded: true),
+              const GradientButton(
+                label: 'New Task',
+                icon: Icons.add_rounded,
+                expanded: true,
+              ),
               const SizedBox(height: 22),
-              _SidebarItem(icon: Icons.settings_rounded, label: 'Settings', active: selectedIndex == 5, onTap: () => onSelected(5)),
-              _SidebarItem(icon: Icons.help_outline_rounded, label: 'Support', active: selectedIndex == 6, onTap: () => onSelected(6)),
+              _SidebarItem(
+                icon: Icons.settings_rounded,
+                label: 'Settings',
+                active: selectedIndex == 5,
+                onTap: () => onSelected(5),
+              ),
+              _SidebarItem(
+                icon: Icons.help_outline_rounded,
+                label: 'Support',
+                active: selectedIndex == 6,
+                onTap: () => onSelected(6),
+              ),
             ],
           ),
         ),
@@ -351,7 +497,12 @@ class DesktopSidebar extends StatelessWidget {
 }
 
 class _SidebarItem extends StatelessWidget {
-  const _SidebarItem({required this.icon, required this.label, this.active = false, this.onTap});
+  const _SidebarItem({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -363,15 +514,47 @@ class _SidebarItem extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: active ? DashboardColors.primary.withValues(alpha: .1) : Colors.transparent,
+        color:
+            active
+                ? DashboardColors.primary.withValues(alpha: .1)
+                : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border(right: BorderSide(color: active ? DashboardColors.primary : Colors.transparent, width: 4))),
-            child: Row(children: [Icon(icon, color: active ? DashboardColors.primary : DashboardColors.onSurfaceVariant), const SizedBox(width: 12), Text(label, style: TextStyle(color: active ? DashboardColors.primary : DashboardColors.onSurfaceVariant, fontWeight: FontWeight.w700))]),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border(
+                right: BorderSide(
+                  color: active ? DashboardColors.primary : Colors.transparent,
+                  width: 4,
+                ),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  icon,
+                  color:
+                      active
+                          ? DashboardColors.primary
+                          : DashboardColors.onSurfaceVariant,
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color:
+                        active
+                            ? DashboardColors.primary
+                            : DashboardColors.onSurfaceVariant,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -392,12 +575,20 @@ class DesktopTopbar extends StatelessWidget {
         child: Container(
           height: 66,
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .5), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
+          decoration: BoxDecoration(
+            color: DashboardColors.surface.withValues(alpha: .5),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+          ),
           child: Row(
             children: [
               const SearchBarWidget(),
               const Spacer(),
-              const _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
+              const _TopIcon(
+                icon: Icons.notifications_none_rounded,
+                badge: true,
+              ),
               const SizedBox(width: 12),
               const _TopIcon(icon: Icons.bolt_rounded),
               const SizedBox(width: 12),
@@ -419,8 +610,23 @@ class SearchBarWidget extends StatelessWidget {
       width: 330,
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(color: DashboardColors.surfaceLow, borderRadius: BorderRadius.circular(DashboardRadii.full)),
-      child: const Row(children: [Icon(Icons.search_rounded, size: 20), SizedBox(width: 10), Text('Search tasks or intelligence...', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13))]),
+      decoration: BoxDecoration(
+        color: DashboardColors.surfaceLow,
+        borderRadius: BorderRadius.circular(DashboardRadii.full),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.search_rounded, size: 20),
+          SizedBox(width: 10),
+          Text(
+            'Search tasks or intelligence...',
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -435,8 +641,32 @@ class _TopIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Material(color: Colors.transparent, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () {}, child: SizedBox(width: 42, height: 42, child: Icon(icon, color: DashboardColors.onSurface)))),
-        if (badge) Positioned(top: 10, right: 10, child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: DashboardColors.error))),
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {},
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Icon(icon, color: DashboardColors.onSurface),
+            ),
+          ),
+        ),
+        if (badge)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: DashboardColors.error,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -455,7 +685,14 @@ class FocusScoreCard extends StatelessWidget {
           SizedBox(height: 22),
           CircularScore(value: .85, label: 'Flow State', size: 190),
           SizedBox(height: 18),
-          Text('You are 12% more focused than last Monday.', textAlign: TextAlign.center, style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.45)),
+          Text(
+            'You are 12% more focused than last Monday.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
         ],
       ),
     );
@@ -471,17 +708,50 @@ class AIRecommendationCard extends StatelessWidget {
       glowColor: DashboardColors.secondary,
       child: Stack(
         children: [
-          Positioned(right: -50, top: -55, child: Icon(Icons.psychology_rounded, size: 170, color: DashboardColors.secondary.withValues(alpha: .07))),
+          Positioned(
+            right: -50,
+            top: -55,
+            child: Icon(
+              Icons.psychology_rounded,
+              size: 170,
+              color: DashboardColors.secondary.withValues(alpha: .07),
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              SectionTitle(label: 'AI Recommendation', icon: Icons.psychology_rounded, color: DashboardColors.secondary),
+              SectionTitle(
+                label: 'AI Recommendation',
+                icon: Icons.psychology_rounded,
+                color: DashboardColors.secondary,
+              ),
               SizedBox(height: 18),
-              Text('Finalize Brand Guidelines for Project Helios', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, height: 1.18, fontWeight: FontWeight.w800)),
+              Text(
+                'Finalize Brand Guidelines for Project Helios',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 24,
+                  height: 1.18,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
               SizedBox(height: 16),
-              Row(children: [_Meta(icon: Icons.schedule_rounded, label: '45 min'), SizedBox(width: 18), _Meta(icon: Icons.priority_high_rounded, label: 'High Priority')]),
+              Row(
+                children: [
+                  _Meta(icon: Icons.schedule_rounded, label: '45 min'),
+                  SizedBox(width: 18),
+                  _Meta(
+                    icon: Icons.priority_high_rounded,
+                    label: 'High Priority',
+                  ),
+                ],
+              ),
               SizedBox(height: 34),
-              GradientButton(label: 'Start Now', icon: Icons.arrow_forward_rounded, expanded: true),
+              GradientButton(
+                label: 'Start Now',
+                icon: Icons.arrow_forward_rounded,
+                expanded: true,
+              ),
             ],
           ),
         ],
@@ -495,7 +765,19 @@ class _Meta extends StatelessWidget {
   final IconData icon;
   final String label;
   @override
-  Widget build(BuildContext context) => Row(children: [Icon(icon, size: 18, color: DashboardColors.onSurfaceVariant), const SizedBox(width: 5), Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12))]);
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, size: 18, color: DashboardColors.onSurfaceVariant),
+      const SizedBox(width: 5),
+      Text(
+        label,
+        style: const TextStyle(
+          color: DashboardColors.onSurfaceVariant,
+          fontSize: 12,
+        ),
+      ),
+    ],
+  );
 }
 
 class ProductivityChartCard extends StatelessWidget {
@@ -507,7 +789,20 @@ class ProductivityChartCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [SectionTitle(label: 'Weekly Productivity'), Spacer(), Text('This Week', style: TextStyle(color: DashboardColors.primary, fontWeight: FontWeight.w700, fontSize: 12))]),
+          Row(
+            children: [
+              SectionTitle(label: 'Weekly Productivity'),
+              Spacer(),
+              Text(
+                'This Week',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 16),
           AnalyticsBars(),
         ],
@@ -525,11 +820,49 @@ class UpcomingScheduleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Row(children: [Text('Upcoming', style: TextStyle(color: DashboardColors.onSurface, fontSize: 20, fontWeight: FontWeight.w800)), Spacer(), Text('View All', style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w700))]),
+          Row(
+            children: [
+              Text(
+                'Upcoming',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Spacer(),
+              Text(
+                'View All',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 16),
-          _ScheduleRow(time: '10', meridiem: 'AM', title: 'Stakeholder Sync', subtitle: 'Google Meet • 45 min', color: DashboardColors.primary),
-          _ScheduleRow(time: '02', meridiem: 'PM', title: 'Design Critique', subtitle: 'Conference Room B • 1h', color: DashboardColors.secondary),
-          _ScheduleRow(time: '04', meridiem: 'PM', title: 'Weekly Retro', subtitle: 'Slack • 30 min', color: DashboardColors.onSurfaceVariant),
+          _ScheduleRow(
+            time: '10',
+            meridiem: 'AM',
+            title: 'Stakeholder Sync',
+            subtitle: 'Google Meet • 45 min',
+            color: DashboardColors.primary,
+          ),
+          _ScheduleRow(
+            time: '02',
+            meridiem: 'PM',
+            title: 'Design Critique',
+            subtitle: 'Conference Room B • 1h',
+            color: DashboardColors.secondary,
+          ),
+          _ScheduleRow(
+            time: '04',
+            meridiem: 'PM',
+            title: 'Weekly Retro',
+            subtitle: 'Slack • 30 min',
+            color: DashboardColors.onSurfaceVariant,
+          ),
         ],
       ),
     );
@@ -537,7 +870,13 @@ class UpcomingScheduleCard extends StatelessWidget {
 }
 
 class _ScheduleRow extends StatelessWidget {
-  const _ScheduleRow({required this.time, required this.meridiem, required this.title, required this.subtitle, required this.color});
+  const _ScheduleRow({
+    required this.time,
+    required this.meridiem,
+    required this.title,
+    required this.subtitle,
+    required this.color,
+  });
   final String time;
   final String meridiem;
   final String title;
@@ -547,7 +886,62 @@ class _ScheduleRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(children: [Container(width: 50, height: 50, alignment: Alignment.center, decoration: BoxDecoration(color: color.withValues(alpha: .14), borderRadius: BorderRadius.circular(14)), child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [Text(time, style: TextStyle(color: color, fontSize: 17, fontWeight: FontWeight.w900)), Text(meridiem, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w800))])), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.w800)), Text(subtitle, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12))]))]),
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  time,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  meridiem,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -561,11 +955,33 @@ class ActivityTimelineCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Text('Recent Activity', style: TextStyle(color: DashboardColors.onSurface, fontSize: 20, fontWeight: FontWeight.w800)),
+          Text(
+            'Recent Activity',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           SizedBox(height: 18),
-          _TimelineEvent(icon: Icons.check_rounded, color: DashboardColors.primary, text: 'Completed Mobile App v2.4 design sprint', time: '2 hours ago'),
-          _TimelineEvent(icon: Icons.edit_rounded, color: DashboardColors.secondary, text: 'Updated Project Helios documentation', time: '4 hours ago'),
-          _TimelineEvent(icon: Icons.chat_bubble_rounded, color: DashboardColors.tertiary, text: 'Sarah commented on User Flow UX', time: 'Yesterday'),
+          _TimelineEvent(
+            icon: Icons.check_rounded,
+            color: DashboardColors.primary,
+            text: 'Completed Mobile App v2.4 design sprint',
+            time: '2 hours ago',
+          ),
+          _TimelineEvent(
+            icon: Icons.edit_rounded,
+            color: DashboardColors.secondary,
+            text: 'Updated Project Helios documentation',
+            time: '4 hours ago',
+          ),
+          _TimelineEvent(
+            icon: Icons.chat_bubble_rounded,
+            color: DashboardColors.tertiary,
+            text: 'Sarah commented on User Flow UX',
+            time: 'Yesterday',
+          ),
         ],
       ),
     );
@@ -573,7 +989,12 @@ class ActivityTimelineCard extends StatelessWidget {
 }
 
 class _TimelineEvent extends StatelessWidget {
-  const _TimelineEvent({required this.icon, required this.color, required this.text, required this.time});
+  const _TimelineEvent({
+    required this.icon,
+    required this.color,
+    required this.text,
+    required this.time,
+  });
   final IconData icon;
   final Color color;
   final String text;
@@ -582,7 +1003,39 @@ class _TimelineEvent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 18),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(width: 26, height: 26, decoration: BoxDecoration(shape: BoxShape.circle, color: color), child: Icon(icon, color: DashboardColors.onPrimary, size: 15)), const SizedBox(width: 12), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(text, style: const TextStyle(color: DashboardColors.onSurface, height: 1.35)), Text(time, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12))]))]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 26,
+            height: 26,
+            decoration: BoxDecoration(shape: BoxShape.circle, color: color),
+            child: Icon(icon, color: DashboardColors.onPrimary, size: 15),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  text,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurface,
+                    height: 1.35,
+                  ),
+                ),
+                Text(
+                  time,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurfaceVariant,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -594,7 +1047,47 @@ class InsightCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GlassCard(
       padding: const EdgeInsets.all(DashboardSpacing.md),
-      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Container(padding: const EdgeInsets.all(10), decoration: BoxDecoration(color: Colors.white.withValues(alpha: .08), borderRadius: BorderRadius.circular(14)), child: const Icon(Icons.lightbulb_rounded, color: DashboardColors.primary)), const SizedBox(width: 14), const Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text('“You tend to be most productive between 10 AM and 1 PM. I’ve blocked tomorrow for deep work.”', style: TextStyle(color: DashboardColors.onSurface, fontStyle: FontStyle.italic, height: 1.45)), SizedBox(height: 8), Text('— TaskFlow Assistant', style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w800))]))]),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: .08),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(
+              Icons.lightbulb_rounded,
+              color: DashboardColors.primary,
+            ),
+          ),
+          const SizedBox(width: 14),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '“You tend to be most productive between 10 AM and 1 PM. I’ve blocked tomorrow for deep work.”',
+                  style: TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontStyle: FontStyle.italic,
+                    height: 1.45,
+                  ),
+                ),
+                SizedBox(height: 8),
+                Text(
+                  '— TaskFlow Assistant',
+                  style: TextStyle(
+                    color: DashboardColors.primary,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

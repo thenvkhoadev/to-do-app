@@ -5,7 +5,8 @@ import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
-import 'package:to_do_app/screens/profile/user_profile_screen.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart'
+    hide GlassCard, GlowOrb, GradientButton, SectionTitle;
 
 class BlankPage extends StatefulWidget {
   const BlankPage({super.key});
@@ -69,11 +70,17 @@ class _DesktopDashboardShell extends StatelessWidget {
         Positioned.fill(
           top: 64,
           left: sidebarWidth,
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 250),
-            switchInCurve: Curves.easeInOut,
-            switchOutCurve: Curves.easeInOut,
-            child: _TabContent(key: ValueKey(selectedIndex), selectedIndex: selectedIndex),
+          child: ProfileNavigationScope(
+            onProfileSelected: () => onTabSelected(4),
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              switchInCurve: Curves.easeInOut,
+              switchOutCurve: Curves.easeInOut,
+              child: _TabContent(
+                key: ValueKey(selectedIndex),
+                selectedIndex: selectedIndex,
+              ),
+            ),
           ),
         ),
         Positioned(
@@ -117,12 +124,13 @@ class _MobileDashboardShell extends StatelessWidget {
       children: [
         Column(
           children: [
-            _MobileTopBar(
-              onProfileSelected: () {
-                Navigator.of(context).push(MaterialPageRoute(builder: (_) => const UserProfileScreen()));
-              },
+            _MobileTopBar(onProfileSelected: () => onTabSelected(4)),
+            Expanded(
+              child: ProfileNavigationScope(
+                onProfileSelected: () => onTabSelected(4),
+                child: _TabContent(selectedIndex: selectedIndex),
+              ),
             ),
-            Expanded(child: _TabContent(selectedIndex: selectedIndex)),
           ],
         ),
         Positioned(
@@ -233,13 +241,21 @@ class _DesktopHomeGrid extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Column(
-                      children: [_DesktopAiInsightsCard(), SizedBox(height: 24), _DesktopQuickActionsCard()],
+                      children: [
+                        _DesktopAiInsightsCard(),
+                        SizedBox(height: 24),
+                        _DesktopQuickActionsCard(),
+                      ],
                     ),
                   ),
                   SizedBox(width: 24),
                   Expanded(
                     child: Column(
-                      children: [_DesktopNexusFlowCard(), SizedBox(height: 24), _DesktopSmartScheduleCard()],
+                      children: [
+                        _DesktopNexusFlowCard(),
+                        SizedBox(height: 24),
+                        _DesktopSmartScheduleCard(),
+                      ],
                     ),
                   ),
                 ],
@@ -254,7 +270,11 @@ class _DesktopHomeGrid extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Column(
-                children: [_DesktopAiInsightsCard(), SizedBox(height: 24), _DesktopQuickActionsCard()],
+                children: [
+                  _DesktopAiInsightsCard(),
+                  SizedBox(height: 24),
+                  _DesktopQuickActionsCard(),
+                ],
               ),
             ),
             SizedBox(width: 24),
@@ -263,7 +283,11 @@ class _DesktopHomeGrid extends StatelessWidget {
             Expanded(
               flex: 3,
               child: Column(
-                children: [_DesktopNexusFlowCard(), SizedBox(height: 24), _DesktopSmartScheduleCard()],
+                children: [
+                  _DesktopNexusFlowCard(),
+                  SizedBox(height: 24),
+                  _DesktopSmartScheduleCard(),
+                ],
               ),
             ),
           ],
@@ -282,7 +306,11 @@ class _DesktopAiInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _SectionLabel(icon: Icons.psychology_rounded, label: 'AI Insights Focus', color: NexusColors.secondary),
+          const _SectionLabel(
+            icon: Icons.psychology_rounded,
+            label: 'AI Insights Focus',
+            color: NexusColors.secondary,
+          ),
           const SizedBox(height: 24),
           Center(
             child: SizedBox(
@@ -297,15 +325,33 @@ class _DesktopAiInsightsCard extends StatelessWidget {
                       strokeWidth: 7,
                       strokeCap: StrokeCap.round,
                       backgroundColor: Colors.white.withValues(alpha: 0.05),
-                      valueColor: const AlwaysStoppedAnimation(NexusColors.primary),
+                      valueColor: const AlwaysStoppedAnimation(
+                        NexusColors.primary,
+                      ),
                     ),
                   ),
                   const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('86', style: TextStyle(color: NexusColors.primary, fontSize: 34, fontWeight: FontWeight.w900, height: 1)),
+                      Text(
+                        '86',
+                        style: TextStyle(
+                          color: NexusColors.primary,
+                          fontSize: 34,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
                       SizedBox(height: 4),
-                      Text('Flow Score', style: TextStyle(color: NexusColors.outline, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                      Text(
+                        'Flow Score',
+                        style: TextStyle(
+                          color: NexusColors.outline,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -313,7 +359,11 @@ class _DesktopAiInsightsCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 22),
-          const _DesktopMetricBlock(label: 'Deep Work', value: '4h 12m', progress: 0.7),
+          const _DesktopMetricBlock(
+            label: 'Deep Work',
+            value: '4h 12m',
+            progress: 0.7,
+          ),
           const SizedBox(height: 14),
           const _DesktopWarningBlock(),
         ],
@@ -331,11 +381,23 @@ class _DesktopQuickActionsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          _SectionLabel(icon: Icons.bolt_rounded, label: 'Quick Actions', color: NexusColors.onSurfaceVariant),
+          _SectionLabel(
+            icon: Icons.bolt_rounded,
+            label: 'Quick Actions',
+            color: NexusColors.onSurfaceVariant,
+          ),
           SizedBox(height: 16),
-          _DesktopActionRow(icon: Icons.add_task_rounded, label: 'New AI Task', color: NexusColors.primary),
+          _DesktopActionRow(
+            icon: Icons.add_task_rounded,
+            label: 'New AI Task',
+            color: NexusColors.primary,
+          ),
           SizedBox(height: 10),
-          _DesktopActionRow(icon: Icons.summarize_rounded, label: 'Generate Daily Brief', color: NexusColors.secondary),
+          _DesktopActionRow(
+            icon: Icons.summarize_rounded,
+            label: 'Generate Daily Brief',
+            color: NexusColors.secondary,
+          ),
         ],
       ),
     );
@@ -351,9 +413,22 @@ class _DesktopActiveSprintBoard extends StatelessWidget {
       builder: (context, constraints) {
         final stacked = constraints.maxWidth < 620;
         final columns = [
-          const _DesktopKanbanColumn(title: 'To Do', count: '3', tasks: [_DesktopTask.auth, _DesktopTask.typography]),
-          const _DesktopKanbanColumn(title: 'In Progress', count: '1', active: true, tasks: [_DesktopTask.prompts]),
-          const _DesktopKanbanColumn(title: 'Done', count: '4', tasks: [_DesktopTask.audit]),
+          const _DesktopKanbanColumn(
+            title: 'To Do',
+            count: '3',
+            tasks: [_DesktopTask.auth, _DesktopTask.typography],
+          ),
+          const _DesktopKanbanColumn(
+            title: 'In Progress',
+            count: '1',
+            active: true,
+            tasks: [_DesktopTask.prompts],
+          ),
+          const _DesktopKanbanColumn(
+            title: 'Done',
+            count: '4',
+            tasks: [_DesktopTask.audit],
+          ),
         ];
 
         return Column(
@@ -364,7 +439,10 @@ class _DesktopActiveSprintBoard extends StatelessWidget {
             if (stacked)
               Column(
                 children: [
-                  for (final column in columns) ...[column, const SizedBox(height: 16)],
+                  for (final column in columns) ...[
+                    column,
+                    const SizedBox(height: 16),
+                  ],
                 ],
               )
             else
@@ -392,11 +470,37 @@ class _DesktopSprintHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        const Expanded(child: Text('Active Sprint', style: TextStyle(color: NexusColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900))),
+        const Expanded(
+          child: Text(
+            'Active Sprint',
+            style: TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-          decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          child: const Row(children: [_SmallPulseDot(), SizedBox(width: 8), Text('Syncing', style: TextStyle(color: NexusColors.secondary, fontSize: 12, fontWeight: FontWeight.w900))]),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: const Row(
+            children: [
+              _SmallPulseDot(),
+              SizedBox(width: 8),
+              Text(
+                'Syncing',
+                style: TextStyle(
+                  color: NexusColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -404,7 +508,12 @@ class _DesktopSprintHeader extends StatelessWidget {
 }
 
 class _DesktopKanbanColumn extends StatelessWidget {
-  const _DesktopKanbanColumn({required this.title, required this.count, required this.tasks, this.active = false});
+  const _DesktopKanbanColumn({
+    required this.title,
+    required this.count,
+    required this.tasks,
+    this.active = false,
+  });
 
   final String title;
   final String count;
@@ -418,12 +527,27 @@ class _DesktopKanbanColumn extends StatelessWidget {
       children: [
         Row(
           children: [
-            Expanded(child: Text(title.toUpperCase(), style: TextStyle(color: active ? NexusColors.primary : NexusColors.outline, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2))),
+            Expanded(
+              child: Text(
+                title.toUpperCase(),
+                style: TextStyle(
+                  color: active ? NexusColors.primary : NexusColors.outline,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
+            ),
             _DesktopCountPill(label: count, active: active),
           ],
         ),
         const SizedBox(height: 12),
-        ...tasks.map((task) => Padding(padding: const EdgeInsets.only(bottom: 12), child: _DesktopTaskCard(task: task))),
+        ...tasks.map(
+          (task) => Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _DesktopTaskCard(task: task),
+          ),
+        ),
       ],
     );
   }
@@ -445,15 +569,63 @@ class _DesktopTaskCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(children: [_TinyBadge(label: task.priority, color: task.color), const Spacer(), Icon(Icons.more_horiz_rounded, color: NexusColors.outline.withValues(alpha: 0.7), size: 18)]),
+              Row(
+                children: [
+                  _TinyBadge(label: task.priority, color: task.color),
+                  const Spacer(),
+                  Icon(
+                    Icons.more_horiz_rounded,
+                    color: NexusColors.outline.withValues(alpha: 0.7),
+                    size: 18,
+                  ),
+                ],
+              ),
               const SizedBox(height: 14),
-              Text(task.title, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurface, fontSize: 15, fontWeight: FontWeight.w800, height: 1.3)),
+              Text(
+                task.title,
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  height: 1.3,
+                ),
+              ),
               if (task.description != null) ...[
                 const SizedBox(height: 8),
-                Text(task.description!, maxLines: 3, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.outline, fontSize: 12, height: 1.45)),
+                Text(
+                  task.description!,
+                  maxLines: 3,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: NexusColors.outline,
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
               ],
               const SizedBox(height: 16),
-              Row(children: [_DesktopAvatarChip(label: task.assignee), const Spacer(), const Icon(Icons.chat_bubble_outline_rounded, color: NexusColors.outline, size: 15), const SizedBox(width: 4), Text(task.comments, style: const TextStyle(color: NexusColors.outline, fontSize: 11, fontWeight: FontWeight.w700))]),
+              Row(
+                children: [
+                  _DesktopAvatarChip(label: task.assignee),
+                  const Spacer(),
+                  const Icon(
+                    Icons.chat_bubble_outline_rounded,
+                    color: NexusColors.outline,
+                    size: 15,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    task.comments,
+                    style: const TextStyle(
+                      color: NexusColors.outline,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
             ],
           ),
         ],
@@ -471,13 +643,36 @@ class _DesktopNexusFlowCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          _SectionLabel(icon: Icons.timer_rounded, label: 'Nexus Flow', color: NexusColors.secondary),
+          _SectionLabel(
+            icon: Icons.timer_rounded,
+            label: 'Nexus Flow',
+            color: NexusColors.secondary,
+          ),
           SizedBox(height: 18),
-          Text('42m', style: TextStyle(color: NexusColors.secondary, fontSize: 46, fontWeight: FontWeight.w900, height: 1)),
+          Text(
+            '42m',
+            style: TextStyle(
+              color: NexusColors.secondary,
+              fontSize: 46,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
           SizedBox(height: 8),
-          Text('Remaining in deep work', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w700)),
+          Text(
+            'Remaining in deep work',
+            style: TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
           SizedBox(height: 18),
-          _DesktopMetricBlock(label: 'Focus Guard', value: 'Active', progress: 0.82),
+          _DesktopMetricBlock(
+            label: 'Focus Guard',
+            value: 'Active',
+            progress: 0.82,
+          ),
         ],
       ),
     );
@@ -493,7 +688,11 @@ class _DesktopSmartScheduleCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          _SectionLabel(icon: Icons.event_rounded, label: 'Smart Schedule', color: NexusColors.primary),
+          _SectionLabel(
+            icon: Icons.event_rounded,
+            label: 'Smart Schedule',
+            color: NexusColors.primary,
+          ),
           SizedBox(height: 18),
           _TimelineItem(time: '10:30 AM', title: 'Design Review', active: true),
           _TimelineItem(time: '2:00 PM', title: 'API Sync'),
@@ -505,7 +704,11 @@ class _DesktopSmartScheduleCard extends StatelessWidget {
 }
 
 class _DesktopMetricBlock extends StatelessWidget {
-  const _DesktopMetricBlock({required this.label, required this.value, required this.progress});
+  const _DesktopMetricBlock({
+    required this.label,
+    required this.value,
+    required this.progress,
+  });
 
   final String label;
   final String value;
@@ -515,12 +718,46 @@ class _DesktopMetricBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: Colors.white.withValues(alpha: 0.05), borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
-      child: Column(children: [
-        Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [Text(label, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800)), Text(value, style: const TextStyle(color: NexusColors.secondary, fontSize: 12, fontWeight: FontWeight.w900))]),
-        const SizedBox(height: 9),
-        ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(value: progress, minHeight: 5, backgroundColor: Colors.white.withValues(alpha: 0.10), valueColor: const AlwaysStoppedAnimation(NexusColors.secondary))),
-      ]),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  color: NexusColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Text(
+                value,
+                style: const TextStyle(
+                  color: NexusColors.secondary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 9),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 5,
+              backgroundColor: Colors.white.withValues(alpha: 0.10),
+              valueColor: const AlwaysStoppedAnimation(NexusColors.secondary),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -532,14 +769,42 @@ class _DesktopWarningBlock extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: NexusColors.tertiary.withValues(alpha: 0.10), borderRadius: BorderRadius.circular(12), border: Border.all(color: NexusColors.tertiary.withValues(alpha: 0.22))),
-      child: const Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Icon(Icons.warning_amber_rounded, color: NexusColors.tertiary, size: 20), SizedBox(width: 10), Expanded(child: Text('Continuous context switching detected. Suggesting a 15-min disconnect protocol.', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, height: 1.4)))]),
+      decoration: BoxDecoration(
+        color: NexusColors.tertiary.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: NexusColors.tertiary.withValues(alpha: 0.22)),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: NexusColors.tertiary,
+            size: 20,
+          ),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Continuous context switching detected. Suggesting a 15-min disconnect protocol.',
+              style: TextStyle(
+                color: NexusColors.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
 class _DesktopActionRow extends StatelessWidget {
-  const _DesktopActionRow({required this.icon, required this.label, required this.color});
+  const _DesktopActionRow({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   final IconData icon;
   final String label;
@@ -555,8 +820,25 @@ class _DesktopActionRow extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         child: Container(
           padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: 0.07))),
-          child: Row(children: [Icon(icon, color: color), const SizedBox(width: 12), Expanded(child: Text(label, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w800)))]),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.07)),
+          ),
+          child: Row(
+            children: [
+              Icon(icon, color: color),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  label,
+                  style: const TextStyle(
+                    color: NexusColors.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -573,8 +855,22 @@ class _DesktopCountPill extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(color: active ? NexusColors.primary.withValues(alpha: 0.20) : NexusColors.surfaceContainerHigh, borderRadius: BorderRadius.circular(999), border: Border.all(color: Colors.white.withValues(alpha: 0.06))),
-      child: Text(label, style: TextStyle(color: active ? NexusColors.primary : NexusColors.outline, fontSize: 11, fontWeight: FontWeight.w900)),
+      decoration: BoxDecoration(
+        color:
+            active
+                ? NexusColors.primary.withValues(alpha: 0.20)
+                : NexusColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? NexusColors.primary : NexusColors.outline,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -586,7 +882,24 @@ class _DesktopAvatarChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 26, height: 26, alignment: Alignment.center, decoration: BoxDecoration(shape: BoxShape.circle, color: Colors.white.withValues(alpha: 0.10), border: Border.all(color: NexusColors.surfaceContainerHigh)), child: Text(label, style: const TextStyle(color: NexusColors.onSurface, fontSize: 10, fontWeight: FontWeight.w900)));
+    return Container(
+      width: 26,
+      height: 26,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.10),
+        border: Border.all(color: NexusColors.surfaceContainerHigh),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: NexusColors.onSurface,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    );
   }
 }
 
@@ -595,12 +908,33 @@ class _SmallPulseDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: NexusColors.secondary, boxShadow: [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.75), blurRadius: 10)]));
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: NexusColors.secondary,
+        boxShadow: [
+          BoxShadow(
+            color: NexusColors.secondary.withValues(alpha: 0.75),
+            blurRadius: 10,
+          ),
+        ],
+      ),
+    );
   }
 }
 
 class _DesktopTask {
-  const _DesktopTask({required this.title, required this.priority, required this.color, required this.assignee, required this.comments, this.description, this.active = false});
+  const _DesktopTask({
+    required this.title,
+    required this.priority,
+    required this.color,
+    required this.assignee,
+    required this.comments,
+    this.description,
+    this.active = false,
+  });
 
   final String title;
   final String priority;
@@ -610,10 +944,37 @@ class _DesktopTask {
   final String? description;
   final bool active;
 
-  static const auth = _DesktopTask(title: 'Refactor Authentication Microservice', priority: 'High', color: NexusColors.tertiary, assignee: 'AR', comments: '2', description: 'Migrate legacy OAuth flow to the unified identity provider.');
-  static const typography = _DesktopTask(title: 'Update UI Typography Tokens', priority: 'Low', color: NexusColors.primary, assignee: 'JD', comments: '0');
-  static const prompts = _DesktopTask(title: 'Design System Generative Prompts', priority: 'Med', color: NexusColors.secondary, assignee: 'AI', comments: '5', description: 'Draft structural prompts for consistent Nexus UI output.', active: true);
-  static const audit = _DesktopTask(title: 'Clean Flutter Analyzer Warnings', priority: 'Done', color: NexusColors.secondary, assignee: 'KV', comments: '1');
+  static const auth = _DesktopTask(
+    title: 'Refactor Authentication Microservice',
+    priority: 'High',
+    color: NexusColors.tertiary,
+    assignee: 'AR',
+    comments: '2',
+    description: 'Migrate legacy OAuth flow to the unified identity provider.',
+  );
+  static const typography = _DesktopTask(
+    title: 'Update UI Typography Tokens',
+    priority: 'Low',
+    color: NexusColors.primary,
+    assignee: 'JD',
+    comments: '0',
+  );
+  static const prompts = _DesktopTask(
+    title: 'Design System Generative Prompts',
+    priority: 'Med',
+    color: NexusColors.secondary,
+    assignee: 'AI',
+    comments: '5',
+    description: 'Draft structural prompts for consistent Nexus UI output.',
+    active: true,
+  );
+  static const audit = _DesktopTask(
+    title: 'Clean Flutter Analyzer Warnings',
+    priority: 'Done',
+    color: NexusColors.secondary,
+    assignee: 'KV',
+    comments: '1',
+  );
 }
 
 class _NexusBackground extends StatelessWidget {
@@ -629,12 +990,18 @@ class _NexusBackground extends StatelessWidget {
         Positioned(
           top: -180,
           left: -120,
-          child: _GlowOrb(size: 520, color: NexusColors.primaryContainer.withValues(alpha: 0.14)),
+          child: _GlowOrb(
+            size: 520,
+            color: NexusColors.primaryContainer.withValues(alpha: 0.14),
+          ),
         ),
         Positioned(
           right: -130,
           bottom: -120,
-          child: _GlowOrb(size: 460, color: NexusColors.secondary.withValues(alpha: 0.12)),
+          child: _GlowOrb(
+            size: 460,
+            color: NexusColors.secondary.withValues(alpha: 0.12),
+          ),
         ),
         Positioned.fill(child: child),
       ],
@@ -678,11 +1045,23 @@ class _DesktopSidebar extends StatelessWidget {
       duration: const Duration(milliseconds: 260),
       curve: Curves.easeOutCubic,
       width: collapsed ? 88 : 280,
-      padding: EdgeInsets.fromLTRB(collapsed ? 12 : 24, 24, collapsed ? 12 : 24, 20),
+      padding: EdgeInsets.fromLTRB(
+        collapsed ? 12 : 24,
+        24,
+        collapsed ? 12 : 24,
+        20,
+      ),
       decoration: BoxDecoration(
         color: NexusColors.surfaceContainer.withValues(alpha: 0.72),
-        border: Border(right: BorderSide(color: Colors.white.withValues(alpha: 0.05))),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.26), blurRadius: 24)],
+        border: Border(
+          right: BorderSide(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.26),
+            blurRadius: 24,
+          ),
+        ],
       ),
       child: CustomScrollView(
         slivers: [
@@ -693,15 +1072,54 @@ class _DesktopSidebar extends StatelessWidget {
               children: [
                 _DesktopBrandHeader(collapsed: collapsed),
                 const SizedBox(height: 28),
-                _DesktopProfileCard(collapsed: collapsed, onTap: () => onTabSelected(4)),
+                _DesktopProfileCard(
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(4),
+                ),
                 const SizedBox(height: 28),
-                _DesktopDrawerItem(icon: Icons.dashboard_rounded, label: 'Dashboard', active: selectedIndex == 0, collapsed: collapsed, onTap: () => onTabSelected(0)),
-                _DesktopDrawerItem(icon: Icons.folder_open_rounded, label: 'Projects', active: selectedIndex == 1, collapsed: collapsed, onTap: () => onTabSelected(1)),
-                _DesktopDrawerItem(icon: Icons.biotech_rounded, label: 'AI Labs', active: selectedIndex == 2, collapsed: collapsed, onTap: () => onTabSelected(2)),
-                _DesktopDrawerItem(icon: Icons.auto_stories_rounded, label: 'Library', active: selectedIndex == 3, collapsed: collapsed, onTap: () => onTabSelected(3)),
-                _DesktopDrawerItem(icon: Icons.person_rounded, label: 'Profile', active: selectedIndex == 4, collapsed: collapsed, onTap: () => onTabSelected(4)),
+                _DesktopDrawerItem(
+                  icon: Icons.dashboard_rounded,
+                  label: 'Dashboard',
+                  active: selectedIndex == 0,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(0),
+                ),
+                _DesktopDrawerItem(
+                  icon: Icons.folder_open_rounded,
+                  label: 'Projects',
+                  active: selectedIndex == 1,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(1),
+                ),
+                _DesktopDrawerItem(
+                  icon: Icons.biotech_rounded,
+                  label: 'AI Labs',
+                  active: selectedIndex == 2,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(2),
+                ),
+                _DesktopDrawerItem(
+                  icon: Icons.auto_stories_rounded,
+                  label: 'Library',
+                  active: selectedIndex == 3,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(3),
+                ),
+                _DesktopDrawerItem(
+                  icon: Icons.person_rounded,
+                  label: 'Profile',
+                  active: selectedIndex == 4,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(4),
+                ),
                 const Spacer(),
-                _DesktopDrawerItem(icon: Icons.settings_rounded, label: 'Settings', active: false, collapsed: collapsed, onTap: () {}),
+                _DesktopDrawerItem(
+                  icon: Icons.settings_rounded,
+                  label: 'Settings',
+                  active: false,
+                  collapsed: collapsed,
+                  onTap: () {},
+                ),
               ],
             ),
           ),
@@ -719,7 +1137,9 @@ class _DesktopBrandHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (collapsed) {
-      return const Center(child: _GradientIconBox(icon: Icons.graphic_eq_rounded, size: 36));
+      return const Center(
+        child: _GradientIconBox(icon: Icons.graphic_eq_rounded, size: 36),
+      );
     }
 
     return const Row(
@@ -731,7 +1151,12 @@ class _DesktopBrandHeader extends StatelessWidget {
             'Nexus AI',
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8),
+            style: TextStyle(
+              color: NexusColors.primary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+            ),
           ),
         ),
       ],
@@ -759,8 +1184,27 @@ class _DesktopProfileCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Alex Rivera', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NexusColors.primary, fontSize: 16, fontWeight: FontWeight.w900)),
-              Text('Pro Plan', maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: NexusColors.secondary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+              Text(
+                'Alex Rivera',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: NexusColors.primary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              Text(
+                'Pro Plan',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: NexusColors.secondary,
+                  fontSize: 10,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 1.2,
+                ),
+              ),
             ],
           ),
         ),
@@ -789,8 +1233,15 @@ class _DesktopTopBar extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 24),
       decoration: BoxDecoration(
         color: NexusColors.surfaceContainer.withValues(alpha: 0.72),
-        border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.10))),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 24)],
+        border: Border(
+          bottom: BorderSide(color: Colors.white.withValues(alpha: 0.10)),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.25),
+            blurRadius: 24,
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -801,15 +1252,32 @@ class _DesktopTopBar extends StatelessWidget {
               child: IconButton(
                 tooltip: sidebarCollapsed ? 'Open sidebar' : 'Close sidebar',
                 onPressed: onToggleSidebar,
-                icon: Icon(sidebarCollapsed ? Icons.menu_rounded : Icons.chevron_left_rounded, color: NexusColors.primary),
+                icon: Icon(
+                  sidebarCollapsed
+                      ? Icons.menu_rounded
+                      : Icons.chevron_left_rounded,
+                  color: NexusColors.primary,
+                ),
               ),
             ),
           ),
-          const Text('Nexus AI', style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -0.8)),
+          const Text(
+            'Nexus AI',
+            style: TextStyle(
+              color: NexusColors.primary,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+            ),
+          ),
           const Spacer(),
           const _SearchField(wide: true),
           const SizedBox(width: 18),
-          _RoundAction(icon: Icons.notifications_none_rounded, badge: true, onTap: () {}),
+          _RoundAction(
+            icon: Icons.notifications_none_rounded,
+            badge: true,
+            onTap: () {},
+          ),
           const SizedBox(width: 12),
           _UserAvatar(onTap: onProfileSelected),
         ],
@@ -832,14 +1300,33 @@ class _MobileTopBar extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: const Color(0xFF070B14).withValues(alpha: 0.78),
-          border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06))),
+          border: Border(
+            bottom: BorderSide(color: Colors.white.withValues(alpha: 0.06)),
+          ),
         ),
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Align(alignment: Alignment.centerLeft, child: _UserAvatar(small: true, onTap: onProfileSelected)),
-            const Text('Nexus AI', style: TextStyle(color: NexusColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -1)),
-            Align(alignment: Alignment.centerRight, child: _RoundAction(icon: Icons.notifications_none_rounded, onTap: () {})),
+            Align(
+              alignment: Alignment.centerLeft,
+              child: _UserAvatar(small: true, onTap: onProfileSelected),
+            ),
+            const Text(
+              'Nexus AI',
+              style: TextStyle(
+                color: NexusColors.primary,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -1,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: _RoundAction(
+                icon: Icons.notifications_none_rounded,
+                onTap: () {},
+              ),
+            ),
           ],
         ),
       ),
@@ -865,11 +1352,20 @@ class _SearchField extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(Icons.search_rounded, color: NexusColors.onSurfaceVariant, size: 20),
+          const Icon(
+            Icons.search_rounded,
+            color: NexusColors.onSurfaceVariant,
+            size: 20,
+          ),
           const SizedBox(width: 12),
           Text(
-            wide ? 'Search tasks, insights, or commands (/)' : 'Search Nexus...',
-            style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 14),
+            wide
+                ? 'Search tasks, insights, or commands (/)'
+                : 'Search Nexus...',
+            style: const TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 14,
+            ),
           ),
         ],
       ),
@@ -887,9 +1383,16 @@ class _UserAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
-    final username = (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'U').toString().trim();
-    final avatarUrl = (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '').toString().trim();
-    final initial = username.isEmpty ? '?' : username.characters.first.toUpperCase();
+    final username =
+        (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'U')
+            .toString()
+            .trim();
+    final avatarUrl =
+        (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '')
+            .toString()
+            .trim();
+    final initial =
+        username.isEmpty ? '?' : username.characters.first.toUpperCase();
 
     return Tooltip(
       message: 'Open profile',
@@ -900,7 +1403,16 @@ class _UserAvatar extends StatelessWidget {
           radius: small ? 20 : 22,
           backgroundColor: NexusColors.surfaceContainerHigh,
           backgroundImage: avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
-          child: avatarUrl.isEmpty ? Text(initial, style: const TextStyle(color: NexusColors.onSurface, fontWeight: FontWeight.w900)) : null,
+          child:
+              avatarUrl.isEmpty
+                  ? Text(
+                    initial,
+                    style: const TextStyle(
+                      color: NexusColors.onSurface,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  )
+                  : null,
         ),
       ),
     );
@@ -908,7 +1420,11 @@ class _UserAvatar extends StatelessWidget {
 }
 
 class _RoundAction extends StatelessWidget {
-  const _RoundAction({required this.icon, required this.onTap, this.badge = false});
+  const _RoundAction({
+    required this.icon,
+    required this.onTap,
+    this.badge = false,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
@@ -925,14 +1441,25 @@ class _RoundAction extends StatelessWidget {
           child: InkWell(
             customBorder: const CircleBorder(),
             onTap: onTap,
-            child: SizedBox(width: 44, height: 44, child: Icon(icon, color: NexusColors.onSurfaceVariant)),
+            child: SizedBox(
+              width: 44,
+              height: 44,
+              child: Icon(icon, color: NexusColors.onSurfaceVariant),
+            ),
           ),
         ),
         if (badge)
           Positioned(
             top: 8,
             right: 9,
-            child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: NexusColors.tertiary)),
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: NexusColors.tertiary,
+              ),
+            ),
           ),
       ],
     );
@@ -950,26 +1477,56 @@ class _NexusIntelligenceCard extends StatelessWidget {
       glow: NexusColors.primaryContainer,
       child: Stack(
         children: [
-          Positioned(right: -18, top: -18, child: Icon(Icons.insights_rounded, size: 132, color: NexusColors.primary.withValues(alpha: 0.10))),
+          Positioned(
+            right: -18,
+            top: -18,
+            child: Icon(
+              Icons.insights_rounded,
+              size: 132,
+              color: NexusColors.primary.withValues(alpha: 0.10),
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _SectionLabel(icon: Icons.auto_awesome_rounded, label: 'Nexus Intelligence', color: NexusColors.primary),
+              const _SectionLabel(
+                icon: Icons.auto_awesome_rounded,
+                label: 'Nexus Intelligence',
+                color: NexusColors.primary,
+              ),
               const SizedBox(height: 14),
               Text.rich(
                 const TextSpan(
                   text: 'Based on your current flow, begin the ',
-                  children: [TextSpan(text: 'Product Design Task', style: TextStyle(color: Colors.white)), TextSpan(text: ' now.')],
+                  children: [
+                    TextSpan(
+                      text: 'Product Design Task',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    TextSpan(text: ' now.'),
+                  ],
                 ),
-                style: TextStyle(color: NexusColors.onSurface, fontSize: isMobile ? 24 : 30, height: 1.2, fontWeight: FontWeight.w900),
+                style: TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: isMobile ? 24 : 30,
+                  height: 1.2,
+                  fontWeight: FontWeight.w900,
+                ),
               ),
               const SizedBox(height: 14),
               const Text(
                 'Cognitive load is balanced. Starting now can increase deep work retention by 24%.',
-                style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 16, height: 1.55),
+                style: TextStyle(
+                  color: NexusColors.onSurfaceVariant,
+                  fontSize: 16,
+                  height: 1.55,
+                ),
               ),
               const SizedBox(height: 24),
-              const _GradientButton(label: 'Initiate Task', icon: Icons.arrow_forward_rounded),
+              const _GradientButton(
+                label: 'Initiate Task',
+                icon: Icons.arrow_forward_rounded,
+              ),
             ],
           ),
         ],
@@ -988,7 +1545,14 @@ class _FlowStateCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('Flow State', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+          const Text(
+            'Flow State',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 24),
           Center(
             child: SizedBox(
@@ -1003,15 +1567,33 @@ class _FlowStateCard extends StatelessWidget {
                       strokeWidth: 8,
                       strokeCap: StrokeCap.round,
                       backgroundColor: Colors.white.withValues(alpha: 0.06),
-                      valueColor: const AlwaysStoppedAnimation(NexusColors.secondary),
+                      valueColor: const AlwaysStoppedAnimation(
+                        NexusColors.secondary,
+                      ),
                     ),
                   ),
                   const Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text('76', style: TextStyle(color: NexusColors.secondary, fontSize: 48, fontWeight: FontWeight.w900, height: 1)),
+                      Text(
+                        '76',
+                        style: TextStyle(
+                          color: NexusColors.secondary,
+                          fontSize: 48,
+                          fontWeight: FontWeight.w900,
+                          height: 1,
+                        ),
+                      ),
                       SizedBox(height: 6),
-                      Text('Optimal', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.4)),
+                      Text(
+                        'Optimal',
+                        style: TextStyle(
+                          color: NexusColors.onSurfaceVariant,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -1034,11 +1616,24 @@ class _ActivePrioritiesCard extends StatelessWidget {
       children: const [
         _CardHeader(title: 'Active Priorities', action: 'View All'),
         SizedBox(height: 14),
-        _PriorityTile(title: 'Finalize Q3 Design System', badge: 'High Priority', time: '2h 30m', danger: true),
+        _PriorityTile(
+          title: 'Finalize Q3 Design System',
+          badge: 'High Priority',
+          time: '2h 30m',
+          danger: true,
+        ),
         SizedBox(height: 12),
-        _PriorityTile(title: 'Review API Documentation', badge: 'Medium', time: '45m'),
+        _PriorityTile(
+          title: 'Review API Documentation',
+          badge: 'Medium',
+          time: '45m',
+        ),
         SizedBox(height: 12),
-        _PriorityTile(title: 'Prepare client presentation', badge: 'Today', time: '1h 15m'),
+        _PriorityTile(
+          title: 'Prepare client presentation',
+          badge: 'Today',
+          time: '1h 15m',
+        ),
       ],
     );
   }
@@ -1052,17 +1647,49 @@ class _DeepWorkCard extends StatelessWidget {
     return _GlassPanel(
       child: Stack(
         children: [
-          Positioned(right: -28, bottom: -28, child: Icon(Icons.timer_rounded, size: 132, color: NexusColors.primary.withValues(alpha: 0.10))),
+          Positioned(
+            right: -28,
+            bottom: -28,
+            child: Icon(
+              Icons.timer_rounded,
+              size: 132,
+              color: NexusColors.primary.withValues(alpha: 0.10),
+            ),
+          ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              Text('Deep Work', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+              Text(
+                'Deep Work',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               SizedBox(height: 8),
-              Text('Block distractions for 90m', style: TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 16)),
+              Text(
+                'Block distractions for 90m',
+                style: TextStyle(
+                  color: NexusColors.onSurfaceVariant,
+                  fontSize: 16,
+                ),
+              ),
               SizedBox(height: 18),
-              Row(children: [_DurationChip(label: '25m'), SizedBox(width: 8), _DurationChip(label: '50m'), SizedBox(width: 8), _DurationChip(label: '90m', active: true)]),
+              Row(
+                children: [
+                  _DurationChip(label: '25m'),
+                  SizedBox(width: 8),
+                  _DurationChip(label: '50m'),
+                  SizedBox(width: 8),
+                  _DurationChip(label: '90m', active: true),
+                ],
+              ),
               SizedBox(height: 18),
-              _OutlinedAction(label: 'Start Session', icon: Icons.play_circle_rounded),
+              _OutlinedAction(
+                label: 'Start Session',
+                icon: Icons.play_circle_rounded,
+              ),
             ],
           ),
         ],
@@ -1080,9 +1707,20 @@ class _TimelineCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Text('Timeline', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(
+            'Timeline',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           SizedBox(height: 18),
-          _TimelineItem(time: 'In 15 mins', title: 'Client Presentation', active: true),
+          _TimelineItem(
+            time: 'In 15 mins',
+            title: 'Client Presentation',
+            active: true,
+          ),
           _TimelineItem(time: '2:00 PM', title: 'Tax Submission'),
           _TimelineItem(time: '4:30 PM', title: 'Design Review'),
         ],
@@ -1092,7 +1730,10 @@ class _TimelineCard extends StatelessWidget {
 }
 
 class _FloatingMobileNav extends StatelessWidget {
-  const _FloatingMobileNav({required this.selectedIndex, required this.onTabSelected});
+  const _FloatingMobileNav({
+    required this.selectedIndex,
+    required this.onTabSelected,
+  });
 
   final int selectedIndex;
   final ValueChanged<int> onTabSelected;
@@ -1110,17 +1751,59 @@ class _FloatingMobileNav extends StatelessWidget {
             color: const Color(0xFF121628).withValues(alpha: 0.78),
             border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
             boxShadow: [
-              BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.20), blurRadius: 36, offset: const Offset(0, 12)),
-              BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.16), blurRadius: 28),
+              BoxShadow(
+                color: NexusColors.secondary.withValues(alpha: 0.20),
+                blurRadius: 36,
+                offset: const Offset(0, 12),
+              ),
+              BoxShadow(
+                color: NexusColors.primaryContainer.withValues(alpha: 0.16),
+                blurRadius: 28,
+              ),
             ],
           ),
           child: Row(
             children: [
-              Expanded(child: _MobileNavItem(icon: Icons.dashboard_rounded, label: 'Home', active: selectedIndex == 0, onTap: () => onTabSelected(0))),
-              Expanded(child: _MobileNavItem(icon: Icons.event_rounded, label: 'Calendar', active: selectedIndex == 1, onTap: () => onTabSelected(1))),
-              Expanded(child: _MobileNavItem(icon: Icons.task_alt_rounded, label: 'Tasks', active: selectedIndex == 2, onTap: () => onTabSelected(2))),
-              Expanded(child: _MobileNavItem(icon: Icons.auto_awesome_rounded, label: 'Nexus', active: selectedIndex == 3, onTap: () => onTabSelected(3))),
-              Expanded(child: _MobileNavItem(icon: Icons.person_rounded, label: 'Profile', active: selectedIndex == 4, onTap: () => onTabSelected(4))),
+              Expanded(
+                child: _MobileNavItem(
+                  icon: Icons.dashboard_rounded,
+                  label: 'Home',
+                  active: selectedIndex == 0,
+                  onTap: () => onTabSelected(0),
+                ),
+              ),
+              Expanded(
+                child: _MobileNavItem(
+                  icon: Icons.event_rounded,
+                  label: 'Calendar',
+                  active: selectedIndex == 1,
+                  onTap: () => onTabSelected(1),
+                ),
+              ),
+              Expanded(
+                child: _MobileNavItem(
+                  icon: Icons.task_alt_rounded,
+                  label: 'Tasks',
+                  active: selectedIndex == 2,
+                  onTap: () => onTabSelected(2),
+                ),
+              ),
+              Expanded(
+                child: _MobileNavItem(
+                  icon: Icons.auto_awesome_rounded,
+                  label: 'Nexus',
+                  active: selectedIndex == 3,
+                  onTap: () => onTabSelected(3),
+                ),
+              ),
+              Expanded(
+                child: _MobileNavItem(
+                  icon: Icons.person_rounded,
+                  label: 'Profile',
+                  active: selectedIndex == 4,
+                  onTap: () => onTabSelected(4),
+                ),
+              ),
             ],
           ),
         ),
@@ -1130,7 +1813,12 @@ class _FloatingMobileNav extends StatelessWidget {
 }
 
 class _MobileNavItem extends StatelessWidget {
-  const _MobileNavItem({required this.icon, required this.label, required this.active, required this.onTap});
+  const _MobileNavItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -1150,16 +1838,41 @@ class _MobileNavItem extends StatelessWidget {
           height: 48,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: active ? NexusColors.secondary.withValues(alpha: 0.18) : Colors.transparent,
-            boxShadow: active ? [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.32), blurRadius: 18)] : null,
+            color:
+                active
+                    ? NexusColors.secondary.withValues(alpha: 0.18)
+                    : Colors.transparent,
+            boxShadow:
+                active
+                    ? [
+                      BoxShadow(
+                        color: NexusColors.secondary.withValues(alpha: 0.32),
+                        blurRadius: 18,
+                      ),
+                    ]
+                    : null,
           ),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: active ? NexusColors.secondary : NexusColors.onSurfaceVariant.withValues(alpha: 0.55), size: active ? 25 : 22),
+              Icon(
+                icon,
+                color:
+                    active
+                        ? NexusColors.secondary
+                        : NexusColors.onSurfaceVariant.withValues(alpha: 0.55),
+                size: active ? 25 : 22,
+              ),
               if (active) ...[
                 const SizedBox(height: 2),
-                Container(width: 4, height: 4, decoration: const BoxDecoration(shape: BoxShape.circle, color: NexusColors.secondary)),
+                Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: NexusColors.secondary,
+                  ),
+                ),
               ],
             ],
           ),
@@ -1170,7 +1883,13 @@ class _MobileNavItem extends StatelessWidget {
 }
 
 class _DesktopDrawerItem extends StatelessWidget {
-  const _DesktopDrawerItem({required this.icon, required this.label, required this.active, required this.collapsed, required this.onTap});
+  const _DesktopDrawerItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.collapsed,
+    required this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -1182,7 +1901,10 @@ class _DesktopDrawerItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = active ? NexusColors.primary : NexusColors.onSurfaceVariant;
     final item = Material(
-      color: active ? NexusColors.primaryContainer.withValues(alpha: 0.20) : Colors.transparent,
+      color:
+          active
+              ? NexusColors.primaryContainer.withValues(alpha: 0.20)
+              : Colors.transparent,
       borderRadius: BorderRadius.circular(14),
       child: InkWell(
         borderRadius: BorderRadius.circular(14),
@@ -1192,7 +1914,12 @@ class _DesktopDrawerItem extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: collapsed ? 0 : 14),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(14),
-            border: active && !collapsed ? const Border(right: BorderSide(color: NexusColors.primary, width: 4)) : null,
+            border:
+                active && !collapsed
+                    ? const Border(
+                      right: BorderSide(color: NexusColors.primary, width: 4),
+                    )
+                    : null,
           ),
           child:
               collapsed
@@ -1206,7 +1933,11 @@ class _DesktopDrawerItem extends StatelessWidget {
                           label,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: TextStyle(color: color, fontWeight: FontWeight.w800, fontSize: 14),
+                          style: TextStyle(
+                            color: color,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
                         ),
                       ),
                     ],
@@ -1244,8 +1975,13 @@ class _GlassPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(radius),
         border: Border.all(color: Colors.white.withValues(alpha: 0.09)),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.22), blurRadius: 30, offset: const Offset(0, 18)),
-          if (glow != null) BoxShadow(color: glow!.withValues(alpha: 0.14), blurRadius: 36),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.22),
+            blurRadius: 30,
+            offset: const Offset(0, 18),
+          ),
+          if (glow != null)
+            BoxShadow(color: glow!.withValues(alpha: 0.14), blurRadius: 36),
         ],
       ),
       child: child,
@@ -1266,8 +2002,15 @@ class _GradientIconBox extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(size * 0.28),
-        gradient: const LinearGradient(colors: [NexusColors.primary, NexusColors.primaryContainer]),
-        boxShadow: [BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.35), blurRadius: 18)],
+        gradient: const LinearGradient(
+          colors: [NexusColors.primary, NexusColors.primaryContainer],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: NexusColors.primaryContainer.withValues(alpha: 0.35),
+            blurRadius: 18,
+          ),
+        ],
       ),
       child: Icon(icon, color: NexusColors.onPrimary),
     );
@@ -1275,7 +2018,11 @@ class _GradientIconBox extends StatelessWidget {
 }
 
 class _SectionLabel extends StatelessWidget {
-  const _SectionLabel({required this.icon, required this.label, required this.color});
+  const _SectionLabel({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   final IconData icon;
   final String label;
@@ -1283,7 +2030,21 @@ class _SectionLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [Icon(icon, color: color, size: 20), const SizedBox(width: 8), Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.4))]);
+    return Row(
+      children: [
+        Icon(icon, color: color, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.4,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -1301,15 +2062,35 @@ class _GradientButton extends StatelessWidget {
       child: Ink(
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(16),
-          gradient: const LinearGradient(colors: [NexusColors.primaryContainer, NexusColors.primary]),
-          boxShadow: [BoxShadow(color: NexusColors.primaryContainer.withValues(alpha: 0.28), blurRadius: 22)],
+          gradient: const LinearGradient(
+            colors: [NexusColors.primaryContainer, NexusColors.primary],
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: NexusColors.primaryContainer.withValues(alpha: 0.28),
+              blurRadius: 22,
+            ),
+          ],
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {},
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900)), const SizedBox(width: 8), Icon(icon, color: Colors.white, size: 18)]),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Icon(icon, color: Colors.white, size: 18),
+              ],
+            ),
           ),
         ),
       ),
@@ -1328,15 +2109,34 @@ class _CardHeader extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.w900)),
-        Text(action, style: const TextStyle(color: NexusColors.primary, fontSize: 12, fontWeight: FontWeight.w900)),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 24,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        Text(
+          action,
+          style: const TextStyle(
+            color: NexusColors.primary,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
       ],
     );
   }
 }
 
 class _PriorityTile extends StatelessWidget {
-  const _PriorityTile({required this.title, required this.badge, required this.time, this.danger = false});
+  const _PriorityTile({
+    required this.title,
+    required this.badge,
+    required this.time,
+    this.danger = false,
+  });
 
   final String title;
   final String badge;
@@ -1350,27 +2150,61 @@ class _PriorityTile extends StatelessWidget {
     return _GlassPanel(
       child: Row(
         children: [
-          Container(width: 24, height: 24, decoration: BoxDecoration(borderRadius: BorderRadius.circular(7), border: Border.all(color: NexusColors.outlineVariant, width: 2))),
+          Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(7),
+              border: Border.all(color: NexusColors.outlineVariant, width: 2),
+            ),
+          ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 const SizedBox(height: 7),
                 Wrap(
                   spacing: 8,
                   runSpacing: 6,
                   children: [
                     _TinyBadge(label: badge, color: badgeColor),
-                    Row(mainAxisSize: MainAxisSize.min, children: [const Icon(Icons.schedule_rounded, color: NexusColors.onSurfaceVariant, size: 14), const SizedBox(width: 4), Text(time, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12))]),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          color: NexusColors.onSurfaceVariant,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          time,
+                          style: const TextStyle(
+                            color: NexusColors.onSurfaceVariant,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.play_arrow_rounded, color: NexusColors.onSurfaceVariant),
+          const Icon(
+            Icons.play_arrow_rounded,
+            color: NexusColors.onSurfaceVariant,
+          ),
         ],
       ),
     );
@@ -1387,8 +2221,19 @@ class _TinyBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: 0.22))),
-      child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900)),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.22)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     );
   }
 }
@@ -1405,10 +2250,24 @@ class _DurationChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(999),
-        color: active ? NexusColors.primaryContainer.withValues(alpha: 0.25) : Colors.white.withValues(alpha: 0.06),
-        border: Border.all(color: active ? NexusColors.primary : Colors.white.withValues(alpha: 0.08)),
+        color:
+            active
+                ? NexusColors.primaryContainer.withValues(alpha: 0.25)
+                : Colors.white.withValues(alpha: 0.06),
+        border: Border.all(
+          color:
+              active
+                  ? NexusColors.primary
+                  : Colors.white.withValues(alpha: 0.08),
+        ),
       ),
-      child: Text(label, style: TextStyle(color: active ? NexusColors.primary : NexusColors.onSurfaceVariant, fontWeight: FontWeight.w800)),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
     );
   }
 }
@@ -1429,8 +2288,24 @@ class _OutlinedAction extends StatelessWidget {
         onTap: () {},
         child: Container(
           height: 48,
-          decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), border: Border.all(color: Colors.white.withValues(alpha: 0.10))),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(icon, color: NexusColors.primary, size: 20), const SizedBox(width: 8), Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w900))]),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: NexusColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -1438,7 +2313,11 @@ class _OutlinedAction extends StatelessWidget {
 }
 
 class _TimelineItem extends StatelessWidget {
-  const _TimelineItem({required this.time, required this.title, this.active = false});
+  const _TimelineItem({
+    required this.time,
+    required this.title,
+    this.active = false,
+  });
 
   final String time;
   final String title;
@@ -1452,15 +2331,66 @@ class _TimelineItem extends StatelessWidget {
         children: [
           Column(
             children: [
-              Container(width: 13, height: 13, decoration: BoxDecoration(shape: BoxShape.circle, color: active ? NexusColors.secondary : NexusColors.surfaceContainerHighest, border: Border.all(color: const Color(0xFF070B14), width: 2), boxShadow: active ? [BoxShadow(color: NexusColors.secondary.withValues(alpha: 0.55), blurRadius: 12)] : null)),
-              Expanded(child: Container(width: 1, color: Colors.white.withValues(alpha: 0.10))),
+              Container(
+                width: 13,
+                height: 13,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color:
+                      active
+                          ? NexusColors.secondary
+                          : NexusColors.surfaceContainerHighest,
+                  border: Border.all(color: const Color(0xFF070B14), width: 2),
+                  boxShadow:
+                      active
+                          ? [
+                            BoxShadow(
+                              color: NexusColors.secondary.withValues(
+                                alpha: 0.55,
+                              ),
+                              blurRadius: 12,
+                            ),
+                          ]
+                          : null,
+                ),
+              ),
+              Expanded(
+                child: Container(
+                  width: 1,
+                  color: Colors.white.withValues(alpha: 0.10),
+                ),
+              ),
             ],
           ),
           const SizedBox(width: 14),
           Expanded(
             child: Padding(
               padding: const EdgeInsets.only(bottom: 20),
-              child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(time, style: TextStyle(color: active ? NexusColors.secondary : NexusColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800)), const SizedBox(height: 4), Text(title, style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.w800))]),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    time,
+                    style: TextStyle(
+                      color:
+                          active
+                              ? NexusColors.secondary
+                              : NexusColors.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],

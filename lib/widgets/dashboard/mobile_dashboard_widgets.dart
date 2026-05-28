@@ -20,15 +20,29 @@ class MobileDashboardLayout extends StatelessWidget {
             slivers: [
               SliverToBoxAdapter(child: SizedBox(height: 88)),
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(DashboardSpacing.md, 0, DashboardSpacing.md, 132),
+                padding: EdgeInsets.fromLTRB(
+                  DashboardSpacing.md,
+                  0,
+                  DashboardSpacing.md,
+                  132,
+                ),
                 sliver: SliverToBoxAdapter(child: MobileDashboardContent()),
               ),
             ],
           ),
         ),
         const Positioned(top: 0, left: 0, right: 0, child: MobileTopBar()),
-        Positioned(right: 28, bottom: 92 + bottomInset, child: const FloatingActionTaskButton()),
-        Positioned(left: 0, right: 0, bottom: 0, child: MobileBottomNavBar(bottomInset: bottomInset)),
+        Positioned(
+          right: 28,
+          bottom: 92 + bottomInset,
+          child: const FloatingActionTaskButton(),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: MobileBottomNavBar(bottomInset: bottomInset),
+        ),
       ],
     );
   }
@@ -70,18 +84,45 @@ class MobileTopBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
           child: Container(
             height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: DashboardSpacing.md),
-            decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .42), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashboardSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: DashboardColors.surface.withValues(alpha: .42),
+              border: Border(
+                bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+              ),
+            ),
             child: Row(
               children: [
                 const ProfileAvatar(radius: 20),
                 const SizedBox(width: 12),
                 ShaderMask(
-                  shaderCallback: (rect) => const LinearGradient(colors: [DashboardColors.primary, DashboardColors.secondary]).createShader(rect),
-                  child: const Text('TaskFlow AI', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900, letterSpacing: -.6)),
+                  shaderCallback:
+                      (rect) => const LinearGradient(
+                        colors: [
+                          DashboardColors.primary,
+                          DashboardColors.secondary,
+                        ],
+                      ).createShader(rect),
+                  child: const Text(
+                    'TaskFlow AI',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -.6,
+                    ),
+                  ),
                 ),
                 const Spacer(),
-                IconButton(onPressed: () => context.go('/settings'), icon: const Icon(Icons.settings_rounded, color: DashboardColors.primary)),
+                IconButton(
+                  onPressed: () => context.go('/settings'),
+                  icon: const Icon(
+                    Icons.settings_rounded,
+                    color: DashboardColors.primary,
+                  ),
+                ),
               ],
             ),
           ),
@@ -101,14 +142,38 @@ class MobileHeroSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SectionTitle(label: 'System Ready', color: DashboardColors.primary),
+        const SectionTitle(
+          label: 'System Ready',
+          color: DashboardColors.primary,
+        ),
         const SizedBox(height: 12),
         Text.rich(
-          const TextSpan(text: 'Good morning, ', children: [TextSpan(text: 'Alex', style: TextStyle(color: DashboardColors.primary))]),
-          style: TextStyle(color: DashboardColors.onSurface, fontSize: isTight ? 38 : 46, height: 1.02, fontWeight: FontWeight.w900, letterSpacing: -1.1),
+          const TextSpan(
+            text: 'Good morning, ',
+            children: [
+              TextSpan(
+                text: 'Alex',
+                style: TextStyle(color: DashboardColors.primary),
+              ),
+            ],
+          ),
+          style: TextStyle(
+            color: DashboardColors.onSurface,
+            fontSize: isTight ? 38 : 46,
+            height: 1.02,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -1.1,
+          ),
         ),
         const SizedBox(height: 16),
-        const Text('Your productivity cycle is peaking. It is the perfect time for deep work.', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 17, height: 1.5)),
+        const Text(
+          'Your productivity cycle is peaking. It is the perfect time for deep work.',
+          style: TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 17,
+            height: 1.5,
+          ),
+        ),
         const SizedBox(height: DashboardSpacing.md),
         const AIRecommendationMobileCard(),
       ],
@@ -130,20 +195,65 @@ class AIRecommendationMobileCard extends StatelessWidget {
           Positioned.fill(child: IgnorePointer(child: _ShimmerBand())),
           Row(
             children: [
-              Container(width: 52, height: 52, decoration: BoxDecoration(color: DashboardColors.primaryContainer.withValues(alpha: .20), shape: BoxShape.circle), child: const Icon(Icons.auto_awesome_rounded, color: DashboardColors.primary)),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: DashboardColors.primaryContainer.withValues(
+                    alpha: .20,
+                  ),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.auto_awesome_rounded,
+                  color: DashboardColors.primary,
+                ),
+              ),
               const SizedBox(width: 14),
               const Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('AI RECOMMENDATION', style: TextStyle(color: DashboardColors.outline, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+                    Text(
+                      'AI RECOMMENDATION',
+                      style: TextStyle(
+                        color: DashboardColors.outline,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                     SizedBox(height: 6),
-                    Text('Next best task: Review Q3 Plan', style: TextStyle(color: DashboardColors.onSurface, fontSize: 20, height: 1.2, fontWeight: FontWeight.w800)),
+                    Text(
+                      'Next best task: Review Q3 Plan',
+                      style: TextStyle(
+                        color: DashboardColors.onSurface,
+                        fontSize: 20,
+                        height: 1.2,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9), decoration: BoxDecoration(color: DashboardColors.primaryContainer, borderRadius: BorderRadius.circular(DashboardRadii.full)), child: const Text('Start', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w800))),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 9,
+                ),
+                decoration: BoxDecoration(
+                  color: DashboardColors.primaryContainer,
+                  borderRadius: BorderRadius.circular(DashboardRadii.full),
+                ),
+                child: const Text(
+                  'Start',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -159,10 +269,22 @@ class _ShimmerBand extends StatelessWidget {
       tween: Tween(begin: -1, end: 1),
       duration: const Duration(seconds: 2),
       curve: Curves.linear,
-      builder: (context, value, _) => Transform.translate(
-        offset: Offset(value * 280, 0),
-        child: Container(width: 90, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.transparent, Colors.white.withValues(alpha: .05), Colors.transparent]))),
-      ),
+      builder:
+          (context, value, _) => Transform.translate(
+            offset: Offset(value * 280, 0),
+            child: Container(
+              width: 90,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: .05),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
     );
   }
 }
@@ -178,7 +300,14 @@ class FocusProgressCard extends StatelessWidget {
         children: [
           CircularScore(value: .85, label: 'FOCUSED', size: 190),
           SizedBox(height: 22),
-          Text('You are 15% ahead of your weekly average. Keep the momentum.', textAlign: TextAlign.center, style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.5)),
+          Text(
+            'You are 15% ahead of your weekly average. Keep the momentum.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              height: 1.5,
+            ),
+          ),
         ],
       ),
     );
@@ -194,11 +323,33 @@ class FocusTimerCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Row(children: [IconBadge(icon: Icons.timer_rounded, color: DashboardColors.primary), Spacer(), SectionTitle(label: 'Deep Work')]),
+          Row(
+            children: [
+              IconBadge(
+                icon: Icons.timer_rounded,
+                color: DashboardColors.primary,
+              ),
+              Spacer(),
+              SectionTitle(label: 'Deep Work'),
+            ],
+          ),
           SizedBox(height: 24),
-          Text('Focus Timer', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w800)),
+          Text(
+            'Focus Timer',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           SizedBox(height: 8),
-          Text('Configure your next session for maximum intensity.', style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.45)),
+          Text(
+            'Configure your next session for maximum intensity.',
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
           SizedBox(height: 28),
           PulsingGradientButton(),
         ],
@@ -216,7 +367,9 @@ class PulsingGradientButton extends StatelessWidget {
       tween: Tween(begin: .96, end: 1),
       duration: const Duration(seconds: 2),
       curve: Curves.easeInOut,
-      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      builder:
+          (context, scale, child) =>
+              Transform.scale(scale: scale, child: child),
       child: const GradientButton(label: 'Start Focus Session', expanded: true),
     );
   }
@@ -231,9 +384,25 @@ class AnalyticsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(children: [Text('Analytics', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w800)), Spacer(), Icon(Icons.trending_up_rounded, color: DashboardColors.outline)]),
+          Row(
+            children: [
+              Text(
+                'Analytics',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              Spacer(),
+              Icon(Icons.trending_up_rounded, color: DashboardColors.outline),
+            ],
+          ),
           SizedBox(height: 18),
-          AnalyticsBars(values: [.6, .45, .8, .55, .9, .75, .2], labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S']),
+          AnalyticsBars(
+            values: [.6, .45, .8, .55, .9, .75, .2],
+            labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+          ),
         ],
       ),
     );
@@ -249,11 +418,30 @@ class ActiveProjectsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Active Projects', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w800)),
+          Text(
+            'Active Projects',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           SizedBox(height: 18),
-          _ProjectRow(color: DashboardColors.primary, title: 'Design System Update', subtitle: 'High Priority'),
-          _ProjectRow(color: DashboardColors.secondary, title: 'Client Onboarding', subtitle: 'Personal'),
-          _ProjectRow(color: DashboardColors.tertiaryContainer, title: 'Weekly AI Sync', subtitle: '2:00 PM Today'),
+          _ProjectRow(
+            color: DashboardColors.primary,
+            title: 'Design System Update',
+            subtitle: 'High Priority',
+          ),
+          _ProjectRow(
+            color: DashboardColors.secondary,
+            title: 'Client Onboarding',
+            subtitle: 'Personal',
+          ),
+          _ProjectRow(
+            color: DashboardColors.tertiaryContainer,
+            title: 'Weekly AI Sync',
+            subtitle: '2:00 PM Today',
+          ),
         ],
       ),
     );
@@ -261,7 +449,11 @@ class ActiveProjectsCard extends StatelessWidget {
 }
 
 class _ProjectRow extends StatelessWidget {
-  const _ProjectRow({required this.color, required this.title, required this.subtitle});
+  const _ProjectRow({
+    required this.color,
+    required this.title,
+    required this.subtitle,
+  });
   final Color color;
   final String title;
   final String subtitle;
@@ -269,7 +461,44 @@ class _ProjectRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Row(children: [Container(width: 4, height: 36, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(999))), const SizedBox(width: 14), Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [Text(title, style: const TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.w800)), Text(subtitle, style: const TextStyle(color: DashboardColors.outline, fontSize: 12))])), const Icon(Icons.chevron_right_rounded, color: DashboardColors.outline)]),
+      child: Row(
+        children: [
+          Container(
+            width: 4,
+            height: 36,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(999),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                Text(
+                  subtitle,
+                  style: const TextStyle(
+                    color: DashboardColors.outline,
+                    fontSize: 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.chevron_right_rounded,
+            color: DashboardColors.outline,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -279,7 +508,14 @@ class IconBadge extends StatelessWidget {
   final IconData icon;
   final Color color;
   @override
-  Widget build(BuildContext context) => Container(padding: const EdgeInsets.all(12), decoration: BoxDecoration(color: color.withValues(alpha: .12), borderRadius: BorderRadius.circular(18)), child: Icon(icon, color: color));
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: .12),
+      borderRadius: BorderRadius.circular(18),
+    ),
+    child: Icon(icon, color: color),
+  );
 }
 
 class FloatingActionTaskButton extends StatelessWidget {
@@ -290,8 +526,31 @@ class FloatingActionTaskButton extends StatelessWidget {
     return Container(
       width: 64,
       height: 64,
-      decoration: BoxDecoration(shape: BoxShape.circle, gradient: const LinearGradient(colors: [DashboardColors.primary, DashboardColors.secondary]), boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .35), blurRadius: 30)]),
-      child: Material(color: Colors.transparent, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () {}, child: const Icon(Icons.add_rounded, color: DashboardColors.onPrimary, size: 34))),
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: const LinearGradient(
+          colors: [DashboardColors.primary, DashboardColors.secondary],
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: DashboardColors.primary.withValues(alpha: .35),
+            blurRadius: 30,
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: const CircleBorder(),
+        child: InkWell(
+          customBorder: const CircleBorder(),
+          onTap: () {},
+          child: const Icon(
+            Icons.add_rounded,
+            color: DashboardColors.onPrimary,
+            size: 34,
+          ),
+        ),
+      ),
     );
   }
 }
@@ -311,16 +570,41 @@ class MobileBottomNavBar extends StatelessWidget {
           padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottomInset),
           decoration: BoxDecoration(
             color: DashboardColors.surface.withValues(alpha: .48),
-            border: Border(top: BorderSide(color: Colors.white.withValues(alpha: .10))),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: .10)),
+            ),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _BottomNavItem(icon: Icons.home_rounded, label: 'Home', active: true, onTap: () => context.go('/home')),
-              _BottomNavItem(icon: Icons.calendar_month_rounded, label: 'Calendar', onTap: () => context.go('/calendar')),
-              _BottomNavItem(icon: Icons.assignment_rounded, label: 'Tasks', onTap: () => context.go('/tasks')),
-              _BottomNavItem(icon: Icons.bar_chart_rounded, label: 'Stats', onTap: () => context.go('/analytics')),
-              _BottomNavItem(icon: Icons.person_rounded, label: 'Profile', onTap: () => context.go('/profile')),
+              _BottomNavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                active: true,
+                onTap: () => context.go('/home'),
+              ),
+              _BottomNavItem(
+                icon: Icons.calendar_month_rounded,
+                label: 'Calendar',
+                onTap: () => context.go('/calendar'),
+              ),
+              _BottomNavItem(
+                icon: Icons.assignment_rounded,
+                label: 'Tasks',
+                onTap: () => context.go('/tasks'),
+              ),
+              _BottomNavItem(
+                icon: Icons.bar_chart_rounded,
+                label: 'Stats',
+                onTap: () => context.go('/analytics'),
+              ),
+              _BottomNavItem(
+                icon: Icons.person_rounded,
+                label: 'Profile',
+                onTap:
+                    ProfileNavigationScope.maybeOf(context) ??
+                    () => context.go('/profile'),
+              ),
             ],
           ),
         ),
@@ -330,7 +614,12 @@ class MobileBottomNavBar extends StatelessWidget {
 }
 
 class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({required this.icon, required this.label, this.active = false, this.onTap});
+  const _BottomNavItem({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
   final IconData icon;
   final String label;
   final bool active;
@@ -344,8 +633,29 @@ class _BottomNavItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(DashboardRadii.full),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: active ? 14 : 8, vertical: 7),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: active ? Colors.white : DashboardColors.onSurfaceVariant, size: 22), Text(label, style: TextStyle(color: active ? Colors.white : DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w700))]),
+          padding: EdgeInsets.symmetric(
+            horizontal: active ? 14 : 8,
+            vertical: 7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: active ? Colors.white : DashboardColors.onSurfaceVariant,
+                size: 22,
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  color:
+                      active ? Colors.white : DashboardColors.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -361,9 +671,25 @@ class _SystemStatusBar extends StatelessWidget {
       children: [
         Icon(Icons.circle, color: Color(0xFF4ADE80), size: 9),
         SizedBox(width: 6),
-        Text('SYSTEM: OPTIMAL', style: TextStyle(color: DashboardColors.outline, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
+        Text(
+          'SYSTEM: OPTIMAL',
+          style: TextStyle(
+            color: DashboardColors.outline,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: .8,
+          ),
+        ),
         Spacer(),
-        Text('LAST SYNC: 2 MINS AGO', style: TextStyle(color: DashboardColors.outline, fontSize: 11, fontWeight: FontWeight.w800, letterSpacing: .8)),
+        Text(
+          'LAST SYNC: 2 MINS AGO',
+          style: TextStyle(
+            color: DashboardColors.outline,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            letterSpacing: .8,
+          ),
+        ),
       ],
     );
   }

@@ -15,10 +15,28 @@ class DashboardBackground extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        const Positioned.fill(child: ColoredBox(color: DashboardColors.background)),
-        const Positioned(top: -170, right: -150, child: GlowOrb(size: 520, color: DashboardColors.primary)),
-        const Positioned(bottom: -160, left: -150, child: GlowOrb(size: 520, color: DashboardColors.secondary)),
-        Positioned(top: 260, left: MediaQuery.sizeOf(context).width * .38, child: const GlowOrb(size: 320, color: DashboardColors.tertiary, opacity: .08)),
+        const Positioned.fill(
+          child: ColoredBox(color: DashboardColors.background),
+        ),
+        const Positioned(
+          top: -170,
+          right: -150,
+          child: GlowOrb(size: 520, color: DashboardColors.primary),
+        ),
+        const Positioned(
+          bottom: -160,
+          left: -150,
+          child: GlowOrb(size: 520, color: DashboardColors.secondary),
+        ),
+        Positioned(
+          top: 260,
+          left: MediaQuery.sizeOf(context).width * .38,
+          child: const GlowOrb(
+            size: 320,
+            color: DashboardColors.tertiary,
+            opacity: .08,
+          ),
+        ),
         Positioned.fill(child: child),
       ],
     );
@@ -26,7 +44,12 @@ class DashboardBackground extends StatelessWidget {
 }
 
 class GlowOrb extends StatelessWidget {
-  const GlowOrb({required this.size, required this.color, this.opacity = .12, super.key});
+  const GlowOrb({
+    required this.size,
+    required this.color,
+    this.opacity = .12,
+    super.key,
+  });
 
   final double size;
   final Color color;
@@ -38,13 +61,21 @@ class GlowOrb extends StatelessWidget {
       tween: Tween(begin: .92, end: 1.04),
       duration: const Duration(seconds: 3),
       curve: Curves.easeInOut,
-      builder: (context, scale, child) => Transform.scale(scale: scale, child: child),
+      builder:
+          (context, scale, child) =>
+              Transform.scale(scale: scale, child: child),
       child: Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: color.withValues(alpha: opacity), blurRadius: 150, spreadRadius: 70)],
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: opacity),
+              blurRadius: 150,
+              spreadRadius: 70,
+            ),
+          ],
         ),
       ),
     );
@@ -80,7 +111,12 @@ class GlassCard extends StatelessWidget {
             borderRadius: BorderRadius.circular(radius),
             border: Border.all(color: Colors.white.withValues(alpha: .08)),
             boxShadow: [
-              BoxShadow(color: (glowColor ?? Colors.black).withValues(alpha: glowColor == null ? .16 : .16), blurRadius: glowColor == null ? 22 : 34),
+              BoxShadow(
+                color: (glowColor ?? Colors.black).withValues(
+                  alpha: glowColor == null ? .16 : .16,
+                ),
+                blurRadius: glowColor == null ? 22 : 34,
+              ),
             ],
           ),
           child: child,
@@ -89,12 +125,25 @@ class GlassCard extends StatelessWidget {
     );
 
     if (onTap == null) return card;
-    return Material(color: Colors.transparent, borderRadius: BorderRadius.circular(radius), child: InkWell(borderRadius: BorderRadius.circular(radius), onTap: onTap, child: card));
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(radius),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(radius),
+        onTap: onTap,
+        child: card,
+      ),
+    );
   }
 }
 
 class AnimatedHoverCard extends StatefulWidget {
-  const AnimatedHoverCard({required this.child, this.glowColor, this.padding = const EdgeInsets.all(DashboardSpacing.lg), super.key});
+  const AnimatedHoverCard({
+    required this.child,
+    this.glowColor,
+    this.padding = const EdgeInsets.all(DashboardSpacing.lg),
+    super.key,
+  });
 
   final Widget child;
   final Color? glowColor;
@@ -116,14 +165,24 @@ class _AnimatedHoverCardState extends State<AnimatedHoverCard> {
         duration: DashboardDurations.normal,
         curve: Curves.easeOutCubic,
         transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
-        child: GlassCard(padding: widget.padding, glowColor: _hovered ? widget.glowColor : null, child: widget.child),
+        child: GlassCard(
+          padding: widget.padding,
+          glowColor: _hovered ? widget.glowColor : null,
+          child: widget.child,
+        ),
       ),
     );
   }
 }
 
 class GradientButton extends StatelessWidget {
-  const GradientButton({required this.label, this.icon, this.onPressed, this.expanded = false, super.key});
+  const GradientButton({
+    required this.label,
+    this.icon,
+    this.onPressed,
+    this.expanded = false,
+    super.key,
+  });
 
   final String label;
   final IconData? icon;
@@ -137,9 +196,19 @@ class GradientButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(DashboardRadii.full),
       child: Ink(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [DashboardColors.primaryContainer, DashboardColors.secondaryContainer]),
+          gradient: const LinearGradient(
+            colors: [
+              DashboardColors.primaryContainer,
+              DashboardColors.secondaryContainer,
+            ],
+          ),
           borderRadius: BorderRadius.circular(DashboardRadii.full),
-          boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .22), blurRadius: 28)],
+          boxShadow: [
+            BoxShadow(
+              color: DashboardColors.primary.withValues(alpha: .22),
+              blurRadius: 28,
+            ),
+          ],
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(DashboardRadii.full),
@@ -150,8 +219,17 @@ class GradientButton extends StatelessWidget {
               mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                if (icon != null) ...[Icon(icon, color: Colors.white, size: 20), const SizedBox(width: 8)],
-                Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800)),
+                if (icon != null) ...[
+                  Icon(icon, color: Colors.white, size: 20),
+                  const SizedBox(width: 8),
+                ],
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
               ],
             ),
           ),
@@ -169,7 +247,9 @@ class DashboardScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(body: DashboardBackground(child: SafeArea(top: false, child: child)));
+    return Scaffold(
+      body: DashboardBackground(child: SafeArea(top: false, child: child)),
+    );
   }
 }
 
@@ -188,11 +268,18 @@ class DashboardHeader extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Good morning, Alex', style: Theme.of(context).textTheme.displayLarge),
+                  Text(
+                    'Good morning, Alex',
+                    style: Theme.of(context).textTheme.displayLarge,
+                  ),
                   const SizedBox(height: 10),
                   const Text(
                     'Your productivity cycle is in its peak phase. You have completed 4 focus blocks today.',
-                    style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 18, height: 1.55),
+                    style: TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      fontSize: 18,
+                      height: 1.55,
+                    ),
                   ),
                 ],
               ),
@@ -220,15 +307,34 @@ class DeepWorkPill extends StatelessWidget {
           TweenAnimationBuilder<double>(
             tween: Tween(begin: .45, end: 1),
             duration: const Duration(seconds: 2),
-            builder: (context, value, child) => Opacity(opacity: value, child: child),
+            builder:
+                (context, value, child) =>
+                    Opacity(opacity: value, child: child),
             child: Container(
               width: 10,
               height: 10,
-              decoration: BoxDecoration(shape: BoxShape.circle, color: DashboardColors.primary, boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .7), blurRadius: 12)]),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: DashboardColors.primary,
+                boxShadow: [
+                  BoxShadow(
+                    color: DashboardColors.primary.withValues(alpha: .7),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 10),
-          const Text('DEEP WORK ACTIVE', style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.2)),
+          const Text(
+            'DEEP WORK ACTIVE',
+            style: TextStyle(
+              color: DashboardColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+            ),
+          ),
         ],
       ),
     );
@@ -236,7 +342,12 @@ class DeepWorkPill extends StatelessWidget {
 }
 
 class SectionTitle extends StatelessWidget {
-  const SectionTitle({required this.label, this.icon, this.color = DashboardColors.onSurfaceVariant, super.key});
+  const SectionTitle({
+    required this.label,
+    this.icon,
+    this.color = DashboardColors.onSurfaceVariant,
+    super.key,
+  });
 
   final String label;
   final IconData? icon;
@@ -246,15 +357,51 @@ class SectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        if (icon != null) ...[Icon(icon, color: color, size: 20), const SizedBox(width: 8)],
-        Text(label.toUpperCase(), style: TextStyle(color: color, fontSize: 12, fontWeight: FontWeight.w800, letterSpacing: 1.3)),
+        if (icon != null) ...[
+          Icon(icon, color: color, size: 20),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          label.toUpperCase(),
+          style: TextStyle(
+            color: color,
+            fontSize: 12,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 1.3,
+          ),
+        ),
       ],
     );
   }
 }
 
+class ProfileNavigationScope extends InheritedWidget {
+  const ProfileNavigationScope({
+    required this.onProfileSelected,
+    required super.child,
+    super.key,
+  });
+
+  final VoidCallback onProfileSelected;
+
+  static VoidCallback? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<ProfileNavigationScope>()
+        ?.onProfileSelected;
+  }
+
+  @override
+  bool updateShouldNotify(ProfileNavigationScope oldWidget) =>
+      onProfileSelected != oldWidget.onProfileSelected;
+}
+
 class ProfileAvatar extends StatelessWidget {
-  const ProfileAvatar({this.radius = 18, this.onTap, this.showUsername = false, super.key});
+  const ProfileAvatar({
+    this.radius = 18,
+    this.onTap,
+    this.showUsername = true,
+    super.key,
+  });
 
   final double radius;
   final VoidCallback? onTap;
@@ -264,52 +411,88 @@ class ProfileAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
-    final label = (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'A').toString();
-    final avatarUrl = (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '').toString().trim();
-    final initial = label.trim().isEmpty ? '?' : label.characters.first.toUpperCase();
+    final label =
+        (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'A')
+            .toString();
+    final avatarUrl =
+        (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '')
+            .toString()
+            .trim();
+    final initial =
+        label.trim().isEmpty ? '?' : label.characters.first.toUpperCase();
+    final canShowUsername =
+        showUsername && MediaQuery.sizeOf(context).width >= 390;
     final avatar = CircleAvatar(
       radius: radius,
       backgroundColor: DashboardColors.surfaceHigh,
       backgroundImage: avatarUrl.isEmpty ? null : NetworkImage(avatarUrl),
-      child: avatarUrl.isEmpty ? Text(initial, style: TextStyle(color: DashboardColors.onSurface, fontSize: radius * .78, fontWeight: FontWeight.w800)) : null,
+      child:
+          avatarUrl.isEmpty
+              ? Text(
+                initial,
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: radius * .78,
+                  fontWeight: FontWeight.w800,
+                ),
+              )
+              : null,
     );
 
-    final content = showUsername
-        ? Container(
-            padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
-            decoration: BoxDecoration(
-              color: DashboardColors.surfaceHigh.withValues(alpha: .62),
-              borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                avatar,
-                const SizedBox(width: 9),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 130),
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w800),
+    final content =
+        canShowUsername
+            ? Container(
+              padding: const EdgeInsets.fromLTRB(8, 6, 12, 6),
+              decoration: BoxDecoration(
+                color: DashboardColors.surfaceHigh.withValues(alpha: .62),
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(color: Colors.white.withValues(alpha: .08)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  avatar,
+                  const SizedBox(width: 9),
+                  Flexible(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 130),
+                      child: Text(
+                        label,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-              ],
-            ),
-          )
-        : avatar;
+                ],
+              ),
+            )
+            : avatar;
 
     return Tooltip(
       message: 'Open profile',
-      child: GestureDetector(onTap: onTap ?? () => context.go('/profile'), child: content),
+      child: GestureDetector(
+        onTap:
+            onTap ??
+            ProfileNavigationScope.maybeOf(context) ??
+            () => context.go('/profile'),
+        child: content,
+      ),
     );
   }
 }
 
 class CircularScore extends StatelessWidget {
-  const CircularScore({required this.value, required this.label, this.size = 176, super.key});
+  const CircularScore({
+    required this.value,
+    required this.label,
+    this.size = 176,
+    super.key,
+  });
 
   final double value;
   final String label;
@@ -321,30 +504,60 @@ class CircularScore extends StatelessWidget {
       tween: Tween(begin: 0, end: value),
       duration: const Duration(milliseconds: 900),
       curve: Curves.easeOutCubic,
-      builder: (context, animated, _) => SizedBox(
-        width: size,
-        height: size,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            SizedBox.expand(child: CircularProgressIndicator(value: animated, strokeWidth: size * .055, strokeCap: StrokeCap.round, backgroundColor: Colors.white.withValues(alpha: .06), valueColor: const AlwaysStoppedAnimation(DashboardColors.primary))),
-            Column(
-              mainAxisSize: MainAxisSize.min,
+      builder:
+          (context, animated, _) => SizedBox(
+            width: size,
+            height: size,
+            child: Stack(
+              alignment: Alignment.center,
               children: [
-                Text('${(animated * 100).round()}%', style: TextStyle(color: DashboardColors.onSurface, fontSize: size * .24, fontWeight: FontWeight.w800, height: 1)),
-                const SizedBox(height: 6),
-                Text(label, style: const TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                SizedBox.expand(
+                  child: CircularProgressIndicator(
+                    value: animated,
+                    strokeWidth: size * .055,
+                    strokeCap: StrokeCap.round,
+                    backgroundColor: Colors.white.withValues(alpha: .06),
+                    valueColor: const AlwaysStoppedAnimation(
+                      DashboardColors.primary,
+                    ),
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '${(animated * 100).round()}%',
+                      style: TextStyle(
+                        color: DashboardColors.onSurface,
+                        fontSize: size * .24,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      label,
+                      style: const TextStyle(
+                        color: DashboardColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
               ],
             ),
-          ],
-        ),
-      ),
+          ),
     );
   }
 }
 
 class AnalyticsBars extends StatelessWidget {
-  const AnalyticsBars({this.values = const [.4, .65, .85, .5, .9, .2, .15], this.labels = const ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'], super.key});
+  const AnalyticsBars({
+    this.values = const [.4, .65, .85, .5, .9, .2, .15],
+    this.labels = const ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
+    super.key,
+  });
 
   final List<double> values;
   final List<String> labels;
@@ -370,22 +583,49 @@ class AnalyticsBars extends StatelessWidget {
                           tween: Tween(begin: 0, end: values[i]),
                           duration: Duration(milliseconds: 600 + i * 70),
                           curve: Curves.easeOutCubic,
-                          builder: (context, value, _) => FractionallySizedBox(
-                            heightFactor: value,
-                            child: AnimatedContainer(
-                              duration: DashboardDurations.normal,
-                              decoration: BoxDecoration(
-                                color: i == 2 || i == 4 ? DashboardColors.primary : Colors.white.withValues(alpha: .06),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(10)),
-                                boxShadow: i == 2 || i == 4 ? [BoxShadow(color: DashboardColors.primary.withValues(alpha: .34), blurRadius: 16)] : null,
+                          builder:
+                              (context, value, _) => FractionallySizedBox(
+                                heightFactor: value,
+                                child: AnimatedContainer(
+                                  duration: DashboardDurations.normal,
+                                  decoration: BoxDecoration(
+                                    color:
+                                        i == 2 || i == 4
+                                            ? DashboardColors.primary
+                                            : Colors.white.withValues(
+                                              alpha: .06,
+                                            ),
+                                    borderRadius: const BorderRadius.vertical(
+                                      top: Radius.circular(10),
+                                    ),
+                                    boxShadow:
+                                        i == 2 || i == 4
+                                            ? [
+                                              BoxShadow(
+                                                color: DashboardColors.primary
+                                                    .withValues(alpha: .34),
+                                                blurRadius: 16,
+                                              ),
+                                            ]
+                                            : null,
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
-                    Text(labels[i], style: TextStyle(color: i == 2 ? DashboardColors.primary : DashboardColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w800)),
+                    Text(
+                      labels[i],
+                      style: TextStyle(
+                        color:
+                            i == 2
+                                ? DashboardColors.primary
+                                : DashboardColors.onSurfaceVariant,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
                   ],
                 ),
               ),
