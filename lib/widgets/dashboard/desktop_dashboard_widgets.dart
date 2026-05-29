@@ -38,7 +38,10 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
       children: [
         DesktopSidebar(
           selectedIndex: _selectedIndex,
-          onSelected: (index) => setState(() => _selectedIndex = index),
+          onSelected: (index) => setState(() {
+            _detailsItem = null;
+            _selectedIndex = index;
+          }),
         ),
         Expanded(
           child: ProfileNavigationScope(

@@ -209,7 +209,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               surface: DashboardColors.surfaceLow,
               onSurface: DashboardColors.onSurface,
             ),
-            dialogBackgroundColor: DashboardColors.surfaceLowest,
+            dialogTheme: const DialogThemeData(backgroundColor: DashboardColors.surfaceLowest),
           ),
           child: child!,
         );
@@ -429,6 +429,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    _TeamPresenceRow(members: _selectedAssignees),
+                                    const SizedBox(height: 24),
                                     const _Label('TASK TITLE'),
                                     TextField(
                                       controller: _titleController,
@@ -451,8 +453,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(height: 32),
+                                    const SizedBox(height: 36),
                                     const _Label('DESCRIPTION'),
+                                    const SizedBox(height: 12),
                                     _GlassBox(
                                       padding: const EdgeInsets.all(16),
                                       child: Column(
@@ -480,6 +483,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                         ],
                                       ),
                                     ),
+                                    const SizedBox(height: 20),
+                                    const _AiDraftNotesCard(),
                                     const SizedBox(height: 32),
                                     // Dynamic Subtasks Section
                                     Column(
@@ -497,7 +502,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                   '＋ Generate with AI',
                                                   style: GoogleFonts.inter(
                                                     fontSize: 12,
-                                                    fontWeight: SystemMouseCursors.click == SystemMouseCursors.click ? FontWeight.w800 : FontWeight.w500,
+                                                    fontWeight: FontWeight.w800,
                                                     color: DashboardColors.primary,
                                                   ),
                                                 ),
@@ -658,6 +663,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               ),
                                             ),
                                           ),
+                                        const SizedBox(height: 24),
+                                        const _SmartCreationTabs(),
                                       ],
                                     ),
                                   ],
@@ -684,6 +691,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               const _Label('INTELLIGENCE SUGGESTIONS', color: DashboardColors.primary),
+                                              const SizedBox(height: 12),
+                                              const _CreationAiInsightsCard(),
                                               const SizedBox(height: 12),
                                               const _SuggestionCard(),
                                               const SizedBox(height: 24),
@@ -799,6 +808,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                   );
                                                 }).toList(),
                                               ),
+                                              const SizedBox(height: 16),
+                                              const _SmartPriorityHeatmap(),
                                               const SizedBox(height: 24),
                                               // Due Date & Estimate Interactive Tiles
                                               Row(
@@ -862,6 +873,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                   ),
                                                 ],
                                               ),
+                                              const SizedBox(height: 16),
+                                              _FocusForecastCard(hours: _selectedEstimate),
                                               const SizedBox(height: 24),
                                               // Tags block
                                               Column(
@@ -937,6 +950,10 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     ),
                                     const SizedBox(height: 32),
                                     const _AttachmentCard(),
+                                    const SizedBox(height: 20),
+                                    const _KnowledgeGraphPreview(),
+                                    const SizedBox(height: 20),
+                                    const _DraftActivityTimeline(),
                                   ],
                                 ),
                               ),
@@ -965,12 +982,12 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     else
                                       SizedBox(
                                         height: 32,
-                                        width: (16 + (_selectedAssignees.length - 1) * 24).toDouble(),
+                                        width: (32 + (_selectedAssignees.length - 1) * 26).toDouble(),
                                         child: Stack(
                                           children: List.generate(_selectedAssignees.length, (idx) {
                                             final m = _selectedAssignees[idx];
                                             return Positioned(
-                                              left: (idx * 24).toDouble(),
+                                              left: (idx * 26).toDouble(),
                                               child: CircleAvatar(
                                                 radius: 16,
                                                 backgroundColor: m.color.withValues(alpha: .2),
@@ -1043,6 +1060,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
             ),
           ),
         ),
+        const Positioned(right: 42, bottom: 118, child: _CommandPaletteButton()),
         // AI Suggestion Dock (Dynamic trượt từ đáy màn hình)
         AnimatedPositioned(
           duration: const Duration(milliseconds: 320),
@@ -1366,6 +1384,311 @@ class _Glow extends StatelessWidget {
           boxShadow: [BoxShadow(color: color, blurRadius: 80, spreadRadius: 20)],
         ),
       );
+}
+
+class _CreationAiInsightsCard extends StatelessWidget {
+  const _CreationAiInsightsCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      tint: DashboardColors.primary.withValues(alpha: .05),
+      borderColor: DashboardColors.primary.withValues(alpha: .18),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Row(children: [Icon(Icons.auto_awesome_rounded, color: DashboardColors.tertiary, size: 18), SizedBox(width: 8), Text('Creation Intelligence', style: TextStyle(color: DashboardColors.onSurface, fontSize: 14, fontWeight: FontWeight.w900))]),
+          SizedBox(height: 12),
+          _InsightLine('Readiness score: 76%'),
+          _InsightLine('Deadline and estimate are aligned'),
+          _InsightLine('Suggested focus window: 2PM - 5PM'),
+          _InsightLine('One collaborator recommended'),
+        ],
+      ),
+    );
+  }
+}
+
+class _InsightLine extends StatelessWidget {
+  const _InsightLine(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 6),
+      child: Row(
+        children: [
+          Container(width: 5, height: 5, decoration: const BoxDecoration(shape: BoxShape.circle, color: DashboardColors.primary)),
+          const SizedBox(width: 8),
+          Expanded(child: Text(text, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, height: 1.25))),
+        ],
+      ),
+    );
+  }
+}
+
+class _TeamPresenceRow extends StatelessWidget {
+  const _TeamPresenceRow({required this.members});
+  final List<TeamMember> members;
+
+  @override
+  Widget build(BuildContext context) {
+    final visible = members.isEmpty ? mockTeamMembers.take(3).toList() : members.take(3).toList();
+    return _GlassBox(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 78,
+            height: 34,
+            child: Stack(
+              children: [
+                for (var i = 0; i < visible.length; i++)
+                  Positioned(left: i * 22, child: _PresenceAvatar(member: visible[i])),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          const Expanded(child: Text('3 collaborators active • Maria is viewing this draft', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))),
+          const _PulseDot(),
+        ],
+      ),
+    );
+  }
+}
+
+class _PresenceAvatar extends StatelessWidget {
+  const _PresenceAvatar({required this.member});
+  final TeamMember member;
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        CircleAvatar(radius: 16, backgroundColor: DashboardColors.background, child: CircleAvatar(radius: 14, backgroundColor: member.color.withValues(alpha: .18), child: Text(member.avatarText, style: TextStyle(color: member.color, fontSize: 11, fontWeight: FontWeight.w900)))),
+        if (member.isOnline) const Positioned(right: -1, bottom: -1, child: _OnlineDot()),
+      ],
+    );
+  }
+}
+
+class _OnlineDot extends StatelessWidget {
+  const _OnlineDot();
+
+  @override
+  Widget build(BuildContext context) => Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF7CFFB2), border: Border.all(color: DashboardColors.background, width: 1.5), boxShadow: [BoxShadow(color: const Color(0xFF7CFFB2).withValues(alpha: .35), blurRadius: 8)]));
+}
+
+class _PulseDot extends StatelessWidget {
+  const _PulseDot();
+
+  @override
+  Widget build(BuildContext context) => TweenAnimationBuilder<double>(
+    tween: Tween(begin: .4, end: 1),
+    duration: const Duration(milliseconds: 900),
+    curve: Curves.easeOutCubic,
+    builder: (context, value, _) => Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: DashboardColors.primary.withValues(alpha: value), boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .35 * value), blurRadius: 14)])),
+  );
+}
+
+class _AiDraftNotesCard extends StatelessWidget {
+  const _AiDraftNotesCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      tint: DashboardColors.secondary.withValues(alpha: .04),
+      borderColor: DashboardColors.secondary.withValues(alpha: .14),
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+        Row(children: [Icon(Icons.notes_rounded, color: DashboardColors.secondary, size: 18), SizedBox(width: 8), Text('AI Draft Notes', style: TextStyle(color: DashboardColors.onSurface, fontSize: 14, fontWeight: FontWeight.w900))]),
+        SizedBox(height: 10),
+        _InsightLine('Clarify success criteria before deployment'),
+        _InsightLine('Attach benchmark or reference document'),
+        _InsightLine('Add one review checkpoint before final handoff'),
+      ]),
+    );
+  }
+}
+
+class _SmartCreationTabs extends StatelessWidget {
+  const _SmartCreationTabs();
+
+  @override
+  Widget build(BuildContext context) {
+    return DefaultTabController(
+      length: 5,
+      child: _GlassBox(
+        padding: const EdgeInsets.all(10),
+        child: const Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TabBar(
+              isScrollable: true,
+              dividerColor: Colors.transparent,
+              splashBorderRadius: BorderRadius.all(Radius.circular(999)),
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicatorPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+              indicator: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(999)), color: Color(0x2E8083FF), border: Border.fromBorderSide(BorderSide(color: DashboardColors.primary))),
+              labelColor: DashboardColors.primary,
+              unselectedLabelColor: DashboardColors.onSurfaceVariant,
+              tabs: [Tab(text: 'Overview'), Tab(text: 'Notes'), Tab(text: 'Activity'), Tab(text: 'Files'), Tab(text: 'AI')],
+            ),
+            SizedBox(height: 10),
+            SizedBox(height: 76, child: TabBarView(children: [_TabCopy('Draft context and orchestration signals are ready.'), _TabCopy('AI notes will update as title and description change.'), _TabCopy('Creation activity appears here before deployment.'), _TabCopy('Attach docs to strengthen AI context.'), _TabCopy('AI can generate milestones, labels, and owners.')]))
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TabCopy extends StatelessWidget {
+  const _TabCopy(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Center(child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.4)));
+}
+
+class _SmartPriorityHeatmap extends StatelessWidget {
+  const _SmartPriorityHeatmap();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      padding: const EdgeInsets.all(14),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+        Text('Priority Load Heatmap', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w900)),
+        SizedBox(height: 12),
+        _HeatRow(label: 'High', value: .72, color: DashboardColors.error),
+        _HeatRow(label: 'Medium', value: .54, color: DashboardColors.secondary),
+        _HeatRow(label: 'Low', value: .24, color: DashboardColors.tertiary),
+      ]),
+    );
+  }
+}
+
+class _HeatRow extends StatelessWidget {
+  const _HeatRow({required this.label, required this.value, required this.color});
+  final String label;
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 9),
+      child: Row(children: [
+        SizedBox(width: 58, child: Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))),
+        Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(value: value, minHeight: 7, backgroundColor: DashboardColors.surfaceHighest, valueColor: AlwaysStoppedAnimation(color)))),
+      ]),
+    );
+  }
+}
+
+class _FocusForecastCard extends StatelessWidget {
+  const _FocusForecastCard({required this.hours});
+  final double hours;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      padding: const EdgeInsets.all(14),
+      tint: DashboardColors.tertiary.withValues(alpha: .04),
+      borderColor: DashboardColors.tertiary.withValues(alpha: .14),
+      child: Row(children: [
+        SizedBox(width: 38, height: 38, child: CircularProgressIndicator(value: (hours / 8).clamp(.15, 1), strokeWidth: 3, color: DashboardColors.tertiary, backgroundColor: DashboardColors.surfaceHighest)),
+        const SizedBox(width: 12),
+        Expanded(child: Text('Focus Forecast • ${hours.round()}h session • score 88', style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800))),
+      ]),
+    );
+  }
+}
+
+class _KnowledgeGraphPreview extends StatelessWidget {
+  const _KnowledgeGraphPreview();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      padding: const EdgeInsets.all(16),
+      child: SizedBox(
+        height: 112,
+        child: Stack(children: const [
+          _GraphLine(left: 42, top: 32, width: 120),
+          _GraphLine(left: 156, top: 62, width: 102),
+          _GraphNode(left: 12, top: 38, label: 'Project', color: DashboardColors.primary),
+          _GraphNode(left: 130, top: 16, label: 'Tags', color: DashboardColors.secondary),
+          _GraphNode(left: 230, top: 68, label: 'Team', color: DashboardColors.tertiary),
+          Positioned(left: 8, bottom: 0, child: Text('AI maps relationships before deployment.', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11))),
+        ]),
+      ),
+    );
+  }
+}
+
+class _GraphNode extends StatelessWidget {
+  const _GraphNode({required this.left, required this.top, required this.label, required this.color});
+  final double left;
+  final double top;
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) => Positioned(left: left, top: top, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: color.withValues(alpha: .14), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: .22)), boxShadow: [BoxShadow(color: color.withValues(alpha: .16), blurRadius: 16)]), child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900))));
+}
+
+class _GraphLine extends StatelessWidget {
+  const _GraphLine({required this.left, required this.top, required this.width});
+  final double left;
+  final double top;
+  final double width;
+
+  @override
+  Widget build(BuildContext context) => Positioned(left: left, top: top, child: Container(width: width, height: 1.2, color: DashboardColors.primary.withValues(alpha: .18)));
+}
+
+class _DraftActivityTimeline extends StatelessWidget {
+  const _DraftActivityTimeline();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      padding: const EdgeInsets.all(16),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
+        Text('Draft Activity', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w900)),
+        SizedBox(height: 12),
+        _ActivityLine('Title field initialized'),
+        _ActivityLine('AI generated draft notes'),
+        _ActivityLine('Alex assigned as owner'),
+      ]),
+    );
+  }
+}
+
+class _ActivityLine extends StatelessWidget {
+  const _ActivityLine(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 9), child: Row(children: [const _PulseDot(), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)))]));
+}
+
+class _CommandPaletteButton extends StatelessWidget {
+  const _CommandPaletteButton();
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassBox(
+      padding: EdgeInsets.zero,
+      borderColor: DashboardColors.primary.withValues(alpha: .18),
+      child: SizedBox(width: 52, height: 52, child: Center(child: Text('⌘K', style: TextStyle(color: DashboardColors.primary, fontSize: 15, fontWeight: FontWeight.w900, shadows: [Shadow(color: DashboardColors.primary.withValues(alpha: .45), blurRadius: 16)])))),
+    );
+  }
 }
 
 class _DesktopBackdrop extends StatelessWidget {
