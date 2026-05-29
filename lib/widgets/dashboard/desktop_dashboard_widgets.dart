@@ -48,6 +48,7 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                 1 => _ProjectsBoardPane(
                   key: const ValueKey('projects-board'),
                   onProfileTap: () => setState(() => _selectedIndex = 7),
+                  onNewTask: () => setState(() => _selectedIndex = 8),
                 ),
                 2 => const DesktopAiAssistantContent(
                   key: ValueKey('ai-assistant'),
@@ -126,16 +127,21 @@ class _ProfilePane extends StatelessWidget {
 }
 
 class _ProjectsBoardPane extends StatelessWidget {
-  const _ProjectsBoardPane({super.key, required this.onProfileTap});
+  const _ProjectsBoardPane({
+    super.key,
+    required this.onProfileTap,
+    required this.onNewTask,
+  });
 
   final VoidCallback onProfileTap;
+  final VoidCallback onNewTask;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         DesktopTopbar(onProfileTap: onProfileTap),
-        const Expanded(child: TasksProjectsDesktopContent()),
+        Expanded(child: TasksProjectsDesktopContent(onNewTask: onNewTask)),
       ],
     );
   }

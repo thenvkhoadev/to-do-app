@@ -2,9 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksProjectsHeader extends StatelessWidget {
-  const TasksProjectsHeader({this.mobile = false, super.key});
+  const TasksProjectsHeader({this.mobile = false, this.onNewTask, super.key});
 
   final bool mobile;
+  final VoidCallback? onNewTask;
 
   @override
   Widget build(BuildContext context) {
@@ -35,21 +36,22 @@ class TasksProjectsHeader extends StatelessWidget {
           const SizedBox(height: 4),
           subtitle,
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: _HeaderButton(
                   label: 'Filter',
                   icon: Icons.filter_list_rounded,
                 ),
               ),
-              SizedBox(width: 8),
+              const SizedBox(width: 8),
               Expanded(
                 flex: 2,
                 child: _HeaderButton(
                   label: 'New Task',
                   icon: Icons.add_rounded,
                   gradient: true,
+                  onTap: onNewTask,
                 ),
               ),
             ],
@@ -70,10 +72,11 @@ class TasksProjectsHeader extends StatelessWidget {
         const SizedBox(width: 24),
         const _HeaderButton(label: 'Filter', icon: Icons.filter_list_rounded),
         const SizedBox(width: 12),
-        const _HeaderButton(
+        _HeaderButton(
           label: 'New Task',
           icon: Icons.add_rounded,
           gradient: true,
+          onTap: onNewTask,
         ),
       ],
     );
@@ -85,16 +88,21 @@ class _HeaderButton extends StatelessWidget {
     required this.label,
     required this.icon,
     this.gradient = false,
+    this.onTap,
   });
 
   final String label;
   final IconData icon;
   final bool gradient;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(999),
+      child: Ink(
+        decoration: BoxDecoration(
         gradient:
             gradient
                 ? const LinearGradient(
@@ -120,27 +128,32 @@ class _HeaderButton extends StatelessWidget {
                 ]
                 : null,
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              color: gradient ? Colors.white : DashboardColors.onSurface,
-              size: 18,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  color: gradient ? Colors.white : DashboardColors.onSurface,
+                  size: 18,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: gradient ? Colors.white : DashboardColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: TextStyle(
-                color: gradient ? Colors.white : DashboardColors.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

@@ -15,6 +15,7 @@ class TasksProjectsCard extends StatefulWidget {
 
 class _TasksProjectsCardState extends State<TasksProjectsCard> {
   bool _hovered = false;
+  bool _pressed = false;
 
   @override
   Widget build(BuildContext context) {
@@ -29,8 +30,12 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
     return MouseRegion(
       onEnter: (_) => _setHover(true),
       onExit: (_) => _setHover(false),
-      child: AnimatedScale(
-        scale: !mobile && _hovered ? 1.01 : 1,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTapUp: (_) => setState(() => _pressed = false),
+        child: AnimatedScale(
+        scale: _pressed ? .985 : (!mobile && _hovered ? 1.01 : 1),
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
         child: Stack(
@@ -113,6 +118,7 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
                 ),
               ),
           ],
+        ),
         ),
       ),
     );
@@ -262,13 +268,18 @@ class _Progress extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(999),
-      child: LinearProgressIndicator(
-        value: value,
-        minHeight: mobile ? 4 : 6,
-        backgroundColor: Colors.white.withValues(alpha: .1),
-        valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: value),
+      duration: const Duration(milliseconds: 700),
+      curve: Curves.easeOutCubic,
+      builder: (context, animatedValue, _) => ClipRRect(
+        borderRadius: BorderRadius.circular(999),
+        child: LinearProgressIndicator(
+          value: animatedValue,
+          minHeight: mobile ? 4 : 6,
+          backgroundColor: Colors.white.withValues(alpha: .1),
+          valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
+        ),
       ),
     );
   }
