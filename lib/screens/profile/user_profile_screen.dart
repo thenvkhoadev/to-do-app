@@ -190,139 +190,110 @@ class _DesktopHeroSection extends StatelessWidget {
     final profile = _SupabaseProfile.current();
 
     return _GlassPanel(
-      child: Stack(
-        children: [
-          // Decorative glow
-          Positioned(
-            top: -80,
-            right: -80,
-            child: Container(
-              width: 256,
-              height: 256,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: NexusColors.primary.withOpacity(0.1),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Row(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Row(
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                // Avatar with PRO badge
-                Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: 128,
-                      height: 128,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(
-                          color: NexusColors.primary.withOpacity(0.2),
-                          width: 4,
-                        ),
-                        color: NexusColors.surfaceContainer,
-                      ),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(20),
-                        child: _ProfileImage(
-                          avatarUrl: profile.avatarUrl,
-                          initial: profile.initial,
-                          fontSize: 48,
-                        ),
-                      ),
+                Container(
+                  width: 128,
+                  height: 128,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: NexusColors.primary.withValues(alpha:0.2),
+                      width: 4,
                     ),
-                    Positioned(
-                      bottom: -8,
-                      right: -8,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [
-                              NexusColors.primary,
-                              NexusColors.secondary,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(999),
-                          boxShadow: [
-                            BoxShadow(
-                              color: NexusColors.primary.withOpacity(0.3),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Text(
-                          'PRO',
-                          style: TextStyle(
-                            color: NexusColors.onPrimaryFixed,
-                            fontSize: 10,
-                            letterSpacing: 1,
-                            fontFamily: 'JetBrains Mono',
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
+                    color: NexusColors.surfaceContainer,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(20),
+                    child: _ProfileImage(
+                      avatarUrl: profile.avatarUrl,
+                      initial: profile.initial,
+                      fontSize: 48,
                     ),
-                  ],
-                ),
-                const SizedBox(width: 32),
-                // Name / info
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        profile.name,
-                        style: const TextStyle(
-                          color: NexusColors.onSurface,
-                          fontSize: 48,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -1,
-                          fontFamily: 'Geist',
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Wrap(
-                        spacing: 16,
-                        runSpacing: 8,
-                        children: [
-                          _InfoChip(
-                            icon: Icons.mail_rounded,
-                            label: profile.email,
-                          ),
-                          _InfoChip(
-                            icon: Icons.location_on_rounded,
-                            label: 'San Francisco, CA',
-                          ),
-                          _InfoChip(
-                            icon: Icons.calendar_today_rounded,
-                            label: 'Joined Sept 2023',
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
-                // Buttons
-                Row(
-                  children: [
-                    _GradientButton(label: 'EDIT PROFILE', onTap: () {}),
-                    const SizedBox(width: 16),
-                    _GlassButton(
-                      label: 'LOGOUT',
-                      onTap: () => _signOut(context),
+                Positioned(
+                  bottom: -8,
+                  right: -8,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 4,
                     ),
-                  ],
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [NexusColors.primary, NexusColors.secondary],
+                      ),
+                      borderRadius: BorderRadius.circular(999),
+                      boxShadow: [
+                        BoxShadow(
+                          color: NexusColors.primary.withValues(alpha:0.3),
+                          blurRadius: 8,
+                        ),
+                      ],
+                    ),
+                    child: const Text(
+                      'PRO',
+                      style: TextStyle(
+                        color: NexusColors.onPrimaryFixed,
+                        fontSize: 10,
+                        letterSpacing: 1,
+                        fontFamily: 'JetBrains Mono',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(width: 32),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    profile.name,
+                    style: const TextStyle(
+                      color: NexusColors.onSurface,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -1,
+                      fontFamily: 'Geist',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 8,
+                    children: [
+                      _InfoChip(icon: Icons.mail_rounded, label: profile.email),
+                      _InfoChip(
+                        icon: Icons.location_on_rounded,
+                        label: 'San Francisco, CA',
+                      ),
+                      _InfoChip(
+                        icon: Icons.calendar_today_rounded,
+                        label: 'Joined Sept 2023',
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            Row(
+              children: [
+                _GradientButton(label: 'EDIT PROFILE', onTap: () {}),
+                const SizedBox(width: 16),
+                _GlassButton(label: 'LOGOUT', onTap: () => _signOut(context)),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -389,15 +360,15 @@ class _DesktopStatsRow extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           _LegendDot(
-                            color: NexusColors.primary.withOpacity(0.2),
+                            color: NexusColors.primary.withValues(alpha:0.2),
                           ),
                           const SizedBox(width: 8),
                           _LegendDot(
-                            color: NexusColors.primary.withOpacity(0.4),
+                            color: NexusColors.primary.withValues(alpha:0.4),
                           ),
                           const SizedBox(width: 8),
                           _LegendDot(
-                            color: NexusColors.primary.withOpacity(0.7),
+                            color: NexusColors.primary.withValues(alpha:0.7),
                           ),
                           const SizedBox(width: 8),
                           _LegendDot(color: NexusColors.primary),
@@ -491,9 +462,9 @@ class _DesktopStatsRow extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.05),
+                      color: Colors.white.withValues(alpha:0.05),
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.white.withOpacity(0.05)),
+                      border: Border.all(color: Colors.white.withValues(alpha:0.05)),
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -574,7 +545,7 @@ class _DesktopHeatmap extends StatelessWidget {
                         if (v > 0.7) {
                           c = NexusColors.primary;
                         } else if (v > 0.4) {
-                          c = NexusColors.primary.withOpacity(0.5);
+                          c = NexusColors.primary.withValues(alpha:0.5);
                         } else {
                           c = NexusColors.surfaceContainerHighest;
                         }
@@ -701,7 +672,7 @@ class _MilestoneCard extends StatelessWidget {
                 height: 64,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: iconBg ?? iconColor.withOpacity(0.1),
+                  color: iconBg ?? iconColor.withValues(alpha:0.1),
                 ),
                 child: Icon(icon, color: iconColor, size: 28),
               ),
@@ -924,7 +895,7 @@ class _ChartLegendItem extends StatelessWidget {
             color: color,
             boxShadow:
                 glow
-                    ? [BoxShadow(color: color.withOpacity(0.4), blurRadius: 6)]
+                    ? [BoxShadow(color: color.withValues(alpha:0.4), blurRadius: 6)]
                     : null,
           ),
         ),
@@ -1129,7 +1100,7 @@ class _SecurityRow extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha:0.05),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
@@ -1224,7 +1195,7 @@ class _DesktopAIPersonaCard extends StatelessWidget {
                           inactiveTrackColor:
                               NexusColors.surfaceContainerHighest,
                           thumbColor: NexusColors.secondary,
-                          overlayColor: NexusColors.secondary.withOpacity(0.2),
+                          overlayColor: NexusColors.secondary.withValues(alpha:0.2),
                           trackHeight: 6,
                         ),
                         child: Slider(value: 0.75, onChanged: null),
@@ -1262,12 +1233,12 @@ class _ToneChip extends StatelessWidget {
       decoration: BoxDecoration(
         color:
             active
-                ? NexusColors.secondary.withOpacity(0.2)
+                ? NexusColors.secondary.withValues(alpha:0.2)
                 : NexusColors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
         border:
             active
-                ? Border.all(color: NexusColors.secondary.withOpacity(0.3))
+                ? Border.all(color: NexusColors.secondary.withValues(alpha:0.3))
                 : null,
       ),
       child: Text(
@@ -1328,7 +1299,7 @@ class _MobileProfileScreen extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: NexusColors.primary.withOpacity(0.2),
+                          color: NexusColors.primary.withValues(alpha:0.2),
                           blurRadius: 20,
                         ),
                       ],
@@ -1357,7 +1328,7 @@ class _MobileProfileScreen extends StatelessWidget {
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: [
                             BoxShadow(
-                              color: NexusColors.primary.withOpacity(0.3),
+                              color: NexusColors.primary.withValues(alpha:0.3),
                               blurRadius: 8,
                             ),
                           ],
@@ -1562,7 +1533,7 @@ class _MobileProfileScreen extends StatelessWidget {
                                           height: 12,
                                           decoration: BoxDecoration(
                                             color: NexusColors.primary
-                                                .withOpacity(v),
+                                                .withValues(alpha:v),
                                             borderRadius: BorderRadius.circular(
                                               2,
                                             ),
@@ -1604,7 +1575,7 @@ class _MobileProfileScreen extends StatelessWidget {
                       label: 'FULL NAME',
                       value: profile.name,
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
                     _MobileIdentityField(
                       label: 'EMAIL ADDRESS',
                       value: profile.email,
@@ -1640,13 +1611,13 @@ class _MobileProfileScreen extends StatelessWidget {
                       label: 'Notifications',
                       value: true,
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
                     _MobileToggleRow(
                       icon: Icons.dark_mode_rounded,
                       label: 'Dark Mode',
                       value: true,
                     ),
-                    Divider(color: Colors.white.withOpacity(0.05), height: 1),
+                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
                     _MobileToggleRow(
                       icon: Icons.psychology_rounded,
                       label: 'AI Insights',
@@ -1668,14 +1639,14 @@ class _MobileProfileScreen extends StatelessWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  NexusColors.primaryContainer.withOpacity(0.8),
-                  NexusColors.secondaryContainer.withOpacity(0.8),
+                  NexusColors.primaryContainer.withValues(alpha:0.8),
+                  NexusColors.secondaryContainer.withValues(alpha:0.8),
                 ],
               ),
-              border: Border.all(color: Colors.white.withOpacity(0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha:0.1)),
               boxShadow: [
                 BoxShadow(
-                  color: NexusColors.primary.withOpacity(0.15),
+                  color: NexusColors.primary.withValues(alpha:0.15),
                   blurRadius: 20,
                 ),
               ],
@@ -1756,9 +1727,9 @@ class _MobileGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha:0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha:0.08)),
       ),
       child: child,
     );
@@ -1842,8 +1813,8 @@ class _MobileToggleRowState extends State<_MobileToggleRow> {
           ),
           Switch(
             value: _value,
-            activeColor: NexusColors.primary,
-            activeTrackColor: NexusColors.primary.withOpacity(0.3),
+            activeThumbColor: NexusColors.primary,
+            activeTrackColor: NexusColors.primary.withValues(alpha:0.3),
             inactiveTrackColor: NexusColors.surfaceContainer,
             onChanged: (v) => setState(() => _value = v),
           ),
@@ -1864,12 +1835,12 @@ class _GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.03),
+        color: Colors.white.withValues(alpha:0.03),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withOpacity(0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha:0.08)),
         boxShadow: [
           BoxShadow(
-            color: NexusColors.primary.withOpacity(0.05),
+            color: NexusColors.primary.withValues(alpha:0.05),
             blurRadius: 30,
           ),
         ],
@@ -1900,7 +1871,7 @@ class _GradientButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(999),
           boxShadow: [
             BoxShadow(
-              color: NexusColors.primary.withOpacity(0.15),
+              color: NexusColors.primary.withValues(alpha:0.15),
               blurRadius: 12,
             ),
           ],

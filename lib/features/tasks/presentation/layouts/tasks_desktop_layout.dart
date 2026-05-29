@@ -1,13 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:to_do_app/features/tasks/data/mock/mock_task_repository.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/floating_ai_button.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_filter_chips.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_sidebar.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_topbar.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
+import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksDesktopLayout extends StatefulWidget {
@@ -22,14 +19,8 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
 
   @override
   Widget build(BuildContext context) {
-    final repository = const MockTaskRepository();
-    final columns = repository.board();
-    final selectedTask = columns[1].tasks.first;
-
     return LayoutBuilder(
       builder: (context, constraints) {
-        final showDetailPanel = constraints.maxWidth >= 1500;
-
         return Stack(
           children: [
             Row(
@@ -43,40 +34,22 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                     duration: const Duration(milliseconds: 240),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
-                    child: _selectedIndex == 1
-                        ? Column(
-                            key: const ValueKey('tasks-board'),
-                            children: [
-                              const TasksTopbar(),
-                              const _BoardToolbar(),
-                              Expanded(
-                                child: Padding(
-                                  padding: const EdgeInsets.fromLTRB(32, 0, 24, 28),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: ListView.separated(
-                                          scrollDirection: Axis.horizontal,
-                                          itemCount: columns.length,
-                                          separatorBuilder: (_, __) => const SizedBox(width: 24),
-                                          itemBuilder: (context, index) => TaskColumn(column: columns[index]),
-                                        ),
-                                      ),
-                                      if (showDetailPanel) ...[
-                                        const SizedBox(width: 24),
-                                        TaskDetailPanel(task: selectedTask),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          )
-                        : _selectedIndex == 5
-                            ? const SettingsScreen(key: ValueKey('tasks-settings'), embeddedInDashboard: true)
+                    child:
+                        _selectedIndex == 1
+                            ? const TasksProjectsDesktopContent(
+                              key: ValueKey('tasks-projects'),
+                            )
+                            : _selectedIndex == 5
+                            ? const SettingsScreen(
+                              key: ValueKey('tasks-settings'),
+                              embeddedInDashboard: true,
+                            )
                             : _selectedIndex == 6
-                                ? const SupportScreen(key: ValueKey('tasks-support'), embeddedInDashboard: true)
-                                : _SidebarSectionPlaceholder(index: _selectedIndex),
+                            ? const SupportScreen(
+                              key: ValueKey('tasks-support'),
+                              embeddedInDashboard: true,
+                            )
+                            : _SidebarSectionPlaceholder(index: _selectedIndex),
                   ),
                 ),
               ],
@@ -129,19 +102,34 @@ class _SidebarSectionPlaceholder extends StatelessWidget {
                 color: Colors.white.withValues(alpha: .04),
                 borderRadius: BorderRadius.circular(28),
                 border: Border.all(color: Colors.white.withValues(alpha: .09)),
-                boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .08), blurRadius: 32)],
+                boxShadow: [
+                  BoxShadow(
+                    color: DashboardColors.primary.withValues(alpha: .08),
+                    blurRadius: 32,
+                  ),
+                ],
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(_icon, color: DashboardColors.primary, size: 42),
                   const SizedBox(height: 16),
-                  Text(_title, style: const TextStyle(color: DashboardColors.onSurface, fontSize: 28, fontWeight: FontWeight.w900)),
+                  Text(
+                    _title,
+                    style: const TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
                   const SizedBox(height: 10),
                   const Text(
                     'Sidebar đang giữ nguyên trong Tasks module. Vùng nội dung bên phải đổi theo mục được chọn.',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.5),
+                    style: TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      height: 1.5,
+                    ),
                   ),
                 ],
               ),
@@ -149,46 +137,6 @@ class _SidebarSectionPlaceholder extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-}
-
-class _BoardToolbar extends StatelessWidget {
-  const _BoardToolbar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 72,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: BoxDecoration(color: DashboardColors.surfaceLowest.withValues(alpha: .28)),
-      child: const Row(
-        children: [
-          Text('Active Board', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900)),
-          SizedBox(width: 24),
-          TaskFilterChips(desktop: true),
-          Spacer(),
-          _ToolbarButton(icon: Icons.filter_list_rounded, label: 'Filter'),
-          SizedBox(width: 10),
-          _ToolbarButton(icon: Icons.sort_rounded, label: 'Sort'),
-        ],
-      ),
-    );
-  }
-}
-
-class _ToolbarButton extends StatelessWidget {
-  const _ToolbarButton({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(borderRadius: BorderRadius.circular(12), border: Border.all(color: Colors.white.withValues(alpha: .1))),
-      child: Row(children: [Icon(icon, color: DashboardColors.onSurfaceVariant, size: 18), const SizedBox(width: 7), Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800))]),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
+import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -64,7 +65,7 @@ class MobileDashboardContent extends StatelessWidget {
         SizedBox(height: DashboardSpacing.md),
         AnalyticsCard(),
         SizedBox(height: DashboardSpacing.md),
-        ActiveProjectsCard(),
+        _DashboardMobileProjectsSection(),
         SizedBox(height: DashboardSpacing.md),
         _SystemStatusBar(),
       ],
@@ -409,96 +410,15 @@ class AnalyticsCard extends StatelessWidget {
   }
 }
 
-class ActiveProjectsCard extends StatelessWidget {
-  const ActiveProjectsCard({super.key});
+class _DashboardMobileProjectsSection extends StatelessWidget {
+  const _DashboardMobileProjectsSection();
 
   @override
   Widget build(BuildContext context) {
-    return const GlassCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Active Projects',
-            style: TextStyle(
-              color: DashboardColors.onSurface,
-              fontSize: 24,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-          SizedBox(height: 18),
-          _ProjectRow(
-            color: DashboardColors.primary,
-            title: 'Design System Update',
-            subtitle: 'High Priority',
-          ),
-          _ProjectRow(
-            color: DashboardColors.secondary,
-            title: 'Client Onboarding',
-            subtitle: 'Personal',
-          ),
-          _ProjectRow(
-            color: DashboardColors.tertiaryContainer,
-            title: 'Weekly AI Sync',
-            subtitle: '2:00 PM Today',
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ProjectRow extends StatelessWidget {
-  const _ProjectRow({
-    required this.color,
-    required this.title,
-    required this.subtitle,
-  });
-  final Color color;
-  final String title;
-  final String subtitle;
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 4,
-            height: 36,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(999),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: DashboardColors.onSurface,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: const TextStyle(
-                    color: DashboardColors.outline,
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(
-            Icons.chevron_right_rounded,
-            color: DashboardColors.outline,
-          ),
-        ],
-      ),
+    return const CustomScrollView(
+      shrinkWrap: true,
+      physics: NeverScrollableScrollPhysics(),
+      slivers: [TasksProjectsMobileSliverBody(compact: true)],
     );
   }
 }
@@ -671,23 +591,32 @@ class _SystemStatusBar extends StatelessWidget {
       children: [
         Icon(Icons.circle, color: Color(0xFF4ADE80), size: 9),
         SizedBox(width: 6),
-        Text(
-          'SYSTEM: OPTIMAL',
-          style: TextStyle(
-            color: DashboardColors.outline,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: .8,
+        Flexible(
+          child: Text(
+            'SYSTEM: OPTIMAL',
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: DashboardColors.outline,
+              fontSize: 11,
+              fontWeight: FontWeight.w800,
+              letterSpacing: .8,
+            ),
           ),
         ),
-        Spacer(),
-        Text(
-          'LAST SYNC: 2 MINS AGO',
-          style: TextStyle(
-            color: DashboardColors.outline,
-            fontSize: 11,
-            fontWeight: FontWeight.w800,
-            letterSpacing: .8,
+        SizedBox(width: 12),
+        Flexible(
+          child: Align(
+            alignment: Alignment.centerRight,
+            child: Text(
+              'LAST SYNC: 2 MINS AGO',
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: DashboardColors.outline,
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                letterSpacing: .8,
+              ),
+            ),
           ),
         ),
       ],

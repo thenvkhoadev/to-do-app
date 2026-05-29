@@ -7,14 +7,11 @@ import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/screens/analytics/analytics_screen.dart';
+import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
-import 'package:to_do_app/features/tasks/data/mock/mock_task_repository.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_filter_chips.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/task_search_field.dart';
+import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -69,6 +66,10 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                   embeddedInDashboard: true,
                 ),
                 7 => const _ProfilePane(key: ValueKey('profile')),
+                8 => NewTasksDesktopLayout(
+                  key: const ValueKey('new-task'),
+                  onClose: () => setState(() => _selectedIndex = 0),
+                ),
                 _ => _DashboardSectionPlaceholder(index: _selectedIndex),
               },
             ),
@@ -131,108 +132,11 @@ class _ProjectsBoardPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final repository = const MockTaskRepository();
-    final columns = repository.board();
-    final selectedTask = columns[1].tasks.first;
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final showDetailPanel = constraints.maxWidth >= 1250;
-
-        return Column(
-          children: [
-            DesktopTopbar(onProfileTap: onProfileTap),
-            Container(
-              height: 72,
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              decoration: BoxDecoration(
-                color: DashboardColors.surfaceLowest.withValues(alpha: .28),
-              ),
-              child: const Row(
-                children: [
-                  Text(
-                    'Active Board',
-                    style: TextStyle(
-                      color: DashboardColors.onSurface,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w900,
-                    ),
-                  ),
-                  SizedBox(width: 20),
-                  TaskSearchField(desktop: true),
-                  SizedBox(width: 16),
-                  TaskFilterChips(desktop: true),
-                  Spacer(),
-                  _ProjectToolbarButton(
-                    icon: Icons.filter_list_rounded,
-                    label: 'Filter',
-                  ),
-                  SizedBox(width: 10),
-                  _ProjectToolbarButton(
-                    icon: Icons.sort_rounded,
-                    label: 'Sort',
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(32, 0, 24, 28),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: columns.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 24),
-                        itemBuilder:
-                            (context, index) =>
-                                TaskColumn(column: columns[index]),
-                      ),
-                    ),
-                    if (showDetailPanel) ...[
-                      const SizedBox(width: 24),
-                      TaskDetailPanel(task: selectedTask),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class _ProjectToolbarButton extends StatelessWidget {
-  const _ProjectToolbarButton({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white.withValues(alpha: .1)),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: DashboardColors.onSurfaceVariant, size: 18),
-          const SizedBox(width: 7),
-          Text(
-            label,
-            style: const TextStyle(
-              color: DashboardColors.onSurfaceVariant,
-              fontSize: 12,
-              fontWeight: FontWeight.w800,
-            ),
-          ),
-        ],
-      ),
+    return Column(
+      children: [
+        DesktopTopbar(onProfileTap: onProfileTap),
+        const Expanded(child: TasksProjectsDesktopContent()),
+      ],
     );
   }
 }
@@ -470,10 +374,11 @@ class DesktopSidebar extends StatelessWidget {
                 onTap: () => onSelected(4),
               ),
               const Spacer(),
-              const GradientButton(
+              GradientButton(
                 label: 'New Task',
                 icon: Icons.add_rounded,
                 expanded: true,
+                onPressed: () => onSelected(8),
               ),
               const SizedBox(height: 22),
               _SidebarItem(

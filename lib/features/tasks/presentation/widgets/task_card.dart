@@ -74,9 +74,22 @@ class _DesktopTaskBody extends StatelessWidget {
           children: [
             TaskPriorityChip(priority: task.priority),
             const Spacer(),
-            Icon(Icons.schedule_rounded, size: 14, color: task.status == TaskBoardStatus.inProgress ? DashboardColors.primary : DashboardColors.onSurfaceVariant),
-            const SizedBox(width: 4),
-            Text(task.estimate, style: TextStyle(color: task.status == TaskBoardStatus.inProgress ? DashboardColors.primary : DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)),
+            if (task.status != TaskBoardStatus.inProgress) ...[
+              const Icon(
+                Icons.schedule_rounded,
+                size: 14,
+                color: DashboardColors.onSurfaceVariant,
+              ),
+              const SizedBox(width: 4),
+              Text(
+                task.estimate,
+                style: const TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
           ],
         ),
         const SizedBox(height: 14),
