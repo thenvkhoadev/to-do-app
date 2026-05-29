@@ -4,10 +4,11 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_glass.da
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksProjectsCard extends StatefulWidget {
-  const TasksProjectsCard({required this.item, this.mobile = false, super.key});
+  const TasksProjectsCard({required this.item, this.mobile = false, this.onTap, super.key});
 
   final TasksProjectItem item;
   final bool mobile;
+  final VoidCallback? onTap;
 
   @override
   State<TasksProjectsCard> createState() => _TasksProjectsCardState();
@@ -20,7 +21,11 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
   @override
   Widget build(BuildContext context) {
     if (widget.item.kind == TasksProjectCardKind.add) {
-      return _AddProjectTile(hovered: _hovered, onHover: _setHover);
+      return _AddProjectTile(
+        hovered: _hovered,
+        onHover: _setHover,
+        onTap: widget.onTap,
+      );
     }
 
     final item = widget.item;
@@ -31,6 +36,7 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
       onEnter: (_) => _setHover(true),
       onExit: (_) => _setHover(false),
       child: GestureDetector(
+        onTap: widget.onTap,
         onTapDown: (_) => setState(() => _pressed = true),
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
@@ -346,9 +352,10 @@ class _PlusAvatar extends StatelessWidget {
 }
 
 class _AddProjectTile extends StatelessWidget {
-  const _AddProjectTile({required this.hovered, required this.onHover});
+  const _AddProjectTile({required this.hovered, required this.onHover, this.onTap});
   final bool hovered;
   final ValueChanged<bool> onHover;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -356,20 +363,23 @@ class _AddProjectTile extends StatelessWidget {
     return MouseRegion(
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
-      child: TasksProjectsGlass(
-        dashed: true,
+      child: GestureDetector(
+        onTap: onTap,
+        child: TasksProjectsGlass(
+          dashed: true,
         borderColor: color.withValues(alpha: .35),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.add_circle_rounded, color: color, size: 32),
-              const SizedBox(height: 8),
-              Text(
-                'Create New Sub-Project',
-                style: TextStyle(color: color, fontWeight: FontWeight.w700),
-              ),
-            ],
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(Icons.add_circle_rounded, color: color, size: 32),
+                const SizedBox(height: 8),
+                Text(
+                  'Create New Sub-Project',
+                  style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                ),
+              ],
+            ),
           ),
         ),
       ),

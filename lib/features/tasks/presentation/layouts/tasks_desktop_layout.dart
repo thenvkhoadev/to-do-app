@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/floating_ai_button.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_sidebar.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_topbar.dart';
+import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
+import 'package:to_do_app/screens/task_details/task_details_desktop_content.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
+import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksDesktopLayout extends StatefulWidget {
@@ -16,6 +19,11 @@ class TasksDesktopLayout extends StatefulWidget {
 
 class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
   int _selectedIndex = 1;
+  TasksProjectItem? _detailsItem;
+
+  void _openTaskDetails(TasksProjectItem item) => setState(() => _detailsItem = item);
+
+  void _closeTaskDetails() => setState(() => _detailsItem = null);
 
   @override
   Widget build(BuildContext context) {
@@ -35,9 +43,17 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
                     child:
-                        _selectedIndex == 1
-                            ? const TasksProjectsDesktopContent(
-                              key: ValueKey('tasks-projects'),
+                        _detailsItem != null
+                            ? TaskDetailsDesktopContent(
+                              key: ValueKey('task-details-${_detailsItem!.title}'),
+                              item: _detailsItem!,
+                              onBack: _closeTaskDetails,
+                            )
+                            : _selectedIndex == 1
+                            ? TasksProjectsDesktopContent(
+                              key: const ValueKey('tasks-projects'),
+                              onNewTask: () => setState(() => _selectedIndex = 8),
+                              onViewDetails: _openTaskDetails,
                             )
                             : _selectedIndex == 5
                             ? const SettingsScreen(
@@ -49,12 +65,17 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                               key: ValueKey('tasks-support'),
                               embeddedInDashboard: true,
                             )
+                            : _selectedIndex == 8
+                            ? NewTasksDesktopLayout(
+                              key: const ValueKey('tasks-new-task'),
+                              onClose: () => setState(() => _selectedIndex = 1),
+                            )
                             : _SidebarSectionPlaceholder(index: _selectedIndex),
                   ),
                 ),
               ],
             ),
-            const Positioned(right: 28, bottom: 28, child: FloatingAIButton()),
+            if (_detailsItem == null) const Positioned(right: 28, bottom: 28, child: FloatingAIButton()),
           ],
         );
       },

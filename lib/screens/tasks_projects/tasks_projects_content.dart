@@ -7,11 +7,27 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_card.dar
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_command_palette.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_header.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_insights.dart';
+import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_preview_overlay.dart';
 
-class TasksProjectsDesktopContent extends StatelessWidget {
-  const TasksProjectsDesktopContent({this.onNewTask, super.key});
+class TasksProjectsDesktopContent extends StatefulWidget {
+  const TasksProjectsDesktopContent({this.onNewTask, this.onViewDetails, super.key});
 
   final VoidCallback? onNewTask;
+  final ValueChanged<TasksProjectItem>? onViewDetails;
+
+  @override
+  State<TasksProjectsDesktopContent> createState() => _TasksProjectsDesktopContentState();
+}
+
+class _TasksProjectsDesktopContentState extends State<TasksProjectsDesktopContent> {
+  TasksProjectItem? _previewItem;
+
+  void _openPreview(TasksProjectItem item) {
+    if (item.kind == TasksProjectCardKind.add) return;
+    setState(() => _previewItem = item);
+  }
+
+  void _closePreview() => setState(() => _previewItem = null);
 
   @override
   Widget build(BuildContext context) {
@@ -19,36 +35,45 @@ class TasksProjectsDesktopContent extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final wide = constraints.maxWidth >= 1180;
-          return Padding(
-            padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
-            child: Column(
-              children: [
-                TasksProjectsHeader(onNewTask: onNewTask),
-                const SizedBox(height: 18),
-                const TasksProjectsSmartInsightBanner(),
-                const SizedBox(height: 14),
-                const TasksProjectsMiniStatsRow(),
-                if (!wide) ...[
-                  const SizedBox(height: 14),
-                  const TasksProjectsAnalyticsStrip(),
-                ],
-                const SizedBox(height: 18),
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: wide
-                        ? Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: const [
-                              Expanded(child: _DesktopGrid(twoColumns: true)),
-                              SizedBox(width: 24),
-                              SizedBox(width: 340, child: _ProjectsRightRail()),
-                            ],
-                          )
-                        : _DesktopGrid(twoColumns: constraints.maxWidth >= 1040),
-                  ),
+          return Stack(
+            children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
+                child: Column(
+                  children: [
+                    TasksProjectsHeader(onNewTask: widget.onNewTask),
+                    const SizedBox(height: 18),
+                    const TasksProjectsSmartInsightBanner(),
+                    const SizedBox(height: 14),
+                    const TasksProjectsMiniStatsRow(),
+                    if (!wide) ...[
+                      const SizedBox(height: 14),
+                      const TasksProjectsAnalyticsStrip(),
+                    ],
+                    const SizedBox(height: 18),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.only(right: 24),
+                        child: wide
+                            ? Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: _DesktopGrid(twoColumns: true, onOpenPreview: _openPreview, onNewTask: widget.onNewTask)),
+                                  const SizedBox(width: 24),
+                                  SizedBox(width: 340, child: _ProjectsRightRail(onNewTask: widget.onNewTask)),
+                                ],
+                              )
+                            : _DesktopGrid(twoColumns: constraints.maxWidth >= 1040, onOpenPreview: _openPreview, onNewTask: widget.onNewTask),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+              if (_previewItem != null)
+                Positioned.fill(
+                  child: TaskPreviewOverlay(item: _previewItem!, visible: true, onClose: _closePreview, onViewDetails: widget.onViewDetails),
+                ),
+            ],
           );
         },
       ),
@@ -98,30 +123,34 @@ class TasksProjectsMobileSliverBody extends StatelessWidget {
 }
 
 class _ProjectsRightRail extends StatelessWidget {
-  const _ProjectsRightRail();
+  const _ProjectsRightRail({this.onNewTask});
+
+  final VoidCallback? onNewTask;
 
   @override
   Widget build(BuildContext context) {
     return Column(
-        children: const [
-          TasksProjectsAiAssistantPanel(),
-          SizedBox(height: 14),
-          TasksProjectsCircularAnalytics(),
-          SizedBox(height: 14),
-          TasksProjectsHeatmap(),
-          SizedBox(height: 14),
-          TasksProjectsActivityTimeline(),
-          SizedBox(height: 14),
-          TasksProjectsQuickActionDock(compact: true),
-        ],
-      );
+      children: [
+        const TasksProjectsAiAssistantPanel(),
+        const SizedBox(height: 14),
+        const TasksProjectsCircularAnalytics(),
+        const SizedBox(height: 14),
+        const TasksProjectsHeatmap(),
+        const SizedBox(height: 14),
+        const TasksProjectsActivityTimeline(),
+        const SizedBox(height: 14),
+        TasksProjectsQuickActionDock(compact: true, onNewTask: onNewTask),
+      ],
+    );
   }
 }
 
 class _DesktopGrid extends StatelessWidget {
-  const _DesktopGrid({required this.twoColumns});
+  const _DesktopGrid({required this.twoColumns, this.onOpenPreview, this.onNewTask});
 
   final bool twoColumns;
+  final ValueChanged<TasksProjectItem>? onOpenPreview;
+  final VoidCallback? onNewTask;
 
   @override
   Widget build(BuildContext context) {
@@ -133,7 +162,7 @@ class _DesktopGrid extends StatelessWidget {
       child: GridView.builder(
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(right: 32, bottom: 8),
+        padding: const EdgeInsets.only(right: 48, bottom: 8),
         itemCount: tasksProjectItems.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: twoColumns ? 2 : 1,
@@ -141,8 +170,13 @@ class _DesktopGrid extends StatelessWidget {
         mainAxisSpacing: 24,
         mainAxisExtent: 242,
       ),
-        itemBuilder:
-            (context, index) => TasksProjectsCard(item: tasksProjectItems[index]),
+        itemBuilder: (context, index) {
+          final item = tasksProjectItems[index];
+          return TasksProjectsCard(
+            item: item,
+            onTap: item.kind == TasksProjectCardKind.add ? onNewTask : () => onOpenPreview?.call(item),
+          );
+        },
       ),
     );
   }

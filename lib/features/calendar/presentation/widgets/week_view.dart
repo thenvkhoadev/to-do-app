@@ -196,7 +196,7 @@ class _Timeline extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final hours = List.generate(13, (index) => index + 7);
+    final hours = List.generate(25, (index) => index);
 
     return ListView.separated(
       padding: EdgeInsets.zero,

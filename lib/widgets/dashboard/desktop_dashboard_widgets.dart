@@ -11,7 +11,9 @@ import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
+import 'package:to_do_app/screens/task_details/task_details_desktop_content.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
+import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -24,6 +26,11 @@ class DesktopDashboardLayout extends StatefulWidget {
 
 class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
   int _selectedIndex = 0;
+  TasksProjectItem? _detailsItem;
+
+  void _openTaskDetails(TasksProjectItem item) => setState(() => _detailsItem = item);
+
+  void _closeTaskDetails() => setState(() => _detailsItem = null);
 
   @override
   Widget build(BuildContext context) {
@@ -40,7 +47,14 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
               duration: const Duration(milliseconds: 240),
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
-              child: switch (_selectedIndex) {
+              child:
+                  _detailsItem != null
+                      ? TaskDetailsDesktopContent(
+                        key: ValueKey('dashboard-task-details-${_detailsItem!.title}'),
+                        item: _detailsItem!,
+                        onBack: _closeTaskDetails,
+                      )
+                      : switch (_selectedIndex) {
                 0 => _DashboardMainPane(
                   key: const ValueKey('dashboard-main'),
                   onProfileTap: () => setState(() => _selectedIndex = 7),
@@ -49,6 +63,7 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                   key: const ValueKey('projects-board'),
                   onProfileTap: () => setState(() => _selectedIndex = 7),
                   onNewTask: () => setState(() => _selectedIndex = 8),
+                  onViewDetails: _openTaskDetails,
                 ),
                 2 => const DesktopAiAssistantContent(
                   key: ValueKey('ai-assistant'),
@@ -131,17 +146,19 @@ class _ProjectsBoardPane extends StatelessWidget {
     super.key,
     required this.onProfileTap,
     required this.onNewTask,
+    required this.onViewDetails,
   });
 
   final VoidCallback onProfileTap;
   final VoidCallback onNewTask;
+  final ValueChanged<TasksProjectItem> onViewDetails;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         DesktopTopbar(onProfileTap: onProfileTap),
-        Expanded(child: TasksProjectsDesktopContent(onNewTask: onNewTask)),
+        Expanded(child: TasksProjectsDesktopContent(onNewTask: onNewTask, onViewDetails: onViewDetails)),
       ],
     );
   }
