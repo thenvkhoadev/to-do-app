@@ -4,7 +4,9 @@ import 'package:to_do_app/features/tasks/presentation/layouts/tasks_mobile_layou
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksScreen extends StatelessWidget {
-  const TasksScreen({super.key});
+  const TasksScreen({this.openNewTask, super.key});
+
+  final bool? openNewTask;
 
   @override
   Widget build(BuildContext context) {
@@ -14,20 +16,43 @@ class TasksScreen extends StatelessWidget {
         backgroundColor: DashboardColors.background,
         body: Stack(
           children: [
-            const Positioned.fill(child: ColoredBox(color: DashboardColors.background)),
-            Positioned(top: -180, left: -120, child: _Glow(size: 420, color: DashboardColors.primary.withValues(alpha: .12))),
-            Positioned(bottom: -160, right: -120, child: _Glow(size: 460, color: DashboardColors.secondary.withValues(alpha: .12))),
+            const Positioned.fill(
+              child: ColoredBox(color: DashboardColors.background),
+            ),
+            Positioned(
+              top: -180,
+              left: -120,
+              child: _Glow(
+                size: 420,
+                color: DashboardColors.primary.withValues(alpha: .12),
+              ),
+            ),
+            Positioned(
+              bottom: -160,
+              right: -120,
+              child: _Glow(
+                size: 460,
+                color: DashboardColors.secondary.withValues(alpha: .12),
+              ),
+            ),
             Positioned.fill(
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   if (constraints.maxWidth >= 1100) {
-                    return const TasksDesktopLayout();
+                    return TasksDesktopLayout(
+                      openNewTask: openNewTask ?? false,
+                    );
                   }
                   return const TasksMobileLayout();
                 },
               ),
             ),
-            const Positioned(top: 0, left: 0, right: 0, child: _ProgressIndicatorLine()),
+            const Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: _ProgressIndicatorLine(),
+            ),
           ],
         ),
       ),
@@ -57,6 +82,13 @@ class _Glow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(width: size, height: size, decoration: BoxDecoration(shape: BoxShape.circle, boxShadow: [BoxShadow(color: color, blurRadius: 140, spreadRadius: 70)]));
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        boxShadow: [BoxShadow(color: color, blurRadius: 140, spreadRadius: 70)],
+      ),
+    );
   }
 }

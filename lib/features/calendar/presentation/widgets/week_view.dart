@@ -9,15 +9,16 @@ class WeekView extends StatelessWidget {
     super.key,
   });
 
-  final DateTime selectedDate;
+  final DateTime? selectedDate;
   final ValueChanged<DateTime> onDateSelected;
   final VoidCallback onPreviousWeek;
   final VoidCallback onNextWeek;
 
   @override
   Widget build(BuildContext context) {
-    final weekStart = selectedDate.subtract(
-      Duration(days: selectedDate.weekday - DateTime.monday),
+    final baseDate = selectedDate ?? DateTime.now();
+    final weekStart = baseDate.subtract(
+      Duration(days: baseDate.weekday - DateTime.monday),
     );
     final days = List.generate(
       7,
@@ -55,7 +56,8 @@ class WeekView extends StatelessWidget {
                           isDesktop ? (constraints.maxWidth - 48 - 72) / 7 : 74,
                       child: _WeekDayTile(
                         date: day,
-                        selected: _isSameDate(day, selectedDate),
+                        selected:
+                            selectedDate != null && _isSameDate(day, selectedDate!),
                         today: _isSameDate(day, DateTime.now()),
                         onTap: () => onDateSelected(day),
                       ),
@@ -65,7 +67,7 @@ class WeekView extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Expanded(
-                child: _Timeline(date: selectedDate, isDesktop: isDesktop),
+                child: _Timeline(date: baseDate, isDesktop: isDesktop),
               ),
             ],
           ),

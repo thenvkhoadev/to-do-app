@@ -11,6 +11,8 @@ class CalendarDesktopLayout extends StatelessWidget {
     required this.onViewChanged,
     required this.calendar,
     required this.agenda,
+    this.agendaVisible = true,
+    this.onToggleAgenda,
     this.onToday,
     this.onPrevious,
     this.onNext,
@@ -22,6 +24,8 @@ class CalendarDesktopLayout extends StatelessWidget {
   final ValueChanged<CalendarDesktopView> onViewChanged;
   final Widget calendar;
   final Widget agenda;
+  final bool agendaVisible;
+  final VoidCallback? onToggleAgenda;
   final VoidCallback? onToday;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
@@ -44,6 +48,8 @@ class CalendarDesktopLayout extends StatelessWidget {
                       onToday: onToday,
                       onPrevious: onPrevious,
                       onNext: onNext,
+                      agendaVisible: agendaVisible,
+                      onToggleAgenda: onToggleAgenda,
                     ),
                     Expanded(
                       child: Padding(
@@ -54,7 +60,15 @@ class CalendarDesktopLayout extends StatelessWidget {
                   ],
                 ),
               ),
-              CalendarAgendaPanel(child: agenda),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 240),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                child:
+                    agendaVisible
+                        ? CalendarAgendaPanel(key: const ValueKey('agenda'), child: agenda)
+                        : const SizedBox.shrink(key: ValueKey('agenda-hidden')),
+              ),
             ],
           ),
         ),
@@ -175,6 +189,8 @@ class CalendarDesktopToolbar extends StatelessWidget {
     this.onToday,
     this.onPrevious,
     this.onNext,
+    this.agendaVisible = true,
+    this.onToggleAgenda,
     super.key,
   });
 
@@ -184,6 +200,8 @@ class CalendarDesktopToolbar extends StatelessWidget {
   final VoidCallback? onToday;
   final VoidCallback? onPrevious;
   final VoidCallback? onNext;
+  final bool agendaVisible;
+  final VoidCallback? onToggleAgenda;
 
   @override
   Widget build(BuildContext context) {
@@ -220,6 +238,17 @@ class CalendarDesktopToolbar extends StatelessWidget {
             ),
           ),
           OutlinedButton(onPressed: onToday, child: const Text('Today')),
+          const SizedBox(width: 10),
+          OutlinedButton.icon(
+            onPressed: onToggleAgenda,
+            icon: Icon(
+              agendaVisible
+                  ? Icons.close_fullscreen_rounded
+                  : Icons.view_agenda_rounded,
+              size: 18,
+            ),
+            label: Text(agendaVisible ? 'Hide Agenda' : 'Agenda'),
+          ),
           const SizedBox(width: 14),
           CalendarViewSwitcher(
             selectedView: selectedView,
@@ -269,16 +298,22 @@ class CalendarAgendaPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 360,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface.withValues(alpha: .42),
-        border: Border(
-          left: BorderSide(color: Colors.white.withValues(alpha: .08)),
-        ),
-      ),
-      child: CalendarGlassPanel(child: child),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final width = constraints.maxWidth < 1200 ? 320.0 : 360.0;
+
+        return Container(
+          width: width,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surface.withValues(alpha: .42),
+            border: Border(
+              left: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+          ),
+          child: CalendarGlassPanel(child: child),
+        );
+      },
     );
   }
 }

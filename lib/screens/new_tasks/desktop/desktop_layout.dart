@@ -27,10 +27,34 @@ class TeamMember {
 }
 
 const mockTeamMembers = [
-  TeamMember(id: 'alex', name: 'Alex Rivera', avatarText: 'A', color: DashboardColors.primary, isOnline: true),
-  TeamMember(id: 'maria', name: 'Maria Santos', avatarText: 'M', color: DashboardColors.secondary, isOnline: true),
-  TeamMember(id: 'kevin', name: 'Kevin Park', avatarText: 'K', color: DashboardColors.tertiary, isOnline: false),
-  TeamMember(id: 'sarah', name: 'Sarah Connor', avatarText: 'S', color: DashboardColors.error, isOnline: true),
+  TeamMember(
+    id: 'alex',
+    name: 'Alex Rivera',
+    avatarText: 'A',
+    color: DashboardColors.primary,
+    isOnline: true,
+  ),
+  TeamMember(
+    id: 'maria',
+    name: 'Maria Santos',
+    avatarText: 'M',
+    color: DashboardColors.secondary,
+    isOnline: true,
+  ),
+  TeamMember(
+    id: 'kevin',
+    name: 'Kevin Park',
+    avatarText: 'K',
+    color: DashboardColors.tertiary,
+    isOnline: false,
+  ),
+  TeamMember(
+    id: 'sarah',
+    name: 'Sarah Connor',
+    avatarText: 'S',
+    color: DashboardColors.error,
+    isOnline: true,
+  ),
 ];
 
 const mockProjects = [
@@ -67,8 +91,16 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
 
   // Subtasks State
   final List<SubtaskItem> _subtasks = [
-    SubtaskItem(id: 'sub-1', text: 'Define core project architecture', isDone: false),
-    SubtaskItem(id: 'sub-2', text: 'Draft stakeholder communication plan', isDone: false),
+    SubtaskItem(
+      id: 'sub-1',
+      text: 'Define core project architecture',
+      isDone: false,
+    ),
+    SubtaskItem(
+      id: 'sub-2',
+      text: 'Draft stakeholder communication plan',
+      isDone: false,
+    ),
   ];
   bool _isAiGeneratingSubtasks = false;
 
@@ -96,22 +128,31 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     final title = _titleController.text.toLowerCase();
     final desc = _descriptionController.text.toLowerCase();
 
-    if (title.contains('security') || desc.contains('security') || title.contains('audit') || desc.contains('audit')) {
+    if (title.contains('security') ||
+        desc.contains('security') ||
+        title.contains('audit') ||
+        desc.contains('audit')) {
       setState(() {
         _showSuggestionDock = true;
-        _suggestionText = 'AI Suggestion: Link this task to security standards & assign to Kevin Park (Security lead).';
+        _suggestionText =
+            'AI Suggestion: Link this task to security standards & assign to Kevin Park (Security lead).';
         _suggestionApplyType = 'security_assign';
       });
-    } else if (title.contains('spec') || desc.contains('spec') || title.contains('inference') || desc.contains('inference')) {
+    } else if (title.contains('spec') ||
+        desc.contains('spec') ||
+        title.contains('inference') ||
+        desc.contains('inference')) {
       setState(() {
         _showSuggestionDock = true;
-        _suggestionText = 'AI Suggestion: High correlation with Neural Engine Specs. Suggest High Priority & 8h Estimate.';
+        _suggestionText =
+            'AI Suggestion: High correlation with Neural Engine Specs. Suggest High Priority & 8h Estimate.';
         _suggestionApplyType = 'priority_high';
       });
     } else if (title.isNotEmpty || desc.isNotEmpty) {
       setState(() {
         _showSuggestionDock = true;
-        _suggestionText = 'AI Suggestion: Split strategy review into 4 milestones for optimal progress tracking.';
+        _suggestionText =
+            'AI Suggestion: Split strategy review into 4 milestones for optimal progress tracking.';
         _suggestionApplyType = 'milestones';
       });
     } else {
@@ -142,7 +183,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text('AI Suggestion successfully applied to Task Orchestration!'),
+        content: Text(
+          'AI Suggestion successfully applied to Task Orchestration!',
+        ),
         backgroundColor: DashboardColors.primaryContainer,
       ),
     );
@@ -161,9 +204,21 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
       setState(() {
         _isAiGeneratingSubtasks = false;
         _subtasks.addAll([
-          SubtaskItem(id: 'ai-sub-1', text: 'Verify model latency on mobile edge devices', isDone: false),
-          SubtaskItem(id: 'ai-sub-2', text: 'Draft benchmark report for board presentation', isDone: false),
-          SubtaskItem(id: 'ai-sub-3', text: 'Establish backup fallbacks for API failure states', isDone: false),
+          SubtaskItem(
+            id: 'ai-sub-1',
+            text: 'Verify model latency on mobile edge devices',
+            isDone: false,
+          ),
+          SubtaskItem(
+            id: 'ai-sub-2',
+            text: 'Draft benchmark report for board presentation',
+            isDone: false,
+          ),
+          SubtaskItem(
+            id: 'ai-sub-3',
+            text: 'Establish backup fallbacks for API failure states',
+            isDone: false,
+          ),
         ]);
       });
       ScaffoldMessenger.of(context).showSnackBar(
@@ -179,18 +234,33 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     final text = _newSubtaskController.text.trim();
     if (text.isEmpty) return;
     setState(() {
-      _subtasks.add(SubtaskItem(
-        id: 'sub-${DateTime.now().millisecondsSinceEpoch}',
-        text: text,
-        isDone: false,
-      ));
+      _subtasks.add(
+        SubtaskItem(
+          id: 'sub-${DateTime.now().millisecondsSinceEpoch}',
+          text: text,
+          isDone: false,
+        ),
+      );
       _newSubtaskController.clear();
       _isAddingSubtask = false;
     });
   }
 
   String _formatDate(DateTime dt) {
-    final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    final months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
 
@@ -209,7 +279,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               surface: DashboardColors.surfaceLow,
               onSurface: DashboardColors.onSurface,
             ),
-            dialogTheme: const DialogThemeData(backgroundColor: DashboardColors.surfaceLowest),
+            dialogTheme: const DialogThemeData(
+              backgroundColor: DashboardColors.surfaceLowest,
+            ),
           ),
           child: child!,
         );
@@ -233,7 +305,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               backgroundColor: DashboardColors.surfaceLow,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+                side: BorderSide(
+                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
+                ),
               ),
               title: Text(
                 'Estimate Hours',
@@ -272,17 +346,25 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               actions: [
                 TextButton(
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: DashboardColors.onSurfaceVariant),
+                  ),
                 ),
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DashboardColors.primaryContainer,
+                  ),
                   onPressed: () {
                     setState(() {
                       _selectedEstimate = tempVal;
                     });
                     Navigator.pop(context);
                   },
-                  child: const Text('Confirm', style: TextStyle(color: DashboardColors.onPrimary)),
+                  child: const Text(
+                    'Confirm',
+                    style: TextStyle(color: DashboardColors.onPrimary),
+                  ),
                 ),
               ],
             );
@@ -302,7 +384,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               backgroundColor: DashboardColors.surfaceLow,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(24),
-                side: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+                side: BorderSide(
+                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
+                ),
               ),
               title: Text(
                 'Assign Collaborators',
@@ -315,47 +399,69 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                 width: 320,
                 child: ListView(
                   shrinkWrap: true,
-                  children: mockTeamMembers.map((m) {
-                    final isSelected = _selectedAssignees.any((selected) => selected.id == m.id);
-                    return CheckboxListTile(
-                      activeColor: DashboardColors.primary,
-                      checkboxShape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                      secondary: CircleAvatar(
-                        radius: 16,
-                        backgroundColor: m.color.withValues(alpha: .18),
-                        child: Text(
-                          m.avatarText,
-                          style: TextStyle(color: m.color, fontSize: 12, fontWeight: FontWeight.w900),
-                        ),
-                      ),
-                      title: Text(m.name, style: const TextStyle(fontWeight: FontWeight.w600)),
-                      subtitle: Text(
-                        m.isOnline ? 'Active Now' : 'Offline',
-                        style: TextStyle(
-                          color: m.isOnline ? const Color(0xFF7CFFB2) : DashboardColors.onSurfaceVariant,
-                          fontSize: 11,
-                        ),
-                      ),
-                      value: isSelected,
-                      onChanged: (val) {
-                        setDialogState(() {
-                          if (val == true) {
-                            _selectedAssignees.add(m);
-                          } else {
-                            _selectedAssignees.removeWhere((selected) => selected.id == m.id);
-                          }
-                        });
-                        setState(() {}); // Update parent screen state
-                      },
-                    );
-                  }).toList(),
+                  children:
+                      mockTeamMembers.map((m) {
+                        final isSelected = _selectedAssignees.any(
+                          (selected) => selected.id == m.id,
+                        );
+                        return CheckboxListTile(
+                          activeColor: DashboardColors.primary,
+                          checkboxShape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          secondary: CircleAvatar(
+                            radius: 16,
+                            backgroundColor: m.color.withValues(alpha: .18),
+                            child: Text(
+                              m.avatarText,
+                              style: TextStyle(
+                                color: m.color,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                          ),
+                          title: Text(
+                            m.name,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                          subtitle: Text(
+                            m.isOnline ? 'Active Now' : 'Offline',
+                            style: TextStyle(
+                              color:
+                                  m.isOnline
+                                      ? const Color(0xFF7CFFB2)
+                                      : DashboardColors.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                          value: isSelected,
+                          onChanged: (val) {
+                            setDialogState(() {
+                              if (val == true) {
+                                _selectedAssignees.add(m);
+                              } else {
+                                _selectedAssignees.removeWhere(
+                                  (selected) => selected.id == m.id,
+                                );
+                              }
+                            });
+                            setState(() {}); // Update parent screen state
+                          },
+                        );
+                      }).toList(),
                 ),
               ),
               actions: [
                 FilledButton(
-                  style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DashboardColors.primaryContainer,
+                  ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text('Done', style: TextStyle(color: DashboardColors.onPrimary)),
+                  child: const Text(
+                    'Done',
+                    style: TextStyle(color: DashboardColors.onPrimary),
+                  ),
                 ),
               ],
             );
@@ -370,12 +476,19 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
       SnackBar(
         content: Row(
           children: [
-            const Icon(Icons.rocket_launch_rounded, color: DashboardColors.onPrimary, size: 20),
+            const Icon(
+              Icons.rocket_launch_rounded,
+              color: DashboardColors.onPrimary,
+              size: 20,
+            ),
             const SizedBox(width: 10),
             Expanded(
               child: Text(
                 'Deploying "${_titleController.text.isNotEmpty ? _titleController.text : 'New Task'}" to workspace...',
-                style: const TextStyle(color: DashboardColors.onPrimary, fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  color: DashboardColors.onPrimary,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
             ),
           ],
@@ -402,7 +515,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: .03),
                     borderRadius: BorderRadius.circular(32),
-                    border: Border.all(color: DashboardColors.primary.withValues(alpha: .20)),
+                    border: Border.all(
+                      color: DashboardColors.primary.withValues(alpha: .20),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: .45),
@@ -417,7 +532,10 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                   ),
                   child: Column(
                     children: [
-                      _Header(onClose: widget.onClose, selectedPriority: _selectedPriority),
+                      _Header(
+                        onClose: widget.onClose,
+                        selectedPriority: _selectedPriority,
+                      ),
                       Expanded(
                         child: SingleChildScrollView(
                           padding: const EdgeInsets.all(32),
@@ -429,7 +547,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _TeamPresenceRow(members: _selectedAssignees),
+                                    _TeamPresenceRow(
+                                      members: _selectedAssignees,
+                                    ),
                                     const SizedBox(height: 24),
                                     const _Label('TASK TITLE'),
                                     TextField(
@@ -442,15 +562,24 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                       ),
                                       decoration: InputDecoration(
                                         hintText: 'What needs to be achieved?',
-                                        hintStyle: TextStyle(color: DashboardColors.onSurfaceVariant.withValues(alpha: .30)),
+                                        hintStyle: TextStyle(
+                                          color: DashboardColors
+                                              .onSurfaceVariant
+                                              .withValues(alpha: .30),
+                                        ),
                                         enabledBorder: UnderlineInputBorder(
                                           borderSide: BorderSide(
-                                            color: DashboardColors.outlineVariant.withValues(alpha: .30),
+                                            color: DashboardColors
+                                                .outlineVariant
+                                                .withValues(alpha: .30),
                                           ),
                                         ),
-                                        focusedBorder: const UnderlineInputBorder(
-                                          borderSide: BorderSide(color: DashboardColors.primary),
-                                        ),
+                                        focusedBorder:
+                                            const UnderlineInputBorder(
+                                              borderSide: BorderSide(
+                                                color: DashboardColors.primary,
+                                              ),
+                                            ),
                                       ),
                                     ),
                                     const SizedBox(height: 36),
@@ -463,21 +592,39 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                           TextField(
                                             controller: _descriptionController,
                                             maxLines: 4,
-                                            style: GoogleFonts.inter(fontSize: 16, height: 1.5),
-                                            decoration: const InputDecoration.collapsed(
-                                              hintText: 'Outline the objective and requirements...',
+                                            style: GoogleFonts.inter(
+                                              fontSize: 16,
+                                              height: 1.5,
                                             ),
+                                            decoration:
+                                                const InputDecoration.collapsed(
+                                                  hintText:
+                                                      'Outline the objective and requirements...',
+                                                ),
                                           ),
                                           const SizedBox(height: 16),
                                           Row(
                                             children: const [
-                                              Icon(Icons.format_bold_rounded, size: 20),
+                                              Icon(
+                                                Icons.format_bold_rounded,
+                                                size: 20,
+                                              ),
                                               SizedBox(width: 10),
-                                              Icon(Icons.format_italic_rounded, size: 20),
+                                              Icon(
+                                                Icons.format_italic_rounded,
+                                                size: 20,
+                                              ),
                                               SizedBox(width: 10),
-                                              Icon(Icons.link_rounded, size: 20),
+                                              Icon(
+                                                Icons.link_rounded,
+                                                size: 20,
+                                              ),
                                               Spacer(),
-                                              Icon(Icons.auto_awesome_rounded, color: DashboardColors.primary, size: 20),
+                                              Icon(
+                                                Icons.auto_awesome_rounded,
+                                                color: DashboardColors.primary,
+                                                size: 20,
+                                              ),
                                             ],
                                           ),
                                         ],
@@ -488,7 +635,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     const SizedBox(height: 32),
                                     // Dynamic Subtasks Section
                                     Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
                                       children: [
                                         Row(
                                           children: [
@@ -497,13 +645,15 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                             GestureDetector(
                                               onTap: _generateSubtasksWithAi,
                                               child: MouseRegion(
-                                                cursor: SystemMouseCursors.click,
+                                                cursor:
+                                                    SystemMouseCursors.click,
                                                 child: Text(
                                                   '＋ Generate with AI',
                                                   style: GoogleFonts.inter(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w800,
-                                                    color: DashboardColors.primary,
+                                                    color:
+                                                        DashboardColors.primary,
                                                   ),
                                                 ),
                                               ),
@@ -514,28 +664,38 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                         if (_isAiGeneratingSubtasks)
                                           _GlassBox(
                                             padding: const EdgeInsets.all(20),
-                                            tint: DashboardColors.primary.withValues(alpha: .06),
-                                            borderColor: DashboardColors.primary.withValues(alpha: .2),
+                                            tint: DashboardColors.primary
+                                                .withValues(alpha: .06),
+                                            borderColor: DashboardColors.primary
+                                                .withValues(alpha: .2),
                                             child: Center(
                                               child: Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   const SizedBox(
                                                     width: 18,
                                                     height: 18,
-                                                    child: CircularProgressIndicator(
-                                                      strokeWidth: 2,
-                                                      color: DashboardColors.primary,
-                                                    ),
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          color:
+                                                              DashboardColors
+                                                                  .primary,
+                                                        ),
                                                   ),
                                                   const SizedBox(width: 12),
                                                   Text(
                                                     'AI Orchestrator is planning steps...',
-                                                    style: GoogleFonts.jetBrainsMono(
-                                                      fontSize: 13,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: DashboardColors.primary,
-                                                    ),
+                                                    style:
+                                                        GoogleFonts.jetBrainsMono(
+                                                          fontSize: 13,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                          color:
+                                                              DashboardColors
+                                                                  .primary,
+                                                        ),
                                                   ),
                                                 ],
                                               ),
@@ -544,39 +704,68 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                         else
                                           ListView.separated(
                                             shrinkWrap: true,
-                                            physics: const NeverScrollableScrollPhysics(),
+                                            physics:
+                                                const NeverScrollableScrollPhysics(),
                                             itemCount: _subtasks.length,
-                                            separatorBuilder: (_, __) => const SizedBox(height: 8),
+                                            separatorBuilder:
+                                                (_, __) =>
+                                                    const SizedBox(height: 8),
                                             itemBuilder: (context, index) {
                                               final item = _subtasks[index];
-                                              return TweenAnimationBuilder<double>(
+                                              return TweenAnimationBuilder<
+                                                double
+                                              >(
                                                 key: ValueKey(item.id),
-                                                tween: Tween(begin: 0.0, end: 1.0),
-                                                duration: const Duration(milliseconds: 350),
-                                                builder: (context, animVal, child) {
+                                                tween: Tween(
+                                                  begin: 0.0,
+                                                  end: 1.0,
+                                                ),
+                                                duration: const Duration(
+                                                  milliseconds: 350,
+                                                ),
+                                                builder: (
+                                                  context,
+                                                  animVal,
+                                                  child,
+                                                ) {
                                                   return Opacity(
                                                     opacity: animVal,
                                                     child: Transform.translate(
-                                                      offset: Offset(0, (1 - animVal) * 8),
+                                                      offset: Offset(
+                                                        0,
+                                                        (1 - animVal) * 8,
+                                                      ),
                                                       child: child,
                                                     ),
                                                   );
                                                 },
                                                 child: _GlassBox(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 14,
+                                                        vertical: 10,
+                                                      ),
                                                   child: Row(
                                                     children: [
                                                       GestureDetector(
                                                         onTap: () {
                                                           setState(() {
-                                                            item.isDone = !item.isDone;
+                                                            item.isDone =
+                                                                !item.isDone;
                                                           });
                                                         },
                                                         child: Icon(
                                                           item.isDone
-                                                              ? Icons.check_box_rounded
-                                                              : Icons.check_box_outline_blank_rounded,
-                                                          color: item.isDone ? DashboardColors.primary : DashboardColors.outline,
+                                                              ? Icons
+                                                                  .check_box_rounded
+                                                              : Icons
+                                                                  .check_box_outline_blank_rounded,
+                                                          color:
+                                                              item.isDone
+                                                                  ? DashboardColors
+                                                                      .primary
+                                                                  : DashboardColors
+                                                                      .outline,
                                                           size: 20,
                                                         ),
                                                       ),
@@ -586,17 +775,35 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                           item.text,
                                                           style: GoogleFonts.inter(
                                                             fontSize: 14,
-                                                            decoration: item.isDone ? TextDecoration.lineThrough : null,
-                                                            color: item.isDone ? DashboardColors.onSurfaceVariant : DashboardColors.onSurface,
+                                                            decoration:
+                                                                item.isDone
+                                                                    ? TextDecoration
+                                                                        .lineThrough
+                                                                    : null,
+                                                            color:
+                                                                item.isDone
+                                                                    ? DashboardColors
+                                                                        .onSurfaceVariant
+                                                                    : DashboardColors
+                                                                        .onSurface,
                                                           ),
                                                         ),
                                                       ),
                                                       IconButton(
-                                                        icon: const Icon(Icons.close_rounded, size: 16),
-                                                        color: DashboardColors.outline.withValues(alpha: .5),
+                                                        icon: const Icon(
+                                                          Icons.close_rounded,
+                                                          size: 16,
+                                                        ),
+                                                        color: DashboardColors
+                                                            .outline
+                                                            .withValues(
+                                                              alpha: .5,
+                                                            ),
                                                         onPressed: () {
                                                           setState(() {
-                                                            _subtasks.removeAt(index);
+                                                            _subtasks.removeAt(
+                                                              index,
+                                                            );
                                                           });
                                                         },
                                                       ),
@@ -609,32 +816,55 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                         const SizedBox(height: 8),
                                         if (_isAddingSubtask)
                                           _GlassBox(
-                                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                            padding: const EdgeInsets.symmetric(
+                                              horizontal: 14,
+                                              vertical: 4,
+                                            ),
                                             child: Row(
                                               children: [
                                                 Expanded(
                                                   child: TextField(
-                                                    controller: _newSubtaskController,
+                                                    controller:
+                                                        _newSubtaskController,
                                                     autofocus: true,
-                                                    style: const TextStyle(fontSize: 14),
-                                                    decoration: const InputDecoration(
-                                                      hintText: 'Enter subtask...',
-                                                      border: InputBorder.none,
-                                                      hintStyle: TextStyle(color: DashboardColors.outline),
+                                                    style: const TextStyle(
+                                                      fontSize: 14,
                                                     ),
-                                                    onSubmitted: (_) => _addNewSubtask(),
+                                                    decoration:
+                                                        const InputDecoration(
+                                                          hintText:
+                                                              'Enter subtask...',
+                                                          border:
+                                                              InputBorder.none,
+                                                          hintStyle: TextStyle(
+                                                            color:
+                                                                DashboardColors
+                                                                    .outline,
+                                                          ),
+                                                        ),
+                                                    onSubmitted:
+                                                        (_) => _addNewSubtask(),
                                                   ),
                                                 ),
                                                 IconButton(
-                                                  icon: const Icon(Icons.check_rounded, color: DashboardColors.primary),
+                                                  icon: const Icon(
+                                                    Icons.check_rounded,
+                                                    color:
+                                                        DashboardColors.primary,
+                                                  ),
                                                   onPressed: _addNewSubtask,
                                                 ),
                                                 IconButton(
-                                                  icon: const Icon(Icons.close_rounded, color: DashboardColors.error),
+                                                  icon: const Icon(
+                                                    Icons.close_rounded,
+                                                    color:
+                                                        DashboardColors.error,
+                                                  ),
                                                   onPressed: () {
                                                     setState(() {
                                                       _isAddingSubtask = false;
-                                                      _newSubtaskController.clear();
+                                                      _newSubtaskController
+                                                          .clear();
                                                     });
                                                   },
                                                 ),
@@ -653,11 +883,21 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               padding: const EdgeInsets.all(12),
                                               child: Row(
                                                 children: const [
-                                                  Icon(Icons.add_rounded, color: DashboardColors.outline, size: 20),
+                                                  Icon(
+                                                    Icons.add_rounded,
+                                                    color:
+                                                        DashboardColors.outline,
+                                                    size: 20,
+                                                  ),
                                                   SizedBox(width: 12),
                                                   Text(
                                                     'Add another subtask...',
-                                                    style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 14),
+                                                    style: TextStyle(
+                                                      color:
+                                                          DashboardColors
+                                                              .onSurfaceVariant,
+                                                      fontSize: 14,
+                                                    ),
                                                   ),
                                                 ],
                                               ),
@@ -677,20 +917,31 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                   children: [
                                     // Interactive Intelligence Card
                                     _GlassBox(
-                                      tint: DashboardColors.primary.withValues(alpha: .05),
-                                      borderColor: DashboardColors.primary.withValues(alpha: .20),
+                                      tint: DashboardColors.primary.withValues(
+                                        alpha: .05,
+                                      ),
+                                      borderColor: DashboardColors.primary
+                                          .withValues(alpha: .20),
                                       padding: const EdgeInsets.all(24),
                                       child: Stack(
                                         children: [
                                           Positioned(
                                             top: -48,
                                             right: -48,
-                                            child: _Glow(size: 128, color: DashboardColors.primary.withValues(alpha: .08)),
+                                            child: _Glow(
+                                              size: 128,
+                                              color: DashboardColors.primary
+                                                  .withValues(alpha: .08),
+                                            ),
                                           ),
                                           Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
                                             children: [
-                                              const _Label('INTELLIGENCE SUGGESTIONS', color: DashboardColors.primary),
+                                              const _Label(
+                                                'INTELLIGENCE SUGGESTIONS',
+                                                color: DashboardColors.primary,
+                                              ),
                                               const SizedBox(height: 12),
                                               const _CreationAiInsightsCard(),
                                               const SizedBox(height: 12),
@@ -699,114 +950,125 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               // Assigned Project selector
                                               const _Label('ASSIGNED PROJECT'),
                                               const SizedBox(height: 8),
-                                              Theme(
-                                                data: Theme.of(context).copyWith(
-                                                  cardColor: DashboardColors.surfaceLow,
-                                                ),
-                                                child: PopupMenuButton<String>(
-                                                  offset: const Offset(0, 48),
-                                                  tooltip: 'Select Project',
-                                                  onSelected: (value) {
-                                                    setState(() {
-                                                      _selectedProject = value;
-                                                    });
-                                                  },
-                                                  itemBuilder: (context) => mockProjects.map((p) {
-                                                    final isSelected = p['name'] == _selectedProject;
-                                                    return PopupMenuItem<String>(
-                                                      value: p['name'] as String,
-                                                      child: Row(
-                                                        children: [
-                                                          Container(
-                                                            width: 10,
-                                                            height: 10,
-                                                            decoration: BoxDecoration(
-                                                              shape: BoxShape.circle,
-                                                              color: p['color'] as Color,
-                                                            ),
-                                                          ),
-                                                          const SizedBox(width: 10),
-                                                          Text(
-                                                            p['name'] as String,
-                                                            style: TextStyle(
-                                                              color: isSelected ? DashboardColors.primary : DashboardColors.onSurface,
-                                                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                    );
-                                                  }).toList(),
-                                                  child: _GlassBox(
-                                                    padding: const EdgeInsets.all(12),
-                                                    child: Row(
-                                                      children: [
-                                                        Container(
-                                                          width: 10,
-                                                          height: 10,
-                                                          decoration: BoxDecoration(
-                                                            shape: BoxShape.circle,
-                                                            color: mockProjects.firstWhere((p) => p['name'] == _selectedProject)['color'] as Color,
-                                                          ),
-                                                        ),
-                                                        const SizedBox(width: 10),
-                                                        Expanded(
-                                                          child: Text(
-                                                            _selectedProject,
-                                                            style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
-                                                          ),
-                                                        ),
-                                                        const Icon(Icons.keyboard_arrow_down_rounded, color: DashboardColors.outline, size: 20),
-                                                      ],
-                                                    ),
-                                                  ),
-                                                ),
+                                              _AssignedProjectDropdown(
+                                                selectedProject:
+                                                    _selectedProject,
+                                                onSelected: (value) {
+                                                  setState(() {
+                                                    _selectedProject = value;
+                                                  });
+                                                },
                                               ),
                                               const SizedBox(height: 24),
                                               // Manual override Priority chips selector
                                               const _Label('TASK PRIORITY'),
                                               const SizedBox(height: 8),
                                               Row(
-                                                children: ['Smart AI', 'High', 'Medium', 'Low'].map((priority) {
-                                                  final isSelected = _selectedPriority == priority;
-                                                  final Color accentColor = switch (priority) {
-                                                    'High' => DashboardColors.error,
-                                                    'Medium' => DashboardColors.secondary,
-                                                    'Low' => DashboardColors.tertiary,
-                                                    _ => DashboardColors.primary,
-                                                  };
-                                                  return Expanded(
-                                                    child: GestureDetector(
-                                                      onTap: () {
-                                                        setState(() {
-                                                          _selectedPriority = priority;
-                                                        });
-                                                      },
-                                                      child: Container(
-                                                        margin: const EdgeInsets.symmetric(horizontal: 2),
-                                                        padding: const EdgeInsets.symmetric(vertical: 8),
-                                                        decoration: BoxDecoration(
-                                                          color: isSelected ? accentColor.withValues(alpha: .18) : Colors.white.withValues(alpha: .02),
-                                                          borderRadius: BorderRadius.circular(10),
-                                                          border: Border.all(
-                                                            color: isSelected ? accentColor : DashboardColors.outlineVariant.withValues(alpha: .2),
-                                                          ),
-                                                          boxShadow: isSelected ? [BoxShadow(color: accentColor.withValues(alpha: .1), blurRadius: 10)] : null,
-                                                        ),
-                                                        child: Center(
-                                                          child: Text(
-                                                            priority,
-                                                            style: GoogleFonts.inter(
-                                                              fontSize: 12,
-                                                              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                                                              color: isSelected ? accentColor : DashboardColors.onSurfaceVariant,
+                                                children:
+                                                    [
+                                                      'Smart AI',
+                                                      'High',
+                                                      'Medium',
+                                                      'Low',
+                                                    ].map((priority) {
+                                                      final isSelected =
+                                                          _selectedPriority ==
+                                                          priority;
+                                                      final Color accentColor =
+                                                          switch (priority) {
+                                                            'High' =>
+                                                              DashboardColors
+                                                                  .error,
+                                                            'Medium' =>
+                                                              DashboardColors
+                                                                  .secondary,
+                                                            'Low' =>
+                                                              DashboardColors
+                                                                  .tertiary,
+                                                            _ =>
+                                                              DashboardColors
+                                                                  .primary,
+                                                          };
+                                                      return Expanded(
+                                                        child: GestureDetector(
+                                                          onTap: () {
+                                                            setState(() {
+                                                              _selectedPriority =
+                                                                  priority;
+                                                            });
+                                                          },
+                                                          child: Container(
+                                                            margin:
+                                                                const EdgeInsets.symmetric(
+                                                                  horizontal: 2,
+                                                                ),
+                                                            padding:
+                                                                const EdgeInsets.symmetric(
+                                                                  vertical: 8,
+                                                                ),
+                                                            decoration: BoxDecoration(
+                                                              color:
+                                                                  isSelected
+                                                                      ? accentColor.withValues(
+                                                                        alpha:
+                                                                            .18,
+                                                                      )
+                                                                      : Colors
+                                                                          .white
+                                                                          .withValues(
+                                                                            alpha:
+                                                                                .02,
+                                                                          ),
+                                                              borderRadius:
+                                                                  BorderRadius.circular(
+                                                                    10,
+                                                                  ),
+                                                              border: Border.all(
+                                                                color:
+                                                                    isSelected
+                                                                        ? accentColor
+                                                                        : DashboardColors.outlineVariant.withValues(
+                                                                          alpha:
+                                                                              .2,
+                                                                        ),
+                                                              ),
+                                                              boxShadow:
+                                                                  isSelected
+                                                                      ? [
+                                                                        BoxShadow(
+                                                                          color: accentColor.withValues(
+                                                                            alpha:
+                                                                                .1,
+                                                                          ),
+                                                                          blurRadius:
+                                                                              10,
+                                                                        ),
+                                                                      ]
+                                                                      : null,
+                                                            ),
+                                                            child: Center(
+                                                              child: Text(
+                                                                priority,
+                                                                style: GoogleFonts.inter(
+                                                                  fontSize: 12,
+                                                                  fontWeight:
+                                                                      isSelected
+                                                                          ? FontWeight
+                                                                              .w800
+                                                                          : FontWeight
+                                                                              .w600,
+                                                                  color:
+                                                                      isSelected
+                                                                          ? accentColor
+                                                                          : DashboardColors
+                                                                              .onSurfaceVariant,
+                                                                ),
+                                                              ),
                                                             ),
                                                           ),
                                                         ),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }).toList(),
+                                                      );
+                                                    }).toList(),
                                               ),
                                               const SizedBox(height: 16),
                                               const _SmartPriorityHeatmap(),
@@ -816,23 +1078,52 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                 children: [
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        const _Label('DUE DATE'),
-                                                        const SizedBox(height: 8),
+                                                        const _Label(
+                                                          'DUE DATE',
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
                                                         GestureDetector(
-                                                          onTap: _openDatePicker,
+                                                          onTap:
+                                                              _openDatePicker,
                                                           child: _GlassBox(
-                                                            padding: const EdgeInsets.all(12),
+                                                            padding:
+                                                                const EdgeInsets.all(
+                                                                  12,
+                                                                ),
                                                             child: Row(
                                                               children: [
-                                                                const Icon(Icons.event_rounded, color: DashboardColors.primary, size: 16),
-                                                                const SizedBox(width: 8),
+                                                                const Icon(
+                                                                  Icons
+                                                                      .event_rounded,
+                                                                  color:
+                                                                      DashboardColors
+                                                                          .primary,
+                                                                  size: 16,
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 8,
+                                                                ),
                                                                 Flexible(
                                                                   child: Text(
-                                                                    _formatDate(_selectedDate),
-                                                                    overflow: TextOverflow.ellipsis,
-                                                                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+                                                                    _formatDate(
+                                                                      _selectedDate,
+                                                                    ),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    style: GoogleFonts.inter(
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ],
@@ -845,23 +1136,50 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                   const SizedBox(width: 16),
                                                   Expanded(
                                                     child: Column(
-                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      crossAxisAlignment:
+                                                          CrossAxisAlignment
+                                                              .start,
                                                       children: [
-                                                        const _Label('ESTIMATE'),
-                                                        const SizedBox(height: 8),
+                                                        const _Label(
+                                                          'ESTIMATE',
+                                                        ),
+                                                        const SizedBox(
+                                                          height: 8,
+                                                        ),
                                                         GestureDetector(
-                                                          onTap: _openEstimatePicker,
+                                                          onTap:
+                                                              _openEstimatePicker,
                                                           child: _GlassBox(
-                                                            padding: const EdgeInsets.all(12),
+                                                            padding:
+                                                                const EdgeInsets.all(
+                                                                  12,
+                                                                ),
                                                             child: Row(
                                                               children: [
-                                                                const Icon(Icons.timer_rounded, color: DashboardColors.primary, size: 16),
-                                                                const SizedBox(width: 8),
+                                                                const Icon(
+                                                                  Icons
+                                                                      .timer_rounded,
+                                                                  color:
+                                                                      DashboardColors
+                                                                          .primary,
+                                                                  size: 16,
+                                                                ),
+                                                                const SizedBox(
+                                                                  width: 8,
+                                                                ),
                                                                 Flexible(
                                                                   child: Text(
                                                                     '${_selectedEstimate.round()} hours',
-                                                                    overflow: TextOverflow.ellipsis,
-                                                                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700),
+                                                                    overflow:
+                                                                        TextOverflow
+                                                                            .ellipsis,
+                                                                    style: GoogleFonts.inter(
+                                                                      fontSize:
+                                                                          13,
+                                                                      fontWeight:
+                                                                          FontWeight
+                                                                              .w700,
+                                                                    ),
                                                                   ),
                                                                 ),
                                                               ],
@@ -874,11 +1192,14 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                 ],
                                               ),
                                               const SizedBox(height: 16),
-                                              _FocusForecastCard(hours: _selectedEstimate),
+                                              _FocusForecastCard(
+                                                hours: _selectedEstimate,
+                                              ),
                                               const SizedBox(height: 24),
                                               // Tags block
                                               Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                crossAxisAlignment:
+                                                    CrossAxisAlignment.start,
                                                 children: [
                                                   const _Label('TAGS & LABELS'),
                                                   const SizedBox(height: 10),
@@ -886,17 +1207,26 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                     spacing: 8,
                                                     runSpacing: 8,
                                                     children: [
-                                                      ..._selectedTags.map((tag) {
-                                                        final Color color = tag == '#Strategy'
-                                                            ? DashboardColors.secondary
-                                                            : DashboardColors.tertiary;
+                                                      ..._selectedTags.map((
+                                                        tag,
+                                                      ) {
+                                                        final Color color =
+                                                            tag == '#Strategy'
+                                                                ? DashboardColors
+                                                                    .secondary
+                                                                : DashboardColors
+                                                                    .tertiary;
                                                         return GestureDetector(
                                                           onTap: () {
                                                             setState(() {
-                                                              _selectedTags.remove(tag);
+                                                              _selectedTags
+                                                                  .remove(tag);
                                                             });
                                                           },
-                                                          child: _Tag(tag, color),
+                                                          child: _Tag(
+                                                            tag,
+                                                            color,
+                                                          ),
                                                         );
                                                       }),
                                                       GestureDetector(
@@ -904,33 +1234,65 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                           showDialog(
                                                             context: context,
                                                             builder: (context) {
-                                                              final controller = TextEditingController();
+                                                              final controller =
+                                                                  TextEditingController();
                                                               return AlertDialog(
-                                                                backgroundColor: DashboardColors.surfaceLow,
-                                                                title: const Text('Add Tag'),
+                                                                backgroundColor:
+                                                                    DashboardColors
+                                                                        .surfaceLow,
+                                                                title:
+                                                                    const Text(
+                                                                      'Add Tag',
+                                                                    ),
                                                                 content: TextField(
-                                                                  controller: controller,
-                                                                  decoration: const InputDecoration(hintText: 'e.g. #Backend'),
+                                                                  controller:
+                                                                      controller,
+                                                                  decoration:
+                                                                      const InputDecoration(
+                                                                        hintText:
+                                                                            'e.g. #Backend',
+                                                                      ),
                                                                 ),
                                                                 actions: [
                                                                   TextButton(
-                                                                    onPressed: () => Navigator.pop(context),
-                                                                    child: const Text('Cancel'),
+                                                                    onPressed:
+                                                                        () => Navigator.pop(
+                                                                          context,
+                                                                        ),
+                                                                    child: const Text(
+                                                                      'Cancel',
+                                                                    ),
                                                                   ),
                                                                   FilledButton(
                                                                     onPressed: () {
-                                                                      final text = controller.text.trim();
-                                                                      if (text.isNotEmpty) {
+                                                                      final text =
+                                                                          controller
+                                                                              .text
+                                                                              .trim();
+                                                                      if (text
+                                                                          .isNotEmpty) {
                                                                         setState(() {
-                                                                          final cleanedText = text.startsWith('#') ? text : '#$text';
-                                                                          if (!_selectedTags.contains(cleanedText)) {
-                                                                            _selectedTags.add(cleanedText);
+                                                                          final cleanedText =
+                                                                              text.startsWith('#')
+                                                                                  ? text
+                                                                                  : '#$text';
+                                                                          if (!_selectedTags.contains(
+                                                                            cleanedText,
+                                                                          )) {
+                                                                            _selectedTags.add(
+                                                                              cleanedText,
+                                                                            );
                                                                           }
                                                                         });
                                                                       }
-                                                                      Navigator.pop(context);
+                                                                      Navigator.pop(
+                                                                        context,
+                                                                      );
                                                                     },
-                                                                    child: const Text('Add'),
+                                                                    child:
+                                                                        const Text(
+                                                                          'Add',
+                                                                        ),
                                                                   ),
                                                                 ],
                                                               );
@@ -963,8 +1325,13 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                       ),
                       // Footer
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                        decoration: const BoxDecoration(color: DashboardColors.surfaceHigh),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 32,
+                          vertical: 24,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: DashboardColors.surfaceHigh,
+                        ),
                         child: Row(
                           children: [
                             GestureDetector(
@@ -976,32 +1343,47 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     if (_selectedAssignees.isEmpty)
                                       const CircleAvatar(
                                         radius: 16,
-                                        backgroundColor: DashboardColors.surfaceHighest,
-                                        child: Icon(Icons.person_rounded, size: 16, color: DashboardColors.outline),
+                                        backgroundColor:
+                                            DashboardColors.surfaceHighest,
+                                        child: Icon(
+                                          Icons.person_rounded,
+                                          size: 16,
+                                          color: DashboardColors.outline,
+                                        ),
                                       )
                                     else
                                       SizedBox(
                                         height: 32,
-                                        width: (32 + (_selectedAssignees.length - 1) * 26).toDouble(),
+                                        width:
+                                            (32 +
+                                                    (_selectedAssignees.length -
+                                                            1) *
+                                                        26)
+                                                .toDouble(),
                                         child: Stack(
-                                          children: List.generate(_selectedAssignees.length, (idx) {
-                                            final m = _selectedAssignees[idx];
-                                            return Positioned(
-                                              left: (idx * 26).toDouble(),
-                                              child: CircleAvatar(
-                                                radius: 16,
-                                                backgroundColor: m.color.withValues(alpha: .2),
-                                                child: Text(
-                                                  m.avatarText,
-                                                  style: TextStyle(
-                                                    color: m.color,
-                                                    fontSize: 12,
-                                                    fontWeight: FontWeight.w900,
+                                          children: List.generate(
+                                            _selectedAssignees.length,
+                                            (idx) {
+                                              final m = _selectedAssignees[idx];
+                                              return Positioned(
+                                                left: (idx * 26).toDouble(),
+                                                child: CircleAvatar(
+                                                  radius: 16,
+                                                  backgroundColor: m.color
+                                                      .withValues(alpha: .2),
+                                                  child: Text(
+                                                    m.avatarText,
+                                                    style: TextStyle(
+                                                      color: m.color,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.w900,
+                                                    ),
                                                   ),
                                                 ),
-                                              ),
-                                            );
-                                          }),
+                                              );
+                                            },
+                                          ),
                                         ),
                                       ),
                                     const SizedBox(width: 12),
@@ -1009,7 +1391,10 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                       _selectedAssignees.isEmpty
                                           ? 'Assign to team members'
                                           : '${_selectedAssignees.length} assigned collaborators',
-                                      style: GoogleFonts.inter(fontSize: 14, color: DashboardColors.onSurfaceVariant),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 14,
+                                        color: DashboardColors.onSurfaceVariant,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -1019,7 +1404,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                             OutlinedButton(
                               onPressed: () {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(content: Text('Draft saved successfully!')),
+                                  const SnackBar(
+                                    content: Text('Draft saved successfully!'),
+                                  ),
                                 );
                               },
                               child: const Text('Save Draft'),
@@ -1028,12 +1415,17 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                             DecoratedBox(
                               decoration: BoxDecoration(
                                 gradient: const LinearGradient(
-                                  colors: [DashboardColors.primary, DashboardColors.secondary],
+                                  colors: [
+                                    DashboardColors.primary,
+                                    DashboardColors.secondary,
+                                  ],
                                 ),
                                 borderRadius: BorderRadius.circular(999),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: DashboardColors.primary.withValues(alpha: .30),
+                                    color: DashboardColors.primary.withValues(
+                                      alpha: .30,
+                                    ),
                                     blurRadius: 20,
                                   ),
                                 ],
@@ -1043,10 +1435,16 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                   backgroundColor: Colors.transparent,
                                   shadowColor: Colors.transparent,
                                   foregroundColor: DashboardColors.onPrimary,
-                                  padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 18),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 28,
+                                    vertical: 18,
+                                  ),
                                 ),
                                 onPressed: _deployTask,
-                                icon: const Icon(Icons.rocket_launch_rounded, size: 16),
+                                icon: const Icon(
+                                  Icons.rocket_launch_rounded,
+                                  size: 16,
+                                ),
                                 label: const Text('Deploy Task'),
                               ),
                             ),
@@ -1060,7 +1458,11 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
             ),
           ),
         ),
-        const Positioned(right: 42, bottom: 118, child: _CommandPaletteButton()),
+        const Positioned(
+          right: 42,
+          bottom: 118,
+          child: _CommandPaletteButton(),
+        ),
         // AI Suggestion Dock (Dynamic trượt từ đáy màn hình)
         AnimatedPositioned(
           duration: const Duration(milliseconds: 320),
@@ -1074,11 +1476,16 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: .45),
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: DashboardColors.primary.withValues(alpha: .22)),
+                    border: Border.all(
+                      color: DashboardColors.primary.withValues(alpha: .22),
+                    ),
                     boxShadow: [
                       BoxShadow(
                         color: DashboardColors.primary.withValues(alpha: .15),
@@ -1089,11 +1496,19 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.auto_awesome_rounded, color: DashboardColors.secondary, size: 18),
+                      const Icon(
+                        Icons.auto_awesome_rounded,
+                        color: DashboardColors.secondary,
+                        size: 18,
+                      ),
                       const SizedBox(width: 10),
                       Text(
                         _suggestionText,
-                        style: const TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w700),
+                        style: const TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                       const SizedBox(width: 20),
                       TextButton(
@@ -1102,7 +1517,10 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                           foregroundColor: DashboardColors.primary,
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                         ),
-                        child: const Text('Apply', style: TextStyle(fontWeight: FontWeight.w900)),
+                        child: const Text(
+                          'Apply',
+                          style: TextStyle(fontWeight: FontWeight.w900),
+                        ),
                       ),
                       const SizedBox(width: 8),
                       TextButton(
@@ -1141,19 +1559,41 @@ class _Header extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: .05),
-        border: Border(bottom: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .10))),
+        border: Border(
+          bottom: BorderSide(
+            color: DashboardColors.outlineVariant.withValues(alpha: .10),
+          ),
+        ),
       ),
       child: Row(
         children: [
-          const Icon(Icons.add_task_rounded, color: DashboardColors.primary, size: 32),
+          const Icon(
+            Icons.add_task_rounded,
+            color: DashboardColors.primary,
+            size: 32,
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('New Task', style: GoogleFonts.interTight(fontSize: 24, fontWeight: FontWeight.w700, color: DashboardColors.onSurface)),
+                Text(
+                  'New Task',
+                  style: GoogleFonts.interTight(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: DashboardColors.onSurface,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text('Deep Work Orchestration', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: DashboardColors.onSurfaceVariant)),
+                Text(
+                  'Deep Work Orchestration',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: DashboardColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1162,8 +1602,15 @@ class _Header extends StatelessWidget {
             decoration: BoxDecoration(
               color: DashboardColors.primary.withValues(alpha: .10),
               borderRadius: BorderRadius.circular(999),
-              border: Border.all(color: DashboardColors.primary.withValues(alpha: .30)),
-              boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .15), blurRadius: 30)],
+              border: Border.all(
+                color: DashboardColors.primary.withValues(alpha: .30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: DashboardColors.primary.withValues(alpha: .15),
+                  blurRadius: 30,
+                ),
+              ],
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -1171,8 +1618,16 @@ class _Header extends StatelessWidget {
                 TweenAnimationBuilder<double>(
                   tween: Tween(begin: .75, end: 1),
                   duration: const Duration(milliseconds: 900),
-                  builder: (_, value, child) => Transform.scale(scale: value, child: Opacity(opacity: value, child: child)),
-                  child: const Icon(Icons.psychology_rounded, color: DashboardColors.primary, size: 16),
+                  builder:
+                      (_, value, child) => Transform.scale(
+                        scale: value,
+                        child: Opacity(opacity: value, child: child),
+                      ),
+                  child: const Icon(
+                    Icons.psychology_rounded,
+                    color: DashboardColors.primary,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 8),
                 Text(
@@ -1188,11 +1643,346 @@ class _Header extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 16),
-          IconButton(onPressed: onClose, icon: const Icon(Icons.close_rounded), color: DashboardColors.onSurfaceVariant),
+          IconButton(
+            onPressed: onClose,
+            icon: const Icon(Icons.close_rounded),
+            color: DashboardColors.onSurfaceVariant,
+          ),
         ],
       ),
     );
   }
+}
+
+class _AssignedProjectDropdown extends StatefulWidget {
+  const _AssignedProjectDropdown({
+    required this.selectedProject,
+    required this.onSelected,
+  });
+
+  final String selectedProject;
+  final ValueChanged<String> onSelected;
+
+  @override
+  State<_AssignedProjectDropdown> createState() =>
+      _AssignedProjectDropdownState();
+}
+
+class _AssignedProjectDropdownState extends State<_AssignedProjectDropdown> {
+  final MenuController _controller = MenuController();
+  bool _isOpen = false;
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = _projectByName(widget.selectedProject);
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return MenuAnchor(
+          controller: _controller,
+          alignmentOffset: const Offset(0, 8),
+          style: MenuStyle(
+            padding: WidgetStateProperty.all(EdgeInsets.zero),
+            backgroundColor: WidgetStateProperty.all(Colors.transparent),
+            shadowColor: WidgetStateProperty.all(Colors.transparent),
+            surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+            elevation: WidgetStateProperty.all(0),
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            ),
+          ),
+          menuChildren: [
+            TweenAnimationBuilder<double>(
+              tween: Tween(begin: .96, end: 1),
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeOutCubic,
+              builder:
+                  (context, scale, child) => Transform.scale(
+                    scale: scale,
+                    alignment: Alignment.topCenter,
+                    child: AnimatedOpacity(
+                      opacity: 1,
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      child: child,
+                    ),
+                  ),
+              child: SizedBox(
+                width: constraints.maxWidth,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(18),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: DashboardColors.surface.withValues(alpha: .78),
+                        borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .10),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: .28),
+                            blurRadius: 34,
+                            offset: const Offset(0, 18),
+                          ),
+                          BoxShadow(
+                            color: DashboardColors.primary.withValues(
+                              alpha: .08,
+                            ),
+                            blurRadius: 28,
+                          ),
+                        ],
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          for (final project in mockProjects)
+                            _AssignedProjectMenuItem(
+                              project: project,
+                              selected:
+                                  project['name'] == widget.selectedProject,
+                              onTap: () {
+                                widget.onSelected(project['name'] as String);
+                                _controller.close();
+                                setState(() => _isOpen = false);
+                              },
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          builder: (context, controller, child) {
+            return FocusableActionDetector(
+              mouseCursor: SystemMouseCursors.click,
+              onShowFocusHighlight: (_) => setState(() {}),
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isHovered = true),
+                onExit: (_) => setState(() => _isHovered = false),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () {
+                    if (_controller.isOpen) {
+                      _controller.close();
+                      setState(() => _isOpen = false);
+                    } else {
+                      _controller.open();
+                      setState(() => _isOpen = true);
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    curve: Curves.easeOutCubic,
+                    height: 56,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color:
+                          _isHovered || _isOpen
+                              ? Colors.white.withValues(alpha: .065)
+                              : Colors.white.withValues(alpha: .04),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color:
+                            _isOpen
+                                ? DashboardColors.primary.withValues(alpha: .34)
+                                : Colors.white.withValues(alpha: .10),
+                      ),
+                      boxShadow:
+                          _isOpen
+                              ? [
+                                BoxShadow(
+                                  color: DashboardColors.primary.withValues(
+                                    alpha: .12,
+                                  ),
+                                  blurRadius: 24,
+                                ),
+                              ]
+                              : null,
+                    ),
+                    child: Row(
+                      children: [
+                        _ProjectDot(
+                          color: selected['color'] as Color,
+                          strong: true,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            widget.selectedProject,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              color: DashboardColors.onSurface,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        AnimatedRotation(
+                          turns: _isOpen ? .5 : 0,
+                          duration: const Duration(milliseconds: 180),
+                          curve: Curves.easeOutCubic,
+                          child: const Icon(
+                            Icons.keyboard_arrow_down_rounded,
+                            color: DashboardColors.outline,
+                            size: 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _AssignedProjectMenuItem extends StatefulWidget {
+  const _AssignedProjectMenuItem({
+    required this.project,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final Map<String, Object> project;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_AssignedProjectMenuItem> createState() =>
+      _AssignedProjectMenuItemState();
+}
+
+class _AssignedProjectMenuItemState extends State<_AssignedProjectMenuItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = widget.project['color'] as Color;
+    final name = widget.project['name'] as String;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeOutCubic,
+            height: 48,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color:
+                  widget.selected
+                      ? color.withValues(alpha: .16)
+                      : _hovered
+                      ? Colors.white.withValues(alpha: .055)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border:
+                  widget.selected
+                      ? Border.all(color: color.withValues(alpha: .28))
+                      : null,
+              boxShadow:
+                  widget.selected
+                      ? [
+                        BoxShadow(
+                          color: color.withValues(alpha: .14),
+                          blurRadius: 18,
+                        ),
+                      ]
+                      : null,
+            ),
+            child: Row(
+              children: [
+                _ProjectDot(color: color, strong: widget.selected),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          color: DashboardColors.onSurface,
+                          fontWeight:
+                              widget.selected
+                                  ? FontWeight.w800
+                                  : FontWeight.w600,
+                        ),
+                      ),
+                      if (widget.selected)
+                        Text(
+                          'Active project',
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            color: color,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                AnimatedOpacity(
+                  opacity: widget.selected ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(Icons.check_rounded, color: color, size: 18),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ProjectDot extends StatelessWidget {
+  const _ProjectDot({required this.color, this.strong = false});
+
+  final Color color;
+  final bool strong;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: strong ? 12 : 10,
+      height: strong ? 12 : 10,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: color,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: strong ? .42 : .18),
+            blurRadius: strong ? 12 : 8,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+Map<String, Object> _projectByName(String name) {
+  return mockProjects.firstWhere(
+    (project) => project['name'] == name,
+    orElse: () => mockProjects.first,
+  );
 }
 
 class _SuggestionCard extends StatelessWidget {
@@ -1209,15 +1999,29 @@ class _SuggestionCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.trending_up_rounded, color: DashboardColors.primary, size: 16),
+              const Icon(
+                Icons.trending_up_rounded,
+                color: DashboardColors.primary,
+                size: 16,
+              ),
               const SizedBox(width: 8),
-              Text('Dynamic Focus Insights', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w800)),
+              Text(
+                'Dynamic Focus Insights',
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
           Text(
             'Keep your focus heatmap in balance by deploying high complexity tasks during peak energy hours.',
-            style: GoogleFonts.inter(fontSize: 12, height: 1.45, color: DashboardColors.onSurfaceVariant),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              height: 1.45,
+              color: DashboardColors.onSurfaceVariant,
+            ),
           ),
         ],
       ),
@@ -1240,7 +2044,10 @@ class _AttachmentCard extends StatelessWidget {
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: DashboardColors.outlineVariant.withValues(alpha: .20), width: 2),
+            border: Border.all(
+              color: DashboardColors.outlineVariant.withValues(alpha: .20),
+              width: 2,
+            ),
           ),
           child: Column(
             children: [
@@ -1259,14 +2066,28 @@ class _AttachmentCard extends StatelessWidget {
                   children: [
                     TextSpan(
                       text: 'Upload files',
-                      style: GoogleFonts.inter(color: DashboardColors.primary, fontWeight: FontWeight.w800),
+                      style: GoogleFonts.inter(
+                        color: DashboardColors.primary,
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    TextSpan(text: ' or drag and drop', style: GoogleFonts.inter(color: DashboardColors.onSurfaceVariant)),
+                    TextSpan(
+                      text: ' or drag and drop',
+                      style: GoogleFonts.inter(
+                        color: DashboardColors.onSurfaceVariant,
+                      ),
+                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 8),
-              Text('PDF, PNG, JPG up to 10MB', style: GoogleFonts.inter(fontSize: 12, color: DashboardColors.outline)),
+              Text(
+                'PDF, PNG, JPG up to 10MB',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: DashboardColors.outline,
+                ),
+              ),
             ],
           ),
         ),
@@ -1302,7 +2123,11 @@ class _GlassBox extends StatelessWidget {
             color: tint ?? Colors.white.withValues(alpha: .03),
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: borderColor ?? DashboardColors.onSurface.withValues(alpha: dashed ? .14 : .08),
+              color:
+                  borderColor ??
+                  DashboardColors.onSurface.withValues(
+                    alpha: dashed ? .14 : .08,
+                  ),
             ),
           ),
           child: child,
@@ -1358,14 +2183,16 @@ class _AddTag extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: 32,
-        height: 28,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: DashboardColors.outlineVariant.withValues(alpha: .30)),
-        ),
-        child: const Icon(Icons.add_rounded, size: 16),
-      );
+    width: 32,
+    height: 28,
+    decoration: BoxDecoration(
+      borderRadius: BorderRadius.circular(999),
+      border: Border.all(
+        color: DashboardColors.outlineVariant.withValues(alpha: .30),
+      ),
+    ),
+    child: const Icon(Icons.add_rounded, size: 16),
+  );
 }
 
 class _Glow extends StatelessWidget {
@@ -1376,14 +2203,14 @@ class _Glow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          color: color,
-          shape: BoxShape.circle,
-          boxShadow: [BoxShadow(color: color, blurRadius: 80, spreadRadius: 20)],
-        ),
-      );
+    width: size,
+    height: size,
+    decoration: BoxDecoration(
+      color: color,
+      shape: BoxShape.circle,
+      boxShadow: [BoxShadow(color: color, blurRadius: 80, spreadRadius: 20)],
+    ),
+  );
 }
 
 class _CreationAiInsightsCard extends StatelessWidget {
@@ -1398,7 +2225,24 @@ class _CreationAiInsightsCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: const [
-          Row(children: [Icon(Icons.auto_awesome_rounded, color: DashboardColors.tertiary, size: 18), SizedBox(width: 8), Text('Creation Intelligence', style: TextStyle(color: DashboardColors.onSurface, fontSize: 14, fontWeight: FontWeight.w900))]),
+          Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: DashboardColors.tertiary,
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'Creation Intelligence',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
           SizedBox(height: 12),
           _InsightLine('Readiness score: 76%'),
           _InsightLine('Deadline and estimate are aligned'),
@@ -1420,9 +2264,25 @@ class _InsightLine extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 6),
       child: Row(
         children: [
-          Container(width: 5, height: 5, decoration: const BoxDecoration(shape: BoxShape.circle, color: DashboardColors.primary)),
+          Container(
+            width: 5,
+            height: 5,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: DashboardColors.primary,
+            ),
+          ),
           const SizedBox(width: 8),
-          Expanded(child: Text(text, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, height: 1.25))),
+          Expanded(
+            child: Text(
+              text,
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.25,
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -1435,7 +2295,10 @@ class _TeamPresenceRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final visible = members.isEmpty ? mockTeamMembers.take(3).toList() : members.take(3).toList();
+    final visible =
+        members.isEmpty
+            ? mockTeamMembers.take(3).toList()
+            : members.take(3).toList();
     return _GlassBox(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -1446,12 +2309,24 @@ class _TeamPresenceRow extends StatelessWidget {
             child: Stack(
               children: [
                 for (var i = 0; i < visible.length; i++)
-                  Positioned(left: i * 22, child: _PresenceAvatar(member: visible[i])),
+                  Positioned(
+                    left: i * 22,
+                    child: _PresenceAvatar(member: visible[i]),
+                  ),
               ],
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(child: Text('3 collaborators active • Maria is viewing this draft', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))),
+          const Expanded(
+            child: Text(
+              '3 collaborators active • Maria is viewing this draft',
+              style: TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
           const _PulseDot(),
         ],
       ),
@@ -1468,8 +2343,24 @@ class _PresenceAvatar extends StatelessWidget {
     return Stack(
       clipBehavior: Clip.none,
       children: [
-        CircleAvatar(radius: 16, backgroundColor: DashboardColors.background, child: CircleAvatar(radius: 14, backgroundColor: member.color.withValues(alpha: .18), child: Text(member.avatarText, style: TextStyle(color: member.color, fontSize: 11, fontWeight: FontWeight.w900)))),
-        if (member.isOnline) const Positioned(right: -1, bottom: -1, child: _OnlineDot()),
+        CircleAvatar(
+          radius: 16,
+          backgroundColor: DashboardColors.background,
+          child: CircleAvatar(
+            radius: 14,
+            backgroundColor: member.color.withValues(alpha: .18),
+            child: Text(
+              member.avatarText,
+              style: TextStyle(
+                color: member.color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        if (member.isOnline)
+          const Positioned(right: -1, bottom: -1, child: _OnlineDot()),
       ],
     );
   }
@@ -1479,7 +2370,21 @@ class _OnlineDot extends StatelessWidget {
   const _OnlineDot();
 
   @override
-  Widget build(BuildContext context) => Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: const Color(0xFF7CFFB2), border: Border.all(color: DashboardColors.background, width: 1.5), boxShadow: [BoxShadow(color: const Color(0xFF7CFFB2).withValues(alpha: .35), blurRadius: 8)]));
+  Widget build(BuildContext context) => Container(
+    width: 8,
+    height: 8,
+    decoration: BoxDecoration(
+      shape: BoxShape.circle,
+      color: const Color(0xFF7CFFB2),
+      border: Border.all(color: DashboardColors.background, width: 1.5),
+      boxShadow: [
+        BoxShadow(
+          color: const Color(0xFF7CFFB2).withValues(alpha: .35),
+          blurRadius: 8,
+        ),
+      ],
+    ),
+  );
 }
 
 class _PulseDot extends StatelessWidget {
@@ -1490,7 +2395,21 @@ class _PulseDot extends StatelessWidget {
     tween: Tween(begin: .4, end: 1),
     duration: const Duration(milliseconds: 900),
     curve: Curves.easeOutCubic,
-    builder: (context, value, _) => Container(width: 8, height: 8, decoration: BoxDecoration(shape: BoxShape.circle, color: DashboardColors.primary.withValues(alpha: value), boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .35 * value), blurRadius: 14)])),
+    builder:
+        (context, value, _) => Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: DashboardColors.primary.withValues(alpha: value),
+            boxShadow: [
+              BoxShadow(
+                color: DashboardColors.primary.withValues(alpha: .35 * value),
+                blurRadius: 14,
+              ),
+            ],
+          ),
+        ),
   );
 }
 
@@ -1503,13 +2422,33 @@ class _AiDraftNotesCard extends StatelessWidget {
       tint: DashboardColors.secondary.withValues(alpha: .04),
       borderColor: DashboardColors.secondary.withValues(alpha: .14),
       padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-        Row(children: [Icon(Icons.notes_rounded, color: DashboardColors.secondary, size: 18), SizedBox(width: 8), Text('AI Draft Notes', style: TextStyle(color: DashboardColors.onSurface, fontSize: 14, fontWeight: FontWeight.w900))]),
-        SizedBox(height: 10),
-        _InsightLine('Clarify success criteria before deployment'),
-        _InsightLine('Attach benchmark or reference document'),
-        _InsightLine('Add one review checkpoint before final handoff'),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Row(
+            children: [
+              Icon(
+                Icons.notes_rounded,
+                color: DashboardColors.secondary,
+                size: 18,
+              ),
+              SizedBox(width: 8),
+              Text(
+                'AI Draft Notes',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 10),
+          _InsightLine('Clarify success criteria before deployment'),
+          _InsightLine('Attach benchmark or reference document'),
+          _InsightLine('Add one review checkpoint before final handoff'),
+        ],
+      ),
     );
   }
 }
@@ -1531,14 +2470,44 @@ class _SmartCreationTabs extends StatelessWidget {
               dividerColor: Colors.transparent,
               splashBorderRadius: BorderRadius.all(Radius.circular(999)),
               indicatorSize: TabBarIndicatorSize.tab,
-              indicatorPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-              indicator: BoxDecoration(borderRadius: BorderRadius.all(Radius.circular(999)), color: Color(0x2E8083FF), border: Border.fromBorderSide(BorderSide(color: DashboardColors.primary))),
+              indicatorPadding: EdgeInsets.symmetric(
+                horizontal: 4,
+                vertical: 6,
+              ),
+              indicator: BoxDecoration(
+                borderRadius: BorderRadius.all(Radius.circular(999)),
+                color: Color(0x2E8083FF),
+                border: Border.fromBorderSide(
+                  BorderSide(color: DashboardColors.primary),
+                ),
+              ),
               labelColor: DashboardColors.primary,
               unselectedLabelColor: DashboardColors.onSurfaceVariant,
-              tabs: [Tab(text: 'Overview'), Tab(text: 'Notes'), Tab(text: 'Activity'), Tab(text: 'Files'), Tab(text: 'AI')],
+              tabs: [
+                Tab(text: 'Overview'),
+                Tab(text: 'Notes'),
+                Tab(text: 'Activity'),
+                Tab(text: 'Files'),
+                Tab(text: 'AI'),
+              ],
             ),
             SizedBox(height: 10),
-            SizedBox(height: 76, child: TabBarView(children: [_TabCopy('Draft context and orchestration signals are ready.'), _TabCopy('AI notes will update as title and description change.'), _TabCopy('Creation activity appears here before deployment.'), _TabCopy('Attach docs to strengthen AI context.'), _TabCopy('AI can generate milestones, labels, and owners.')]))
+            SizedBox(
+              height: 76,
+              child: TabBarView(
+                children: [
+                  _TabCopy(
+                    'Draft context and orchestration signals are ready.',
+                  ),
+                  _TabCopy(
+                    'AI notes will update as title and description change.',
+                  ),
+                  _TabCopy('Creation activity appears here before deployment.'),
+                  _TabCopy('Attach docs to strengthen AI context.'),
+                  _TabCopy('AI can generate milestones, labels, and owners.'),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -1551,7 +2520,16 @@ class _TabCopy extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Center(child: Text(text, textAlign: TextAlign.center, style: const TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.4)));
+  Widget build(BuildContext context) => Center(
+    child: Text(
+      text,
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: DashboardColors.onSurfaceVariant,
+        height: 1.4,
+      ),
+    ),
+  );
 }
 
 class _SmartPriorityHeatmap extends StatelessWidget {
@@ -1561,19 +2539,37 @@ class _SmartPriorityHeatmap extends StatelessWidget {
   Widget build(BuildContext context) {
     return _GlassBox(
       padding: const EdgeInsets.all(14),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-        Text('Priority Load Heatmap', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w900)),
-        SizedBox(height: 12),
-        _HeatRow(label: 'High', value: .72, color: DashboardColors.error),
-        _HeatRow(label: 'Medium', value: .54, color: DashboardColors.secondary),
-        _HeatRow(label: 'Low', value: .24, color: DashboardColors.tertiary),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            'Priority Load Heatmap',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 12),
+          _HeatRow(label: 'High', value: .72, color: DashboardColors.error),
+          _HeatRow(
+            label: 'Medium',
+            value: .54,
+            color: DashboardColors.secondary,
+          ),
+          _HeatRow(label: 'Low', value: .24, color: DashboardColors.tertiary),
+        ],
+      ),
     );
   }
 }
 
 class _HeatRow extends StatelessWidget {
-  const _HeatRow({required this.label, required this.value, required this.color});
+  const _HeatRow({
+    required this.label,
+    required this.value,
+    required this.color,
+  });
   final String label;
   final double value;
   final Color color;
@@ -1582,10 +2578,32 @@ class _HeatRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 9),
-      child: Row(children: [
-        SizedBox(width: 58, child: Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))),
-        Expanded(child: ClipRRect(borderRadius: BorderRadius.circular(999), child: LinearProgressIndicator(value: value, minHeight: 7, backgroundColor: DashboardColors.surfaceHighest, valueColor: AlwaysStoppedAnimation(color)))),
-      ]),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 58,
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          Expanded(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: LinearProgressIndicator(
+                value: value,
+                minHeight: 7,
+                backgroundColor: DashboardColors.surfaceHighest,
+                valueColor: AlwaysStoppedAnimation(color),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1600,11 +2618,31 @@ class _FocusForecastCard extends StatelessWidget {
       padding: const EdgeInsets.all(14),
       tint: DashboardColors.tertiary.withValues(alpha: .04),
       borderColor: DashboardColors.tertiary.withValues(alpha: .14),
-      child: Row(children: [
-        SizedBox(width: 38, height: 38, child: CircularProgressIndicator(value: (hours / 8).clamp(.15, 1), strokeWidth: 3, color: DashboardColors.tertiary, backgroundColor: DashboardColors.surfaceHighest)),
-        const SizedBox(width: 12),
-        Expanded(child: Text('Focus Forecast • ${hours.round()}h session • score 88', style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800))),
-      ]),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 38,
+            height: 38,
+            child: CircularProgressIndicator(
+              value: (hours / 8).clamp(.15, 1),
+              strokeWidth: 3,
+              color: DashboardColors.tertiary,
+              backgroundColor: DashboardColors.surfaceHighest,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              'Focus Forecast • ${hours.round()}h session • score 88',
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -1618,38 +2656,104 @@ class _KnowledgeGraphPreview extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: SizedBox(
         height: 112,
-        child: Stack(children: const [
-          _GraphLine(left: 42, top: 32, width: 120),
-          _GraphLine(left: 156, top: 62, width: 102),
-          _GraphNode(left: 12, top: 38, label: 'Project', color: DashboardColors.primary),
-          _GraphNode(left: 130, top: 16, label: 'Tags', color: DashboardColors.secondary),
-          _GraphNode(left: 230, top: 68, label: 'Team', color: DashboardColors.tertiary),
-          Positioned(left: 8, bottom: 0, child: Text('AI maps relationships before deployment.', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11))),
-        ]),
+        child: Stack(
+          children: const [
+            _GraphLine(left: 42, top: 32, width: 120),
+            _GraphLine(left: 156, top: 62, width: 102),
+            _GraphNode(
+              left: 12,
+              top: 38,
+              label: 'Project',
+              color: DashboardColors.primary,
+            ),
+            _GraphNode(
+              left: 130,
+              top: 16,
+              label: 'Tags',
+              color: DashboardColors.secondary,
+            ),
+            _GraphNode(
+              left: 230,
+              top: 68,
+              label: 'Team',
+              color: DashboardColors.tertiary,
+            ),
+            Positioned(
+              left: 8,
+              bottom: 0,
+              child: Text(
+                'AI maps relationships before deployment.',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 11,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 class _GraphNode extends StatelessWidget {
-  const _GraphNode({required this.left, required this.top, required this.label, required this.color});
+  const _GraphNode({
+    required this.left,
+    required this.top,
+    required this.label,
+    required this.color,
+  });
   final double left;
   final double top;
   final String label;
   final Color color;
 
   @override
-  Widget build(BuildContext context) => Positioned(left: left, top: top, child: Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7), decoration: BoxDecoration(color: color.withValues(alpha: .14), borderRadius: BorderRadius.circular(999), border: Border.all(color: color.withValues(alpha: .22)), boxShadow: [BoxShadow(color: color.withValues(alpha: .16), blurRadius: 16)]), child: Text(label, style: TextStyle(color: color, fontSize: 10, fontWeight: FontWeight.w900))));
+  Widget build(BuildContext context) => Positioned(
+    left: left,
+    top: top,
+    child: Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 7),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: .14),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: .22)),
+        boxShadow: [
+          BoxShadow(color: color.withValues(alpha: .16), blurRadius: 16),
+        ],
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
+    ),
+  );
 }
 
 class _GraphLine extends StatelessWidget {
-  const _GraphLine({required this.left, required this.top, required this.width});
+  const _GraphLine({
+    required this.left,
+    required this.top,
+    required this.width,
+  });
   final double left;
   final double top;
   final double width;
 
   @override
-  Widget build(BuildContext context) => Positioned(left: left, top: top, child: Container(width: width, height: 1.2, color: DashboardColors.primary.withValues(alpha: .18)));
+  Widget build(BuildContext context) => Positioned(
+    left: left,
+    top: top,
+    child: Container(
+      width: width,
+      height: 1.2,
+      color: DashboardColors.primary.withValues(alpha: .18),
+    ),
+  );
 }
 
 class _DraftActivityTimeline extends StatelessWidget {
@@ -1659,13 +2763,23 @@ class _DraftActivityTimeline extends StatelessWidget {
   Widget build(BuildContext context) {
     return _GlassBox(
       padding: const EdgeInsets.all(16),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: const [
-        Text('Draft Activity', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w900)),
-        SizedBox(height: 12),
-        _ActivityLine('Title field initialized'),
-        _ActivityLine('AI generated draft notes'),
-        _ActivityLine('Alex assigned as owner'),
-      ]),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Text(
+            'Draft Activity',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(height: 12),
+          _ActivityLine('Title field initialized'),
+          _ActivityLine('AI generated draft notes'),
+          _ActivityLine('Alex assigned as owner'),
+        ],
+      ),
     );
   }
 }
@@ -1675,7 +2789,25 @@ class _ActivityLine extends StatelessWidget {
   final String text;
 
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(bottom: 9), child: Row(children: [const _PulseDot(), const SizedBox(width: 10), Expanded(child: Text(text, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)))]));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(bottom: 9),
+    child: Row(
+      children: [
+        const _PulseDot(),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }
 
 class _CommandPaletteButton extends StatelessWidget {
@@ -1686,7 +2818,26 @@ class _CommandPaletteButton extends StatelessWidget {
     return _GlassBox(
       padding: EdgeInsets.zero,
       borderColor: DashboardColors.primary.withValues(alpha: .18),
-      child: SizedBox(width: 52, height: 52, child: Center(child: Text('⌘K', style: TextStyle(color: DashboardColors.primary, fontSize: 15, fontWeight: FontWeight.w900, shadows: [Shadow(color: DashboardColors.primary.withValues(alpha: .45), blurRadius: 16)])))),
+      child: SizedBox(
+        width: 52,
+        height: 52,
+        child: Center(
+          child: Text(
+            '⌘K',
+            style: TextStyle(
+              color: DashboardColors.primary,
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: DashboardColors.primary.withValues(alpha: .45),
+                  blurRadius: 16,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -1703,12 +2854,18 @@ class _DesktopBackdrop extends StatelessWidget {
           Positioned(
             top: -120,
             right: -80,
-            child: _Glow(size: 420, color: DashboardColors.primary.withValues(alpha: .07)),
+            child: _Glow(
+              size: 420,
+              color: DashboardColors.primary.withValues(alpha: .07),
+            ),
           ),
           Positioned(
             bottom: -140,
             left: -100,
-            child: _Glow(size: 340, color: DashboardColors.secondary.withValues(alpha: .08)),
+            child: _Glow(
+              size: 340,
+              color: DashboardColors.secondary.withValues(alpha: .08),
+            ),
           ),
           Center(
             child: Opacity(
@@ -1734,7 +2891,11 @@ class _DesktopBackdrop extends StatelessWidget {
               ),
             ),
           ),
-          Positioned.fill(child: ColoredBox(color: DashboardColors.surfaceLowest.withValues(alpha: .40))),
+          Positioned.fill(
+            child: ColoredBox(
+              color: DashboardColors.surfaceLowest.withValues(alpha: .40),
+            ),
+          ),
         ],
       ),
     );
@@ -1744,22 +2905,34 @@ class _DesktopBackdrop extends StatelessWidget {
 class _BackdropHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
-        children: [
-          Text('Active Workspace', style: GoogleFonts.interTight(fontSize: 48, fontWeight: FontWeight.w800)),
-          const Spacer(),
-          Container(
-            width: 128,
-            height: 40,
-            decoration: BoxDecoration(color: DashboardColors.surfaceContainer, borderRadius: BorderRadius.circular(8)),
-          ),
-          const SizedBox(width: 16),
-          Container(
-            width: 128,
-            height: 40,
-            decoration: BoxDecoration(color: DashboardColors.primary, borderRadius: BorderRadius.circular(8)),
-          ),
-        ],
-      );
+    children: [
+      Text(
+        'Active Workspace',
+        style: GoogleFonts.interTight(
+          fontSize: 48,
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+      const Spacer(),
+      Container(
+        width: 128,
+        height: 40,
+        decoration: BoxDecoration(
+          color: DashboardColors.surfaceContainer,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+      const SizedBox(width: 16),
+      Container(
+        width: 128,
+        height: 40,
+        decoration: BoxDecoration(
+          color: DashboardColors.primary,
+          borderRadius: BorderRadius.circular(8),
+        ),
+      ),
+    ],
+  );
 }
 
 class _BackdropCard extends StatelessWidget {
@@ -1767,7 +2940,7 @@ class _BackdropCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => const _GlassBox(
-        padding: EdgeInsets.all(24),
-        child: SizedBox(height: 208),
-      );
+    padding: EdgeInsets.all(24),
+    child: SizedBox(height: 208),
+  );
 }

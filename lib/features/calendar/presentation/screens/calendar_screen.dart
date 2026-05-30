@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/calendar/presentation/widgets/agenda_panel.dart';
 import 'package:to_do_app/features/calendar/presentation/widgets/calendar_month_view.dart';
 import 'package:to_do_app/features/calendar/presentation/widgets/day_view.dart';
@@ -6,22 +8,25 @@ import 'package:to_do_app/features/calendar/presentation/widgets/desktop_layout.
 import 'package:to_do_app/features/calendar/presentation/widgets/mobile_layout.dart'
     as mobile;
 import 'package:to_do_app/features/calendar/presentation/widgets/week_view.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
 
 enum CalendarView { month, week, day }
 
-class CalendarScreen extends StatefulWidget {
+class CalendarScreen extends ConsumerStatefulWidget {
   const CalendarScreen({super.key});
 
   @override
-  State<CalendarScreen> createState() => _CalendarScreenState();
+  ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
 }
 
-class _CalendarScreenState extends State<CalendarScreen> {
+class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   CalendarView _view = CalendarView.month;
   DateTime _focusedDate = DateTime.now();
-  DateTime _selectedDate = DateTime.now();
+  DateTime? _selectedDate;
   DayCalendarEvent? _selectedEvent;
+  bool _agendaVisible = false;
 
   void _setView(CalendarView view) {
     setState(() => _view = view);
@@ -51,7 +56,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
     final nextDate = _shiftDate(_focusedDate, direction);
     setState(() {
       _focusedDate = nextDate;
-      _selectedDate = nextDate;
+      _selectedDate = null;
       _selectedEvent = null;
     });
   }
@@ -70,6 +75,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final tasksAsync = ref.watch(userTasksProvider);
+    final allTasks = tasksAsync.valueOrNull ?? const <NexusTask>[];
+    final selectedTasks = _selectedTasksFor(allTasks);
+    final selectedDayEvents = _dayEventsFor(selectedTasks);
+    final selectedAgendaEvents = _agendaEventsFor(selectedTasks);
+
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= 900) {
@@ -80,10 +91,30 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onToday: _goToToday,
             onPrevious: _goToPrevious,
             onNext: _goToNext,
-            calendar: _calendarContent,
+            calendar: _calendarContent(selectedDayEvents),
+            agendaVisible: _agendaVisible,
+            onToggleAgenda:
+                () => setState(() => _agendaVisible = !_agendaVisible),
             agenda:
-                _selectedEvent == null
-                    ? AgendaPanel(date: _selectedDate, events: _agendaEvents)
+                _selectedDate == null
+                    ? SelectDateAgendaPrompt(
+                      onHideAgenda:
+                          () => setState(() => _agendaVisible = false),
+                      onCreateTask: () => context.go('/tasks?newTask=1'),
+                    )
+                    : _selectedEvent == null
+                    ? AgendaPanel(
+                      date: _selectedDate!,
+                      events: selectedAgendaEvents,
+                      isLoading: tasksAsync.isLoading,
+                      errorMessage:
+                          tasksAsync.hasError
+                              ? 'Unable to load tasks for this day.'
+                              : null,
+                      onHideAgenda:
+                          () => setState(() => _agendaVisible = false),
+                      onCreateTask: () => context.go('/tasks?newTask=1'),
+                    )
                     : _EventDetailPanel(
                       event: _selectedEvent!,
                       onClose: () => setState(() => _selectedEvent = null),
@@ -99,21 +130,89 @@ class _CalendarScreenState extends State<CalendarScreen> {
             onPreviousWeek: _goToPrevious,
             onNextWeek: _goToNext,
           ),
-          timelineAgenda: DayView(
-            date: _selectedDate,
-            events: _dayEvents,
-            onEventTap: (event) => setState(() => _selectedEvent = event),
-          ),
+          timelineAgenda:
+              _selectedDate == null
+                  ? SelectDateAgendaPrompt(
+                    compact: true,
+                    onCreateTask: () => context.go('/tasks?newTask=1'),
+                  )
+                  : DayView(
+                    date: _selectedDate!,
+                    events: selectedDayEvents,
+                    onEventTap:
+                        (event) => setState(() => _selectedEvent = event),
+                  ),
           bottomNavigation: MobileBottomNavBar(
             bottomInset: MediaQuery.paddingOf(context).bottom,
           ),
+          actions: [
+            IconButton(
+              onPressed:
+                  _selectedDate == null
+                      ? null
+                      : () =>
+                          _openMobileAgenda(selectedAgendaEvents, tasksAsync),
+              icon: const Icon(Icons.view_agenda_rounded),
+            ),
+          ],
           onAdd: () {},
         );
       },
     );
   }
 
-  Widget get _calendarContent {
+  void _openMobileAgenda(
+    List<AgendaPanelEvent> events,
+    AsyncValue<List<NexusTask>> tasksAsync,
+  ) {
+    final date = _selectedDate;
+    if (date == null) return;
+
+    showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: .78,
+          minChildSize: .42,
+          maxChildSize: .92,
+          builder: (context, controller) {
+            return Container(
+              margin: const EdgeInsets.all(12),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: .94),
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(color: Colors.white.withValues(alpha: .10)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: .32),
+                    blurRadius: 36,
+                    offset: const Offset(0, 18),
+                  ),
+                ],
+              ),
+              child: AgendaPanel(
+                date: date,
+                events: events,
+                isLoading: tasksAsync.isLoading,
+                errorMessage:
+                    tasksAsync.hasError
+                        ? 'Unable to load tasks for this day.'
+                        : null,
+                onCreateTask: () => context.go('/tasks?newTask=1'),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _calendarContent(List<DayCalendarEvent> selectedDayEvents) {
     return switch (_view) {
       CalendarView.month => CalendarMonthView(
         focusedDate: _focusedDate,
@@ -126,51 +225,80 @@ class _CalendarScreenState extends State<CalendarScreen> {
         onPreviousWeek: _goToPrevious,
         onNextWeek: _goToNext,
       ),
-      CalendarView.day => DayView(
-        date: _selectedDate,
-        events: _dayEvents,
-        onEventTap: (event) => setState(() => _selectedEvent = event),
-      ),
+      CalendarView.day =>
+        _selectedDate == null
+            ? SelectDateAgendaPrompt(
+              compact: true,
+              onCreateTask: () => context.go('/tasks?newTask=1'),
+            )
+            : DayView(
+              date: _selectedDate!,
+              events: selectedDayEvents,
+              onEventTap: (event) => setState(() => _selectedEvent = event),
+            ),
     };
   }
 
-  List<DayCalendarEvent> get _dayEvents {
-    return _mockEvents.map((event) {
-      final start = DateTime(
-        _selectedDate.year,
-        _selectedDate.month,
-        _selectedDate.day,
-        event.hour,
-        event.minute,
-      );
+  List<NexusTask> _selectedTasksFor(List<NexusTask> tasks) {
+    final selectedDate = _selectedDate;
+    if (selectedDate == null) return const [];
+
+    return tasks
+        .where(
+          (task) =>
+              task.dueDate != null && _sameDay(task.dueDate!, selectedDate),
+        )
+        .toList()
+      ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));
+  }
+
+  List<DayCalendarEvent> _dayEventsFor(List<NexusTask> tasks) {
+    return tasks.map((task) {
+      final start = task.dueDate!;
       return DayCalendarEvent(
         start: start,
-        end: start.add(Duration(minutes: event.durationMinutes)),
-        title: event.title,
-        subtitle: event.subtitle,
-        color: event.color,
-        category: event.category,
-        location: event.location,
-        participants: event.participants,
+        end: start.add(const Duration(minutes: 45)),
+        title: task.title,
+        subtitle: task.description ?? task.category,
+        color: _taskColor(task),
+        category: task.category,
+        participants: const [],
       );
     }).toList();
   }
 
-  List<AgendaPanelEvent> get _agendaEvents {
-    return _mockEvents.map((event) {
+  List<AgendaPanelEvent> _agendaEventsFor(List<NexusTask> tasks) {
+    return tasks.map((task) {
       return AgendaPanelEvent(
-        start: DateTime(
-          _selectedDate.year,
-          _selectedDate.month,
-          _selectedDate.day,
-          event.hour,
-          event.minute,
-        ),
-        title: event.title,
-        subtitle: event.subtitle,
-        color: event.color,
+        start: task.dueDate!,
+        title: task.title,
+        subtitle: task.description ?? task.category,
+        color: _taskColor(task),
+        durationMinutes: 45,
+        status: task.status,
+        priority: task.priority,
+        type: _agendaType(task),
       );
     }).toList();
+  }
+
+  Color _taskColor(NexusTask task) {
+    final priority = task.priority.toLowerCase();
+    final status = task.status.toLowerCase();
+    final category = task.category.toLowerCase();
+
+    if (status.contains('complete')) return const Color(0xFF22C55E);
+    if (priority.contains('high')) return const Color(0xFFF97316);
+    if (priority.contains('low')) return const Color(0xFF06B6D4);
+    if (category.contains('meeting')) return const Color(0xFF8B5CF6);
+    return const Color(0xFF7C3AED);
+  }
+
+  String _agendaType(NexusTask task) {
+    final category = task.category.toLowerCase();
+    if (category.contains('meeting')) return 'Meeting';
+    if (category.contains('reminder')) return 'Reminder';
+    return 'Task';
   }
 
   CalendarDesktopView get _desktopView {
@@ -345,76 +473,8 @@ class _ParticipantRow extends StatelessWidget {
   }
 }
 
+bool _sameDay(DateTime a, DateTime b) =>
+    a.year == b.year && a.month == b.month && a.day == b.day;
+
 String _time(DateTime date) =>
     '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';
-
-class _MockCalendarEvent {
-  const _MockCalendarEvent({
-    required this.hour,
-    required this.minute,
-    required this.durationMinutes,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.category,
-    this.location,
-    this.participants = const [],
-  });
-
-  final int hour;
-  final int minute;
-  final int durationMinutes;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final String category;
-  final String? location;
-  final List<String> participants;
-}
-
-const _mockEvents = [
-  _MockCalendarEvent(
-    hour: 9,
-    minute: 0,
-    durationMinutes: 60,
-    title: 'Daily planning',
-    subtitle: 'Review priorities and blockers',
-    color: Color(0xFF7C3AED),
-    category: 'Focus',
-    location: 'Deep Work Room',
-    participants: ['Khoa Nguyen', 'AI Planner'],
-  ),
-  _MockCalendarEvent(
-    hour: 11,
-    minute: 30,
-    durationMinutes: 90,
-    title: 'Project sync',
-    subtitle: 'Dashboard calendar rollout',
-    color: Color(0xFF06B6D4),
-    category: 'Meeting',
-    location: 'Google Meet',
-    participants: ['Design Team', 'Product Team', 'Khoa Nguyen'],
-  ),
-  _MockCalendarEvent(
-    hour: 14,
-    minute: 0,
-    durationMinutes: 75,
-    title: 'Task review',
-    subtitle: 'Validate selected sprint items',
-    color: Color(0xFFF97316),
-    category: 'Review',
-    location: 'Sprint Board',
-    participants: ['Khoa Nguyen', 'QA Lead'],
-  ),
-  _MockCalendarEvent(
-    hour: 16,
-    minute: 15,
-    durationMinutes: 45,
-    title: 'AI follow-up',
-    subtitle: 'Generate next action list',
-    color: Color(0xFF22C55E),
-    category: 'AI',
-    location: 'Assistant Workspace',
-    participants: ['Khoa Nguyen', 'TaskFlow AI'],
-  ),
-];

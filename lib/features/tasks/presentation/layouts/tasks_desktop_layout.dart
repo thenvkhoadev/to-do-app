@@ -11,17 +11,26 @@ import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksDesktopLayout extends StatefulWidget {
-  const TasksDesktopLayout({super.key});
+  const TasksDesktopLayout({this.openNewTask = false, super.key});
+
+  final bool openNewTask;
 
   @override
   State<TasksDesktopLayout> createState() => _TasksDesktopLayoutState();
 }
 
 class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
-  int _selectedIndex = 1;
+  late int _selectedIndex;
   TasksProjectItem? _detailsItem;
 
-  void _openTaskDetails(TasksProjectItem item) => setState(() => _detailsItem = item);
+  @override
+  void initState() {
+    super.initState();
+    _selectedIndex = widget.openNewTask ? 8 : 1;
+  }
+
+  void _openTaskDetails(TasksProjectItem item) =>
+      setState(() => _detailsItem = item);
 
   void _closeTaskDetails() => setState(() => _detailsItem = null);
 
@@ -45,14 +54,17 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                     child:
                         _detailsItem != null
                             ? TaskDetailsDesktopContent(
-                              key: ValueKey('task-details-${_detailsItem!.title}'),
+                              key: ValueKey(
+                                'task-details-${_detailsItem!.title}',
+                              ),
                               item: _detailsItem!,
                               onBack: _closeTaskDetails,
                             )
                             : _selectedIndex == 1
                             ? TasksProjectsDesktopContent(
                               key: const ValueKey('tasks-projects'),
-                              onNewTask: () => setState(() => _selectedIndex = 8),
+                              onNewTask:
+                                  () => setState(() => _selectedIndex = 8),
                               onViewDetails: _openTaskDetails,
                             )
                             : _selectedIndex == 5
@@ -75,7 +87,12 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                 ),
               ],
             ),
-            if (_detailsItem == null) const Positioned(right: 28, bottom: 28, child: FloatingAIButton()),
+            if (_detailsItem == null)
+              const Positioned(
+                right: 28,
+                bottom: 28,
+                child: FloatingAIButton(),
+              ),
           ],
         );
       },

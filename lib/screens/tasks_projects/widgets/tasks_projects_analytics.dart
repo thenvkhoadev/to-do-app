@@ -53,9 +53,15 @@ class TasksProjectsCircularAnalytics extends StatelessWidget {
         children: [
           const _PanelTitle(icon: Icons.donut_large_rounded, title: 'Progress Analytics'),
           SizedBox(height: compact ? 14 : 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: metrics.map((metric) => _ProgressRing(metric: metric, size: compact ? 78 : 92)).toList(),
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final ringSize = min(compact ? 78.0 : 92.0, constraints.maxWidth / metrics.length);
+
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: metrics.map((metric) => _ProgressRing(metric: metric, size: ringSize)).toList(),
+              );
+            },
           ),
         ],
       ),
