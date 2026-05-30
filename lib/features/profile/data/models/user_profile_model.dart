@@ -70,4 +70,22 @@ class UserProfileModel {
       updatedAt: json['updated_at'] == null ? null : DateTime.tryParse(json['updated_at'].toString()),
     );
   }
+
+  int get completionRate =>
+      totalTasks == 0 ? 0 : ((completedTasks / totalTasks) * 100).round();
+
+  /// Percentage (0-100) of identity fields that are filled in.
+  int get profileCompletion {
+    final checks = <bool>[
+      (avatarUrl ?? '').trim().isNotEmpty,
+      (username ?? '').trim().isNotEmpty,
+      (fullName ?? '').trim().isNotEmpty,
+      (bio ?? '').trim().isNotEmpty,
+      email.trim().isNotEmpty,
+    ];
+    final filled = checks.where((c) => c).length;
+    return ((filled / checks.length) * 100).round();
+  }
+
+  bool get isDarkMode => themeMode.toLowerCase() == 'dark';
 }
