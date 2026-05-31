@@ -6,30 +6,32 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 // ─────────────────────────────────────────────
 // NexusColors (inline – no external dependency)
 // ─────────────────────────────────────────────
 abstract class NexusColors {
-  static const Color primary = Color(0xFFC0C1FF);
-  static const Color secondary = Color(0xFFDDB7FF);
-  static const Color tertiary = Color(0xFFADC6FF);
-  static const Color background = Color(0xFF0D1322);
-  static const Color surface = Color(0xFF0D1322);
-  static const Color surfaceContainer = Color(0xFF191F2F);
-  static const Color surfaceContainerLow = Color(0xFF151B2B);
-  static const Color surfaceContainerHigh = Color(0xFF242A3A);
-  static const Color surfaceContainerHighest = Color(0xFF2F3445);
-  static const Color surfaceVariant = Color(0xFF2F3445);
-  static const Color primaryContainer = Color(0xFF8083FF);
-  static const Color secondaryContainer = Color(0xFF6F00BE);
-  static const Color onSurface = Color(0xFFDDE2F8);
-  static const Color onSurfaceVariant = Color(0xFFC7C4D7);
-  static const Color onPrimary = Color(0xFF1000A9);
-  static const Color onPrimaryFixed = Color(0xFF07006C);
-  static const Color error = Color(0xFFFFB4AB);
-  static const Color outlineVariant = Color(0xFF464554);
-  static const Color warning = Color(0xFFFFB951);
+  // Premium purple system (Linear/Raycast/Arc inspired).
+  static const Color primary = Color(0xFFB794F6);
+  static const Color secondary = Color(0xFFD6BCFA);
+  static const Color tertiary = Color(0xFF9F7AEA);
+  static const Color background = Color(0xFF060B18);
+  static const Color surface = Color(0xFF081120);
+  static const Color surfaceContainer = Color(0xFF121A2A);
+  static const Color surfaceContainerLow = Color(0xFF0E1626);
+  static const Color surfaceContainerHigh = Color(0xFF18223A);
+  static const Color surfaceContainerHighest = Color(0xFF222D49);
+  static const Color surfaceVariant = Color(0xFF222D49);
+  static const Color primaryContainer = Color(0xFF9F7AEA);
+  static const Color secondaryContainer = Color(0xFF553C9A);
+  static const Color onSurface = Color(0xFFF5F7FF);
+  static const Color onSurfaceVariant = Color(0xFFA8B2D1);
+  static const Color onPrimary = Color(0xFF1A1033);
+  static const Color onPrimaryFixed = Color(0xFF12081F);
+  static const Color error = Color(0xFFEF4444);
+  static const Color outlineVariant = Color(0xFF2A3650);
+  static const Color warning = Color(0xFFF59E0B);
 }
 
 // ─────────────────────────────────────────────
@@ -41,13 +43,26 @@ class UserProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final vm = _ProfileVM.from(ref.watch(userProfileProvider).valueOrNull);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 1024;
-        return isDesktop
-            ? _DesktopProfileScreen(vm: vm)
-            : _MobileProfileScreen(vm: vm);
-      },
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Color(0xFF060B18),
+            Color(0xFF081120),
+            Color(0xFF0B1730),
+          ],
+        ),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isDesktop = constraints.maxWidth >= 1024;
+          return isDesktop
+              ? _DesktopProfileScreen(vm: vm)
+              : _MobileProfileScreen(vm: vm);
+        },
+      ),
     );
   }
 }
@@ -1429,7 +1444,7 @@ class _MetricCard extends StatelessWidget {
     required this.label,
     required this.value,
     this.valueColor = NexusColors.onSurface,
-    this.valueSize = 36,
+    this.valueSize = 44,
     this.trendText,
     this.trendColor,
     this.trendIcon,
@@ -1462,12 +1477,12 @@ class _MetricCard extends StatelessWidget {
             label.toUpperCase(),
             style: const TextStyle(
               color: NexusColors.onSurfaceVariant,
-              fontSize: 10,
+              fontSize: 12,
               letterSpacing: 1.5,
               fontFamily: 'JetBrains Mono',
             ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 18),
           if (progress != null)
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1480,7 +1495,7 @@ class _MetricCard extends StatelessWidget {
                       value,
                       style: TextStyle(
                         color: valueColor,
-                        fontSize: 24,
+                        fontSize: 32,
                         fontWeight: FontWeight.w700,
                         fontFamily: 'Geist',
                       ),
@@ -1489,19 +1504,19 @@ class _MetricCard extends StatelessWidget {
                       progressDetail ?? '',
                       style: const TextStyle(
                         color: NexusColors.onSurfaceVariant,
-                        fontSize: 10,
+                        fontSize: 12,
                         letterSpacing: 1,
                         fontFamily: 'JetBrains Mono',
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                const SizedBox(height: 12),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(999),
                   child: LinearProgressIndicator(
                     value: progress!.clamp(0, 1),
-                    minHeight: 6,
+                    minHeight: 8,
                     backgroundColor: NexusColors.surfaceContainerHighest,
                     valueColor:
                         const AlwaysStoppedAnimation(NexusColors.primary),
@@ -1528,15 +1543,15 @@ class _MetricCard extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (trendIcon != null) ...[
-                        Icon(trendIcon, color: trendColor, size: 16),
+                        Icon(trendIcon, color: trendColor, size: 18),
                         const SizedBox(width: 4),
                       ],
                       Text(
                         trendText!,
                         style: TextStyle(
                           color: trendColor,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -5316,7 +5331,7 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
             const SizedBox(height: 24),
             Row(
               children: [
-                _CompletionRing(percent: pct, size: 96),
+                _CompletionRing(percent: pct, size: 104),
                 const SizedBox(width: 20),
                 Expanded(
                   child: Column(
@@ -5326,19 +5341,39 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
                         pct == 100 ? 'All set!' : 'Almost there!',
                         style: const TextStyle(
                           color: NexusColors.onSurface,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Text(
                         pct == 100
                             ? 'Your profile is fully set up.'
                             : 'Add ${missing.label.toLowerCase()} to reach 100%.',
                         style: const TextStyle(
                           color: NexusColors.onSurfaceVariant,
-                          fontSize: 12,
+                          fontSize: 13,
                           height: 1.4,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(999),
+                        child: LinearProgressIndicator(
+                          value: pct / 100,
+                          minHeight: 6,
+                          backgroundColor: NexusColors.surfaceContainerHighest,
+                          valueColor: const AlwaysStoppedAnimation(
+                              NexusColors.primary),
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '${items.where((i) => i.done).length} of ${items.length} steps complete',
+                        style: const TextStyle(
+                          color: NexusColors.onSurfaceVariant,
+                          fontSize: 11,
+                          fontFamily: 'JetBrains Mono',
                         ),
                       ),
                     ],
@@ -5347,10 +5382,20 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 24),
+            Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+            const SizedBox(height: 20),
             for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const SizedBox(height: 16),
+              if (i > 0) const SizedBox(height: 18),
               _CompletionChecklistItem(item: items[i]),
             ],
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: _GradientButton(
+                label: pct == 100 ? 'VIEW PROFILE' : 'COMPLETE PROFILE',
+                onTap: () => _showEditProfileSheet(context, vm),
+              ),
+            ),
           ],
         ),
       ),
@@ -5425,13 +5470,14 @@ class _GlassPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.03),
+        color: const Color(0xFF12182A).withValues(alpha: 0.88),
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha:0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
           BoxShadow(
-            color: NexusColors.primary.withValues(alpha:0.05),
-            blurRadius: 30,
+            color: Colors.black.withValues(alpha: 0.35),
+            blurRadius: 32,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -5471,14 +5517,16 @@ class _GradientButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              NexusColors.primaryContainer,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [
+                NexusColors.primaryContainer,
               NexusColors.secondaryContainer,
             ],
           ),
@@ -5492,6 +5540,7 @@ class _GradientButton extends StatelessWidget {
         ),
         child: Text(
           label,
+          textAlign: TextAlign.center,
           style: const TextStyle(
             color: Colors.white,
             fontSize: 10,
@@ -5500,6 +5549,7 @@ class _GradientButton extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
       ),
     );
   }
@@ -5512,17 +5562,19 @@ class _GlassButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        decoration: BoxDecoration(
-          color: NexusColors.error.withValues(alpha: 0.10),
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: NexusColors.error.withValues(alpha: 0.28)),
-        ),
-        child: Text(
-          label,
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          decoration: BoxDecoration(
+            color: NexusColors.error.withValues(alpha: 0.10),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: NexusColors.error.withValues(alpha: 0.28)),
+          ),
+          child: Text(
+            label,
           style: const TextStyle(
             color: NexusColors.error,
             fontSize: 10,
@@ -5531,6 +5583,7 @@ class _GlassButton extends StatelessWidget {
             fontWeight: FontWeight.w600,
           ),
         ),
+      ),
       ),
     );
   }
@@ -5579,13 +5632,27 @@ class _QuickActionsBar extends StatelessWidget {
                 _QuickActionButton(
                   icon: Icons.add_circle_outline_rounded,
                   label: 'New Task',
-                  onTap: () => context.go('/tasks'),
+                  onTap: () {
+                    final nav = SectionNavigationScope.maybeOf(context);
+                    if (nav != null) {
+                      nav.onNewTask();
+                    } else {
+                      context.go('/tasks?newTask=1');
+                    }
+                  },
                 ),
                 _QuickActionButton(
                   icon: Icons.timer_outlined,
                   label: 'Start Focus',
                   filled: true,
-                  onTap: () => context.go('/tasks'),
+                  onTap: () {
+                    final nav = SectionNavigationScope.maybeOf(context);
+                    if (nav != null) {
+                      nav.onProjects();
+                    } else {
+                      context.go('/tasks');
+                    }
+                  },
                 ),
                 _QuickActionButton(
                   icon: Icons.ios_share_rounded,
@@ -6326,7 +6393,7 @@ class _DeepFocusCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, c) {
                 final cols = c.maxWidth > 480 ? 4 : 2;
@@ -6334,34 +6401,48 @@ class _DeepFocusCard extends StatelessWidget {
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
                   crossAxisCount: cols,
-                  mainAxisSpacing: 16,
-                  crossAxisSpacing: 16,
-                  childAspectRatio: 2.2,
+                  mainAxisSpacing: 20,
+                  crossAxisSpacing: 20,
+                  childAspectRatio: 1.55,
                   children: [
                     for (final it in items)
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            it.$1,
-                            style: const TextStyle(
-                              color: NexusColors.onSurfaceVariant,
-                              fontSize: 9,
-                              letterSpacing: 1,
-                              fontFamily: 'JetBrains Mono',
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.03),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.06)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              it.$1,
+                              style: const TextStyle(
+                                color: NexusColors.onSurfaceVariant,
+                                fontSize: 11,
+                                letterSpacing: 1.2,
+                                fontFamily: 'JetBrains Mono',
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            it.$2,
-                            style: TextStyle(
-                              color: it.$3,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w700,
+                            const SizedBox(height: 8),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                it.$2,
+                                style: TextStyle(
+                                  color: it.$3,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w700,
+                                  fontFamily: 'Geist',
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                   ],
                 );
@@ -6502,11 +6583,24 @@ class _SmartRecommendationsCard extends StatelessWidget {
           'Build a daily streak to compound your momentum.',
           const Color(0xFF4ADE80)));
     }
-    if (recs.isEmpty) {
-      recs.add((Icons.verified_rounded,
-          'Great balance — keep your current rhythm going.',
-          const Color(0xFF4ADE80)));
-    }
+    // Evergreen recommendations (always shown).
+    recs.addAll(<(IconData, String, Color)>[
+      (Icons.bolt_rounded,
+          'Protect your peak window 08:30–11:15 for deep work.',
+          NexusColors.primary),
+      (Icons.coffee_rounded,
+          'Add a 15-minute recovery break between deep blocks.',
+          const Color(0xFF4ADE80)),
+      (Icons.notifications_off_rounded,
+          'Mute notifications during focus sessions to cut context switches.',
+          NexusColors.secondary),
+      (Icons.water_drop_rounded,
+          'Hydrate and stand up every 90 minutes to sustain focus.',
+          const Color(0xFF60A5FA)),
+      (Icons.nightlight_round,
+          'Wind down screens an hour before bed to improve next-day focus.',
+          const Color(0xFFF59E0B)),
+    ]);
     return Container(
       decoration: BoxDecoration(
         color: NexusColors.surfaceContainerLow,
@@ -6880,6 +6974,23 @@ class _LearningProgressCard extends StatelessWidget {
                         style: TextStyle(
                             color: NexusColors.onSurfaceVariant,
                             fontSize: 10,
+                            letterSpacing: 1,
+                            fontFamily: 'JetBrains Mono')),
+                  ],
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: const [
+                    Text('Quantum Computing',
+                        style: TextStyle(
+                            color: NexusColors.primary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700)),
+                    SizedBox(height: 2),
+                    Text('CURRENT FOCUS',
+                        style: TextStyle(
+                            color: NexusColors.onSurfaceVariant,
+                            fontSize: 9,
                             letterSpacing: 1,
                             fontFamily: 'JetBrains Mono')),
                   ],

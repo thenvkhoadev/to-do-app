@@ -754,19 +754,24 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 !item.isDone;
                                                           });
                                                         },
-                                                        child: Icon(
-                                                          item.isDone
-                                                              ? Icons
-                                                                  .check_box_rounded
-                                                              : Icons
-                                                                  .check_box_outline_blank_rounded,
-                                                          color:
+                                                        child: MouseRegion(
+                                                          cursor:
+                                                              SystemMouseCursors
+                                                                  .click,
+                                                          child: Icon(
+                                                            item.isDone
+                                                                ? Icons
+                                                                    .check_box_rounded
+                                                                : Icons
+                                                                    .check_box_outline_blank_rounded,
+                                                            color:
                                                               item.isDone
                                                                   ? DashboardColors
                                                                       .primary
                                                                   : DashboardColors
                                                                       .outline,
                                                           size: 20,
+                                                        ),
                                                         ),
                                                       ),
                                                       const SizedBox(width: 12),
@@ -878,10 +883,12 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                 _isAddingSubtask = true;
                                               });
                                             },
-                                            child: _GlassBox(
-                                              dashed: true,
-                                              padding: const EdgeInsets.all(12),
-                                              child: Row(
+                                            child: MouseRegion(
+                                              cursor: SystemMouseCursors.click,
+                                              child: _GlassBox(
+                                                dashed: true,
+                                                padding: const EdgeInsets.all(12),
+                                                child: Row(
                                                 children: const [
                                                   Icon(
                                                     Icons.add_rounded,
@@ -903,6 +910,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               ),
                                             ),
                                           ),
+                                        ),
                                         const SizedBox(height: 24),
                                         const _SmartCreationTabs(),
                                       ],
@@ -997,7 +1005,11 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                   priority;
                                                             });
                                                           },
-                                                          child: Container(
+                                                          child: MouseRegion(
+                                                            cursor:
+                                                                SystemMouseCursors
+                                                                    .click,
+                                                            child: Container(
                                                             margin:
                                                                 const EdgeInsets.symmetric(
                                                                   horizontal: 2,
@@ -1066,6 +1078,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                               ),
                                                             ),
                                                           ),
+                                                          ),
                                                         ),
                                                       );
                                                     }).toList(),
@@ -1091,7 +1104,11 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                         GestureDetector(
                                                           onTap:
                                                               _openDatePicker,
-                                                          child: _GlassBox(
+                                                          child: MouseRegion(
+                                                            cursor:
+                                                                SystemMouseCursors
+                                                                    .click,
+                                                            child: _GlassBox(
                                                             padding:
                                                                 const EdgeInsets.all(
                                                                   12,
@@ -1129,6 +1146,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                               ],
                                                             ),
                                                           ),
+                                                          ),
                                                         ),
                                                       ],
                                                     ),
@@ -1149,7 +1167,11 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                         GestureDetector(
                                                           onTap:
                                                               _openEstimatePicker,
-                                                          child: _GlassBox(
+                                                          child: MouseRegion(
+                                                            cursor:
+                                                                SystemMouseCursors
+                                                                    .click,
+                                                            child: _GlassBox(
                                                             padding:
                                                                 const EdgeInsets.all(
                                                                   12,
@@ -1184,6 +1206,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 ),
                                                               ],
                                                             ),
+                                                          ),
                                                           ),
                                                         ),
                                                       ],
@@ -1299,7 +1322,10 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                             },
                                                           );
                                                         },
-                                                        child: const _AddTag(),
+                                                        child: const MouseRegion(
+                                                          cursor: SystemMouseCursors.click,
+                                                          child: _AddTag(),
+                                                        ),
                                                       ),
                                                     ],
                                                   ),

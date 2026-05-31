@@ -44,6 +44,7 @@ class _TasksProjectsQuickActionButtonState extends State<TasksProjectsQuickActio
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
+      cursor: SystemMouseCursors.click,
       child: AnimatedScale(
         scale: _hovered ? 1.08 : 1,
         duration: const Duration(milliseconds: 160),

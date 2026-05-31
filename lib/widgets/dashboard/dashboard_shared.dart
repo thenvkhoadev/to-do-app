@@ -395,6 +395,29 @@ class ProfileNavigationScope extends InheritedWidget {
       onProfileSelected != oldWidget.onProfileSelected;
 }
 
+/// Lets embedded panes (e.g. the profile) switch dashboard sections
+/// (New Task / Projects board) without losing the dashboard shell.
+class SectionNavigationScope extends InheritedWidget {
+  const SectionNavigationScope({
+    required this.onNewTask,
+    required this.onProjects,
+    required super.child,
+    super.key,
+  });
+
+  final VoidCallback onNewTask;
+  final VoidCallback onProjects;
+
+  static SectionNavigationScope? maybeOf(BuildContext context) {
+    return context
+        .dependOnInheritedWidgetOfExactType<SectionNavigationScope>();
+  }
+
+  @override
+  bool updateShouldNotify(SectionNavigationScope oldWidget) =>
+      onNewTask != oldWidget.onNewTask || onProjects != oldWidget.onProjects;
+}
+
 class ProfileAvatar extends StatelessWidget {
   const ProfileAvatar({
     this.radius = 18,
@@ -475,12 +498,15 @@ class ProfileAvatar extends StatelessWidget {
 
     return Tooltip(
       message: 'Open profile',
-      child: GestureDetector(
-        onTap:
-            onTap ??
-            ProfileNavigationScope.maybeOf(context) ??
-            () => context.go('/profile'),
-        child: content,
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTap:
+              onTap ??
+              ProfileNavigationScope.maybeOf(context) ??
+              () => context.go('/profile'),
+          child: content,
+        ),
       ),
     );
   }

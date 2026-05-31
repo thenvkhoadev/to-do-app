@@ -35,6 +35,7 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
     return MouseRegion(
       onEnter: (_) => _setHover(true),
       onExit: (_) => _setHover(false),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: widget.onTap,
         onTapDown: (_) => setState(() => _pressed = true),
@@ -363,6 +364,7 @@ class _AddProjectTile extends StatelessWidget {
     return MouseRegion(
       onEnter: (_) => onHover(true),
       onExit: (_) => onHover(false),
+      cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
         child: TasksProjectsGlass(

@@ -84,7 +84,11 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                   key: ValueKey('support'),
                   embeddedInDashboard: true,
                 ),
-                7 => const _ProfilePane(key: ValueKey('profile')),
+                7 => _ProfilePane(
+                  key: const ValueKey('profile'),
+                  onNewTask: () => setState(() => _selectedIndex = 8),
+                  onProjects: () => setState(() => _selectedIndex = 1),
+                ),
                 8 => NewTasksDesktopLayout(
                   key: const ValueKey('new-task'),
                   onClose: () => setState(() => _selectedIndex = 0),
@@ -134,12 +138,24 @@ class _DashboardMainPane extends StatelessWidget {
 }
 
 class _ProfilePane extends StatelessWidget {
-  const _ProfilePane({super.key});
+  const _ProfilePane({super.key, this.onNewTask, this.onProjects});
+
+  final VoidCallback? onNewTask;
+  final VoidCallback? onProjects;
 
   @override
   Widget build(BuildContext context) {
-    return const Column(
-      children: [DesktopTopbar(), Expanded(child: UserProfileScreen())],
+    return Column(
+      children: [
+        const DesktopTopbar(),
+        Expanded(
+          child: SectionNavigationScope(
+            onNewTask: onNewTask ?? () {},
+            onProjects: onProjects ?? () {},
+            child: const UserProfileScreen(),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -420,12 +436,7 @@ class DesktopSidebar extends StatelessWidget {
                 onTap: () => onSelected(6),
               ),
               const SizedBox(height: 4),
-              _SidebarItem(
-                icon: Icons.logout_rounded,
-                label: 'Sign Out',
-                active: false,
-                onTap: () => signOutDashboard(context),
-              ),
+              _SignOutButton(onTap: () => signOutDashboard(context)),
             ],
           ),
         ),
@@ -449,16 +460,17 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fg = active ? DashboardColors.primary : DashboardColors.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color:
-            active
-                ? DashboardColors.primary.withValues(alpha: .1)
-                : Colors.transparent,
+        color: active
+            ? DashboardColors.primary.withValues(alpha: .1)
+            : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
+          mouseCursor: SystemMouseCursors.click,
           onTap: onTap,
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
@@ -473,26 +485,96 @@ class _SidebarItem extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(
-                  icon,
-                  color:
-                      active
-                          ? DashboardColors.primary
-                          : DashboardColors.onSurfaceVariant,
-                ),
+                Icon(icon, color: fg),
                 const SizedBox(width: 12),
                 Text(
                   label,
                   style: TextStyle(
-                    color:
-                        active
-                            ? DashboardColors.primary
-                            : DashboardColors.onSurfaceVariant,
+                    color: fg,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Premium glass Sign Out button with hover glow + pressed states.
+class _SignOutButton extends StatefulWidget {
+  const _SignOutButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  State<_SignOutButton> createState() => _SignOutButtonState();
+}
+
+class _SignOutButtonState extends State<_SignOutButton> {
+  bool _hover = false;
+  bool _pressed = false;
+
+  static const _pink = Color(0xFFFF788C); // rgba(255,120,140)
+
+  @override
+  Widget build(BuildContext context) {
+    final bgAlpha = _pressed ? 0.28 : (_hover ? 0.20 : 0.12);
+    final borderAlpha = _pressed ? 0.55 : (_hover ? 0.45 : 0.28);
+    final textColor = _pressed
+        ? Colors.white
+        : (_hover ? const Color(0xFFFFF4F7) : const Color(0xFFFFD6E0));
+    final iconColor = _pressed
+        ? Colors.white
+        : (_hover ? const Color(0xFFFFD6E0) : const Color(0xFFFFB7C8));
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTapDown: (_) => setState(() => _pressed = true),
+        onTapUp: (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOut,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          decoration: BoxDecoration(
+            color: _pink.withValues(alpha: bgAlpha),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: _pink.withValues(alpha: borderAlpha)),
+            boxShadow: _pressed
+                ? [
+                    BoxShadow(
+                      color: _pink.withValues(alpha: 0.15),
+                      blurRadius: 12,
+                    ),
+                  ]
+                : _hover
+                    ? [
+                        BoxShadow(
+                          color: _pink.withValues(alpha: 0.20),
+                          blurRadius: 24,
+                        ),
+                      ]
+                    : null,
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, color: iconColor, size: 20),
+              const SizedBox(width: 12),
+              Text(
+                'Sign Out',
+                style: TextStyle(
+                  color: textColor,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
           ),
         ),
       ),
