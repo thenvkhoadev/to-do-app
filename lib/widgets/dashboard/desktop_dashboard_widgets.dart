@@ -406,7 +406,7 @@ class DesktopSidebar extends StatelessWidget {
                 expanded: true,
                 onPressed: () => onSelected(8),
               ),
-              const SizedBox(height: 22),
+              const SizedBox(height: 12),
               _SidebarItem(
                 icon: Icons.settings_rounded,
                 label: 'Settings',
@@ -418,6 +418,13 @@ class DesktopSidebar extends StatelessWidget {
                 label: 'Support',
                 active: selectedIndex == 6,
                 onTap: () => onSelected(6),
+              ),
+              const SizedBox(height: 4),
+              _SidebarItem(
+                icon: Icons.logout_rounded,
+                label: 'Sign Out',
+                active: false,
+                onTap: () => signOutDashboard(context),
               ),
             ],
           ),
