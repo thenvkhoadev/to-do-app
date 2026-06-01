@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class MobileDashboardLayout extends StatelessWidget {
@@ -40,6 +41,11 @@ class MobileDashboardLayout extends StatelessWidget {
           child: const FloatingActionTaskButton(),
         ),
         Positioned(
+          right: 24,
+          bottom: 166 + bottomInset,
+          child: const AIAssistantWidget(),
+        ),
+        Positioned(
           left: 0,
           right: 0,
           bottom: 0,
@@ -60,11 +66,37 @@ class MobileDashboardContent extends StatelessWidget {
       children: [
         MobileHeroSection(),
         SizedBox(height: DashboardSpacing.md),
+        XPLevelCard(),
+        SizedBox(height: DashboardSpacing.md),
+        QuickActionsGrid(),
+        SizedBox(height: DashboardSpacing.md),
         FocusProgressCard(),
+        SizedBox(height: DashboardSpacing.md),
+        CurrentFocusSessionCard(),
         SizedBox(height: DashboardSpacing.md),
         FocusTimerCard(),
         SizedBox(height: DashboardSpacing.md),
+        AIInsightsPanel(),
+        SizedBox(height: DashboardSpacing.md),
+        WeeklySummaryCard(),
+        SizedBox(height: DashboardSpacing.md),
         AnalyticsCard(),
+        SizedBox(height: DashboardSpacing.md),
+        ActivityHeatmapCard(),
+        SizedBox(height: DashboardSpacing.md),
+        QuarterGoalsCard(),
+        SizedBox(height: DashboardSpacing.md),
+        DailyChallengeCard(),
+        SizedBox(height: DashboardSpacing.md),
+        TeamActivityCard(),
+        SizedBox(height: DashboardSpacing.md),
+        ProjectHealthOverviewCard(),
+        SizedBox(height: DashboardSpacing.md),
+        AchievementsCard(),
+        SizedBox(height: DashboardSpacing.md),
+        KnowledgeHubCard(),
+        SizedBox(height: DashboardSpacing.md),
+        FocusAudioCard(),
         SizedBox(height: DashboardSpacing.md),
         _DashboardMobileProjectsSection(),
         SizedBox(height: DashboardSpacing.md),

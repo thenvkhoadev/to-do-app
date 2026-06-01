@@ -15,6 +15,7 @@ import 'package:to_do_app/screens/task_details/task_details_desktop_content.dart
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class DesktopDashboardLayout extends StatefulWidget {
@@ -66,6 +67,10 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                           key: const ValueKey('dashboard-main'),
                           onProfileTap:
                               () => setState(() => _selectedIndex = 7),
+                          onNewTask: () => setState(() => _selectedIndex = 8),
+                          onAskAI: () => setState(() => _selectedIndex = 2),
+                          onSchedule: () => setState(() => _selectedIndex = 3),
+                          onAnalytics: () => setState(() => _selectedIndex = 4),
                         ),
                         1 => _ProjectsBoardPane(
                           key: const ValueKey('projects-board'),
@@ -112,9 +117,20 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
 }
 
 class _DashboardMainPane extends StatelessWidget {
-  const _DashboardMainPane({super.key, required this.onProfileTap});
+  const _DashboardMainPane({
+    super.key,
+    required this.onProfileTap,
+    required this.onNewTask,
+    required this.onAskAI,
+    required this.onSchedule,
+    required this.onAnalytics,
+  });
 
   final VoidCallback onProfileTap;
+  final VoidCallback onNewTask;
+  final VoidCallback onAskAI;
+  final VoidCallback onSchedule;
+  final VoidCallback onAnalytics;
 
   @override
   Widget build(BuildContext context) {
@@ -122,20 +138,34 @@ class _DashboardMainPane extends StatelessWidget {
       children: [
         DesktopTopbar(onProfileTap: onProfileTap),
         Expanded(
-          child: CustomScrollView(
-            slivers: [
-              SliverPadding(
-                padding: const EdgeInsets.all(DashboardSpacing.lg),
-                sliver: SliverToBoxAdapter(
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(
-                        maxWidth: DashboardSpacing.desktopMaxWidth,
+          child: Stack(
+            children: [
+              CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: const EdgeInsets.all(DashboardSpacing.lg),
+                    sliver: SliverToBoxAdapter(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            maxWidth: DashboardSpacing.desktopMaxWidth,
+                          ),
+                          child: _DesktopDashboardContent(
+                            onNewTask: onNewTask,
+                            onAskAI: onAskAI,
+                            onSchedule: onSchedule,
+                            onAnalytics: onAnalytics,
+                          ),
+                        ),
                       ),
-                      child: const _DesktopDashboardContent(),
                     ),
                   ),
-                ),
+                ],
+              ),
+              const Positioned(
+                right: DashboardSpacing.lg,
+                bottom: DashboardSpacing.lg,
+                child: AIAssistantWidget(),
               ),
             ],
           ),
@@ -267,7 +297,17 @@ class _DashboardSectionPlaceholder extends StatelessWidget {
 }
 
 class _DesktopDashboardContent extends StatelessWidget {
-  const _DesktopDashboardContent();
+  const _DesktopDashboardContent({
+    required this.onNewTask,
+    required this.onAskAI,
+    required this.onSchedule,
+    required this.onAnalytics,
+  });
+
+  final VoidCallback onNewTask;
+  final VoidCallback onAskAI;
+  final VoidCallback onSchedule;
+  final VoidCallback onAnalytics;
 
   @override
   Widget build(BuildContext context) {
@@ -275,6 +315,13 @@ class _DesktopDashboardContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         const DashboardHeader(),
+        const SizedBox(height: DashboardSpacing.md),
+        QuickActionsGrid(
+          onNewTask: onNewTask,
+          onAskAI: onAskAI,
+          onSchedule: onSchedule,
+          onAnalytics: onAnalytics,
+        ),
         const SizedBox(height: DashboardSpacing.lg),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -284,15 +331,37 @@ class _DesktopDashboardContent extends StatelessWidget {
                 children: [
                   FocusScoreCard(),
                   SizedBox(height: DashboardSpacing.md),
+                  CurrentFocusSessionCard(),
+                  SizedBox(height: DashboardSpacing.md),
                   AIRecommendationCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  AIInsightsPanel(),
+                  SizedBox(height: DashboardSpacing.md),
+                  WeeklySummaryCard(),
                   SizedBox(height: DashboardSpacing.md),
                   ProductivityChartCard(),
                   SizedBox(height: DashboardSpacing.md),
+                  QuarterGoalsCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  ActivityHeatmapCard(),
+                  SizedBox(height: DashboardSpacing.md),
                   UpcomingScheduleCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  DailyChallengeCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  TeamActivityCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  ProjectHealthOverviewCard(),
                   SizedBox(height: DashboardSpacing.md),
                   ActivityTimelineCard(),
                   SizedBox(height: DashboardSpacing.md),
+                  AchievementsCard(),
+                  SizedBox(height: DashboardSpacing.md),
                   InsightCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  KnowledgeHubCard(),
+                  SizedBox(height: DashboardSpacing.md),
+                  FocusAudioCard(),
                 ],
               );
             }
@@ -305,14 +374,46 @@ class _DesktopDashboardContent extends StatelessWidget {
                   child: Column(
                     children: [
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(child: FocusScoreCard()),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                FocusScoreCard(),
+                                SizedBox(height: DashboardSpacing.md),
+                                CurrentFocusSessionCard(),
+                              ],
+                            ),
+                          ),
                           SizedBox(width: DashboardSpacing.md),
-                          Expanded(child: AIRecommendationCard()),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                AIRecommendationCard(),
+                                SizedBox(height: DashboardSpacing.md),
+                                AIInsightsPanel(),
+                              ],
+                            ),
+                          ),
                         ],
                       ),
                       SizedBox(height: DashboardSpacing.md),
-                      ProductivityChartCard(),
+                      WeeklySummaryCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(flex: 3, child: ProductivityChartCard()),
+                          SizedBox(width: DashboardSpacing.md),
+                          Expanded(flex: 2, child: ActivityHeatmapCard()),
+                        ],
+                      ),
+                      SizedBox(height: DashboardSpacing.md),
+                      QuarterGoalsCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      KnowledgeHubCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      FocusAudioCard(),
                     ],
                   ),
                 ),
@@ -323,7 +424,15 @@ class _DesktopDashboardContent extends StatelessWidget {
                     children: [
                       UpcomingScheduleCard(),
                       SizedBox(height: DashboardSpacing.md),
+                      DailyChallengeCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      TeamActivityCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      ProjectHealthOverviewCard(),
+                      SizedBox(height: DashboardSpacing.md),
                       ActivityTimelineCard(),
+                      SizedBox(height: DashboardSpacing.md),
+                      AchievementsCard(),
                       SizedBox(height: DashboardSpacing.md),
                       InsightCard(),
                     ],
@@ -626,6 +735,8 @@ class DesktopTopbar extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               const _TopIcon(icon: Icons.bolt_rounded),
+              const SizedBox(width: 12),
+              const XPLevelCard(),
               const SizedBox(width: 12),
               ProfileAvatar(onTap: onProfileTap, showUsername: true),
             ],
