@@ -1,223 +1,261 @@
 # NEXUS AI
 
-**NEXUS AI** là workspace productivity cao cấp dùng AI cho quản lý task, focus, analytics và recommendation thông minh, với xác thực bằng **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
+**NEXUS AI** là workspace năng suất (productivity) cao cấp thế hệ mới, tích hợp Trí tuệ Nhân tạo (AI) giúp quản lý công việc, đo lường độ tập trung (focus metric), phân tích hiệu suất chuyên sâu và đưa ra gợi ý thông minh. Dự án tích hợp hệ thống xác thực bảo mật qua **Supabase Auth**, đồng bộ dữ liệu Realtime và cấu hình đa môi trường linh hoạt thông qua tệp tin **`.env`**.
 
-> Ghi chú:
+> **Ghi chú quan trọng:**
 >
-> - Package name hiện tại là `to_do_app`.
-> - Tên app trong code (ví dụ `AppConstants.appName`) là **NEXUS AI**.
+> - Package name hiện tại của dự án: `to_do_app`.
+> - Tên thương hiệu hiển thị trên UI ứng dụng: **NEXUS AI**.
+
+---
 
 ## Mục lục
 
-- [Tính năng](#tính-năng)
-- [Luồng ứng dụng](#luồng-ứng-dụng)
-- [Tech stack](#tech-stack)
-- [Cấu trúc thư mục](#cấu-trúc-thư-mục)
+- [Tính năng nổi bật](#tính-năng-nổi-bật)
+- [Kiến trúc luồng & Điều hướng](#kiến-trúc-luồng--điều-hướng)
+- [Hệ thống Tech Stack](#hệ-thống-tech-stack)
+- [Cấu trúc thư mục dự án](#cấu-trúc-thư-mục-dự-án)
 - [Cấu hình môi trường](#cấu-hình-môi-trường)
-- [Supabase: schema + bảo mật](#supabase-schema--bảo-mật)
-- [Chạy dự án](#chạy-dự-án)
-- [Troubleshooting](#troubleshooting)
-- [Ghi chú bảo mật](#ghi-chú-bảo-mật)
+- [Supabase: Database Schema & Bảo mật](#supabase-database-schema--bảo-mật)
+- [Hướng dẫn chạy dự án](#hướng-dẫn-chạy-dự-án)
+- [Các lệnh phát triển hữu ích](#các-lệnh-phát-triển-hữu-ích)
+- [Xử lý sự cố (Troubleshooting)](#xử-lý-sự-cố-troubleshooting)
+- [Bảo mật & Lưuý khác](#bảo-mật--lưu-ý-khác)
 
-## Tính năng
+---
 
-- Landing page (marketing) + điều hướng sang đăng nhập.
-- Đăng nhập / đăng ký bằng email & password (Supabase).
-- Dashboard sau khi đăng nhập (Home / Tasks / AI / Calendar / Profile; một số màn hình hiện tại mang tính demo UI).
-- Mẫu schema Supabase: bảng `users`, `tasks`, RLS policies và trigger tạo profile.
+## Tính năng nổi bật
 
-## Luồng ứng dụng
+NEXUS AI cung cấp một bộ giải pháp quản lý công việc hoàn chỉnh và cao cấp với các tính năng vượt trội:
 
-Entrypoint hiện tại dùng `MaterialApp.router` + `GoRouter` (xem `lib/app.dart`, `lib/core/router/app_router.dart`). Router sẽ tự redirect dựa trên trạng thái đăng nhập Supabase session.
+### 1. Trí tuệ nhân tạo (AI-Powered)
+- **AI Suggestion Banner**: Đưa ra các gợi ý hành động hoặc nhiệm vụ thông minh dựa trên lịch sử hoạt động của người dùng.
+- **AI Summary Block**: Tự động tóm tắt tiến độ công việc, chỉ ra các nút thắt cổ chai hiệu suất.
+- **Smart Progress Timeline**: Trực quan hóa tiến độ hoàn thành mục tiêu thông qua dòng thời gian thông minh do AI tối ưu.
+- **AI Insights Panel**: Phân tích sâu các thói quen làm việc và đề xuất lịch trình hoạt động tối ưu.
+- **Floating AI Button**: Nút trợ lý AI lơ lửng luôn sẵn sàng để nhận lệnh hoặc giải đáp nhanh cho người dùng.
+
+### 2. Quản lý tác vụ chuyên nghiệp (Advanced Task Management)
+- **Interactive Kanban Board**: Hỗ trợ kéo thả và tổ chức công việc theo trạng thái (`todo`, `in_progress`, `done`).
+- **Detail Task Side Panel**: Bảng chi tiết tác vụ trượt mượt mà cho phép chỉnh sửa tiêu đề, mô tả, mức độ ưu tiên (`low`, `medium`, `high`) và ngày hết hạn nhanh chóng.
+- **Tasks Preview Overlay**: Xem nhanh thông tin chi tiết của task khi rê chuột hoặc nhấp chọn mà không làm gián đoạn luồng làm việc.
+- **Command Palette**: Thanh lệnh tìm kiếm nhanh toàn hệ thống để tạo tác vụ, chuyển màn hình hoặc tìm nội dung tức thì.
+
+### 3. Phân tích hiệu suất cao cấp (High-Fidelity Analytics)
+- **Focus Score Card**: Đo lường điểm tập trung dựa trên thời gian làm việc sâu (Deep Work).
+- **Productivity Chart**: Biểu đồ trực quan hóa số lượng công việc hoàn thành theo thời gian (tuần, tháng).
+- **Category Breakdown**: Phân tích tỷ trọng công việc thuộc các nhóm kỹ năng hoặc danh mục khác nhau.
+- **Responsive Dashboard Layouts**: Giao diện hiển thị chuyên biệt cho cả thiết bị di động (Mobile) và máy tính để bàn (Desktop).
+
+### 4. Hồ sơ cá nhân & Cộng tác realtime (Profile & Collaboration)
+- **Collaborator Presence**: Trực quan hóa trạng thái hoạt động theo thời gian thực (realtime presence indicator) của các cộng sự đang cùng tham gia dự án.
+- **User Profile Dashboard**: Thống kê số ngày chuỗi (streak days), tổng số giờ tập trung (focus hours), phân tích chi tiết thời gian làm việc (deep work, admin, learning).
+
+### 5. Trung tâm trợ giúp thông minh (Smart Support Platform)
+- **AI Chat Widget**: Chatbot thông minh hỗ trợ giải đáp nhanh các thắc mắc về kỹ năng làm việc hoặc sử dụng app.
+- **Proactive Ticket Form**: Biểu mẫu hỗ trợ gửi yêu cầu kỹ thuật trực tiếp tới đội ngũ phát triển.
+- **Multi-channel FAQ & Knowledgebase**: Kho câu hỏi thường gặp và tài liệu hướng dẫn được thiết kế trực quan.
+
+### 6. Ngôn ngữ thiết kế Premium
+- **Glassmorphism & Radial Backgrounds**: Giao diện hiệu ứng kính mờ thời thượng, kết hợp cùng các chuyển động mượt mà của các điểm sáng nền (animated glow blobs).
+- **Harmony Color Palettes**: Sử dụng hệ màu tối (dark mode) được thiết kế riêng giúp giảm mỏi mắt và tăng khả năng tập trung cao độ.
+
+---
+
+## Kiến trúc luồng & Điều hướng
+
+Ứng dụng sử dụng cấu hình định tuyến thông minh thông qua gói `go_router` để tự động xử lý bảo vệ màn hình (route protection) dựa trên trạng thái xác thực của Supabase.
 
 ```mermaid
-flowchart LR
-	A[main.dart] --> B[NexusApp (MaterialApp.router)]
-	B --> C[/splash]
-	C -->|chưa đăng nhập| D[/ (Landing)]
-	D --> E[/login]
-	E -->|đăng nhập| F[Dashboard]
-	F -->|sign out| E
+flowchart TD
+    A[Màn hình khởi động /splash] -->|Đã đăng nhập| B[Dashboard /home]
+    A -->|Chưa đăng nhập| C[Landing Page /]
+    C --> D[Đăng nhập /login]
+    C --> E[Đăng ký /signup]
+    D -->|Thành công| B
+    E -->|Thành công| B
+    
+    B -->|Điều hướng| F[Tác vụ /tasks]
+    B -->|Điều hướng| G[Trợ lý AI /ai]
+    B -->|Điều hướng| H[Lịch /calendar]
+    B -->|Điều hướng| I[Phân tích /analytics]
+    B -->|Điều hướng| J[Cài đặt /settings]
+    B -->|Điều hướng| K[Hỗ trợ /support]
+    B -->|Điều hướng| L[Hồ sơ /profile]
+    
+    B -->|Đăng xuất| D
 ```
 
-Ghi chú về Dashboard hiện tại:
+### Các đường dẫn điều hướng (Routes):
+- `/splash`: Kiểm tra trạng thái phiên làm việc và chuyển hướng tương ứng.
+- `/`: Landing page giới thiệu giải pháp Nexus AI.
+- `/login` / `/signup`: Giao diện xác thực chuyên nghiệp với hiệu ứng ánh sáng nền di chuyển.
+- `/home`: Dashboard chính trực quan hóa tổng quan nhiệm vụ và hiệu suất ngày.
+- `/tasks`: Trình quản lý tác vụ toàn diện với bộ lọc chi tiết (chấp nhận tham số `newTask=1` hoặc `search=query`).
+- `/analytics`: Hệ thống biểu đồ trực quan hóa chuyên sâu.
+- `/settings`: Cấu hình tài khoản, bảo mật, thông báo và ứng dụng liên kết.
+- `/support`: Kênh hỗ trợ, FAQ và chatbot AI trợ giúp.
+- `/profile`: Thông tin cá nhân nâng cao kèm theo các chỉ số đo lường hiệu suất làm việc.
 
-- Router có route `/home` trỏ tới `DashboardScreen` (UI dashboard mới, có responsive desktop/mobile).
-- Màn `SignInPage` trong `lib/screens/sign_in_page.dart` hiện đang điều hướng sang `BlankPage` (legacy dashboard) bằng `Navigator.pushReplacement`.
+---
 
-Vì vậy, tuỳ đường đi (GoRouter vs Navigator legacy), bạn có thể thấy dashboard khác nhau.
+## Hệ thống Tech Stack
 
-## Tech stack
+NEXUS AI được xây dựng trên nền tảng công nghệ mạnh mẽ và tối ưu của Flutter:
 
-Đang được sử dụng bởi app hiện tại:
+- **Framework**: Flutter / Dart (SDK tối thiểu: `^3.7.0`)
+- **Backend-as-a-Service (BaaS)**: [Supabase](https://supabase.com/) (`supabase_flutter` phiên bản `^2.12.4`) cho Authentication, Database Realtime và RLS.
+- **Quản lý trạng thái (State Management)**: `flutter_riverpod` (`^2.6.1`) giúp phân tách logic UI và dữ liệu sạch sẽ, tối ưu hóa hiệu năng render.
+- **Định tuyến (Routing)**: `go_router` (`^14.8.1`) cấu hình luồng trang tập trung và xử lý redirect logic theo session.
+- **Xử lý API / HTTP**: `dio` (`^5.8.0+1`) hỗ trợ các request mạng nhanh, mạnh và dễ cấu hình interceptors.
+- **Lưu trữ bảo mật**: `flutter_secure_storage` (`^9.2.4`) lưu trữ an toàn JWT tokens và các cấu hình nhạy cảm khác trên thiết bị di động.
+- **Biến môi trường**: `flutter_dotenv` (`^5.2.1`) tải cấu hình bảo mật từ tệp `.env` như một tài nguyên tĩnh.
+- **Tài nguyên đồ họa & Typography**: `google_fonts` (`^6.2.1`), `flutter_svg` (`^2.0.10`), `cupertino_icons` (`^1.0.8`).
+- **Đa ngôn ngữ & Định dạng**: `intl` (`^0.20.2`).
 
-- Flutter / Dart (SDK: `^3.7.0`)
-- Supabase: `supabase_flutter`
-- Biến môi trường: `flutter_dotenv` (load `.env` như asset)
-- State management: `flutter_riverpod`
-- Routing: `go_router`
-- HTTP client: `dio`
-- Secure storage: `flutter_secure_storage`
-- Fonts: `google_fonts`
-- i18n/date utils: `intl`
+---
 
-## Cấu trúc thư mục
+## Cấu trúc thư mục dự án
 
-- `pubspec.yaml`: dependencies + khai báo asset `.env`.
-- `lib/main.dart`: load `.env`, khởi tạo Supabase, chạy `NexusApp` (bọc `ProviderScope`).
-- `lib/app.dart`: `MaterialApp.router` + theme dark.
-- `lib/core/router/app_router.dart`: cấu hình `GoRouter` + redirect theo session.
-- `lib/screens/` (một phần UI legacy):
-  - `home.dart`: landing page.
-  - `sign_in_page.dart`, `sign_up_page.dart`: auth UI.
-  - `blank_page.dart`: legacy dashboard tabs + sign out.
-- `lib/screens/dashboard/`: dashboard UI mới (responsive).
-- `lib/features/`: modules theo feature-first (auth/tasks/ai/calendar/profile).
-- `supabase_schema.sql`: schema + RLS policies + trigger (file local; hiện đang bị ignore trong `.gitignore` nên clone repo có thể không có).
+```
+to_do_app/
+├── .env                  # Tệp cấu hình biến môi trường (được ignore, nhân bản từ .env.example)
+├── .env.example          # Tệp mẫu hướng dẫn cấu hình biến môi trường
+├── supabase_schema.sql   # Kịch bản khởi tạo database, kích hoạt RLS và Triggers trên Supabase
+├── pubspec.yaml          # Quản lý dependencies, assets (.env) và launcher icons
+├── assets/               # Chứa logo, icons và các assets tĩnh của dự án
+└── lib/                  # Mã nguồn chính của ứng dụng Flutter
+    ├── main.dart         # Entrypoint: Nạp cấu hình .env, khởi tạo Supabase, bọc ProviderScope
+    ├── app.dart          # Định cấu hình theme hệ thống, khởi tạo MaterialApp.router
+    ├── core/             # Chứa cấu trúc cốt lõi của ứng dụng (Router, Services, Providers)
+    │   ├── router/       # Quản lý định tuyến qua GoRouter và Listeners
+    │   └── services/     # Các providers kết nối dữ liệu ngoại vi (SupabaseClient, v.v.)
+    ├── features/         # Triển khai các tính năng theo mô hình Feature-First
+    │   ├── ai/           # Màn hình AI Chat và Insights khuyên dùng từ AI
+    │   ├── auth/         # SplashScreen và các logic xác thực, cập nhật session
+    │   ├── calendar/     # Lịch biểu tích hợp quản lý deadline tác vụ
+    │   ├── home/         # Dashboard thu nhỏ
+    │   ├── profile/      # Quản lý dữ liệu người dùng cơ bản
+    │   └── tasks/        # Trình quản lý Kanban, bộ lọc và các remote data sources
+    ├── screens/          # Các trang giao diện chi tiết (hầu hết được thiết kế responsive)
+    │   ├── analytics/    # Biểu đồ hiệu suất, Focus Score di động và máy tính bàn
+    │   ├── dashboard/    # Màn hình trang chủ tích hợp đa năng
+    │   ├── settings/     # Hệ thống cài đặt chuyên sâu (Bảo mật, Thông báo, Giao diện)
+    │   ├── support/      # Trung tâm trợ giúp, Chatbot AI và Tickets
+    │   ├── profile/      # Màn hình user_profile_screen.dart cực kỳ chi tiết với các metrics
+    │   ├── task_details/ # Trang phân tích chi tiết một nhiệm vụ cụ thể
+    │   └── tasks_projects/ # Trình quản lý dự án (AI Summary, Timeline, Overlays)
+    ├── shared/           # Các widget dùng chung cao cấp (Glass panel, gradient buttons, v.v.)
+    └── theme/            # Quản lý thiết kế giao diện sáng/tối (Dark/Light mode)
+```
+
+---
 
 ## Cấu hình môi trường
 
-### File `.env`
+Dự án sử dụng tệp `.env` đặt ở thư mục gốc (ngang hàng với `pubspec.yaml`). Tệp này đã được đưa vào `.gitignore` để đảm bảo an toàn bảo mật.
 
-Project dùng `.env` ở root (cùng cấp `pubspec.yaml`). File này đã được ignore trong `.gitignore`.
+### Tạo tệp `.env` cục bộ
 
-Có sẵn file mẫu: `.env.example`.
-
-Trên Windows (PowerShell):
+Trên môi trường Windows (PowerShell), bạn có thể dễ dàng sao chép tệp mẫu bằng lệnh:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Các biến môi trường:
+### Các cấu hình cần thiết:
 
-| Key                 | Bắt buộc | Mô tả                                                       |
-| ------------------- | -------: | ----------------------------------------------------------- |
-| `SUPABASE_URL`      |       ✅ | URL project Supabase                                        |
-| `SUPABASE_ANON_KEY` |       ✅ | Anon public key (client-side)                               |
-| `API_BASE_URL`      |       ⛔ | Optional. Nếu không set, code sẽ fallback về `SUPABASE_URL` |
+| Tên biến | Bắt buộc | Mô tả |
+| :--- | :---: | :--- |
+| `SUPABASE_URL` | ✅ | Đường dẫn API Endpoint của dự án Supabase của bạn. |
+| `SUPABASE_ANON_KEY`| ✅ | Mã khóa công khai (Anonymous Key) dùng cho client-side truy xuất dữ liệu an toàn qua RLS. |
+| `API_BASE_URL` | ⛔ | Tùy chọn. Điểm kết nối API nội bộ hoặc API AI bên thứ ba (mặc định sẽ dùng `SUPABASE_URL`). |
 
-Bạn có thể lấy `SUPABASE_URL` và `SUPABASE_ANON_KEY` tại Supabase Dashboard → Project Settings → API.
+*Lưu ý: Bạn có thể sao chép thông tin cấu hình từ trang quản lý **Supabase → Project Settings → API**.*
 
-Quy ước khuyến nghị cho `.env`:
+> [!WARNING]
+> Không bọc giá trị của các biến môi trường bằng dấu nháy (`'` hoặc `"`) và hãy chắc chắn rằng không có khoảng trắng thừa xung quanh giá trị.
 
-- Không bọc giá trị bằng dấu nháy.
-- Tránh khoảng trắng ở đầu/cuối (code có `.trim()` ở entrypoint).
-- Chỉ dùng key public (`anon`), không dùng `service_role`.
+---
 
-> Nếu bạn chỉnh `assets:` trong `pubspec.yaml`, hãy chạy lại `flutter pub get`.
+## Supabase: Database Schema & Bảo mật
 
-## Supabase: schema + bảo mật
+Để ứng dụng đồng bộ dữ liệu hoàn chỉnh, bạn hãy thực thi tệp `supabase_schema.sql` trong **Supabase SQL Editor** của dự án của bạn.
 
-### 1) Tạo project & bật Auth
+### 1. Cấu trúc bảng chính
+- **`public.users`**: Lưu trữ thông tin chi tiết về năng suất của từng người dùng. Liên kết ngoại khóa trực tiếp tới `auth.users(id)` qua cơ chế cascade.
+  - Các trường dữ liệu chính: `id`, `email`, `username`, `full_name`, `avatar_url`, `bio`, `tier`, `focus_score`, `streak_days`, `focus_hours`, `theme_mode`.
+- **`public.tasks`**: Lưu trữ danh sách nhiệm vụ của người dùng. Liên kết ngoại khóa tới `auth.users(id)`.
+  - Các trường dữ liệu chính: `id`, `user_id` (chỉ ra chủ sở hữu), `title`, `description`, `category`, `priority`, `status` (`todo`, `in_progress`, `done`), `ai_generated`, `due_date`.
 
-- Tạo project trên Supabase.
-- Authentication → Providers → bật **Email**.
+### 2. Chính sách Bảo mật (Row Level Security - RLS)
+Cả hai bảng `users` và `tasks` đều được kích hoạt RLS để ngăn chặn rò rỉ dữ liệu chéo giữa các tài khoản:
+- **`public.users`**: Người dùng đã đăng nhập chỉ có quyền xem, chèn hoặc chỉnh sửa profile của chính họ (`auth.uid() = id`).
+- **`public.tasks`**: Người dùng chỉ có quyền thao tác toàn quyền (CRUD) trên các tác vụ thuộc sở hữu của chính họ (`auth.uid() = user_id`).
 
-### 2) Apply schema
+### 3. Triggers tự động khởi tạo Profile
+Dự án tích hợp một trigger SQL để lắng nghe sự kiện đăng ký tài khoản thành công ở `auth.users` và tự động đồng bộ/tạo mới một bản ghi tương thích vào `public.users` kèm các giá trị mặc định của hệ thống năng suất:
 
-Nếu workspace của bạn có file `supabase_schema.sql`, hãy mở và chạy trong **Supabase SQL Editor**.
+```sql
+create trigger on_auth_user_created
+after insert on auth.users
+for each row execute function public.handle_new_user();
+```
 
-Nếu bạn clone repo mà không thấy file này, kiểm tra `.gitignore` (file đang được ignore theo mặc định) hoặc xin lại script schema từ owner.
+---
 
-Nếu gặp lỗi kiểu `function gen_random_uuid() does not exist`, hãy bật extension `pgcrypto` trong Supabase (Database → Extensions) rồi chạy lại.
+## Hướng dẫn chạy dự án
 
-Schema hiện có:
-
-- `public.users`: bảng profile, tham chiếu `auth.users(id)`.
-- `public.tasks`: bảng tasks, có `user_id` tham chiếu `auth.users(id)`.
-
-RLS & policies (tóm tắt):
-
-- `public.users`: user chỉ đọc/insert/update chính họ (`auth.uid() = id`).
-- `public.tasks`: user chỉ thao tác tasks của họ (`auth.uid() = user_id`).
-
-Trigger:
-
-- `handle_new_user()` chạy sau khi tạo `auth.users` để upsert profile vào `public.users`.
-
-### 3) (Tuỳ chọn) Realtime cho tasks
-
-Nếu bạn dùng stream realtime (ví dụ code ở `lib/features/tasks/data/datasource/task_remote_datasource.dart`), hãy đảm bảo table `tasks` được bật Realtime trong Supabase (Database → Replication / Realtime). Tùy cấu hình dự án, bạn có thể cần bật publication cho table.
-
-## Chạy dự án
-
-### Cài dependencies
+### Bước 1: Khởi động môi trường & Cài đặt dependencies
 
 ```bash
 flutter pub get
 ```
 
-### Run
+### Bước 2: Khởi chạy trên thiết bị giả lập hoặc máy thật
+
+Chạy ứng dụng chế độ debug tiêu chuẩn:
 
 ```bash
 flutter run
 ```
 
-Chạy web (Chrome):
+Chạy trực tiếp trên trình duyệt Web (Chrome):
 
 ```bash
 flutter run -d chrome
 ```
 
-## Lệnh hữu ích
+---
 
-Format:
+## Các lệnh phát triển hữu ích
 
+### Định dạng mã nguồn chuẩn hóa
 ```bash
 dart format .
 ```
 
-Analyze:
-
+### Phân tích lỗi cú pháp và cảnh báo (Lints)
 ```bash
 flutter analyze
 ```
 
-Test:
-
+### Khởi chạy toàn bộ hệ thống Unit & Widget Tests
 ```bash
 flutter test
 ```
 
-Build:
-
+### Đóng gói ứng dụng thành phẩm (Production Build)
 ```bash
+# Đóng gói cho hệ điều hành Android (APK)
 flutter build apk
+
+# Đóng gói cho nền tảng Web tĩnh (HTML/JS)
 flutter build web
+
+# Đóng gói cho hệ điều hành iOS (Chỉ khả thi trên macOS tích hợp Xcode)
 flutter build ios
 ```
-
-Ghi chú: `flutter build ios` chỉ chạy được trên macOS.
-
-## Troubleshooting
-
-### 1) App crash: “Missing SUPABASE_URL in .env” / “Missing SUPABASE_ANON_KEY in .env”
-
-- Kiểm tra file `.env` có tồn tại ở root và đúng key.
-- Đảm bảo bạn đã chạy `flutter pub get` (vì `.env` đang được khai báo trong assets).
-
-### 2) Sign in thất bại (AuthException)
-
-- Kiểm tra Email provider đã bật trong Supabase.
-- Kiểm tra email/password đúng, hoặc user đã được tạo.
-
-### 3) Query bị “permission denied” / không thấy data
-
-- Kiểm tra RLS policies trong `supabase_schema.sql` đã apply.
-- Đảm bảo đang đăng nhập và `auth.uid()` match đúng với `users.id` / `tasks.user_id`.
-
-### 4) Stream realtime không cập nhật
-
-- Kiểm tra Realtime đã bật cho table `tasks`.
-- Kiểm tra table có primary key đúng (code stream đang dùng `primaryKey: ['id']`).
-
-### 5) `flutter analyze` báo thiếu package (ví dụ Riverpod/GoRouter/Dio/secure storage)
-
-Nếu bạn gặp lỗi analyze liên quan tới import/package:
-
-- Chạy lại `flutter pub get`.
-- Kiểm tra `pubspec.yaml` đã có dependency tương ứng.
 
 Repo hiện đã khai báo sẵn các package chính như `flutter_riverpod`, `go_router`, `dio`, `flutter_secure_storage`.
 
