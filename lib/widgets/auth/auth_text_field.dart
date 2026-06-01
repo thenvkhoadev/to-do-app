@@ -36,7 +36,12 @@ class AuthTextField extends StatelessWidget {
                 padding: const EdgeInsets.only(left: 4, bottom: 8),
                 child: AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 180),
-                  style: AuthTextStyles.labelSmall.copyWith(color: focused ? AuthColors.primary : AuthColors.onSurfaceVariant),
+                  style: AuthTextStyles.labelSmall.copyWith(
+                    color:
+                        focused
+                            ? AuthColors.primary
+                            : AuthColors.onSurfaceVariant,
+                  ),
                   child: Text(label),
                 ),
               ),
@@ -45,7 +50,15 @@ class AuthTextField extends StatelessWidget {
                 curve: Curves.easeOut,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(12),
-                  boxShadow: focused ? [BoxShadow(color: AuthColors.primary.withValues(alpha: 0.15), blurRadius: 30)] : null,
+                  boxShadow:
+                      focused
+                          ? [
+                            BoxShadow(
+                              color: AuthColors.primary.withValues(alpha: 0.15),
+                              blurRadius: 30,
+                            ),
+                          ]
+                          : null,
                 ),
                 child: TextFormField(
                   controller: controller,
@@ -57,15 +70,30 @@ class AuthTextField extends StatelessWidget {
                   cursorColor: AuthColors.primary,
                   decoration: InputDecoration(
                     hintText: hint,
-                    hintStyle: AuthTextStyles.bodyMedium.copyWith(color: AuthColors.onSurfaceVariant.withValues(alpha: 0.3)),
+                    hintStyle: AuthTextStyles.bodyMedium.copyWith(
+                      color: AuthColors.onSurfaceVariant.withValues(alpha: 0.3),
+                    ),
                     suffixIcon: suffixIcon,
-                    suffixIconColor: AuthColors.onSurfaceVariant.withValues(alpha: 0.55),
+                    suffixIconColor: AuthColors.onSurfaceVariant.withValues(
+                      alpha: 0.55,
+                    ),
                     filled: true,
-                    fillColor: AuthColors.surfaceContainerLow.withValues(alpha: 0.5),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                    border: _border(AuthColors.outlineVariant.withValues(alpha: 0.3)),
-                    enabledBorder: _border(AuthColors.outlineVariant.withValues(alpha: 0.3)),
-                    focusedBorder: _border(AuthColors.primary.withValues(alpha: 0.5)),
+                    fillColor: AuthColors.surfaceContainerLow.withValues(
+                      alpha: 0.5,
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: _border(
+                      AuthColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                    enabledBorder: _border(
+                      AuthColors.outlineVariant.withValues(alpha: 0.3),
+                    ),
+                    focusedBorder: _border(
+                      AuthColors.primary.withValues(alpha: 0.5),
+                    ),
                   ),
                 ),
               ),
@@ -77,7 +105,10 @@ class AuthTextField extends StatelessWidget {
   }
 
   OutlineInputBorder _border(Color color) {
-    return OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: color));
+    return OutlineInputBorder(
+      borderRadius: BorderRadius.circular(8),
+      borderSide: BorderSide(color: color),
+    );
   }
 }
 
@@ -105,7 +136,10 @@ class _PasswordFieldState extends State<PasswordField> {
       suffixIcon: IconButton(
         onPressed: () => setState(() => _obscure = !_obscure),
         tooltip: _obscure ? 'Show password' : 'Hide password',
-        icon: Icon(_obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined, size: 20),
+        icon: Icon(
+          _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
+          size: 20,
+        ),
       ),
     );
   }

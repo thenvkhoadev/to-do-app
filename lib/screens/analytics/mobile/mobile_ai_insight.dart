@@ -11,7 +11,14 @@ class MobileAiInsight extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('AI Insights', style: TextStyle(color: DashboardColors.onSurface, fontSize: 22, fontWeight: FontWeight.w900)),
+        const Text(
+          'AI Insights',
+          style: TextStyle(
+            color: DashboardColors.onSurface,
+            fontSize: 22,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
         const SizedBox(height: 12),
         InsightCard(insight: AnalyticsMockData.insights[0]),
         const SizedBox(height: 12),

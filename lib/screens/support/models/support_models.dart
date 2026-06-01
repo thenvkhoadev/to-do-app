@@ -26,7 +26,11 @@ class SupportFAQ {
 }
 
 class SupportAction {
-  const SupportAction({required this.title, required this.icon, required this.route});
+  const SupportAction({
+    required this.title,
+    required this.icon,
+    required this.route,
+  });
 
   final String title;
   final IconData icon;

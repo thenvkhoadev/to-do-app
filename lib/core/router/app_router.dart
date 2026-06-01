@@ -53,6 +53,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder:
             (context, state) => TasksScreen(
               openNewTask: state.uri.queryParameters['newTask'] == '1',
+              searchQuery: state.uri.queryParameters['search'],
             ),
       ),
       GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),

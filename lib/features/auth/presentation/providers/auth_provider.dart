@@ -22,14 +22,15 @@ final authStateChangesProvider = StreamProvider<AppUser?>((ref) {
   return ref.watch(authRepositoryProvider).authStateChanges();
 });
 
-final authControllerProvider = StateNotifierProvider<AuthController, AsyncValue<AppUser?>>((ref) {
-  return AuthController(
-    repository: ref.watch(authRepositoryProvider),
-    signInUseCase: SignInUseCase(ref.watch(authRepositoryProvider)),
-    signUpUseCase: SignUpUseCase(ref.watch(authRepositoryProvider)),
-    signOutUseCase: SignOutUseCase(ref.watch(authRepositoryProvider)),
-  );
-});
+final authControllerProvider =
+    StateNotifierProvider<AuthController, AsyncValue<AppUser?>>((ref) {
+      return AuthController(
+        repository: ref.watch(authRepositoryProvider),
+        signInUseCase: SignInUseCase(ref.watch(authRepositoryProvider)),
+        signUpUseCase: SignUpUseCase(ref.watch(authRepositoryProvider)),
+        signOutUseCase: SignOutUseCase(ref.watch(authRepositoryProvider)),
+      );
+    });
 
 class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
   AuthController({
@@ -37,11 +38,11 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
     required SignInUseCase signInUseCase,
     required SignUpUseCase signUpUseCase,
     required SignOutUseCase signOutUseCase,
-  })  : _repository = repository,
-        _signInUseCase = signInUseCase,
-        _signUpUseCase = signUpUseCase,
-        _signOutUseCase = signOutUseCase,
-        super(AsyncValue.data(repository.currentUser()));
+  }) : _repository = repository,
+       _signInUseCase = signInUseCase,
+       _signUpUseCase = signUpUseCase,
+       _signOutUseCase = signOutUseCase,
+       super(AsyncValue.data(repository.currentUser()));
 
   final AuthRepository _repository;
   final SignInUseCase _signInUseCase;
@@ -50,7 +51,9 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
 
   Future<void> signIn({required String email, required String password}) async {
     state = const AsyncValue.loading();
-    state = await AsyncValue.guard(() => _signInUseCase(email: email, password: password));
+    state = await AsyncValue.guard(
+      () => _signInUseCase(email: email, password: password),
+    );
   }
 
   Future<void> signUp({

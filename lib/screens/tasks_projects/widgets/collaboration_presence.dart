@@ -17,10 +17,22 @@ class CollaborationPresence extends StatelessWidget {
           decoration: BoxDecoration(
             color: DashboardColors.surfaceLow.withValues(alpha: .42),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: DashboardColors.primary.withValues(alpha: .10 + value * .10)),
+            border: Border.all(
+              color: DashboardColors.primary.withValues(
+                alpha: .10 + value * .10,
+              ),
+            ),
             boxShadow: [
-              BoxShadow(color: DashboardColors.primary.withValues(alpha: .08), blurRadius: 34),
-              BoxShadow(color: DashboardColors.tertiary.withValues(alpha: .05 + value * .05), blurRadius: 46),
+              BoxShadow(
+                color: DashboardColors.primary.withValues(alpha: .08),
+                blurRadius: 34,
+              ),
+              BoxShadow(
+                color: DashboardColors.tertiary.withValues(
+                  alpha: .05 + value * .05,
+                ),
+                blurRadius: 46,
+              ),
             ],
           ),
           child: Row(
@@ -49,8 +61,16 @@ class _StackedAvatars extends StatelessWidget {
         clipBehavior: Clip.none,
         children: const [
           _PresenceAvatar(left: 0, label: 'A', color: DashboardColors.primary),
-          _PresenceAvatar(left: 24, label: 'K', color: DashboardColors.secondary),
-          _PresenceAvatar(left: 48, label: 'M', color: DashboardColors.tertiary),
+          _PresenceAvatar(
+            left: 24,
+            label: 'K',
+            color: DashboardColors.secondary,
+          ),
+          _PresenceAvatar(
+            left: 48,
+            label: 'M',
+            color: DashboardColors.tertiary,
+          ),
         ],
       ),
     );
@@ -58,7 +78,11 @@ class _StackedAvatars extends StatelessWidget {
 }
 
 class _PresenceAvatar extends StatelessWidget {
-  const _PresenceAvatar({required this.left, required this.label, required this.color});
+  const _PresenceAvatar({
+    required this.left,
+    required this.label,
+    required this.color,
+  });
 
   final double left;
   final String label;
@@ -78,7 +102,14 @@ class _PresenceAvatar extends StatelessWidget {
             child: CircleAvatar(
               radius: 15,
               backgroundColor: color.withValues(alpha: .20),
-              child: Text(label, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ),
           ),
           Positioned(
@@ -88,17 +119,29 @@ class _PresenceAvatar extends StatelessWidget {
               tween: Tween(begin: .35, end: 1),
               duration: const Duration(milliseconds: 900),
               curve: Curves.easeOutCubic,
-              builder: (context, value, _) => AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFF7CFFB2),
-                  border: Border.all(color: DashboardColors.background, width: 2),
-                  boxShadow: [BoxShadow(color: const Color(0xFF7CFFB2).withValues(alpha: .40 * value), blurRadius: 12, spreadRadius: 1)],
-                ),
-              ),
+              builder:
+                  (context, value, _) => AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFF7CFFB2),
+                      border: Border.all(
+                        color: DashboardColors.background,
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(
+                            0xFF7CFFB2,
+                          ).withValues(alpha: .40 * value),
+                          blurRadius: 12,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
             ),
           ),
         ],
@@ -116,11 +159,33 @@ class _PresenceCopy extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text('Live collaboration', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.w900, letterSpacing: .2)),
+        Text(
+          'Live collaboration',
+          style: TextStyle(
+            color: DashboardColors.onSurface,
+            fontSize: 13,
+            fontWeight: FontWeight.w900,
+            letterSpacing: .2,
+          ),
+        ),
         SizedBox(height: 4),
-        Text('3 active users • 8 live viewers', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w600)),
+        Text(
+          '3 active users • 8 live viewers',
+          style: TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
         SizedBox(height: 6),
-        Text('Alex is typing...', style: TextStyle(color: DashboardColors.tertiary, fontSize: 11, fontWeight: FontWeight.w800)),
+        Text(
+          'Alex is typing...',
+          style: TextStyle(
+            color: DashboardColors.tertiary,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
       ],
     );
   }
@@ -135,7 +200,10 @@ class _TypingDots extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: List.generate(3, (index) {
-        final opacity = (.35 + animationValue * .65 - index * .14).clamp(.25, 1.0);
+        final opacity = (.35 + animationValue * .65 - index * .14).clamp(
+          .25,
+          1.0,
+        );
         return AnimatedContainer(
           duration: Duration(milliseconds: 180 + index * 40),
           margin: const EdgeInsets.only(left: 4),
@@ -144,7 +212,12 @@ class _TypingDots extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: DashboardColors.tertiary.withValues(alpha: opacity),
-            boxShadow: [BoxShadow(color: DashboardColors.tertiary.withValues(alpha: .22), blurRadius: 10)],
+            boxShadow: [
+              BoxShadow(
+                color: DashboardColors.tertiary.withValues(alpha: .22),
+                blurRadius: 10,
+              ),
+            ],
           ),
         );
       }),

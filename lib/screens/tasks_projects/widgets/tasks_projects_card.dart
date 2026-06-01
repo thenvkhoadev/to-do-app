@@ -4,7 +4,12 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_glass.da
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksProjectsCard extends StatefulWidget {
-  const TasksProjectsCard({required this.item, this.mobile = false, this.onTap, super.key});
+  const TasksProjectsCard({
+    required this.item,
+    this.mobile = false,
+    this.onTap,
+    super.key,
+  });
 
   final TasksProjectItem item;
   final bool mobile;
@@ -42,90 +47,90 @@ class _TasksProjectsCardState extends State<TasksProjectsCard> {
         onTapCancel: () => setState(() => _pressed = false),
         onTapUp: (_) => setState(() => _pressed = false),
         child: AnimatedScale(
-        scale: _pressed ? .985 : (!mobile && _hovered ? 1.01 : 1),
-        duration: const Duration(milliseconds: 180),
-        curve: Curves.easeOutCubic,
-        child: Stack(
-          children: [
-            TasksProjectsGlass(
-              padding: EdgeInsets.all(mobile ? 20 : 24),
-              borderColor:
-                  highlight
-                      ? DashboardColors.primary.withValues(alpha: .4)
-                      : null,
-              glowColor: highlight ? DashboardColors.primary : null,
-              fillAlpha: !mobile && _hovered ? .06 : .03,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      _Badge(
-                        label: item.badge,
-                        color: item.accent,
-                        mobile: mobile,
-                      ),
-                      const Spacer(),
-                      Icon(
-                        Icons.more_vert_rounded,
-                        color:
-                            _hovered
-                                ? DashboardColors.primary
-                                : DashboardColors.outline,
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: mobile ? 12 : 16),
-                  Text(
-                    item.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: DashboardColors.onSurface,
-                      fontSize: mobile ? 20 : 24,
-                      fontWeight: FontWeight.w500,
-                      height: 1.3,
-                    ),
-                  ),
-                  SizedBox(height: mobile ? 4 : 8),
-                  Text(
-                    item.description,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      color: DashboardColors.onSurfaceVariant,
-                      fontSize: mobile ? 14 : 16,
-                      height: 1.5,
-                    ),
-                  ),
-                  SizedBox(height: mobile ? 16 : 24),
-                  _Footer(item: item, mobile: mobile),
-                ],
-              ),
-            ),
-            if (highlight)
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Container(
-                  height: 4,
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.vertical(
-                      bottom: Radius.circular(12),
-                    ),
-                    gradient: LinearGradient(
-                      colors: [
-                        DashboardColors.primary,
-                        DashboardColors.secondary,
+          scale: _pressed ? .985 : (!mobile && _hovered ? 1.01 : 1),
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          child: Stack(
+            children: [
+              TasksProjectsGlass(
+                padding: EdgeInsets.all(mobile ? 20 : 24),
+                borderColor:
+                    highlight
+                        ? DashboardColors.primary.withValues(alpha: .4)
+                        : null,
+                glowColor: highlight ? DashboardColors.primary : null,
+                fillAlpha: !mobile && _hovered ? .06 : .03,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        _Badge(
+                          label: item.badge,
+                          color: item.accent,
+                          mobile: mobile,
+                        ),
+                        const Spacer(),
+                        Icon(
+                          Icons.more_vert_rounded,
+                          color:
+                              _hovered
+                                  ? DashboardColors.primary
+                                  : DashboardColors.outline,
+                          size: 20,
+                        ),
                       ],
+                    ),
+                    SizedBox(height: mobile ? 12 : 16),
+                    Text(
+                      item.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: DashboardColors.onSurface,
+                        fontSize: mobile ? 20 : 24,
+                        fontWeight: FontWeight.w500,
+                        height: 1.3,
+                      ),
+                    ),
+                    SizedBox(height: mobile ? 4 : 8),
+                    Text(
+                      item.description,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                        fontSize: mobile ? 14 : 16,
+                        height: 1.5,
+                      ),
+                    ),
+                    SizedBox(height: mobile ? 16 : 24),
+                    _Footer(item: item, mobile: mobile),
+                  ],
+                ),
+              ),
+              if (highlight)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Container(
+                    height: 4,
+                    decoration: const BoxDecoration(
+                      borderRadius: BorderRadius.vertical(
+                        bottom: Radius.circular(12),
+                      ),
+                      gradient: LinearGradient(
+                        colors: [
+                          DashboardColors.primary,
+                          DashboardColors.secondary,
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-          ],
-        ),
+            ],
+          ),
         ),
       ),
     );
@@ -279,15 +284,16 @@ class _Progress extends StatelessWidget {
       tween: Tween(begin: 0, end: value),
       duration: const Duration(milliseconds: 700),
       curve: Curves.easeOutCubic,
-      builder: (context, animatedValue, _) => ClipRRect(
-        borderRadius: BorderRadius.circular(999),
-        child: LinearProgressIndicator(
-          value: animatedValue,
-          minHeight: mobile ? 4 : 6,
-          backgroundColor: Colors.white.withValues(alpha: .1),
-          valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
-        ),
-      ),
+      builder:
+          (context, animatedValue, _) => ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: LinearProgressIndicator(
+              value: animatedValue,
+              minHeight: mobile ? 4 : 6,
+              backgroundColor: Colors.white.withValues(alpha: .1),
+              valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
+            ),
+          ),
     );
   }
 }
@@ -353,7 +359,11 @@ class _PlusAvatar extends StatelessWidget {
 }
 
 class _AddProjectTile extends StatelessWidget {
-  const _AddProjectTile({required this.hovered, required this.onHover, this.onTap});
+  const _AddProjectTile({
+    required this.hovered,
+    required this.onHover,
+    this.onTap,
+  });
   final bool hovered;
   final ValueChanged<bool> onHover;
   final VoidCallback? onTap;
@@ -369,7 +379,7 @@ class _AddProjectTile extends StatelessWidget {
         onTap: onTap,
         child: TasksProjectsGlass(
           dashed: true,
-        borderColor: color.withValues(alpha: .35),
+          borderColor: color.withValues(alpha: .35),
           child: Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,

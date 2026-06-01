@@ -24,9 +24,12 @@ class NexusGlassPanel extends StatelessWidget {
       decoration: BoxDecoration(
         color: NexusColors.surfaceContainer.withValues(alpha: 0.68),
         borderRadius: BorderRadius.circular(radius),
-        border: Border.all(color: borderColor ?? Colors.white.withValues(alpha: 0.08)),
+        border: Border.all(
+          color: borderColor ?? Colors.white.withValues(alpha: 0.08),
+        ),
         boxShadow: [
-          if (glowColor != null) BoxShadow(color: glowColor!, blurRadius: 42, spreadRadius: 1),
+          if (glowColor != null)
+            BoxShadow(color: glowColor!, blurRadius: 42, spreadRadius: 1),
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.26),
             blurRadius: 32,

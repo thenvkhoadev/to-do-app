@@ -50,7 +50,11 @@ class TaskBoardItem {
 }
 
 class TaskColumnData {
-  const TaskColumnData({required this.title, required this.status, required this.tasks});
+  const TaskColumnData({
+    required this.title,
+    required this.status,
+    required this.tasks,
+  });
 
   final String title;
   final TaskBoardStatus status;

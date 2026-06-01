@@ -13,11 +13,19 @@ class MobileCategoryCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Top Categories', style: TextStyle(color: DashboardColors.onSurface, fontSize: 22, fontWeight: FontWeight.w900)),
+          const Text(
+            'Top Categories',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 18),
           for (final category in AnalyticsMockData.categories) ...[
             ProgressBarCard(category: category),
-            if (category != AnalyticsMockData.categories.last) const SizedBox(height: 16),
+            if (category != AnalyticsMockData.categories.last)
+              const SizedBox(height: 16),
           ],
         ],
       ),

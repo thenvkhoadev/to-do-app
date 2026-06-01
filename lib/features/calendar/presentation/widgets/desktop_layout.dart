@@ -66,7 +66,10 @@ class CalendarDesktopLayout extends StatelessWidget {
                 switchOutCurve: Curves.easeInCubic,
                 child:
                     agendaVisible
-                        ? CalendarAgendaPanel(key: const ValueKey('agenda'), child: agenda)
+                        ? CalendarAgendaPanel(
+                          key: const ValueKey('agenda'),
+                          child: agenda,
+                        )
                         : const SizedBox.shrink(key: ValueKey('agenda-hidden')),
               ),
             ],
@@ -100,7 +103,10 @@ class CalendarDesktopTopNav extends StatelessWidget {
             children: [
               _CalendarSearchBar(),
               Spacer(),
-              _CalendarTopIcon(icon: Icons.notifications_none_rounded, badge: true),
+              _CalendarTopIcon(
+                icon: Icons.notifications_none_rounded,
+                badge: true,
+              ),
               SizedBox(width: 12),
               _CalendarTopIcon(icon: Icons.bolt_rounded),
               SizedBox(width: 12),
@@ -132,7 +138,10 @@ class _CalendarSearchBar extends StatelessWidget {
           SizedBox(width: 10),
           Text(
             'Search events or schedules...',
-            style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13),
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 13,
+            ),
           ),
         ],
       ),

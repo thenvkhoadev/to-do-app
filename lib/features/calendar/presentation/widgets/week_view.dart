@@ -57,7 +57,8 @@ class WeekView extends StatelessWidget {
                       child: _WeekDayTile(
                         date: day,
                         selected:
-                            selectedDate != null && _isSameDate(day, selectedDate!),
+                            selectedDate != null &&
+                            _isSameDate(day, selectedDate!),
                         today: _isSameDate(day, DateTime.now()),
                         onTap: () => onDateSelected(day),
                       ),
@@ -66,9 +67,7 @@ class WeekView extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              Expanded(
-                child: _Timeline(date: baseDate, isDesktop: isDesktop),
-              ),
+              Expanded(child: _Timeline(date: baseDate, isDesktop: isDesktop)),
             ],
           ),
         );

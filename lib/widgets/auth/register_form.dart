@@ -37,7 +37,10 @@ class _RegisterFormState extends State<RegisterForm> {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
-    if (fullName.isEmpty || username.isEmpty || email.isEmpty || password.isEmpty) {
+    if (fullName.isEmpty ||
+        username.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty) {
       _showMessage('Please fill in all fields.');
       return;
     }
@@ -50,7 +53,9 @@ class _RegisterFormState extends State<RegisterForm> {
         data: {'full_name': fullName, 'username': username},
       );
       if (mounted) {
-        Navigator.of(context).pushReplacement(MaterialPageRoute(builder: (_) => const BlankPage()));
+        Navigator.of(
+          context,
+        ).pushReplacement(MaterialPageRoute(builder: (_) => const BlankPage()));
       }
     } on AuthException catch (error) {
       _showMessage(error.message);
@@ -62,54 +67,57 @@ class _RegisterFormState extends State<RegisterForm> {
   }
 
   void _showMessage(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
   Widget build(BuildContext context) {
-    final nameFields = widget.isDesktop
-        ? Row(
-            children: [
-              Expanded(
-                child: AuthTextField(
+    final nameFields =
+        widget.isDesktop
+            ? Row(
+              children: [
+                Expanded(
+                  child: AuthTextField(
+                    controller: _fullNameController,
+                    label: 'Full Name',
+                    hint: 'John Doe',
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.name],
+                  ),
+                ),
+                const SizedBox(width: AuthSpacing.stackMd),
+                Expanded(
+                  child: AuthTextField(
+                    controller: _usernameController,
+                    label: 'Username',
+                    hint: 'johndoe_ai',
+                    textInputAction: TextInputAction.next,
+                    autofillHints: const [AutofillHints.username],
+                  ),
+                ),
+              ],
+            )
+            : Column(
+              children: [
+                AuthTextField(
                   controller: _fullNameController,
                   label: 'Full Name',
                   hint: 'John Doe',
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.name],
                 ),
-              ),
-              const SizedBox(width: AuthSpacing.stackMd),
-              Expanded(
-                child: AuthTextField(
+                const SizedBox(height: AuthSpacing.stackMd),
+                AuthTextField(
                   controller: _usernameController,
                   label: 'Username',
                   hint: 'johndoe_ai',
                   textInputAction: TextInputAction.next,
                   autofillHints: const [AutofillHints.username],
                 ),
-              ),
-            ],
-          )
-        : Column(
-            children: [
-              AuthTextField(
-                controller: _fullNameController,
-                label: 'Full Name',
-                hint: 'John Doe',
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.name],
-              ),
-              const SizedBox(height: AuthSpacing.stackMd),
-              AuthTextField(
-                controller: _usernameController,
-                label: 'Username',
-                hint: 'johndoe_ai',
-                textInputAction: TextInputAction.next,
-                autofillHints: const [AutofillHints.username],
-              ),
-            ],
-          );
+              ],
+            );
 
     return Form(
       key: _formKey,
@@ -128,7 +136,11 @@ class _RegisterFormState extends State<RegisterForm> {
           const SizedBox(height: AuthSpacing.stackMd),
           PasswordField(controller: _passwordController),
           const SizedBox(height: 24),
-          GradientButton(label: 'Initialize Account', loading: _loading, onPressed: _loading ? null : _submit),
+          GradientButton(
+            label: 'Initialize Account',
+            loading: _loading,
+            onPressed: _loading ? null : _submit,
+          ),
         ],
       ),
     );

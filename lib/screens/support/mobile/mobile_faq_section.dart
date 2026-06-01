@@ -12,11 +12,20 @@ class MobileFAQSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const Text('COMMON QUESTIONS', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+        const Text(
+          'COMMON QUESTIONS',
+          style: TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 1.2,
+          ),
+        ),
         const SizedBox(height: DashboardSpacing.sm),
         for (final faq in SupportMockData.faqs.take(3)) ...[
           SupportFAQTile(faq: faq),
-          if (faq != SupportMockData.faqs.take(3).last) const SizedBox(height: 10),
+          if (faq != SupportMockData.faqs.take(3).last)
+            const SizedBox(height: 10),
         ],
       ],
     );

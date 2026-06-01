@@ -1,7 +1,9 @@
 class Validators {
   static String? email(String value) {
     if (value.trim().isEmpty) return 'Email is required.';
-    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value.trim())) return 'Enter a valid email.';
+    if (!RegExp(r'^[^@]+@[^@]+\.[^@]+$').hasMatch(value.trim())) {
+      return 'Enter a valid email.';
+    }
     return null;
   }
 

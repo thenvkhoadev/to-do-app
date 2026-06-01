@@ -49,10 +49,7 @@ class SettingsActionOption {
 }
 
 class SettingsSupportLink {
-  const SettingsSupportLink({
-    required this.title,
-    required this.icon,
-  });
+  const SettingsSupportLink({required this.title, required this.icon});
 
   final String title;
   final IconData icon;

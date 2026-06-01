@@ -14,13 +14,30 @@ class HelpSupportPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Text('Help & Support', style: TextStyle(color: DashboardColors.onSurface, fontSize: 21, fontWeight: FontWeight.w900)),
+          const Text(
+            'Help & Support',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           const SizedBox(height: 12),
-          for (final link in SettingsMockData.support) SupportLinkTile(link: link),
+          for (final link in SettingsMockData.support)
+            SupportLinkTile(link: link),
           const SizedBox(height: DashboardSpacing.md),
           Container(height: 1, color: Colors.white.withValues(alpha: .06)),
           const SizedBox(height: DashboardSpacing.md),
-          const Text('TaskFlow AI v2.4.1-stable', textAlign: TextAlign.center, style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+          const Text(
+            'NEXUS AI v2.4.1-stable',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+            ),
+          ),
         ],
       ),
     );

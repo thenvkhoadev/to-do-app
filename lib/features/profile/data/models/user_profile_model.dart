@@ -66,8 +66,14 @@ class UserProfileModel {
       themeMode: json['theme_mode']?.toString() ?? 'dark',
       notificationsEnabled: json['notifications_enabled'] as bool? ?? true,
       privacyMode: json['privacy_mode'] as bool? ?? false,
-      createdAt: json['created_at'] == null ? null : DateTime.tryParse(json['created_at'].toString()),
-      updatedAt: json['updated_at'] == null ? null : DateTime.tryParse(json['updated_at'].toString()),
+      createdAt:
+          json['created_at'] == null
+              ? null
+              : DateTime.tryParse(json['created_at'].toString()),
+      updatedAt:
+          json['updated_at'] == null
+              ? null
+              : DateTime.tryParse(json['updated_at'].toString()),
     );
   }
 

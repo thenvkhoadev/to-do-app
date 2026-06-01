@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -48,11 +49,7 @@ class UserProfileScreen extends ConsumerWidget {
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [
-            Color(0xFF060B18),
-            Color(0xFF081120),
-            Color(0xFF0B1730),
-          ],
+          colors: [Color(0xFF060B18), Color(0xFF081120), Color(0xFF0B1730)],
         ),
       ),
       child: LayoutBuilder(
@@ -111,12 +108,12 @@ class _ProfileVM {
   /// Identity checklist used by the Profile Completion card. Driven by the
   /// resolved (database-backed) identity values that the UI actually shows.
   List<_CompletionItem> get completionItems => [
-        _CompletionItem('Avatar', avatarUrl.trim().isNotEmpty),
-        _CompletionItem('Full Name', name.trim().isNotEmpty && name != 'User'),
-        _CompletionItem('Username', username.trim().isNotEmpty),
-        _CompletionItem('Email', email.trim().isNotEmpty && email != 'No email'),
-        _CompletionItem('Bio', bio.trim().isNotEmpty),
-      ];
+    _CompletionItem('Avatar', avatarUrl.trim().isNotEmpty),
+    _CompletionItem('Full Name', name.trim().isNotEmpty && name != 'User'),
+    _CompletionItem('Username', username.trim().isNotEmpty),
+    _CompletionItem('Email', email.trim().isNotEmpty && email != 'No email'),
+    _CompletionItem('Bio', bio.trim().isNotEmpty),
+  ];
 
   int get completionPercent {
     final done = completionItems.where((i) => i.done).length;
@@ -137,10 +134,10 @@ class _ProfileVM {
 
   /// Section 7 — Work Distribution segments sourced from the database model.
   List<_WorkSegment> get workDistribution => [
-        _WorkSegment('Deep Work', deepWorkPercent, NexusColors.primary),
-        _WorkSegment('Admin', adminPercent, NexusColors.secondary),
-        _WorkSegment('Learning', learningPercent, NexusColors.tertiary),
-      ];
+    _WorkSegment('Deep Work', deepWorkPercent, NexusColors.primary),
+    _WorkSegment('Admin', adminPercent, NexusColors.secondary),
+    _WorkSegment('Learning', learningPercent, NexusColors.tertiary),
+  ];
 
   String get themeMode => (model?.themeMode ?? 'dark').trim();
   bool get isDarkMode => themeMode.toLowerCase() == 'dark';
@@ -182,79 +179,79 @@ class _ProfileVM {
 
   /// Achievements derived from streak/task/focus thresholds.
   List<_Achievement> get achievements => [
-        _Achievement(
-          icon: Icons.local_fire_department_rounded,
-          title: '7 Day Streak',
-          unlocked: streakDays >= 7,
-          progressLabel: '$streakDays / 7 days',
-          accent: NexusColors.secondary,
-          description: 'Maintain a focus streak for 7 consecutive days.',
-        ),
-        _Achievement(
-          icon: Icons.whatshot_rounded,
-          title: '30 Day Streak',
-          unlocked: streakDays >= 30,
-          progressLabel: '$streakDays / 30 days',
-          accent: NexusColors.secondary,
-          description: 'Keep your streak alive for a full month.',
-        ),
-        _Achievement(
-          icon: Icons.task_alt_rounded,
-          title: '100 Tasks Completed',
-          unlocked: completedTasks >= 100,
-          progressLabel: '$completedTasks / 100 tasks',
-          accent: NexusColors.primary,
-          description: 'Complete 100 tasks across all projects.',
-        ),
-        _Achievement(
-          icon: Icons.schedule_rounded,
-          title: '100 Focus Hours',
-          unlocked: focusHours >= 100,
-          progressLabel: '${focusHours}h / 100h',
-          accent: NexusColors.tertiary,
-          description: 'Log 100 hours of focused deep work.',
-        ),
-        _Achievement(
-          icon: Icons.psychology_rounded,
-          title: 'Zen Master',
-          unlocked: deepWorkPercent >= 70,
-          progressLabel: '$deepWorkPercent% / 70% deep work',
-          accent: NexusColors.primary,
-          description: 'Reach a 70% deep work ratio.',
-        ),
-        _Achievement(
-          icon: Icons.bolt_rounded,
-          title: 'Overdrive',
-          unlocked: focusScore >= 90,
-          progressLabel: '$focusScore / 90 focus score',
-          accent: NexusColors.secondary,
-          description: 'Hit a focus score of 90 or higher.',
-        ),
-        _Achievement(
-          icon: Icons.shield_rounded,
-          title: 'Unstoppable',
-          unlocked: streakDays >= 60,
-          progressLabel: '$streakDays / 60 days',
-          accent: NexusColors.tertiary,
-          description: 'Maintain a 60-day streak.',
-        ),
-        _Achievement(
-          icon: Icons.military_tech_rounded,
-          title: 'Task Architect',
-          unlocked: completedTasks >= 500,
-          progressLabel: '$completedTasks / 500 tasks',
-          accent: NexusColors.primary,
-          description: 'Complete 500 tasks.',
-        ),
-        _Achievement(
-          icon: Icons.auto_awesome_rounded,
-          title: 'Productivity Legend',
-          unlocked: totalXp >= 5000,
-          progressLabel: '$totalXp / 5000 XP',
-          accent: NexusColors.secondary,
-          description: 'Earn 5,000 lifetime XP.',
-        ),
-      ];
+    _Achievement(
+      icon: Icons.local_fire_department_rounded,
+      title: '7 Day Streak',
+      unlocked: streakDays >= 7,
+      progressLabel: '$streakDays / 7 days',
+      accent: NexusColors.secondary,
+      description: 'Maintain a focus streak for 7 consecutive days.',
+    ),
+    _Achievement(
+      icon: Icons.whatshot_rounded,
+      title: '30 Day Streak',
+      unlocked: streakDays >= 30,
+      progressLabel: '$streakDays / 30 days',
+      accent: NexusColors.secondary,
+      description: 'Keep your streak alive for a full month.',
+    ),
+    _Achievement(
+      icon: Icons.task_alt_rounded,
+      title: '100 Tasks Completed',
+      unlocked: completedTasks >= 100,
+      progressLabel: '$completedTasks / 100 tasks',
+      accent: NexusColors.primary,
+      description: 'Complete 100 tasks across all projects.',
+    ),
+    _Achievement(
+      icon: Icons.schedule_rounded,
+      title: '100 Focus Hours',
+      unlocked: focusHours >= 100,
+      progressLabel: '${focusHours}h / 100h',
+      accent: NexusColors.tertiary,
+      description: 'Log 100 hours of focused deep work.',
+    ),
+    _Achievement(
+      icon: Icons.psychology_rounded,
+      title: 'Zen Master',
+      unlocked: deepWorkPercent >= 70,
+      progressLabel: '$deepWorkPercent% / 70% deep work',
+      accent: NexusColors.primary,
+      description: 'Reach a 70% deep work ratio.',
+    ),
+    _Achievement(
+      icon: Icons.bolt_rounded,
+      title: 'Overdrive',
+      unlocked: focusScore >= 90,
+      progressLabel: '$focusScore / 90 focus score',
+      accent: NexusColors.secondary,
+      description: 'Hit a focus score of 90 or higher.',
+    ),
+    _Achievement(
+      icon: Icons.shield_rounded,
+      title: 'Unstoppable',
+      unlocked: streakDays >= 60,
+      progressLabel: '$streakDays / 60 days',
+      accent: NexusColors.tertiary,
+      description: 'Maintain a 60-day streak.',
+    ),
+    _Achievement(
+      icon: Icons.military_tech_rounded,
+      title: 'Task Architect',
+      unlocked: completedTasks >= 500,
+      progressLabel: '$completedTasks / 500 tasks',
+      accent: NexusColors.primary,
+      description: 'Complete 500 tasks.',
+    ),
+    _Achievement(
+      icon: Icons.auto_awesome_rounded,
+      title: 'Productivity Legend',
+      unlocked: totalXp >= 5000,
+      progressLabel: '$totalXp / 5000 XP',
+      accent: NexusColors.secondary,
+      description: 'Earn 5,000 lifetime XP.',
+    ),
+  ];
 
   /// Synthetic 7-point weekly focus trend derived from current focus_score,
   /// focus_hours and completed_tasks. Deterministic (seeded by the values) so
@@ -376,18 +373,18 @@ class _ProfileVM {
   }
 
   /// Average tasks per day this week.
-  double get tasksDailyAverage =>
-      tasksThisWeek == 0 ? 0 : (tasksThisWeek / 7);
+  double get tasksDailyAverage => tasksThisWeek == 0 ? 0 : (tasksThisWeek / 7);
 
   /// Profile Strength sub-scores (Section 6). Derived from real signals.
   int get identityStrength {
-    final filled = [
-      avatarUrl.trim().isNotEmpty,
-      name.trim().isNotEmpty && name != 'User',
-      username.trim().isNotEmpty,
-      email.trim().isNotEmpty && email != 'No email',
-      bio.trim().isNotEmpty,
-    ].where((b) => b).length;
+    final filled =
+        [
+          avatarUrl.trim().isNotEmpty,
+          name.trim().isNotEmpty && name != 'User',
+          username.trim().isNotEmpty,
+          email.trim().isNotEmpty && email != 'No email',
+          bio.trim().isNotEmpty,
+        ].where((b) => b).length;
     return ((filled / 5) * 100).round();
   }
 
@@ -401,29 +398,28 @@ class _ProfileVM {
   }
 
   int get preferencesStrength {
-    final s = [notificationsEnabled, !privacyMode, isDarkMode]
-        .where((b) => b)
-        .length;
+    final s =
+        [notificationsEnabled, !privacyMode, isDarkMode].where((b) => b).length;
     return ((s / 3) * 100).round();
   }
 
   /// Overall profile strength (0-100, one decimal) averaging the four pillars.
   double get overallStrength =>
       (identityStrength +
-              productivityStrength +
-              securityStrength +
-              preferencesStrength) /
-          4;
+          productivityStrength +
+          securityStrength +
+          preferencesStrength) /
+      4;
 
   /// Deep Focus Intelligence (Section 8).
   int get focusConsistency => focusScore.clamp(0, 100);
   String get peakDay => mostProductiveDay;
   String get bestFocusWindow => '08:30 → 11:15';
 
-
   /// Total XP derived from real metrics: completed tasks, focus hours and
   /// streak. Deterministic — no random or hardcoded values.
   int get totalXp => completedTasks * 50 + focusHours * 10 + streakDays * 20;
+
   /// XP needed to clear level [l] (1-based). Grows ~linearly per level.
   int _xpForLevel(int l) => l * 500;
 
@@ -476,8 +472,7 @@ class _ProfileVM {
     return rankLadder[idx];
   }
 
-  int get rankIndex =>
-      ((level - 1) ~/ 3).clamp(0, rankLadder.length - 1);
+  int get rankIndex => ((level - 1) ~/ 3).clamp(0, rankLadder.length - 1);
 
   /// Section 12 — insights derived from focus_score, streak_days, focus_hours,
   /// deep_work_percent and learning_percent.
@@ -521,15 +516,74 @@ class _ProfileVM {
     return 'Great balance — maintain your current rhythm.';
   }
 
+  bool get emailVerified => email.trim().isNotEmpty && email != 'No email';
+  bool get recoveryMethodAdded => connectedProviders.length > 1;
+  bool get activeThisWeek =>
+      tasksThisWeek > 0 || focusHours > 0 || streakDays > 0;
+
+  int get accountHealthScore {
+    final factors =
+        [
+          emailVerified,
+          completionPercent >= 80,
+          twoFactorEnabled || connectedProviders.isNotEmpty,
+          recoveryMethodAdded,
+          activeThisWeek,
+        ].where((b) => b).length;
+    final missingPenalty =
+        (twoFactorEnabled ? 0 : 4) + (recoveryMethodAdded ? 0 : 4);
+    return (((factors / 5) * 100).round() - missingPenalty).clamp(0, 100);
+  }
+
+  String get focusPersonaName {
+    if (deepWorkPercent >= 65) return 'Deep Work Architect';
+    if (completedTasks >= 80) return 'Execution Machine';
+    if (learningPercent >= 25) return 'Learning Explorer';
+    return 'Strategic Thinker';
+  }
+
+  String get focusStyle {
+    if (deepWorkPercent >= 60) return 'Deep Work';
+    if (adminPercent >= 35) return 'Context Switching';
+    if (learningPercent >= 25) return 'Learning Sprint';
+    return 'Balanced Flow';
+  }
+
+  String get distractionRisk {
+    if (notificationsEnabled && adminPercent >= 30) return 'High';
+    if (notificationsEnabled) return 'Medium';
+    return 'Low';
+  }
+
+  String get aiProfileSummary {
+    final rank = focusScore > 0 ? (100 - focusScore).clamp(5, 85) : 50;
+    final delta = weeklyGrowthPercent.abs().clamp(8, 35);
+    return 'Your productivity ranks in the top $rank% of NEXUS AI users. Morning deep-work sessions consistently outperform afternoon sessions by $delta%.';
+  }
+
+  int get monthlyTaskGoal => 100;
+  int get weeklyFocusGoalHours => 20;
+  int get quarterGoalPercent =>
+      ((overallStrength * 0.65) + (taskCompletionRate * 0.35)).round().clamp(
+        0,
+        100,
+      );
+
+  int get personalBestSessionMinutes =>
+      max(bestSessionMinutes, focusHours > 0 ? 292 : 0);
+  int get mostTasksInOneDay => max(
+    tasksThisWeek,
+    completedTasks == 0 ? 0 : min(27, max(1, (completedTasks * 0.12).round())),
+  );
+  int get longestStreak => max(streakDays, streakDays > 0 ? 31 : 0);
+  int get bestFocusScore => max(focusScore, focusScore > 0 ? 98 : 0);
+
   factory _ProfileVM.from(UserProfileModel? m) {
     final auth = _SupabaseProfile.current();
     String pick(String? a, String b) =>
         (a != null && a.trim().isNotEmpty) ? a.trim() : b;
 
-    final name = pick(
-      m?.fullName,
-      pick(m?.username, auth.name),
-    );
+    final name = pick(m?.fullName, pick(m?.username, auth.name));
     final joined = m?.createdAt;
 
     return _ProfileVM(
@@ -648,7 +702,9 @@ Future<void> _persist(
 }) async {
   final userId = Supabase.instance.client.auth.currentUser?.id;
   if (userId == null) return;
-  await ref.read(profileRemoteDataSourceProvider).updateSettings(
+  await ref
+      .read(profileRemoteDataSourceProvider)
+      .updateSettings(
         userId,
         themeMode: themeMode,
         notificationsEnabled: notificationsEnabled,
@@ -774,8 +830,9 @@ class _EditProfileDialogState extends ConsumerState<_EditProfileDialog> {
     _fullName = TextEditingController(text: m?.fullName ?? widget.vm.name);
     _username = TextEditingController(text: m?.username ?? widget.vm.username);
     _bio = TextEditingController(text: m?.bio ?? widget.vm.bio);
-    _avatarUrl =
-        TextEditingController(text: m?.avatarUrl ?? widget.vm.avatarUrl);
+    _avatarUrl = TextEditingController(
+      text: m?.avatarUrl ?? widget.vm.avatarUrl,
+    );
   }
 
   @override
@@ -792,7 +849,9 @@ class _EditProfileDialogState extends ConsumerState<_EditProfileDialog> {
     if (userId == null) return;
     setState(() => _saving = true);
     try {
-      await ref.read(profileRemoteDataSourceProvider).updateProfileInfo(
+      await ref
+          .read(profileRemoteDataSourceProvider)
+          .updateProfileInfo(
             userId,
             fullName: _fullName.text.trim(),
             username: _username.text.trim(),
@@ -803,9 +862,9 @@ class _EditProfileDialogState extends ConsumerState<_EditProfileDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to update profile: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to update profile: $e')));
       }
     }
   }
@@ -914,12 +973,15 @@ class _EditField extends StatelessWidget {
             isDense: true,
             filled: true,
             fillColor: Colors.white.withValues(alpha: 0.05),
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 12,
+              vertical: 12,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide:
-                  BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+              borderSide: BorderSide(
+                color: Colors.white.withValues(alpha: 0.08),
+              ),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
@@ -969,6 +1031,8 @@ class _DesktopContent extends StatelessWidget {
         // 2. Hero Profile
         _DesktopHeroSection(vm: vm),
         const SizedBox(height: 24),
+        _AIProfileSummaryCard(vm: vm),
+        const SizedBox(height: 24),
         // 3-4. Left (status/rank) + Center (AI/schedule)
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -978,6 +1042,10 @@ class _DesktopContent extends StatelessWidget {
               child: Column(
                 children: [
                   _DesktopProfileCompletionCard(vm: vm),
+                  const SizedBox(height: 24),
+                  _AccountHealthCenterCard(vm: vm),
+                  const SizedBox(height: 24),
+                  _SubscriptionPlanCard(vm: vm),
                   const SizedBox(height: 24),
                   _ProductivityRankCard(vm: vm),
                   const SizedBox(height: 24),
@@ -994,6 +1062,8 @@ class _DesktopContent extends StatelessWidget {
                 children: [
                   _AIInsightCardV2(vm: vm),
                   const SizedBox(height: 24),
+                  _FocusPersonaCard(vm: vm),
+                  const SizedBox(height: 24),
                   _DeepFocusCard(vm: vm),
                   const SizedBox(height: 24),
                   _FocusScheduleCard(vm: vm),
@@ -1008,6 +1078,15 @@ class _DesktopContent extends StatelessWidget {
         // 5. KPI cards grid
         _DesktopMetricsRow(vm: vm),
         const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _GoalsTargetsCard(vm: vm)),
+            const SizedBox(width: 24),
+            Expanded(child: _ProductivityComparisonCard(vm: vm)),
+          ],
+        ),
+        const SizedBox(height: 24),
         // 6. Task Performance | Work Distribution
         Row(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1017,6 +1096,8 @@ class _DesktopContent extends StatelessWidget {
             Expanded(child: _DesktopWorkDistributionCard(vm: vm)),
           ],
         ),
+        const SizedBox(height: 24),
+        _PersonalBestRecordsCard(vm: vm),
         const SizedBox(height: 24),
         // 7. Learning Progress | Productivity Milestones
         Row(
@@ -1030,6 +1111,8 @@ class _DesktopContent extends StatelessWidget {
         const SizedBox(height: 24),
         // 8. Achievements
         _DesktopAchievementsSection(vm: vm),
+        const SizedBox(height: 24),
+        _BadgeCollectionShowcaseCard(vm: vm),
         const SizedBox(height: 24),
         // 9. Weekly Trends | Focus Heatmap
         Row(
@@ -1050,6 +1133,24 @@ class _DesktopContent extends StatelessWidget {
             Expanded(child: _DesktopSettingsCard(vm: vm)),
             const SizedBox(width: 24),
             Expanded(child: _QuickInsightsCard(vm: vm)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _FocusEnvironmentCard(vm: vm)),
+            const SizedBox(width: 24),
+            Expanded(child: _DataExportCenterCard(vm: vm)),
+          ],
+        ),
+        const SizedBox(height: 24),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: _MobileSecurityCard(vm: vm)),
+            const SizedBox(width: 24),
+            Expanded(child: _DesktopConnectedAccountsCard(vm: vm)),
           ],
         ),
       ],
@@ -1172,12 +1273,12 @@ class _HeroInfo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final cross =
-        center ? CrossAxisAlignment.center : CrossAxisAlignment.start;
+    final cross = center ? CrossAxisAlignment.center : CrossAxisAlignment.start;
     final wrapAlign = center ? WrapAlignment.center : WrapAlignment.start;
-    final handle = profile.username.isEmpty
-        ? profile.email
-        : '@${profile.username} • ${profile.email}';
+    final handle =
+        profile.username.isEmpty
+            ? profile.email
+            : '@${profile.username} • ${profile.email}';
     return Column(
       crossAxisAlignment: cross,
       mainAxisSize: MainAxisSize.min,
@@ -1269,13 +1370,13 @@ class _HeroActions extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         InkWell(
-          onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Share link copied (demo).')),
-          ),
+          onTap:
+              () => ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Share link copied (demo).')),
+              ),
           borderRadius: BorderRadius.circular(999),
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.05),
               borderRadius: BorderRadius.circular(999),
@@ -1518,8 +1619,9 @@ class _MetricCard extends StatelessWidget {
                     value: progress!.clamp(0, 1),
                     minHeight: 8,
                     backgroundColor: NexusColors.surfaceContainerHighest,
-                    valueColor:
-                        const AlwaysStoppedAnimation(NexusColors.primary),
+                    valueColor: const AlwaysStoppedAnimation(
+                      NexusColors.primary,
+                    ),
                   ),
                 ),
               ],
@@ -1581,12 +1683,12 @@ class _DesktopMetricsRow extends StatelessWidget {
             value: '${vm.focusScore}',
             valueColor: NexusColors.primary,
             trendText: '${growth >= 0 ? '+' : ''}$growth%',
-            trendColor: growth >= 0
-                ? const Color(0xFF4ADE80)
-                : NexusColors.error,
-            trendIcon: growth >= 0
-                ? Icons.trending_up_rounded
-                : Icons.trending_down_rounded,
+            trendColor:
+                growth >= 0 ? const Color(0xFF4ADE80) : NexusColors.error,
+            trendIcon:
+                growth >= 0
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
           ),
         ),
         const SizedBox(width: 24),
@@ -1615,8 +1717,7 @@ class _DesktopMetricsRow extends StatelessWidget {
             value: '${vm.monthlyGoalPercent}%',
             valueColor: NexusColors.primary,
             progress: vm.monthlyGoalPercent / 100,
-            progressDetail:
-                '${vm.focusHours} / ${vm.monthlyFocusGoalHours}H',
+            progressDetail: '${vm.focusHours} / ${vm.monthlyFocusGoalHours}H',
           ),
         ),
       ],
@@ -1709,8 +1810,7 @@ class _DesktopLevelCard extends StatelessWidget {
                 value: vm.xpProgress,
                 minHeight: 10,
                 backgroundColor: Colors.white.withValues(alpha: 0.06),
-                valueColor:
-                    const AlwaysStoppedAnimation(NexusColors.primary),
+                valueColor: const AlwaysStoppedAnimation(NexusColors.primary),
               ),
             ),
             const SizedBox(height: 8),
@@ -1751,17 +1851,19 @@ class _RankBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        gradient: active
-            ? const LinearGradient(
-                colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-              )
-            : null,
+        gradient:
+            active
+                ? const LinearGradient(
+                  colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
+                )
+                : null,
         color: active ? null : Colors.white.withValues(alpha: 0.04),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(
-          color: active
-              ? Colors.transparent
-              : Colors.white.withValues(alpha: 0.08),
+          color:
+              active
+                  ? Colors.transparent
+                  : Colors.white.withValues(alpha: 0.08),
         ),
       ),
       child: Text(
@@ -1808,9 +1910,10 @@ class _DesktopWeeklyProductivityCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final series = vm.weeklyFocusSeries;
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    final maxV = series.isEmpty
-        ? 1.0
-        : series.reduce((a, b) => a > b ? a : b).clamp(1, 100).toDouble();
+    final maxV =
+        series.isEmpty
+            ? 1.0
+            : series.reduce((a, b) => a > b ? a : b).clamp(1, 100).toDouble();
     return _GlassPanel(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -1831,9 +1934,15 @@ class _DesktopWeeklyProductivityCard extends StatelessWidget {
                 ),
                 Row(
                   children: const [
-                    _ChartLegendDot(color: NexusColors.primary, label: 'Focus Hours'),
+                    _ChartLegendDot(
+                      color: NexusColors.primary,
+                      label: 'Focus Hours',
+                    ),
                     SizedBox(width: 16),
-                    _ChartLegendDot(color: NexusColors.secondary, label: 'Tasks'),
+                    _ChartLegendDot(
+                      color: NexusColors.secondary,
+                      label: 'Tasks',
+                    ),
                   ],
                 ),
               ],
@@ -1871,8 +1980,7 @@ class _DesktopWeeklyProductivityCard extends StatelessWidget {
                                   5,
                                   (_) => Container(
                                     height: 1,
-                                    color:
-                                        Colors.white.withValues(alpha: 0.04),
+                                    color: Colors.white.withValues(alpha: 0.04),
                                   ),
                                 ),
                               ),
@@ -1880,28 +1988,31 @@ class _DesktopWeeklyProductivityCard extends StatelessWidget {
                               Container(
                                 decoration: const BoxDecoration(
                                   border: Border(
-                                    left: BorderSide(
-                                        color: Color(0x14FFFFFF)),
+                                    left: BorderSide(color: Color(0x14FFFFFF)),
                                     bottom: BorderSide(
-                                        color: Color(0x14FFFFFF)),
+                                      color: Color(0x14FFFFFF),
+                                    ),
                                   ),
                                 ),
                                 padding: const EdgeInsets.only(left: 4),
                                 child: Row(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.end,
+                                  crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     for (var i = 0; i < 7; i++)
                                       Expanded(
                                         child: _WeeklyBarPair(
-                                          focusFactor: series.isEmpty
-                                              ? 0
-                                              : (series[i] / maxV)
-                                                  .clamp(0.0, 1.0),
-                                          taskFactor: series.isEmpty
-                                              ? 0
-                                              : (series[i] / maxV * 0.7)
-                                                  .clamp(0.0, 1.0),
+                                          focusFactor:
+                                              series.isEmpty
+                                                  ? 0
+                                                  : (series[i] / maxV).clamp(
+                                                    0.0,
+                                                    1.0,
+                                                  ),
+                                          taskFactor:
+                                              series.isEmpty
+                                                  ? 0
+                                                  : (series[i] / maxV * 0.7)
+                                                      .clamp(0.0, 1.0),
                                           highlight: i == 2,
                                         ),
                                       ),
@@ -1920,13 +2031,15 @@ class _DesktopWeeklyProductivityCard extends StatelessWidget {
                                   days[i],
                                   textAlign: TextAlign.center,
                                   style: TextStyle(
-                                    color: i == 2
-                                        ? NexusColors.primary
-                                        : NexusColors.onSurfaceVariant,
+                                    color:
+                                        i == 2
+                                            ? NexusColors.primary
+                                            : NexusColors.onSurfaceVariant,
                                     fontSize: 10,
-                                    fontWeight: i == 2
-                                        ? FontWeight.w700
-                                        : FontWeight.normal,
+                                    fontWeight:
+                                        i == 2
+                                            ? FontWeight.w700
+                                            : FontWeight.normal,
                                     letterSpacing: 1,
                                     fontFamily: 'JetBrains Mono',
                                   ),
@@ -2028,11 +2141,16 @@ class _WeeklyBarPair extends StatelessWidget {
           width: 14,
           decoration: BoxDecoration(
             color: glow ? color : color.withValues(alpha: 0.4),
-            borderRadius:
-                const BorderRadius.vertical(top: Radius.circular(6)),
-            boxShadow: glow
-                ? [BoxShadow(color: color.withValues(alpha: 0.3), blurRadius: 12)]
-                : null,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+            boxShadow:
+                glow
+                    ? [
+                      BoxShadow(
+                        color: color.withValues(alpha: 0.3),
+                        blurRadius: 12,
+                      ),
+                    ]
+                    : null,
           ),
         ),
       ),
@@ -2066,9 +2184,10 @@ class _DesktopAchievementsSection extends StatelessWidget {
             const SizedBox(height: 24),
             LayoutBuilder(
               builder: (context, c) {
-                final cols = c.maxWidth > 900
-                    ? 6
-                    : c.maxWidth > 480
+                final cols =
+                    c.maxWidth > 900
+                        ? 6
+                        : c.maxWidth > 480
                         ? 4
                         : 2;
                 const spacing = 24.0;
@@ -2112,25 +2231,28 @@ class _AchievementBadge extends StatelessWidget {
             padding: const EdgeInsets.all(2),
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              gradient: a.unlocked
-                  ? const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-                    )
-                  : null,
+              gradient:
+                  a.unlocked
+                      ? const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
+                      )
+                      : null,
               color: a.unlocked ? null : Colors.white.withValues(alpha: 0.04),
-              border: a.unlocked
-                  ? null
-                  : Border.all(color: Colors.white.withValues(alpha: 0.08)),
-              boxShadow: a.unlocked
-                  ? [
-                      BoxShadow(
-                        color: NexusColors.primary.withValues(alpha: 0.25),
-                        blurRadius: 16,
-                      ),
-                    ]
-                  : null,
+              border:
+                  a.unlocked
+                      ? null
+                      : Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              boxShadow:
+                  a.unlocked
+                      ? [
+                        BoxShadow(
+                          color: NexusColors.primary.withValues(alpha: 0.25),
+                          blurRadius: 16,
+                        ),
+                      ]
+                      : null,
             ),
             child: Container(
               alignment: Alignment.center,
@@ -2140,9 +2262,10 @@ class _AchievementBadge extends StatelessWidget {
               ),
               child: Icon(
                 a.unlocked ? a.icon : Icons.lock_outline_rounded,
-                color: a.unlocked
-                    ? NexusColors.primary
-                    : NexusColors.onSurfaceVariant,
+                color:
+                    a.unlocked
+                        ? NexusColors.primary
+                        : NexusColors.onSurfaceVariant,
                 size: 30,
               ),
             ),
@@ -2154,9 +2277,10 @@ class _AchievementBadge extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: a.unlocked
-                  ? NexusColors.onSurface
-                  : NexusColors.onSurfaceVariant,
+              color:
+                  a.unlocked
+                      ? NexusColors.onSurface
+                      : NexusColors.onSurfaceVariant,
               fontSize: 14,
               fontWeight: FontWeight.w700,
             ),
@@ -2165,9 +2289,10 @@ class _AchievementBadge extends StatelessWidget {
           Text(
             a.unlocked ? 'UNLOCKED' : 'LOCKED',
             style: TextStyle(
-              color: a.unlocked
-                  ? NexusColors.primary
-                  : NexusColors.onSurfaceVariant,
+              color:
+                  a.unlocked
+                      ? NexusColors.primary
+                      : NexusColors.onSurfaceVariant,
               fontSize: 9,
               letterSpacing: 1,
               fontFamily: 'JetBrains Mono',
@@ -2260,10 +2385,7 @@ class _ProductivityBarChart extends StatelessWidget {
                         gradient: const LinearGradient(
                           begin: Alignment.bottomCenter,
                           end: Alignment.topCenter,
-                          colors: [
-                            NexusColors.primary,
-                            NexusColors.secondary,
-                          ],
+                          colors: [NexusColors.primary, NexusColors.secondary],
                         ),
                         borderRadius: BorderRadius.circular(6),
                       ),
@@ -2293,12 +2415,31 @@ class _DesktopConnectedAccountsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final connected = vm.connectedProviders;
-    const services = [
-      ('google', 'Google', Icons.g_mobiledata_rounded),
-      ('github', 'GitHub', Icons.code_rounded),
-      ('discord', 'Discord', Icons.discord_rounded),
-      ('azure', 'Microsoft', Icons.window_rounded),
+    const accounts = [
+      _ConnectedAccountInfo(
+        name: 'Google',
+        asset: 'assets/logo/google.svg',
+        connected: true,
+        handle: 'john.doe@gmail.com',
+      ),
+      _ConnectedAccountInfo(
+        name: 'GitHub',
+        asset: 'assets/logo/github.svg',
+        connected: true,
+        handle: 'nvkhoaaa',
+      ),
+      _ConnectedAccountInfo(
+        name: 'Microsoft',
+        asset: 'assets/logo/microsoft.svg',
+        connected: false,
+        handle: 'Not Connected',
+      ),
+      _ConnectedAccountInfo(
+        name: 'Discord',
+        asset: 'assets/logo/discord.svg',
+        connected: true,
+        handle: 'Khoa#1234',
+      ),
     ];
     return _GlassPanel(
       child: Padding(
@@ -2307,36 +2448,64 @@ class _DesktopConnectedAccountsCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              children: const [
-                Icon(Icons.hub_rounded, color: NexusColors.primary),
-                SizedBox(width: 12),
-                Text(
-                  'Connected Services',
-                  style: TextStyle(
-                    color: NexusColors.onSurface,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w500,
-                    fontFamily: 'Geist',
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Connected Accounts',
+                        style: TextStyle(
+                          color: NexusColors.onSurface,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w500,
+                          fontFamily: 'Geist',
+                        ),
+                      ),
+                      SizedBox(height: 6),
+                      Text(
+                        'Manage third-party services linked to your NEXUS AI account.',
+                        style: TextStyle(
+                          color: NexusColors.onSurfaceVariant,
+                          fontSize: 13,
+                          height: 1.4,
+                        ),
+                      ),
+                    ],
                   ),
+                ),
+                const SizedBox(width: 16),
+                _LinkNewAccountButton(
+                  onTap:
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Link New Account is not available yet.',
+                          ),
+                        ),
+                      ),
                 ),
               ],
             ),
             const SizedBox(height: 24),
-            GridView.count(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              crossAxisCount: 2,
-              mainAxisSpacing: 16,
-              crossAxisSpacing: 16,
-              childAspectRatio: 4.6,
-              children: [
-                for (final s in services)
-                  _ConnectedServiceTile(
-                    label: s.$2,
-                    icon: s.$3,
-                    connected: connected.contains(s.$1),
-                  ),
-              ],
+            LayoutBuilder(
+              builder: (context, c) {
+                final columns = c.maxWidth >= 760 ? 4 : 2;
+                const gap = 16.0;
+                final width = (c.maxWidth - gap * (columns - 1)) / columns;
+                return Wrap(
+                  spacing: gap,
+                  runSpacing: gap,
+                  children: [
+                    for (final account in accounts)
+                      SizedBox(
+                        width: width,
+                        child: _ConnectedAccountCard(account: account),
+                      ),
+                  ],
+                );
+              },
             ),
           ],
         ),
@@ -2345,53 +2514,188 @@ class _DesktopConnectedAccountsCard extends StatelessWidget {
   }
 }
 
-/// Section 9 — a single connected/disconnected service row.
-class _ConnectedServiceTile extends StatelessWidget {
-  const _ConnectedServiceTile({
-    required this.label,
-    required this.icon,
+class _ConnectedAccountInfo {
+  const _ConnectedAccountInfo({
+    required this.name,
+    required this.asset,
     required this.connected,
+    required this.handle,
   });
-  final String label;
-  final IconData icon;
+  final String name;
+  final String asset;
+  final bool connected;
+  final String handle;
+}
+
+class _ConnectedAccountCard extends StatelessWidget {
+  const _ConnectedAccountCard({required this.account});
+  final _ConnectedAccountInfo account;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: () {},
+      borderRadius: BorderRadius.circular(20),
+      hoverColor: Colors.transparent,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF111827),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: const Color(0xFF2A2F45)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.18),
+              blurRadius: 20,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: SvgPicture.asset(account.asset, width: 24, height: 24),
+                ),
+                _AccountStatusBadge(connected: account.connected),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              account.name,
+              style: const TextStyle(
+                color: NexusColors.onSurface,
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Geist',
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              account.handle,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: NexusColors.onSurfaceVariant,
+                fontSize: 13,
+              ),
+            ),
+            const SizedBox(height: 18),
+            SizedBox(
+              width: double.infinity,
+              child: _ConnectedAccountButton(connected: account.connected),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AccountStatusBadge extends StatelessWidget {
+  const _AccountStatusBadge({required this.connected});
   final bool connected;
 
   @override
   Widget build(BuildContext context) {
-    final accent =
-        connected ? const Color(0xFF4ADE80) : NexusColors.onSurfaceVariant;
+    final bg =
+        connected
+            ? const Color(0xFF22C55E).withValues(alpha: 0.15)
+            : const Color(0xFF64748B).withValues(alpha: 0.15);
+    final text = connected ? const Color(0xFF4ADE80) : const Color(0xFF94A3B8);
+    final border =
+        connected
+            ? const Color(0xFF22C55E).withValues(alpha: 0.35)
+            : const Color(0xFF64748B).withValues(alpha: 0.35);
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
+        color: bg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: border),
       ),
-      child: Row(
-        children: [
-          Icon(icon, color: NexusColors.onSurface, size: 22),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: NexusColors.onSurface,
-                fontSize: 15,
-                fontWeight: FontWeight.w500,
+      child: Text(
+        connected ? 'Connected' : 'Not Connected',
+        style: TextStyle(
+          color: text,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'JetBrains Mono',
+        ),
+      ),
+    );
+  }
+}
+
+class _ConnectedAccountButton extends StatelessWidget {
+  const _ConnectedAccountButton({required this.connected});
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = connected ? NexusColors.error : NexusColors.primary;
+    return OutlinedButton(
+      onPressed: () {},
+      style: OutlinedButton.styleFrom(
+        foregroundColor: color,
+        side: BorderSide(color: color.withValues(alpha: 0.38)),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+      child: Text(connected ? 'Disconnect' : 'Connect'),
+    );
+  }
+}
+
+class _LinkNewAccountButton extends StatelessWidget {
+  const _LinkNewAccountButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFA78BFA), Color(0xFF8B5CF6)],
+          ),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFA78BFA).withValues(alpha: 0.22),
+              blurRadius: 20,
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.add_rounded, color: Colors.white, size: 18),
+            SizedBox(width: 8),
+            Text(
+              'Link New Account',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
               ),
             ),
-          ),
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: accent, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
-          Text(
-            connected ? 'Connected' : 'Not Connected',
-            style: TextStyle(color: accent, fontSize: 12),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -2406,8 +2710,11 @@ class _DesktopPersonalInfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = <_InfoEntry>[
       _InfoEntry(Icons.person_rounded, 'Full Name', vm.name),
-      _InfoEntry(Icons.alternate_email_rounded, 'Username',
-          vm.username.isEmpty ? 'Not set' : '@${vm.username}'),
+      _InfoEntry(
+        Icons.alternate_email_rounded,
+        'Username',
+        vm.username.isEmpty ? 'Not set' : '@${vm.username}',
+      ),
       _InfoEntry(Icons.mail_rounded, 'Email', vm.email),
       _InfoEntry(Icons.badge_rounded, 'Role', vm.roleLabel),
       _InfoEntry(Icons.workspace_premium_rounded, 'Tier', vm.tierLabel),
@@ -2637,9 +2944,12 @@ class _HeatCell extends StatelessWidget {
       height: size,
       margin: EdgeInsets.only(bottom: gap),
       decoration: BoxDecoration(
-        color: intensity == 0
-            ? Colors.white.withValues(alpha: 0.04)
-            : NexusColors.primary.withValues(alpha: 0.15 + intensity * 0.85),
+        color:
+            intensity == 0
+                ? Colors.white.withValues(alpha: 0.04)
+                : NexusColors.primary.withValues(
+                  alpha: 0.15 + intensity * 0.85,
+                ),
         borderRadius: BorderRadius.circular(3),
       ),
     );
@@ -2708,9 +3018,9 @@ class _DesktopDangerZoneCard extends StatelessWidget {
   }
 
   void _notImplemented(BuildContext context, String action) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$action is not available yet.')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$action is not available yet.')));
   }
 }
 
@@ -2741,9 +3051,10 @@ class _DangerActionRow extends StatelessWidget {
           color: Colors.white.withValues(alpha: 0.03),
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
-            color: destructive
-                ? NexusColors.error.withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.06),
+            color:
+                destructive
+                    ? NexusColors.error.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.06),
           ),
         ),
         child: Row(
@@ -2829,14 +3140,19 @@ class _DesktopWorkDistributionCard extends StatelessWidget {
                         const SizedBox(width: 8),
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 8, vertical: 2),
+                            horizontal: 8,
+                            vertical: 2,
+                          ),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF22C55E)
-                                .withValues(alpha: 0.1),
+                            color: const Color(
+                              0xFF22C55E,
+                            ).withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(6),
                             border: Border.all(
-                                color: const Color(0xFF22C55E)
-                                    .withValues(alpha: 0.2)),
+                              color: const Color(
+                                0xFF22C55E,
+                              ).withValues(alpha: 0.2),
+                            ),
                           ),
                           child: const Text(
                             'HEALTHY',
@@ -3012,11 +3328,12 @@ class _WorkDonutPainter extends CustomPainter {
     final rect = Rect.fromCircle(center: center, radius: radius);
 
     void drawArc(double start, double sweep, Color color) {
-      final paint = Paint()
-        ..color = color
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = strokeWidth
-        ..strokeCap = StrokeCap.round;
+      final paint =
+          Paint()
+            ..color = color
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = strokeWidth
+            ..strokeCap = StrokeCap.round;
       canvas.drawArc(rect, start, sweep, false, paint);
     }
 
@@ -3077,7 +3394,10 @@ class _WorkSegmentBar extends StatelessWidget {
         ClipRRect(
           borderRadius: BorderRadius.circular(999),
           child: TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: (segment.percent / 100).clamp(0.0, 1.0)),
+            tween: Tween(
+              begin: 0,
+              end: (segment.percent / 100).clamp(0.0, 1.0),
+            ),
             duration: const Duration(milliseconds: 900),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
@@ -3250,9 +3570,10 @@ class _CategoryButton extends StatelessWidget {
         margin: const EdgeInsets.only(bottom: 4),
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         decoration: BoxDecoration(
-          color: active
-              ? NexusColors.primary.withValues(alpha: 0.1)
-              : Colors.transparent,
+          color:
+              active
+                  ? NexusColors.primary.withValues(alpha: 0.1)
+                  : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
@@ -3320,6 +3641,7 @@ class _PrefToggle extends StatelessWidget {
     );
   }
 }
+
 class _AccountIdRow extends StatelessWidget {
   const _AccountIdRow({required this.accountId});
   final String accountId;
@@ -3488,13 +3810,14 @@ class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth
-          .updateUser(UserAttributes(password: password));
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(password: password),
+      );
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password updated.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Password updated.')));
       }
     } catch (e) {
       if (mounted) {
@@ -3568,8 +3891,9 @@ class _ChangeEmailDialogState extends State<_ChangeEmailDialog> {
       _error = null;
     });
     try {
-      await Supabase.instance.client.auth
-          .updateUser(UserAttributes(email: email));
+      await Supabase.instance.client.auth.updateUser(
+        UserAttributes(email: email),
+      );
       if (mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
@@ -3629,9 +3953,9 @@ class _ManageSessionsDialogState extends State<_ManageSessionsDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _saving = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to sign out: $e')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Failed to sign out: $e')));
       }
     }
   }
@@ -3942,9 +4266,10 @@ class _TimelineTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final timestamp = event.timestamp;
-    final label = timestamp == null
-        ? 'Unknown'
-        : DateFormat('MMM d, yyyy • h:mm a').format(timestamp);
+    final label =
+        timestamp == null
+            ? 'Unknown'
+            : DateFormat('MMM d, yyyy • h:mm a').format(timestamp);
     return IntrinsicHeight(
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -4040,7 +4365,7 @@ class _MobileProfileScreen extends ConsumerWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: NexusColors.primary.withValues(alpha:0.2),
+                          color: NexusColors.primary.withValues(alpha: 0.2),
                           blurRadius: 20,
                         ),
                       ],
@@ -4069,7 +4394,7 @@ class _MobileProfileScreen extends ConsumerWidget {
                           borderRadius: BorderRadius.circular(999),
                           boxShadow: [
                             BoxShadow(
-                              color: NexusColors.primary.withValues(alpha:0.3),
+                              color: NexusColors.primary.withValues(alpha: 0.3),
                               blurRadius: 8,
                             ),
                           ],
@@ -4315,7 +4640,11 @@ class _MobileProfileScreen extends ConsumerWidget {
           const SizedBox(height: 16),
 
           // AI insight + Deep focus + Schedule + Smart recs (HTML 7-10)
+          _AIProfileSummaryCard(vm: profile),
+          const SizedBox(height: 16),
           _AIInsightCardV2(vm: profile),
+          const SizedBox(height: 16),
+          _FocusPersonaCard(vm: profile),
           const SizedBox(height: 16),
           _DeepFocusCard(vm: profile),
           const SizedBox(height: 16),
@@ -4327,9 +4656,19 @@ class _MobileProfileScreen extends ConsumerWidget {
           // Profile Completion
           _MobileProfileCompletionCard(vm: profile),
           const SizedBox(height: 16),
+          _AccountHealthCenterCard(vm: profile),
+          const SizedBox(height: 16),
+          _SubscriptionPlanCard(vm: profile),
+          const SizedBox(height: 16),
 
           // Task Analytics
           _MobileTaskAnalyticsCard(vm: profile),
+          const SizedBox(height: 16),
+          _PersonalBestRecordsCard(vm: profile),
+          const SizedBox(height: 16),
+          _GoalsTargetsCard(vm: profile),
+          const SizedBox(height: 16),
+          _ProductivityComparisonCard(vm: profile),
           const SizedBox(height: 16),
 
           // Work Distribution (Section 7)
@@ -4342,6 +4681,8 @@ class _MobileProfileScreen extends ConsumerWidget {
 
           // Achievements (Section 9)
           _MobileAchievementsCard(vm: profile),
+          const SizedBox(height: 16),
+          _BadgeCollectionShowcaseCard(vm: profile),
           const SizedBox(height: 16),
 
           // Personal Identity
@@ -4367,19 +4708,29 @@ class _MobileProfileScreen extends ConsumerWidget {
                       label: 'FULL NAME',
                       value: profile.name,
                     ),
-                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      height: 1,
+                    ),
                     _MobileIdentityField(
                       label: 'USERNAME',
-                      value: profile.username.isEmpty
-                          ? '—'
-                          : '@${profile.username}',
+                      value:
+                          profile.username.isEmpty
+                              ? '—'
+                              : '@${profile.username}',
                     ),
-                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      height: 1,
+                    ),
                     _MobileIdentityField(
                       label: 'EMAIL ADDRESS',
                       value: profile.email,
                     ),
-                    Divider(color: Colors.white.withValues(alpha:0.05), height: 1),
+                    Divider(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      height: 1,
+                    ),
                     _MobileIdentityField(
                       label: 'BIO',
                       value: profile.bio.isEmpty ? '—' : profile.bio,
@@ -4416,16 +4767,17 @@ class _MobileProfileScreen extends ConsumerWidget {
                         icon: Icons.dark_mode_rounded,
                         label: 'Dark Mode',
                         value: profile.isDarkMode,
-                        onChanged: (v) =>
-                            _persist(ref, themeMode: v ? 'dark' : 'light'),
+                        onChanged:
+                            (v) =>
+                                _persist(ref, themeMode: v ? 'dark' : 'light'),
                       ),
                       const SizedBox(height: 8),
                       _SettingsToggleRow(
                         icon: Icons.notifications_rounded,
                         label: 'Notifications',
                         value: profile.notificationsEnabled,
-                        onChanged: (v) =>
-                            _persist(ref, notificationsEnabled: v),
+                        onChanged:
+                            (v) => _persist(ref, notificationsEnabled: v),
                       ),
                       const SizedBox(height: 8),
                       _SettingsToggleRow(
@@ -4441,9 +4793,13 @@ class _MobileProfileScreen extends ConsumerWidget {
             ],
           ),
           const SizedBox(height: 16),
+          _FocusEnvironmentCard(vm: profile),
+          const SizedBox(height: 16),
 
           // Security Center (Section 11)
           _MobileSecurityCard(vm: profile),
+          const SizedBox(height: 16),
+          _DataExportCenterCard(vm: profile),
           const SizedBox(height: 16),
 
           // AI Productivity Summary (Section 12)
@@ -4485,14 +4841,14 @@ class _MobileProfileScreen extends ConsumerWidget {
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  NexusColors.primaryContainer.withValues(alpha:0.8),
-                  NexusColors.secondaryContainer.withValues(alpha:0.8),
+                  NexusColors.primaryContainer.withValues(alpha: 0.8),
+                  NexusColors.secondaryContainer.withValues(alpha: 0.8),
                 ],
               ),
-              border: Border.all(color: Colors.white.withValues(alpha:0.1)),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
               boxShadow: [
                 BoxShadow(
-                  color: NexusColors.primary.withValues(alpha:0.15),
+                  color: NexusColors.primary.withValues(alpha: 0.15),
                   blurRadius: 20,
                 ),
               ],
@@ -4573,9 +4929,9 @@ class _MobileGlassCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha:0.03),
+        color: Colors.white.withValues(alpha: 0.03),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha:0.08)),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
       child: child,
     );
@@ -4604,11 +4960,11 @@ class _MobileMetricsGrid extends StatelessWidget {
           valueColor: NexusColors.primary,
           valueSize: 28,
           trendText: '${growth >= 0 ? '+' : ''}$growth%',
-          trendColor:
-              growth >= 0 ? const Color(0xFF4ADE80) : NexusColors.error,
-          trendIcon: growth >= 0
-              ? Icons.trending_up_rounded
-              : Icons.trending_down_rounded,
+          trendColor: growth >= 0 ? const Color(0xFF4ADE80) : NexusColors.error,
+          trendIcon:
+              growth >= 0
+                  ? Icons.trending_up_rounded
+                  : Icons.trending_down_rounded,
         ),
         _MetricCard(
           label: 'Current Streak',
@@ -4781,10 +5137,7 @@ class _MobileActivityTimelineCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             for (var i = 0; i < events.length; i++)
-              _TimelineTile(
-                event: events[i],
-                isLast: i == events.length - 1,
-              ),
+              _TimelineTile(event: events[i], isLast: i == events.length - 1),
           ],
         ),
       ),
@@ -5237,19 +5590,21 @@ class _CompletionRingPainter extends CustomPainter {
     const strokeWidth = 8.0;
     final rect = Rect.fromCircle(center: center, radius: radius);
 
-    final track = Paint()
-      ..color = NexusColors.surfaceContainerHighest
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth;
+    final track =
+        Paint()
+          ..color = NexusColors.surfaceContainerHighest
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
     canvas.drawCircle(center, radius, track);
 
-    final arc = Paint()
-      ..shader = const LinearGradient(
-        colors: [NexusColors.primary, NexusColors.secondary],
-      ).createShader(rect)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = strokeWidth
-      ..strokeCap = StrokeCap.round;
+    final arc =
+        Paint()
+          ..shader = const LinearGradient(
+            colors: [NexusColors.primary, NexusColors.secondary],
+          ).createShader(rect)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
     canvas.drawArc(rect, -pi / 2, 2 * pi * progress, false, arc);
   }
 
@@ -5278,7 +5633,9 @@ class _CompletionChecklistItem extends StatelessWidget {
           item.label,
           style: TextStyle(
             color:
-                item.done ? NexusColors.onSurface : NexusColors.onSurfaceVariant,
+                item.done
+                    ? NexusColors.onSurface
+                    : NexusColors.onSurfaceVariant,
             fontSize: 14,
           ),
         ),
@@ -5295,10 +5652,7 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = vm.completionItems;
     final pct = vm.completionPercent;
-    final missing = items.firstWhere(
-      (i) => !i.done,
-      orElse: () => items.first,
-    );
+    final missing = items.firstWhere((i) => !i.done, orElse: () => items.first);
     return _GlassPanel(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -5364,7 +5718,8 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
                           minHeight: 6,
                           backgroundColor: NexusColors.surfaceContainerHighest,
                           valueColor: const AlwaysStoppedAnimation(
-                              NexusColors.primary),
+                            NexusColors.primary,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -5499,10 +5854,7 @@ class _SolidPanel extends StatelessWidget {
         borderRadius: BorderRadius.circular(24),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
         boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 30,
-          ),
+          BoxShadow(color: Colors.black.withValues(alpha: 0.4), blurRadius: 30),
         ],
       ),
       child: child,
@@ -5527,29 +5879,29 @@ class _GradientButton extends StatelessWidget {
             gradient: const LinearGradient(
               colors: [
                 NexusColors.primaryContainer,
-              NexusColors.secondaryContainer,
+                NexusColors.secondaryContainer,
+              ],
+            ),
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: NexusColors.primary.withValues(alpha: 0.15),
+                blurRadius: 12,
+              ),
             ],
           ),
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-              color: NexusColors.primary.withValues(alpha:0.15),
-              blurRadius: 12,
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
+              letterSpacing: 2,
+              fontFamily: 'JetBrains Mono',
+              fontWeight: FontWeight.w600,
             ),
-          ],
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 10,
-            letterSpacing: 2,
-            fontFamily: 'JetBrains Mono',
-            fontWeight: FontWeight.w600,
           ),
         ),
-      ),
       ),
     );
   }
@@ -5571,24 +5923,25 @@ class _GlassButton extends StatelessWidget {
           decoration: BoxDecoration(
             color: NexusColors.error.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: NexusColors.error.withValues(alpha: 0.28)),
+            border: Border.all(
+              color: NexusColors.error.withValues(alpha: 0.28),
+            ),
           ),
           child: Text(
             label,
-          style: const TextStyle(
-            color: NexusColors.error,
-            fontSize: 10,
-            letterSpacing: 2,
-            fontFamily: 'JetBrains Mono',
-            fontWeight: FontWeight.w600,
+            style: const TextStyle(
+              color: NexusColors.error,
+              fontSize: 10,
+              letterSpacing: 2,
+              fontFamily: 'JetBrains Mono',
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
-      ),
       ),
     );
   }
 }
-
 
 // ════════════════════════════════════════════════
 // HTML REBUILD — new section widgets (test.html)
@@ -5657,9 +6010,12 @@ class _QuickActionsBar extends StatelessWidget {
                 _QuickActionButton(
                   icon: Icons.ios_share_rounded,
                   label: 'Export Data',
-                  onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Export is not available yet.')),
-                  ),
+                  onTap:
+                      () => ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Export is not available yet.'),
+                        ),
+                      ),
                 ),
               ],
             ),
@@ -5690,25 +6046,29 @@ class _QuickActionButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          gradient: filled
-              ? const LinearGradient(
-                  colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-                )
-              : null,
+          gradient:
+              filled
+                  ? const LinearGradient(
+                    colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
+                  )
+                  : null,
           color: filled ? null : NexusColors.primary.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: filled
-                ? Colors.transparent
-                : NexusColors.primary.withValues(alpha: 0.2),
+            color:
+                filled
+                    ? Colors.transparent
+                    : NexusColors.primary.withValues(alpha: 0.2),
           ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon,
-                size: 16,
-                color: filled ? Colors.white : NexusColors.primary),
+            Icon(
+              icon,
+              size: 16,
+              color: filled ? Colors.white : NexusColors.primary,
+            ),
             const SizedBox(width: 8),
             Text(
               label.toUpperCase(),
@@ -5736,9 +6096,10 @@ class _ProductivityRankCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final hasData = vm.focusScore > 0;
     final rank = hasData ? (100 - vm.focusScore).clamp(1, 99) : 0;
-    final tierLabel = vm.focusScore >= 80
-        ? 'TOP ${(100 - vm.focusScore).clamp(1, 20)}%'
-        : 'RISING';
+    final tierLabel =
+        vm.focusScore >= 80
+            ? 'TOP ${(100 - vm.focusScore).clamp(1, 20)}%'
+            : 'RISING';
     return _GlassPanel(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -5750,8 +6111,11 @@ class _ProductivityRankCard extends StatelessWidget {
               children: [
                 Row(
                   children: const [
-                    Icon(Icons.military_tech_rounded,
-                        color: NexusColors.secondary, size: 18),
+                    Icon(
+                      Icons.military_tech_rounded,
+                      color: NexusColors.secondary,
+                      size: 18,
+                    ),
                     SizedBox(width: 8),
                     Text(
                       'PRODUCTIVITY RANK',
@@ -5766,8 +6130,10 @@ class _ProductivityRankCard extends StatelessWidget {
                 ),
                 if (hasData)
                   Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3,
+                    ),
                     decoration: BoxDecoration(
                       color: NexusColors.secondary.withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(999),
@@ -5879,8 +6245,11 @@ class _PeerComparisonCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.groups_rounded,
-                    color: NexusColors.secondary, size: 18),
+                Icon(
+                  Icons.groups_rounded,
+                  color: NexusColors.secondary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'PEER COMPARISON',
@@ -5922,8 +6291,7 @@ class _PeerComparisonCard extends StatelessWidget {
                 value: pct / 100,
                 minHeight: 6,
                 backgroundColor: NexusColors.surfaceContainerHighest,
-                valueColor:
-                    const AlwaysStoppedAnimation(NexusColors.secondary),
+                valueColor: const AlwaysStoppedAnimation(NexusColors.secondary),
               ),
             ),
             const SizedBox(height: 16),
@@ -6052,24 +6420,28 @@ class _ProfileStrengthCard extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             _StrengthBar(
-                label: 'Identity',
-                percent: vm.identityStrength,
-                color: const Color(0xFF4ADE80)),
+              label: 'Identity',
+              percent: vm.identityStrength,
+              color: const Color(0xFF4ADE80),
+            ),
             const SizedBox(height: 12),
             _StrengthBar(
-                label: 'Productivity',
-                percent: vm.productivityStrength,
-                color: NexusColors.primary),
+              label: 'Productivity',
+              percent: vm.productivityStrength,
+              color: NexusColors.primary,
+            ),
             const SizedBox(height: 12),
             _StrengthBar(
-                label: 'Security',
-                percent: vm.securityStrength,
-                color: NexusColors.secondary),
+              label: 'Security',
+              percent: vm.securityStrength,
+              color: NexusColors.secondary,
+            ),
             const SizedBox(height: 12),
             _StrengthBar(
-                label: 'Preferences',
-                percent: vm.preferencesStrength,
-                color: const Color(0xFF4ADE80)),
+              label: 'Preferences',
+              percent: vm.preferencesStrength,
+              color: const Color(0xFF4ADE80),
+            ),
           ],
         ),
       ),
@@ -6170,19 +6542,25 @@ class _AIInsightCardV2 extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: NexusColors.primary.withValues(alpha: 0.2),
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(
-                        color: NexusColors.primary.withValues(alpha: 0.3)),
+                      color: NexusColors.primary.withValues(alpha: 0.3),
+                    ),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: const [
-                      Icon(Icons.auto_awesome_rounded,
-                          size: 12, color: NexusColors.primary),
+                      Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 12,
+                        color: NexusColors.primary,
+                      ),
                       SizedBox(width: 6),
                       Text(
                         'AI ANALYTICS',
@@ -6279,16 +6657,18 @@ class _AIInsightCardV2 extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         _AIMeter(
-            label: 'FOCUS SCORE',
-            value: '${vm.focusScore}',
-            percent: vm.focusScore / 100,
-            color: NexusColors.primary),
+          label: 'FOCUS SCORE',
+          value: '${vm.focusScore}',
+          percent: vm.focusScore / 100,
+          color: NexusColors.primary,
+        ),
         const SizedBox(height: 20),
         _AIMeter(
-            label: 'DEEP WORK %',
-            value: '${vm.deepWorkPercent}%',
-            percent: vm.deepWorkPercent / 100,
-            color: NexusColors.secondary),
+          label: 'DEEP WORK %',
+          value: '${vm.deepWorkPercent}%',
+          percent: vm.deepWorkPercent / 100,
+          color: NexusColors.secondary,
+        ),
       ],
     );
   }
@@ -6359,9 +6739,11 @@ class _DeepFocusCard extends StatelessWidget {
     final items = <(String, String, Color)>[
       ('BEST WINDOW', vm.bestFocusWindow, NexusColors.secondary),
       ('CONSISTENCY', '${vm.focusConsistency}%', NexusColors.primary),
-      ('MOMENTUM',
-          '${vm.weeklyGrowthPercent >= 0 ? '+' : ''}${vm.weeklyGrowthPercent}%',
-          const Color(0xFF4ADE80)),
+      (
+        'MOMENTUM',
+        '${vm.weeklyGrowthPercent >= 0 ? '+' : ''}${vm.weeklyGrowthPercent}%',
+        const Color(0xFF4ADE80),
+      ),
       ('PEAK DAY', vm.peakDay, NexusColors.onSurface),
     ];
     return Container(
@@ -6379,8 +6761,11 @@ class _DeepFocusCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.insights_rounded,
-                    color: NexusColors.secondary, size: 18),
+                Icon(
+                  Icons.insights_rounded,
+                  color: NexusColors.secondary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'DEEP FOCUS INTELLIGENCE',
@@ -6412,7 +6797,8 @@ class _DeepFocusCard extends StatelessWidget {
                           color: Colors.white.withValues(alpha: 0.03),
                           borderRadius: BorderRadius.circular(16),
                           border: Border.all(
-                              color: Colors.white.withValues(alpha: 0.06)),
+                            color: Colors.white.withValues(alpha: 0.06),
+                          ),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -6470,8 +6856,11 @@ class _FocusScheduleCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.event_repeat_rounded,
-                    color: NexusColors.primary, size: 18),
+                Icon(
+                  Icons.event_repeat_rounded,
+                  color: NexusColors.primary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'FOCUS SCHEDULE',
@@ -6497,10 +6886,12 @@ class _FocusScheduleCard extends StatelessWidget {
                   childAspectRatio: 1.4,
                   children: [
                     _ScheduleEmptyTile(
-                      onTap: () => ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Scheduling is not available yet.')),
-                      ),
+                      onTap:
+                          () => ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Scheduling is not available yet.'),
+                            ),
+                          ),
                     ),
                   ],
                 );
@@ -6532,8 +6923,10 @@ class _ScheduleEmptyTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(12),
       child: DottedBorderBox(
         child: const Center(
-          child: Icon(Icons.add_circle_outline_rounded,
-              color: NexusColors.onSurfaceVariant),
+          child: Icon(
+            Icons.add_circle_outline_rounded,
+            color: NexusColors.onSurfaceVariant,
+          ),
         ),
       ),
     );
@@ -6569,37 +6962,78 @@ class _SmartRecommendationsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final recs = <(IconData, String, Color)>[];
     if (vm.learningPercent < 25) {
-      recs.add((Icons.trending_up_rounded,
-          'Increase learning allocation to sustain skill growth.',
-          NexusColors.primary));
+      recs.add((
+        Icons.trending_up_rounded,
+        'Increase learning allocation to sustain skill growth.',
+        NexusColors.primary,
+      ));
     }
     if (vm.deepWorkPercent < 60) {
-      recs.add((Icons.schedule_rounded,
-          'Schedule high-complexity work in the morning for better focus.',
-          NexusColors.secondary));
+      recs.add((
+        Icons.schedule_rounded,
+        'Schedule high-complexity work in the morning for better focus.',
+        NexusColors.secondary,
+      ));
     }
     if (vm.streakDays < 7) {
-      recs.add((Icons.spa_rounded,
-          'Build a daily streak to compound your momentum.',
-          const Color(0xFF4ADE80)));
+      recs.add((
+        Icons.spa_rounded,
+        'Build a daily streak to compound your momentum.',
+        const Color(0xFF4ADE80),
+      ));
     }
     // Evergreen recommendations (always shown).
     recs.addAll(<(IconData, String, Color)>[
-      (Icons.bolt_rounded,
-          'Protect your peak window 08:30–11:15 for deep work.',
-          NexusColors.primary),
-      (Icons.coffee_rounded,
-          'Add a 15-minute recovery break between deep blocks.',
-          const Color(0xFF4ADE80)),
-      (Icons.notifications_off_rounded,
-          'Mute notifications during focus sessions to cut context switches.',
-          NexusColors.secondary),
-      (Icons.water_drop_rounded,
-          'Hydrate and stand up every 90 minutes to sustain focus.',
-          const Color(0xFF60A5FA)),
-      (Icons.nightlight_round,
-          'Wind down screens an hour before bed to improve next-day focus.',
-          const Color(0xFFF59E0B)),
+      (
+        Icons.bolt_rounded,
+        'Protect your peak window 08:30–11:15 for deep work.',
+        NexusColors.primary,
+      ),
+      (
+        Icons.coffee_rounded,
+        'Add a 15-minute recovery break between deep blocks.',
+        const Color(0xFF4ADE80),
+      ),
+      (
+        Icons.notifications_off_rounded,
+        'Mute notifications during focus sessions to cut context switches.',
+        NexusColors.secondary,
+      ),
+      (
+        Icons.event_available_rounded,
+        'Batch low-priority tasks into one admin block to protect creative energy.',
+        const Color(0xFF38BDF8),
+      ),
+      (
+        Icons.flag_rounded,
+        'Set three priority tasks each morning to anchor your day.',
+        NexusColors.primary,
+      ),
+      (
+        Icons.timer_rounded,
+        'Try 50/10 focus cycles to sustain energy across long sessions.',
+        const Color(0xFF4ADE80),
+      ),
+      (
+        Icons.checklist_rounded,
+        'Review and clear your task backlog every Friday afternoon.',
+        NexusColors.secondary,
+      ),
+      (
+        Icons.self_improvement_rounded,
+        'Schedule a weekly reflection to lock in what worked.',
+        const Color(0xFFF59E0B),
+      ),
+      (
+        Icons.water_drop_rounded,
+        'Hydrate and stand up every 90 minutes to sustain focus.',
+        const Color(0xFF60A5FA),
+      ),
+      (
+        Icons.nightlight_round,
+        'Wind down screens an hour before bed to improve next-day focus.',
+        const Color(0xFFF59E0B),
+      ),
     ]);
     return Container(
       decoration: BoxDecoration(
@@ -6614,8 +7048,11 @@ class _SmartRecommendationsCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.smart_toy_rounded,
-                    color: NexusColors.primary, size: 18),
+                Icon(
+                  Icons.smart_toy_rounded,
+                  color: NexusColors.primary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'SMART RECOMMENDATIONS',
@@ -6636,8 +7073,9 @@ class _SmartRecommendationsCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: NexusColors.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.06)),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -6653,6 +7091,8 @@ class _SmartRecommendationsCard extends StatelessWidget {
                         ),
                       ),
                     ),
+                    const SizedBox(width: 12),
+                    const _RecommendationActionPill(),
                   ],
                 ),
               ),
@@ -6679,8 +7119,11 @@ class _RecentSessionsCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.history_rounded,
-                    color: NexusColors.primary, size: 18),
+                Icon(
+                  Icons.history_rounded,
+                  color: NexusColors.primary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'RECENT SESSIONS',
@@ -6703,8 +7146,11 @@ class _RecentSessionsCard extends StatelessWidget {
               ),
               child: Row(
                 children: const [
-                  Icon(Icons.timer_off_rounded,
-                      color: NexusColors.onSurfaceVariant, size: 20),
+                  Icon(
+                    Icons.timer_off_rounded,
+                    color: NexusColors.onSurfaceVariant,
+                    size: 20,
+                  ),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
@@ -6737,8 +7183,10 @@ class _QuickInsightsCard extends StatelessWidget {
       ('Average Focus Session', '${vm.averageSessionMinutes} min'),
       ('Deep Work Ratio', '${vm.deepWorkPercent}%'),
       ('Best Focus Window', vm.bestFocusWindow),
-      ('Monthly Improvement',
-          '${vm.weeklyGrowthPercent >= 0 ? '+' : ''}${vm.weeklyGrowthPercent}%'),
+      (
+        'Monthly Improvement',
+        '${vm.weeklyGrowthPercent >= 0 ? '+' : ''}${vm.weeklyGrowthPercent}%',
+      ),
     ];
     return _GlassPanel(
       child: Padding(
@@ -6748,8 +7196,11 @@ class _QuickInsightsCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.bolt_rounded,
-                    color: NexusColors.secondary, size: 18),
+                Icon(
+                  Icons.bolt_rounded,
+                  color: NexusColors.secondary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
                 Text(
                   'QUICK INSIGHTS',
@@ -6768,7 +7219,9 @@ class _QuickInsightsCard extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Divider(
-                      height: 1, color: Colors.white.withValues(alpha: 0.06)),
+                    height: 1,
+                    color: Colors.white.withValues(alpha: 0.06),
+                  ),
                 ),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -6838,9 +7291,13 @@ class _TaskPerformanceCard extends StatelessWidget {
                         fontFamily: 'Geist',
                       ),
                     ),
-                    const Text('Lifetime Tasks',
-                        style: TextStyle(
-                            color: NexusColors.onSurfaceVariant, fontSize: 12)),
+                    const Text(
+                      'Lifetime Tasks',
+                      style: TextStyle(
+                        color: NexusColors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
                 Column(
@@ -6855,9 +7312,13 @@ class _TaskPerformanceCard extends StatelessWidget {
                         fontFamily: 'Geist',
                       ),
                     ),
-                    const Text('Completed',
-                        style: TextStyle(
-                            color: NexusColors.onSurfaceVariant, fontSize: 12)),
+                    const Text(
+                      'Completed',
+                      style: TextStyle(
+                        color: NexusColors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -6877,13 +7338,16 @@ class _TaskPerformanceCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _PerfBox(
-                      label: 'THIS WEEK', value: '${vm.tasksThisWeek}'),
+                    label: 'THIS WEEK',
+                    value: '${vm.tasksThisWeek}',
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _PerfBox(
-                      label: 'AVG DAILY',
-                      value: vm.tasksDailyAverage.toStringAsFixed(1)),
+                    label: 'AVG DAILY',
+                    value: vm.tasksDailyAverage.toStringAsFixed(1),
+                  ),
                 ),
               ],
             ),
@@ -6911,19 +7375,25 @@ class _PerfBox extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(label,
-              style: const TextStyle(
-                  color: NexusColors.onSurfaceVariant,
-                  fontSize: 10,
-                  letterSpacing: 1,
-                  fontFamily: 'JetBrains Mono')),
+          Text(
+            label,
+            style: const TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 10,
+              letterSpacing: 1,
+              fontFamily: 'JetBrains Mono',
+            ),
+          ),
           const SizedBox(height: 4),
-          Text(value,
-              style: const TextStyle(
-                  color: NexusColors.onSurface,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  fontFamily: 'Geist')),
+          Text(
+            value,
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Geist',
+            ),
+          ),
         ],
       ),
     );
@@ -6945,15 +7415,21 @@ class _LearningProgressCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.school_rounded,
-                    color: NexusColors.primary, size: 18),
+                Icon(
+                  Icons.school_rounded,
+                  color: NexusColors.primary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
-                Text('LEARNING PROGRESS',
-                    style: TextStyle(
-                        color: NexusColors.onSurfaceVariant,
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                        fontFamily: 'JetBrains Mono')),
+                Text(
+                  'LEARNING PROGRESS',
+                  style: TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -6964,46 +7440,61 @@ class _LearningProgressCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('${vm.learningPercent}%',
-                        style: const TextStyle(
-                            color: NexusColors.onSurface,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w700,
-                            fontFamily: 'Geist')),
-                    const Text('LEARNING SHARE',
-                        style: TextStyle(
-                            color: NexusColors.onSurfaceVariant,
-                            fontSize: 10,
-                            letterSpacing: 1,
-                            fontFamily: 'JetBrains Mono')),
+                    Text(
+                      '${vm.learningPercent}%',
+                      style: const TextStyle(
+                        color: NexusColors.onSurface,
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Geist',
+                      ),
+                    ),
+                    const Text(
+                      'LEARNING SHARE',
+                      style: TextStyle(
+                        color: NexusColors.onSurfaceVariant,
+                        fontSize: 10,
+                        letterSpacing: 1,
+                        fontFamily: 'JetBrains Mono',
+                      ),
+                    ),
                   ],
                 ),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: const [
-                    Text('Quantum Computing',
-                        style: TextStyle(
-                            color: NexusColors.primary,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700)),
+                    Text(
+                      'Quantum Computing',
+                      style: TextStyle(
+                        color: NexusColors.primary,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
                     SizedBox(height: 2),
-                    Text('CURRENT FOCUS',
-                        style: TextStyle(
-                            color: NexusColors.onSurfaceVariant,
-                            fontSize: 9,
-                            letterSpacing: 1,
-                            fontFamily: 'JetBrains Mono')),
+                    Text(
+                      'CURRENT FOCUS',
+                      style: TextStyle(
+                        color: NexusColors.onSurfaceVariant,
+                        fontSize: 9,
+                        letterSpacing: 1,
+                        fontFamily: 'JetBrains Mono',
+                      ),
+                    ),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 20),
-            const Text('SKILL TREND',
-                style: TextStyle(
-                    color: NexusColors.onSurfaceVariant,
-                    fontSize: 10,
-                    letterSpacing: 1,
-                    fontFamily: 'JetBrains Mono')),
+            const Text(
+              'SKILL TREND',
+              style: TextStyle(
+                color: NexusColors.onSurfaceVariant,
+                fontSize: 10,
+                letterSpacing: 1,
+                fontFamily: 'JetBrains Mono',
+              ),
+            ),
             const SizedBox(height: 8),
             SizedBox(
               height: 48,
@@ -7018,7 +7509,8 @@ class _LearningProgressCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: NexusColors.primary.withValues(alpha: f),
                             borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(3)),
+                              top: Radius.circular(3),
+                            ),
                           ),
                         ),
                       ),
@@ -7052,15 +7544,21 @@ class _ProductivityMilestonesCard extends StatelessWidget {
           children: [
             Row(
               children: const [
-                Icon(Icons.flag_rounded,
-                    color: NexusColors.secondary, size: 18),
+                Icon(
+                  Icons.flag_rounded,
+                  color: NexusColors.secondary,
+                  size: 18,
+                ),
                 SizedBox(width: 8),
-                Text('PRODUCTIVITY MILESTONES',
-                    style: TextStyle(
-                        color: NexusColors.onSurfaceVariant,
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                        fontFamily: 'JetBrains Mono')),
+                Text(
+                  'PRODUCTIVITY MILESTONES',
+                  style: TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 20),
@@ -7080,8 +7578,7 @@ class _ProductivityMilestonesCard extends StatelessWidget {
                   color: NexusColors.secondary,
                 );
                 if (!two) {
-                  return Column(
-                      children: [a, const SizedBox(height: 16), b]);
+                  return Column(children: [a, const SizedBox(height: 16), b]);
                 }
                 return Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -7127,16 +7624,22 @@ class _MilestoneProgress extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title,
-                  style: const TextStyle(
-                      color: NexusColors.onSurface,
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700)),
-              Text('${(percent * 100).round()}%',
-                  style: TextStyle(
-                      color: color,
-                      fontSize: 11,
-                      fontFamily: 'JetBrains Mono')),
+              Text(
+                title,
+                style: const TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              Text(
+                '${(percent * 100).round()}%',
+                style: TextStyle(
+                  color: color,
+                  fontSize: 11,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 10),
@@ -7150,10 +7653,1240 @@ class _MilestoneProgress extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8),
-          Text(detail,
-              style: const TextStyle(
-                  color: NexusColors.onSurfaceVariant, fontSize: 9)),
+          Text(
+            detail,
+            style: const TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 9,
+            ),
+          ),
         ],
+      ),
+    );
+  }
+}
+
+// ════════════════════════════════════════════════
+// PREMIUM ENHANCEMENT V2 — additive sections only
+// ════════════════════════════════════════════════
+
+/// V2 §1 — Account Health Center. Score + factor checklist (derived metrics).
+class _AccountHealthCenterCard extends StatelessWidget {
+  const _AccountHealthCenterCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final score = vm.accountHealthScore;
+    final scoreColor =
+        score >= 90
+            ? const Color(0xFF4ADE80)
+            : score >= 70
+            ? NexusColors.warning
+            : NexusColors.error;
+    final present = <(String, bool)>[
+      ('Email Verified', vm.emailVerified),
+      ('Profile Completed', vm.completionPercent >= 80),
+      ('Security Enabled', vm.connectedProviders.isNotEmpty),
+      ('Recovery Method Added', vm.recoveryMethodAdded),
+      ('Active This Week', vm.activeThisWeek),
+    ];
+    final missing = <String>[
+      if (!vm.twoFactorEnabled) 'Two-Factor Authentication',
+      if (!vm.recoveryMethodAdded) 'Backup Email',
+    ];
+    return _GlassPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(
+                  Icons.health_and_safety_rounded,
+                  color: NexusColors.primary,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'ACCOUNT HEALTH CENTER',
+                  style: TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                _HealthScoreRing(score: score, color: scoreColor),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (var i = 0; i < present.length; i++) ...[
+                        if (i > 0) const SizedBox(height: 10),
+                        _HealthFactorRow(
+                          label: present[i].$1,
+                          done: present[i].$2,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (missing.isNotEmpty) ...[
+              const SizedBox(height: 20),
+              Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+              const SizedBox(height: 16),
+              const Text(
+                'MISSING ITEMS',
+                style: TextStyle(
+                  color: NexusColors.onSurfaceVariant,
+                  fontSize: 10,
+                  letterSpacing: 1.5,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
+              const SizedBox(height: 12),
+              for (var i = 0; i < missing.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _HealthFactorRow(label: missing[i], done: false),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _HealthScoreRing extends StatelessWidget {
+  const _HealthScoreRing({required this.score, required this.color});
+  final int score;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0, end: score / 100),
+      duration: const Duration(milliseconds: 900),
+      curve: Curves.easeOutCubic,
+      builder: (context, value, _) {
+        return SizedBox(
+          width: 104,
+          height: 104,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              CustomPaint(
+                size: const Size(104, 104),
+                painter: _HealthRingPainter(value, color),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    '${(value * 100).round()}',
+                    style: TextStyle(
+                      color: color,
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Geist',
+                    ),
+                  ),
+                  const Text(
+                    '/ 100',
+                    style: TextStyle(
+                      color: NexusColors.onSurfaceVariant,
+                      fontSize: 10,
+                      fontFamily: 'JetBrains Mono',
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _HealthRingPainter extends CustomPainter {
+  _HealthRingPainter(this.progress, this.color);
+  final double progress;
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 7;
+    const strokeWidth = 9.0;
+    final track =
+        Paint()
+          ..color = NexusColors.surfaceContainerHighest
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth;
+    canvas.drawCircle(center, radius, track);
+    final arc =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = strokeWidth
+          ..strokeCap = StrokeCap.round;
+    canvas.drawArc(
+      Rect.fromCircle(center: center, radius: radius),
+      -pi / 2,
+      2 * pi * progress,
+      false,
+      arc,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _HealthRingPainter oldDelegate) =>
+      oldDelegate.progress != progress || oldDelegate.color != color;
+}
+
+class _HealthFactorRow extends StatelessWidget {
+  const _HealthFactorRow({required this.label, required this.done});
+  final String label;
+  final bool done;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          done
+              ? Icons.check_circle_rounded
+              : Icons.radio_button_unchecked_rounded,
+          color: done ? const Color(0xFF4ADE80) : NexusColors.onSurfaceVariant,
+          size: 18,
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Text(
+            label,
+            style: TextStyle(
+              color:
+                  done ? NexusColors.onSurface : NexusColors.onSurfaceVariant,
+              fontSize: 13,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// V2 §10 — Subscription & Plan card. Plan tier + feature usage meters.
+class _SubscriptionPlanCard extends StatelessWidget {
+  const _SubscriptionPlanCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final plan = vm.tier.toLowerCase();
+    final isFree = plan == 'free' || plan.isEmpty;
+    final storagePct = (vm.totalTasks / 500).clamp(0.0, 1.0);
+    final aiPct = (vm.focusHours / vm.monthlyFocusGoalHours).clamp(0.0, 1.0);
+    final analyticsPct = (vm.completionPercent / 100).clamp(0.0, 1.0);
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            NexusColors.primaryContainer.withValues(alpha: 0.85),
+            NexusColors.secondaryContainer.withValues(alpha: 0.85),
+          ],
+        ),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: NexusColors.primary.withValues(alpha: 0.18),
+            blurRadius: 24,
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'CURRENT PLAN',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 10,
+                        letterSpacing: 1.5,
+                        fontFamily: 'JetBrains Mono',
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      vm.tier.toUpperCase(),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w700,
+                        fontFamily: 'Geist',
+                      ),
+                    ),
+                  ],
+                ),
+                const Icon(
+                  Icons.workspace_premium_rounded,
+                  color: Colors.white,
+                  size: 28,
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _PlanUsageBar(label: 'Storage', percent: storagePct),
+            const SizedBox(height: 12),
+            _PlanUsageBar(label: 'AI Requests', percent: aiPct),
+            const SizedBox(height: 12),
+            _PlanUsageBar(label: 'Analytics Usage', percent: analyticsPct),
+            if (isFree) ...[
+              const SizedBox(height: 20),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF0DBFF),
+                  foregroundColor: const Color(0xFF2C0051),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  elevation: 0,
+                ),
+                onPressed:
+                    () => ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Upgrade is not available yet.'),
+                      ),
+                    ),
+                child: const Text(
+                  'Upgrade Plan',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PlanUsageBar extends StatelessWidget {
+  const _PlanUsageBar({required this.label, required this.percent});
+  final String label;
+  final double percent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            Text(
+              '${(percent * 100).round()}%',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 12,
+                fontFamily: 'JetBrains Mono',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: percent,
+            minHeight: 7,
+            backgroundColor: Colors.white.withValues(alpha: 0.18),
+            valueColor: const AlwaysStoppedAnimation(Colors.white),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _AIProfileSummaryCard extends StatelessWidget {
+  const _AIProfileSummaryCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [NexusColors.primary, NexusColors.secondary],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: [
+                  BoxShadow(
+                    color: NexusColors.primary.withValues(alpha: 0.24),
+                    blurRadius: 18,
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.auto_awesome_rounded,
+                color: NexusColors.onPrimary,
+                size: 22,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'AI PROFILE SUMMARY',
+                    style: TextStyle(
+                      color: NexusColors.onSurfaceVariant,
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                      fontFamily: 'JetBrains Mono',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    vm.aiProfileSummary,
+                    style: const TextStyle(
+                      color: NexusColors.onSurface,
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FocusPersonaCard extends StatelessWidget {
+  const _FocusPersonaCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <(String, String)>[
+      ('Most Productive Time', vm.bestFocusWindow),
+      ('Preferred Session Length', '${vm.averageSessionMinutes} min'),
+      ('Focus Style', vm.focusStyle),
+      ('Distraction Risk', vm.distractionRisk),
+    ];
+    return _GlassPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: const [
+                Icon(
+                  Icons.psychology_alt_rounded,
+                  color: NexusColors.secondary,
+                  size: 18,
+                ),
+                SizedBox(width: 8),
+                Text(
+                  'FOCUS PERSONA',
+                  style: TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+                Spacer(),
+                _AIBadge(),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              vm.focusPersonaName,
+              style: const TextStyle(
+                color: NexusColors.onSurface,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'Geist',
+              ),
+            ),
+            const SizedBox(height: 18),
+            for (var i = 0; i < rows.length; i++) ...[
+              if (i > 0) const SizedBox(height: 10),
+              _InfoLine(label: rows[i].$1, value: rows[i].$2),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoLine extends StatelessWidget {
+  const _InfoLine({required this.label, required this.value});
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: NexusColors.onSurfaceVariant,
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalsTargetsCard extends StatelessWidget {
+  const _GoalsTargetsCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MetricPanel(
+      title: 'GOALS & TARGETS',
+      icon: Icons.flag_rounded,
+      child: Column(
+        children: [
+          _GoalBar(
+            label: 'Monthly Goal',
+            value: '${vm.completedTasks} / ${vm.monthlyTaskGoal} Tasks',
+            percent: vm.completedTasks / vm.monthlyTaskGoal,
+            color: NexusColors.primary,
+          ),
+          const SizedBox(height: 16),
+          _GoalBar(
+            label: 'Weekly Goal',
+            value: '${vm.focusHours} / ${vm.weeklyFocusGoalHours} Focus Hours',
+            percent: vm.focusHours / vm.weeklyFocusGoalHours,
+            color: NexusColors.secondary,
+          ),
+          const SizedBox(height: 16),
+          _GoalBar(
+            label: 'Quarter Goal',
+            value: '${vm.quarterGoalPercent}%',
+            percent: vm.quarterGoalPercent / 100,
+            color: const Color(0xFF4ADE80),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _GoalBar extends StatelessWidget {
+  const _GoalBar({
+    required this.label,
+    required this.value,
+    required this.percent,
+    required this.color,
+  });
+  final String label;
+  final String value;
+  final double percent;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              label,
+              style: const TextStyle(
+                color: NexusColors.onSurface,
+                fontSize: 13,
+              ),
+            ),
+            Text(
+              value,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                fontFamily: 'JetBrains Mono',
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: percent.clamp(0, 1),
+            minHeight: 8,
+            backgroundColor: NexusColors.surfaceContainerHighest,
+            valueColor: AlwaysStoppedAnimation(color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ProductivityComparisonCard extends StatelessWidget {
+  const _ProductivityComparisonCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final rows = <(String, String, String, int)>[
+      ('Today vs Yesterday', '${vm.tasksThisWeek}', 'tasks', 12),
+      (
+        'This Week vs Last Week',
+        '${vm.focusHours}h',
+        'focus',
+        vm.weeklyGrowthPercent,
+      ),
+      ('This Month vs Last Month', '${vm.taskCompletionRate}%', 'done', 8),
+    ];
+    return _MetricPanel(
+      title: 'PRODUCTIVITY COMPARISON',
+      icon: Icons.compare_arrows_rounded,
+      child: Column(
+        children: [
+          for (var i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 12),
+            _ComparisonRow(
+              label: rows[i].$1,
+              value: rows[i].$2,
+              metric: rows[i].$3,
+              delta: rows[i].$4,
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ComparisonRow extends StatelessWidget {
+  const _ComparisonRow({
+    required this.label,
+    required this.value,
+    required this.metric,
+    required this.delta,
+  });
+  final String label;
+  final String value;
+  final String metric;
+  final int delta;
+
+  @override
+  Widget build(BuildContext context) {
+    final up = delta >= 0;
+    final color = up ? const Color(0xFF4ADE80) : NexusColors.error;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: NexusColors.onSurface,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  metric.toUpperCase(),
+                  style: const TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 10,
+                    letterSpacing: 1.2,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            value,
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Geist',
+            ),
+          ),
+          const SizedBox(width: 12),
+          Icon(
+            up ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+            color: color,
+            size: 18,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            '${up ? '+' : ''}$delta%',
+            style: TextStyle(
+              color: color,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _BadgeCollectionShowcaseCard extends StatelessWidget {
+  const _BadgeCollectionShowcaseCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final badges = <(IconData, String, bool, Color)>[
+      (
+        Icons.wb_sunny_rounded,
+        'Early Bird',
+        vm.bestFocusWindow.startsWith('08'),
+        NexusColors.primary,
+      ),
+      (
+        Icons.nights_stay_rounded,
+        'Night Owl',
+        vm.focusHours >= 40,
+        NexusColors.secondary,
+      ),
+      (
+        Icons.center_focus_strong_rounded,
+        'Deep Worker',
+        vm.deepWorkPercent >= 50,
+        NexusColors.primary,
+      ),
+      (
+        Icons.speed_rounded,
+        'Sprint Master',
+        vm.tasksThisWeek >= 10,
+        const Color(0xFF4ADE80),
+      ),
+      (
+        Icons.workspace_premium_rounded,
+        'Focus Champion',
+        vm.focusScore >= 80,
+        NexusColors.secondary,
+      ),
+      (
+        Icons.task_alt_rounded,
+        'Task Crusher',
+        vm.completedTasks >= 100,
+        NexusColors.primary,
+      ),
+    ];
+    return _MetricPanel(
+      title: 'BADGE COLLECTION',
+      icon: Icons.emoji_events_rounded,
+      child: SizedBox(
+        height: 132,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          itemCount: badges.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 12),
+          itemBuilder:
+              (context, i) => _ShowcaseBadge(
+                icon: badges[i].$1,
+                label: badges[i].$2,
+                unlocked: badges[i].$3,
+                color: badges[i].$4,
+              ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ShowcaseBadge extends StatelessWidget {
+  const _ShowcaseBadge({
+    required this.icon,
+    required this.label,
+    required this.unlocked,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final bool unlocked;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    final effective = unlocked ? color : NexusColors.onSurfaceVariant;
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 112,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: effective.withValues(alpha: unlocked ? 0.12 : 0.06),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: effective.withValues(alpha: 0.28)),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              unlocked ? icon : Icons.lock_outline_rounded,
+              color: effective,
+              size: 30,
+            ),
+            const SizedBox(height: 12),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color:
+                    unlocked
+                        ? NexusColors.onSurface
+                        : NexusColors.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RecommendationActionPill extends StatelessWidget {
+  const _RecommendationActionPill();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: NexusColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: NexusColors.primary.withValues(alpha: 0.28)),
+      ),
+      child: const Text(
+        'Apply',
+        style: TextStyle(
+          color: NexusColors.primary,
+          fontSize: 10,
+          fontWeight: FontWeight.w700,
+          fontFamily: 'JetBrains Mono',
+        ),
+      ),
+    );
+  }
+}
+
+class _MetricPanel extends StatelessWidget {
+  const _MetricPanel({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassPanel(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: NexusColors.primary, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: const TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 11,
+                    letterSpacing: 1.5,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PersonalBestRecordsCard extends StatelessWidget {
+  const _PersonalBestRecordsCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final records = <(IconData, String, String, Color)>[
+      (
+        Icons.timer_rounded,
+        'Longest Focus Session',
+        _minutes(vm.personalBestSessionMinutes),
+        NexusColors.primary,
+      ),
+      (
+        Icons.task_alt_rounded,
+        'Most Tasks In One Day',
+        '${vm.mostTasksInOneDay}',
+        NexusColors.secondary,
+      ),
+      (
+        Icons.local_fire_department_rounded,
+        'Longest Streak',
+        '${vm.longestStreak} Days',
+        const Color(0xFF4ADE80),
+      ),
+      (
+        Icons.stars_rounded,
+        'Best Focus Score',
+        '${vm.bestFocusScore}',
+        NexusColors.primary,
+      ),
+    ];
+    return _MetricPanel(
+      title: 'PERSONAL BEST RECORDS',
+      icon: Icons.emoji_events_rounded,
+      child: LayoutBuilder(
+        builder: (context, c) {
+          final cols =
+              c.maxWidth > 720
+                  ? 4
+                  : c.maxWidth > 420
+                  ? 2
+                  : 1;
+          const gap = 12.0;
+          final width = (c.maxWidth - gap * (cols - 1)) / cols;
+          return Wrap(
+            spacing: gap,
+            runSpacing: gap,
+            children: [
+              for (final r in records)
+                SizedBox(
+                  width: width,
+                  child: _RecordTile(
+                    icon: r.$1,
+                    label: r.$2,
+                    value: r.$3,
+                    color: r.$4,
+                  ),
+                ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  static String _minutes(int minutes) {
+    if (minutes <= 0) return '0m';
+    final h = minutes ~/ 60;
+    final m = minutes % 60;
+    return h == 0 ? '${m}m' : '${h}h ${m}m';
+  }
+}
+
+class _RecordTile extends StatelessWidget {
+  const _RecordTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+    required this.color,
+  });
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.24)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 14),
+          Text(
+            value,
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 22,
+              fontWeight: FontWeight.w700,
+              fontFamily: 'Geist',
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 12,
+              height: 1.3,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FocusEnvironmentCard extends StatelessWidget {
+  const _FocusEnvironmentCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    return _MetricPanel(
+      title: 'FOCUS ENVIRONMENT',
+      icon: Icons.tune_rounded,
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: [
+          _PreferenceChip(
+            label: 'Morning',
+            selected: vm.bestFocusWindow.startsWith('08'),
+          ),
+          _PreferenceChip(label: 'Afternoon', selected: false),
+          _PreferenceChip(label: 'Night', selected: vm.focusHours > 40),
+          _PreferenceChip(
+            label: '${vm.averageSessionMinutes} min sessions',
+            selected: true,
+          ),
+          _PreferenceChip(label: vm.focusStyle, selected: true),
+          _PreferenceChip(
+            label: vm.notificationsEnabled ? 'Break 15 min' : 'Silent Mode',
+            selected: true,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreferenceChip extends StatelessWidget {
+  const _PreferenceChip({required this.label, required this.selected});
+  final String label;
+  final bool selected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = selected ? NexusColors.primary : NexusColors.onSurfaceVariant;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: selected ? 0.14 : 0.06),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: color.withValues(alpha: selected ? 0.34 : 0.14),
+        ),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color:
+              selected ? NexusColors.onSurface : NexusColors.onSurfaceVariant,
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+class _DataExportCenterCard extends StatelessWidget {
+  const _DataExportCenterCard({required this.vm});
+  final _ProfileVM vm;
+
+  @override
+  Widget build(BuildContext context) {
+    final actions = <(IconData, String)>[
+      (Icons.person_rounded, 'Export Profile'),
+      (Icons.analytics_rounded, 'Export Analytics'),
+      (Icons.download_rounded, 'Download Task History'),
+      (Icons.history_rounded, 'Download Focus History'),
+    ];
+    return _MetricPanel(
+      title: 'DATA EXPORT CENTER',
+      icon: Icons.ios_share_rounded,
+      child: Column(
+        children: [
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: const [
+              _ExportFormatPill(label: 'CSV'),
+              _ExportFormatPill(label: 'PDF'),
+              _ExportFormatPill(label: 'JSON'),
+            ],
+          ),
+          const SizedBox(height: 16),
+          for (var i = 0; i < actions.length; i++) ...[
+            if (i > 0) const SizedBox(height: 10),
+            _ExportActionRow(icon: actions[i].$1, label: actions[i].$2),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ExportFormatPill extends StatelessWidget {
+  const _ExportFormatPill({required this.label});
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: NexusColors.primary.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: NexusColors.primary.withValues(alpha: 0.28)),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: NexusColors.primary,
+          fontSize: 10,
+          letterSpacing: 1.2,
+          fontFamily: 'JetBrains Mono',
+        ),
+      ),
+    );
+  }
+}
+
+class _ExportActionRow extends StatelessWidget {
+  const _ExportActionRow({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap:
+          () => ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$label is not available yet.')),
+          ),
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.04),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: NexusColors.primary, size: 18),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                label,
+                style: const TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.chevron_right_rounded,
+              color: NexusColors.onSurfaceVariant,
+              size: 18,
+            ),
+          ],
+        ),
       ),
     );
   }

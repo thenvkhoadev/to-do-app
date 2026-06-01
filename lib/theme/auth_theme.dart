@@ -36,63 +36,63 @@ class AuthBreakpoints {
 
 class AuthTextStyles {
   static TextStyle get display => GoogleFonts.inter(
-        fontSize: 48,
-        height: 1.1,
-        letterSpacing: -0.96,
-        fontWeight: FontWeight.w700,
-        color: AuthColors.onSurface,
-      );
+    fontSize: 48,
+    height: 1.1,
+    letterSpacing: -0.96,
+    fontWeight: FontWeight.w700,
+    color: AuthColors.onSurface,
+  );
 
   static TextStyle get headlineLarge => GoogleFonts.inter(
-        fontSize: 32,
-        height: 1.2,
-        letterSpacing: -0.32,
-        fontWeight: FontWeight.w600,
-        color: AuthColors.onSurface,
-      );
+    fontSize: 32,
+    height: 1.2,
+    letterSpacing: -0.32,
+    fontWeight: FontWeight.w600,
+    color: AuthColors.onSurface,
+  );
 
   static TextStyle get headlineMobile => GoogleFonts.inter(
-        fontSize: 24,
-        height: 1.2,
-        fontWeight: FontWeight.w600,
-        color: AuthColors.onSurface,
-      );
+    fontSize: 24,
+    height: 1.2,
+    fontWeight: FontWeight.w600,
+    color: AuthColors.onSurface,
+  );
 
   static TextStyle get headlineMedium => GoogleFonts.inter(
-        fontSize: 24,
-        height: 1.3,
-        fontWeight: FontWeight.w500,
-        color: AuthColors.onSurface,
-      );
+    fontSize: 24,
+    height: 1.3,
+    fontWeight: FontWeight.w500,
+    color: AuthColors.onSurface,
+  );
 
   static TextStyle get bodyLarge => GoogleFonts.inter(
-        fontSize: 18,
-        height: 1.6,
-        fontWeight: FontWeight.w400,
-        color: AuthColors.onSurfaceVariant,
-      );
+    fontSize: 18,
+    height: 1.6,
+    fontWeight: FontWeight.w400,
+    color: AuthColors.onSurfaceVariant,
+  );
 
   static TextStyle get bodyMedium => GoogleFonts.inter(
-        fontSize: 16,
-        height: 1.5,
-        fontWeight: FontWeight.w400,
-        color: AuthColors.onSurface,
-      );
+    fontSize: 16,
+    height: 1.5,
+    fontWeight: FontWeight.w400,
+    color: AuthColors.onSurface,
+  );
 
   static TextStyle get labelSmall => GoogleFonts.inter(
-        fontSize: 12,
-        height: 1.4,
-        fontWeight: FontWeight.w500,
-        color: AuthColors.onSurfaceVariant,
-      );
+    fontSize: 12,
+    height: 1.4,
+    fontWeight: FontWeight.w500,
+    color: AuthColors.onSurfaceVariant,
+  );
 
   static TextStyle get labelCaps => GoogleFonts.jetBrainsMono(
-        fontSize: 12,
-        height: 1,
-        letterSpacing: 1.2,
-        fontWeight: FontWeight.w500,
-        color: AuthColors.onSurfaceVariant,
-      );
+    fontSize: 12,
+    height: 1,
+    letterSpacing: 1.2,
+    fontWeight: FontWeight.w500,
+    color: AuthColors.onSurfaceVariant,
+  );
 }
 
 class AuthTheme {

@@ -19,15 +19,60 @@ class ContactSupportSection extends StatelessWidget {
             final intro = Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: const [
-                Text('Still need assistance?', style: TextStyle(color: DashboardColors.onSurface, fontSize: 38, height: 1.1, fontWeight: FontWeight.w900, letterSpacing: -.8)),
+                Text(
+                  'Still need assistance?',
+                  style: TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 38,
+                    height: 1.1,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -.8,
+                  ),
+                ),
                 SizedBox(height: 16),
-                Text('Our specialized human support team and AI agents are standing by to resolve any issue.', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 17, height: 1.5)),
+                Text(
+                  'Our specialized human support team and AI agents are standing by to resolve any issue.',
+                  style: TextStyle(
+                    color: DashboardColors.onSurfaceVariant,
+                    fontSize: 17,
+                    height: 1.5,
+                  ),
+                ),
                 SizedBox(height: 26),
-                Wrap(spacing: 12, runSpacing: 12, children: [_ContactButton(label: 'AI Chat Support', icon: Icons.chat_rounded, primary: true), _ContactButton(label: 'Community Forum', icon: Icons.forum_rounded)]),
+                Wrap(
+                  spacing: 12,
+                  runSpacing: 12,
+                  children: [
+                    _ContactButton(
+                      label: 'AI Chat Support',
+                      icon: Icons.chat_rounded,
+                      primary: true,
+                    ),
+                    _ContactButton(
+                      label: 'Community Forum',
+                      icon: Icons.forum_rounded,
+                    ),
+                  ],
+                ),
               ],
             );
-            if (stacked) return Column(children: [intro, const SizedBox(height: DashboardSpacing.md), const TicketFormCard()]);
-            return Row(crossAxisAlignment: CrossAxisAlignment.center, children: [Expanded(child: intro), const SizedBox(width: DashboardSpacing.lg), const Expanded(child: TicketFormCard())]);
+            if (stacked) {
+              return Column(
+                children: [
+                  intro,
+                  const SizedBox(height: DashboardSpacing.md),
+                  const TicketFormCard(),
+                ],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(child: intro),
+                const SizedBox(width: DashboardSpacing.lg),
+                const Expanded(child: TicketFormCard()),
+              ],
+            );
           },
         ),
       ),
@@ -36,7 +81,11 @@ class ContactSupportSection extends StatelessWidget {
 }
 
 class _ContactButton extends StatelessWidget {
-  const _ContactButton({required this.label, required this.icon, this.primary = false});
+  const _ContactButton({
+    required this.label,
+    required this.icon,
+    this.primary = false,
+  });
 
   final String label;
   final IconData icon;
@@ -45,6 +94,23 @@ class _ContactButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (primary) return GradientButton(label: label, icon: icon);
-    return GlassCard(radius: DashboardRadii.full, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: DashboardColors.primary, size: 19), const SizedBox(width: 9), Text(label, style: const TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.w900))]));
+    return GlassCard(
+      radius: DashboardRadii.full,
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 13),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: DashboardColors.primary, size: 19),
+          const SizedBox(width: 9),
+          Text(
+            label,
+            style: const TextStyle(
+              color: DashboardColors.onSurface,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

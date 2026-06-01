@@ -1,9 +1,11 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class DashboardBackground extends StatelessWidget {
@@ -253,11 +255,14 @@ class DashboardScaffold extends StatelessWidget {
   }
 }
 
-class DashboardHeader extends StatelessWidget {
+class DashboardHeader extends ConsumerWidget {
   const DashboardHeader({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final greeting = dashboardGreeting(DateTime.now());
+    final username = dashboardUsername(ref);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -269,7 +274,7 @@ class DashboardHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Good morning, Alex',
+                    '$greeting, $username',
                     style: Theme.of(context).textTheme.displayLarge,
                   ),
                   const SizedBox(height: 10),
@@ -291,6 +296,27 @@ class DashboardHeader extends StatelessWidget {
       ],
     );
   }
+}
+
+String dashboardGreeting(DateTime dateTime) {
+  final hour = dateTime.hour;
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+}
+
+String dashboardUsername(WidgetRef ref) {
+  final user = Supabase.instance.client.auth.currentUser;
+  final metadata = user?.userMetadata;
+  final profile = ref.watch(userProfileProvider).valueOrNull;
+  return (profile?.username?.trim().isNotEmpty == true
+          ? profile!.username
+          : metadata?['username'] ??
+              metadata?['full_name'] ??
+              user?.email ??
+              'there')
+      .toString()
+      .trim();
 }
 
 class DeepWorkPill extends StatelessWidget {
@@ -409,8 +435,7 @@ class SectionNavigationScope extends InheritedWidget {
   final VoidCallback onProjects;
 
   static SectionNavigationScope? maybeOf(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<SectionNavigationScope>();
+    return context.dependOnInheritedWidgetOfExactType<SectionNavigationScope>();
   }
 
   @override
@@ -418,7 +443,7 @@ class SectionNavigationScope extends InheritedWidget {
       onNewTask != oldWidget.onNewTask || onProjects != oldWidget.onProjects;
 }
 
-class ProfileAvatar extends StatelessWidget {
+class ProfileAvatar extends ConsumerWidget {
   const ProfileAvatar({
     this.radius = 18,
     this.onTap,
@@ -431,14 +456,24 @@ class ProfileAvatar extends StatelessWidget {
   final bool showUsername;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
+    final profile = ref.watch(userProfileProvider).valueOrNull;
     final label =
-        (metadata?['username'] ?? metadata?['full_name'] ?? user?.email ?? 'A')
+        (profile?.username?.trim().isNotEmpty == true
+                ? profile!.username
+                : profile?.fullName?.trim().isNotEmpty == true
+                ? profile!.fullName
+                : metadata?['username'] ??
+                    metadata?['full_name'] ??
+                    user?.email ??
+                    'A')
             .toString();
     final avatarUrl =
-        (metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '')
+        (profile?.avatarUrl?.trim().isNotEmpty == true
+                ? profile!.avatarUrl
+                : metadata?['avatar_url'] ?? metadata?['avatarUrl'] ?? '')
             .toString()
             .trim();
     final initial =

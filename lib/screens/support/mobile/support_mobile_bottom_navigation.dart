@@ -18,14 +18,43 @@ class SupportMobileBottomNavigation extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
           padding: EdgeInsets.fromLTRB(12, 10, 12, 10 + bottomInset),
-          decoration: BoxDecoration(color: DashboardColors.surfaceHighest.withValues(alpha: .84), border: Border(top: BorderSide(color: Colors.white.withValues(alpha: .10))), boxShadow: [BoxShadow(color: DashboardColors.primary.withValues(alpha: .14), blurRadius: 32, offset: const Offset(0, -8))]),
+          decoration: BoxDecoration(
+            color: DashboardColors.surfaceHighest.withValues(alpha: .84),
+            border: Border(
+              top: BorderSide(color: Colors.white.withValues(alpha: .10)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: DashboardColors.primary.withValues(alpha: .14),
+                blurRadius: 32,
+                offset: const Offset(0, -8),
+              ),
+            ],
+          ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: [
-              _BottomNavItem(icon: Icons.home_rounded, label: 'Home', onTap: () => context.go('/home')),
-              _BottomNavItem(icon: Icons.task_alt_rounded, label: 'Tasks', onTap: () => context.go('/tasks')),
-              _BottomNavItem(icon: Icons.auto_awesome_rounded, label: 'AI', onTap: () => context.go('/ai')),
-              _BottomNavItem(icon: Icons.support_agent_rounded, label: 'Support', active: true, onTap: () => context.go('/support')),
+              _BottomNavItem(
+                icon: Icons.home_rounded,
+                label: 'Home',
+                onTap: () => context.go('/home'),
+              ),
+              _BottomNavItem(
+                icon: Icons.task_alt_rounded,
+                label: 'Tasks',
+                onTap: () => context.go('/tasks'),
+              ),
+              _BottomNavItem(
+                icon: Icons.auto_awesome_rounded,
+                label: 'AI',
+                onTap: () => context.go('/ai'),
+              ),
+              _BottomNavItem(
+                icon: Icons.support_agent_rounded,
+                label: 'Support',
+                active: true,
+                onTap: () => context.go('/support'),
+              ),
             ],
           ),
         ),
@@ -35,7 +64,12 @@ class SupportMobileBottomNavigation extends StatelessWidget {
 }
 
 class _BottomNavItem extends StatelessWidget {
-  const _BottomNavItem({required this.icon, required this.label, this.active = false, this.onTap});
+  const _BottomNavItem({
+    required this.icon,
+    required this.label,
+    this.active = false,
+    this.onTap,
+  });
 
   final IconData icon;
   final String label;
@@ -51,8 +85,34 @@ class _BottomNavItem extends StatelessWidget {
         borderRadius: BorderRadius.circular(DashboardRadii.full),
         onTap: onTap,
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: active ? 14 : 8, vertical: 7),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [Icon(icon, color: active ? DashboardColors.onPrimary : DashboardColors.onSurfaceVariant, size: 22), Text(label, style: TextStyle(color: active ? DashboardColors.onPrimary : DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w800))]),
+          padding: EdgeInsets.symmetric(
+            horizontal: active ? 14 : 8,
+            vertical: 7,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color:
+                    active
+                        ? DashboardColors.onPrimary
+                        : DashboardColors.onSurfaceVariant,
+                size: 22,
+              ),
+              Text(
+                label,
+                style: TextStyle(
+                  color:
+                      active
+                          ? DashboardColors.onPrimary
+                          : DashboardColors.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

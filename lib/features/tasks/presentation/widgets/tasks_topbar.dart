@@ -16,8 +16,33 @@ class TasksTopbar extends StatelessWidget {
         child: Container(
           height: 66,
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .50), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08))), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 18)]),
-          child: const Row(children: [TaskSearchField(desktop: true), SizedBox(width: 32), _TopTab(label: 'All Tasks', selected: true), _TopTab(label: 'Team Flux'), _TopTab(label: 'Personal'), Spacer(), _TopIcon(icon: Icons.notifications_none_rounded), SizedBox(width: 10), _TopIcon(icon: Icons.bolt_rounded, active: true), SizedBox(width: 14), ProfileAvatar(radius: 20)]),
+          decoration: BoxDecoration(
+            color: DashboardColors.surface.withValues(alpha: .50),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .16),
+                blurRadius: 18,
+              ),
+            ],
+          ),
+          child: const Row(
+            children: [
+              TaskSearchField(desktop: true),
+              SizedBox(width: 32),
+              _TopTab(label: 'All Tasks', selected: true),
+              _TopTab(label: 'Team Flux'),
+              _TopTab(label: 'Personal'),
+              Spacer(),
+              _TopIcon(icon: Icons.notifications_none_rounded),
+              SizedBox(width: 10),
+              _TopIcon(icon: Icons.bolt_rounded, active: true),
+              SizedBox(width: 14),
+              ProfileAvatar(radius: 20),
+            ],
+          ),
         ),
       ),
     );
@@ -29,7 +54,22 @@ class _TopTab extends StatelessWidget {
   final String label;
   final bool selected;
   @override
-  Widget build(BuildContext context) => Padding(padding: const EdgeInsets.only(right: 22), child: Text(label, style: TextStyle(color: selected ? DashboardColors.primary : DashboardColors.onSurfaceVariant, fontWeight: selected ? FontWeight.w900 : FontWeight.w700, decoration: selected ? TextDecoration.underline : null, decorationColor: DashboardColors.primary, decorationThickness: 2)));
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.only(right: 22),
+    child: Text(
+      label,
+      style: TextStyle(
+        color:
+            selected
+                ? DashboardColors.primary
+                : DashboardColors.onSurfaceVariant,
+        fontWeight: selected ? FontWeight.w900 : FontWeight.w700,
+        decoration: selected ? TextDecoration.underline : null,
+        decorationColor: DashboardColors.primary,
+        decorationThickness: 2,
+      ),
+    ),
+  );
 }
 
 class _TopIcon extends StatelessWidget {
@@ -37,5 +77,23 @@ class _TopIcon extends StatelessWidget {
   final IconData icon;
   final bool active;
   @override
-  Widget build(BuildContext context) => Material(color: Colors.transparent, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () {}, child: SizedBox(width: 42, height: 42, child: Icon(icon, color: active ? DashboardColors.primary : DashboardColors.onSurfaceVariant))));
+  Widget build(BuildContext context) => Material(
+    color: Colors.transparent,
+    shape: const CircleBorder(),
+    child: InkWell(
+      customBorder: const CircleBorder(),
+      onTap: () {},
+      child: SizedBox(
+        width: 42,
+        height: 42,
+        child: Icon(
+          icon,
+          color:
+              active
+                  ? DashboardColors.primary
+                  : DashboardColors.onSurfaceVariant,
+        ),
+      ),
+    ),
+  );
 }

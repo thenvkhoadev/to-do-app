@@ -52,16 +52,37 @@ class ProfileSettingTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Text(title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurface, fontSize: 15, fontWeight: FontWeight.w900)),
+                    Text(
+                      title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: NexusColors.onSurface,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
                     if (subtitle != null) ...[
                       const SizedBox(height: 4),
-                      Text(subtitle!, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12)),
+                      Text(
+                        subtitle!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: NexusColors.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
+                      ),
                     ],
                   ],
                 ),
               ),
               const SizedBox(width: 10),
-              trailing ?? const Icon(Icons.chevron_right_rounded, color: NexusColors.onSurfaceVariant),
+              trailing ??
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: NexusColors.onSurfaceVariant,
+                  ),
             ],
           ),
         ),
@@ -83,7 +104,10 @@ class ProfileSwitchPill extends StatelessWidget {
       height: 26,
       padding: const EdgeInsets.all(3),
       decoration: BoxDecoration(
-        color: enabled ? NexusColors.primaryContainer : NexusColors.surfaceContainerHighest,
+        color:
+            enabled
+                ? NexusColors.primaryContainer
+                : NexusColors.surfaceContainerHighest,
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white.withValues(alpha: 0.10)),
       ),
@@ -92,7 +116,10 @@ class ProfileSwitchPill extends StatelessWidget {
         child: Container(
           width: 20,
           height: 20,
-          decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
         ),
       ),
     );

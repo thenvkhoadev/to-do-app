@@ -1,11 +1,11 @@
-# NexusAI (to_do_app)
+# NEXUS AI
 
-Ứng dụng Flutter theo hướng **productivity / task management** (dark mode) với xác thực bằng **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
+**NEXUS AI** là workspace productivity cao cấp dùng AI cho quản lý task, focus, analytics và recommendation thông minh, với xác thực bằng **Supabase Auth** và cấu hình môi trường bằng **`.env`**.
 
 > Ghi chú:
 >
 > - Package name hiện tại là `to_do_app`.
-> - Tên app trong code (ví dụ `AppConstants.appName`) là **NexusAI**; một vài màn hình legacy có thể hiển thị branding khác.
+> - Tên app trong code (ví dụ `AppConstants.appName`) là **NEXUS AI**.
 
 ## Mục lục
 

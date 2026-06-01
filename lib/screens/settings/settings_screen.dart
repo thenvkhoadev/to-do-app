@@ -15,7 +15,10 @@ class SettingsScreen extends StatelessWidget {
       data: DashboardTheme.dark(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final content = constraints.maxWidth >= 1100 ? const SettingsDesktopLayout() : const SettingsMobileLayout();
+          final content =
+              constraints.maxWidth >= 1100
+                  ? const SettingsDesktopLayout()
+                  : const SettingsMobileLayout();
           if (embeddedInDashboard) return content;
           return DashboardScaffold(child: content);
         },

@@ -15,7 +15,10 @@ class ResponsivePage extends StatelessWidget {
       alignment: Alignment.topCenter,
       child: SingleChildScrollView(
         padding: EdgeInsets.fromLTRB(padding, 20, padding, 110),
-        child: ConstrainedBox(constraints: BoxConstraints(maxWidth: maxWidth), child: child),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: child,
+        ),
       ),
     );
   }

@@ -14,19 +14,52 @@ class ProductivityChart extends StatelessWidget {
       height: 390,
       trailing: Container(
         padding: const EdgeInsets.all(4),
-        decoration: BoxDecoration(color: DashboardColors.surfaceLow, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(
+          color: DashboardColors.surfaceLow,
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7), decoration: BoxDecoration(color: DashboardColors.surfaceHighest, borderRadius: BorderRadius.circular(9)), child: const Text('Today', style: TextStyle(color: DashboardColors.onSurface, fontSize: 12, fontWeight: FontWeight.w800))),
-            const Padding(padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7), child: Text('Week', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              decoration: BoxDecoration(
+                color: DashboardColors.surfaceHighest,
+                borderRadius: BorderRadius.circular(9),
+              ),
+              child: const Text(
+                'Today',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+              child: Text(
+                'Week',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
           ],
         ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: const [
-          Expanded(child: LineChart(points: AnalyticsMockData.energyCycle, summary: 'Mental energy peaks near 3 PM with a strong morning focus window around 10 AM.')),
+          Expanded(
+            child: LineChart(
+              points: AnalyticsMockData.energyCycle,
+              summary:
+                  'Mental energy peaks near 3 PM with a strong morning focus window around 10 AM.',
+            ),
+          ),
           SizedBox(height: 14),
           _ChartLegend(),
         ],
@@ -44,7 +77,10 @@ class _ChartLegend extends StatelessWidget {
       children: const [
         _LegendDot(color: DashboardColors.primary, label: 'Actual Focus'),
         SizedBox(width: 22),
-        _LegendDot(color: DashboardColors.onSurfaceVariant, label: 'Baseline Capacity'),
+        _LegendDot(
+          color: DashboardColors.onSurfaceVariant,
+          label: 'Baseline Capacity',
+        ),
       ],
     );
   }
@@ -58,6 +94,23 @@ class _LegendDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(children: [Container(width: 10, height: 10, decoration: BoxDecoration(color: color, shape: BoxShape.circle)), const SizedBox(width: 8), Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700))]);
+    return Row(
+      children: [
+        Container(
+          width: 10,
+          height: 10,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          label,
+          style: const TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
   }
 }

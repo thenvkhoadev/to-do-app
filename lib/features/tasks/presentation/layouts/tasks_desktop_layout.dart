@@ -11,9 +11,14 @@ import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksDesktopLayout extends StatefulWidget {
-  const TasksDesktopLayout({this.openNewTask = false, super.key});
+  const TasksDesktopLayout({
+    this.openNewTask = false,
+    this.searchQuery,
+    super.key,
+  });
 
   final bool openNewTask;
+  final String? searchQuery;
 
   @override
   State<TasksDesktopLayout> createState() => _TasksDesktopLayoutState();
@@ -62,7 +67,10 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                             )
                             : _selectedIndex == 1
                             ? TasksProjectsDesktopContent(
-                              key: const ValueKey('tasks-projects'),
+                              key: ValueKey(
+                                'tasks-projects-${widget.searchQuery ?? ''}',
+                              ),
+                              searchQuery: widget.searchQuery,
                               onNewTask:
                                   () => setState(() => _selectedIndex = 8),
                               onViewDetails: _openTaskDetails,

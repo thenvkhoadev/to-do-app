@@ -28,7 +28,8 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
   int _selectedIndex = 0;
   TasksProjectItem? _detailsItem;
 
-  void _openTaskDetails(TasksProjectItem item) => setState(() => _detailsItem = item);
+  void _openTaskDetails(TasksProjectItem item) =>
+      setState(() => _detailsItem = item);
 
   void _closeTaskDetails() => setState(() => _detailsItem = null);
 
@@ -38,10 +39,11 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
       children: [
         DesktopSidebar(
           selectedIndex: _selectedIndex,
-          onSelected: (index) => setState(() {
-            _detailsItem = null;
-            _selectedIndex = index;
-          }),
+          onSelected:
+              (index) => setState(() {
+                _detailsItem = null;
+                _selectedIndex = index;
+              }),
         ),
         Expanded(
           child: ProfileNavigationScope(
@@ -53,48 +55,54 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
               child:
                   _detailsItem != null
                       ? TaskDetailsDesktopContent(
-                        key: ValueKey('dashboard-task-details-${_detailsItem!.title}'),
+                        key: ValueKey(
+                          'dashboard-task-details-${_detailsItem!.title}',
+                        ),
                         item: _detailsItem!,
                         onBack: _closeTaskDetails,
                       )
                       : switch (_selectedIndex) {
-                0 => _DashboardMainPane(
-                  key: const ValueKey('dashboard-main'),
-                  onProfileTap: () => setState(() => _selectedIndex = 7),
-                ),
-                1 => _ProjectsBoardPane(
-                  key: const ValueKey('projects-board'),
-                  onProfileTap: () => setState(() => _selectedIndex = 7),
-                  onNewTask: () => setState(() => _selectedIndex = 8),
-                  onViewDetails: _openTaskDetails,
-                ),
-                2 => const DesktopAiAssistantContent(
-                  key: ValueKey('ai-assistant'),
-                ),
-                3 => const CalendarScreen(key: ValueKey('calendar')),
-                4 => const AnalyticsScreen(
-                  key: ValueKey('analytics'),
-                  embeddedInDashboard: true,
-                ),
-                5 => const SettingsScreen(
-                  key: ValueKey('settings'),
-                  embeddedInDashboard: true,
-                ),
-                6 => const SupportScreen(
-                  key: ValueKey('support'),
-                  embeddedInDashboard: true,
-                ),
-                7 => _ProfilePane(
-                  key: const ValueKey('profile'),
-                  onNewTask: () => setState(() => _selectedIndex = 8),
-                  onProjects: () => setState(() => _selectedIndex = 1),
-                ),
-                8 => NewTasksDesktopLayout(
-                  key: const ValueKey('new-task'),
-                  onClose: () => setState(() => _selectedIndex = 0),
-                ),
-                _ => _DashboardSectionPlaceholder(index: _selectedIndex),
-              },
+                        0 => _DashboardMainPane(
+                          key: const ValueKey('dashboard-main'),
+                          onProfileTap:
+                              () => setState(() => _selectedIndex = 7),
+                        ),
+                        1 => _ProjectsBoardPane(
+                          key: const ValueKey('projects-board'),
+                          onProfileTap:
+                              () => setState(() => _selectedIndex = 7),
+                          onNewTask: () => setState(() => _selectedIndex = 8),
+                          onViewDetails: _openTaskDetails,
+                        ),
+                        2 => const DesktopAiAssistantContent(
+                          key: ValueKey('ai-assistant'),
+                        ),
+                        3 => const CalendarScreen(key: ValueKey('calendar')),
+                        4 => const AnalyticsScreen(
+                          key: ValueKey('analytics'),
+                          embeddedInDashboard: true,
+                        ),
+                        5 => const SettingsScreen(
+                          key: ValueKey('settings'),
+                          embeddedInDashboard: true,
+                        ),
+                        6 => const SupportScreen(
+                          key: ValueKey('support'),
+                          embeddedInDashboard: true,
+                        ),
+                        7 => _ProfilePane(
+                          key: const ValueKey('profile'),
+                          onNewTask: () => setState(() => _selectedIndex = 8),
+                          onProjects: () => setState(() => _selectedIndex = 1),
+                        ),
+                        8 => NewTasksDesktopLayout(
+                          key: const ValueKey('new-task'),
+                          onClose: () => setState(() => _selectedIndex = 0),
+                        ),
+                        _ => _DashboardSectionPlaceholder(
+                          index: _selectedIndex,
+                        ),
+                      },
             ),
           ),
         ),
@@ -177,7 +185,12 @@ class _ProjectsBoardPane extends StatelessWidget {
     return Column(
       children: [
         DesktopTopbar(onProfileTap: onProfileTap),
-        Expanded(child: TasksProjectsDesktopContent(onNewTask: onNewTask, onViewDetails: onViewDetails)),
+        Expanded(
+          child: TasksProjectsDesktopContent(
+            onNewTask: onNewTask,
+            onViewDetails: onViewDetails,
+          ),
+        ),
       ],
     );
   }
@@ -367,7 +380,7 @@ class DesktopSidebar extends StatelessWidget {
                       ],
                     ).createShader(rect),
                 child: const Text(
-                  'TaskFlow AI',
+                  'NEXUS AI',
                   style: TextStyle(
                     color: Colors.white,
                     fontSize: 29,
@@ -460,13 +473,15 @@ class _SidebarItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final fg = active ? DashboardColors.primary : DashboardColors.onSurfaceVariant;
+    final fg =
+        active ? DashboardColors.primary : DashboardColors.onSurfaceVariant;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Material(
-        color: active
-            ? DashboardColors.primary.withValues(alpha: .1)
-            : Colors.transparent,
+        color:
+            active
+                ? DashboardColors.primary.withValues(alpha: .1)
+                : Colors.transparent,
         borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -489,10 +504,7 @@ class _SidebarItem extends StatelessWidget {
                 const SizedBox(width: 12),
                 Text(
                   label,
-                  style: TextStyle(
-                    color: fg,
-                    fontWeight: FontWeight.w700,
-                  ),
+                  style: TextStyle(color: fg, fontWeight: FontWeight.w700),
                 ),
               ],
             ),
@@ -522,12 +534,14 @@ class _SignOutButtonState extends State<_SignOutButton> {
   Widget build(BuildContext context) {
     final bgAlpha = _pressed ? 0.28 : (_hover ? 0.20 : 0.12);
     final borderAlpha = _pressed ? 0.55 : (_hover ? 0.45 : 0.28);
-    final textColor = _pressed
-        ? Colors.white
-        : (_hover ? const Color(0xFFFFF4F7) : const Color(0xFFFFD6E0));
-    final iconColor = _pressed
-        ? Colors.white
-        : (_hover ? const Color(0xFFFFD6E0) : const Color(0xFFFFB7C8));
+    final textColor =
+        _pressed
+            ? Colors.white
+            : (_hover ? const Color(0xFFFFF4F7) : const Color(0xFFFFD6E0));
+    final iconColor =
+        _pressed
+            ? Colors.white
+            : (_hover ? const Color(0xFFFFD6E0) : const Color(0xFFFFB7C8));
     return MouseRegion(
       onEnter: (_) => setState(() => _hover = true),
       onExit: (_) => setState(() => _hover = false),
@@ -545,20 +559,21 @@ class _SignOutButtonState extends State<_SignOutButton> {
             color: _pink.withValues(alpha: bgAlpha),
             borderRadius: BorderRadius.circular(18),
             border: Border.all(color: _pink.withValues(alpha: borderAlpha)),
-            boxShadow: _pressed
-                ? [
-                    BoxShadow(
-                      color: _pink.withValues(alpha: 0.15),
-                      blurRadius: 12,
-                    ),
-                  ]
-                : _hover
+            boxShadow:
+                _pressed
                     ? [
-                        BoxShadow(
-                          color: _pink.withValues(alpha: 0.20),
-                          blurRadius: 24,
-                        ),
-                      ]
+                      BoxShadow(
+                        color: _pink.withValues(alpha: 0.15),
+                        blurRadius: 12,
+                      ),
+                    ]
+                    : _hover
+                    ? [
+                      BoxShadow(
+                        color: _pink.withValues(alpha: 0.20),
+                        blurRadius: 24,
+                      ),
+                    ]
                     : null,
           ),
           child: Row(
@@ -621,31 +636,214 @@ class DesktopTopbar extends StatelessWidget {
   }
 }
 
-class SearchBarWidget extends StatelessWidget {
+class SearchBarWidget extends StatefulWidget {
   const SearchBarWidget({super.key});
 
   @override
+  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+}
+
+class _SearchBarWidgetState extends State<SearchBarWidget> {
+  final _controller = TextEditingController();
+  final _focusNode = FocusNode();
+  final _layerLink = LayerLink();
+  OverlayEntry? _overlay;
+  List<TasksProjectItem> _suggestions = const [];
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus) _hideSuggestions();
+    });
+  }
+
+  @override
+  void dispose() {
+    _hideSuggestions();
+    _controller.dispose();
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _updateSuggestions(String value) {
+    final query = value.trim().toLowerCase();
+    _suggestions =
+        query.isEmpty
+            ? const []
+            : tasksProjectItems
+                .where(
+                  (item) =>
+                      item.kind != TasksProjectCardKind.add &&
+                      (item.title.toLowerCase().contains(query) ||
+                          item.description.toLowerCase().contains(query) ||
+                          item.badge.toLowerCase().contains(query)),
+                )
+                .take(5)
+                .toList();
+    if (_suggestions.isEmpty) {
+      _hideSuggestions();
+    } else {
+      _showSuggestions();
+    }
+  }
+
+  void _showSuggestions() {
+    _overlay?.remove();
+    _overlay = OverlayEntry(
+      builder:
+          (context) => Positioned(
+            width: 330,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              offset: const Offset(0, 50),
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: DashboardColors.surfaceHigh.withValues(alpha: .96),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: .08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: .35),
+                        blurRadius: 28,
+                        offset: const Offset(0, 14),
+                      ),
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      for (final item in _suggestions)
+                        _SearchSuggestionTile(
+                          item: item,
+                          onTap: () {
+                            _controller.text = item.title;
+                            _controller.selection = TextSelection.collapsed(
+                              offset: item.title.length,
+                            );
+                            _hideSuggestions();
+                            _focusNode.unfocus();
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+    );
+    Overlay.of(context).insert(_overlay!);
+  }
+
+  void _hideSuggestions() {
+    _overlay?.remove();
+    _overlay = null;
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 330,
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: DashboardColors.surfaceLow,
-        borderRadius: BorderRadius.circular(DashboardRadii.full),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.search_rounded, size: 20),
-          SizedBox(width: 10),
-          Text(
-            'Search tasks or intelligence...',
-            style: TextStyle(
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Container(
+        width: 330,
+        height: 42,
+        decoration: BoxDecoration(
+          color: DashboardColors.surfaceLow,
+          borderRadius: BorderRadius.circular(DashboardRadii.full),
+        ),
+        child: TextField(
+          controller: _controller,
+          focusNode: _focusNode,
+          textInputAction: TextInputAction.search,
+          textAlignVertical: TextAlignVertical.center,
+          style: const TextStyle(
+            color: DashboardColors.onSurface,
+            fontSize: 13,
+          ),
+          cursorColor: DashboardColors.primary,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_rounded, size: 20),
+            prefixIconConstraints: BoxConstraints(minWidth: 44, minHeight: 42),
+            hintText: 'Search tasks or intelligence...',
+            hintStyle: TextStyle(
               color: DashboardColors.onSurfaceVariant,
               fontSize: 13,
             ),
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.zero,
           ),
-        ],
+          onChanged: _updateSuggestions,
+          onSubmitted: _updateSuggestions,
+        ),
+      ),
+    );
+  }
+}
+
+class _SearchSuggestionTile extends StatelessWidget {
+  const _SearchSuggestionTile({required this.item, required this.onTap});
+  final TasksProjectItem item;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: item.accent.withValues(alpha: .14),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.manage_search_rounded,
+                color: item.accent,
+                size: 18,
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    item.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    item.badge,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1096,7 +1294,7 @@ class InsightCard extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Text(
-                  '— TaskFlow Assistant',
+                  '— NEXUS AI Assistant',
                   style: TextStyle(
                     color: DashboardColors.primary,
                     fontSize: 12,

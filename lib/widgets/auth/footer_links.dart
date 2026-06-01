@@ -14,7 +14,12 @@ class FooterLinks extends StatelessWidget {
           alignment: WrapAlignment.center,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Already have an account?', style: AuthTextStyles.bodyMedium.copyWith(color: AuthColors.onSurfaceVariant)),
+            Text(
+              'Already have an account?',
+              style: AuthTextStyles.bodyMedium.copyWith(
+                color: AuthColors.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(width: 4),
             TextButton(
               onPressed: onLogin,
@@ -24,7 +29,13 @@ class FooterLinks extends StatelessWidget {
                 minimumSize: const Size(44, 44),
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
-              child: Text('Log in', style: AuthTextStyles.bodyMedium.copyWith(fontWeight: FontWeight.w700, color: AuthColors.primary)),
+              child: Text(
+                'Log in',
+                style: AuthTextStyles.bodyMedium.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: AuthColors.primary,
+                ),
+              ),
             ),
           ],
         ),
@@ -37,7 +48,10 @@ class FooterLinks extends StatelessWidget {
               width: 4,
               height: 4,
               margin: const EdgeInsets.symmetric(horizontal: 24),
-              decoration: BoxDecoration(color: AuthColors.outlineVariant.withValues(alpha: 0.3), shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: AuthColors.outlineVariant.withValues(alpha: 0.3),
+                shape: BoxShape.circle,
+              ),
             ),
             const _FooterLink(label: 'Terms of Service'),
           ],
@@ -59,7 +73,12 @@ class _FooterLink extends StatelessWidget {
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),
-        child: Text(label, style: AuthTextStyles.labelSmall.copyWith(color: AuthColors.onSurfaceVariant.withValues(alpha: 0.4))),
+        child: Text(
+          label,
+          style: AuthTextStyles.labelSmall.copyWith(
+            color: AuthColors.onSurfaceVariant.withValues(alpha: 0.4),
+          ),
+        ),
       ),
     );
   }

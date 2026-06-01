@@ -4,7 +4,13 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 class SmartProgressTimeline extends StatelessWidget {
   const SmartProgressTimeline({super.key});
 
-  static const _stages = ['Created', 'Research', 'In Progress', 'Review', 'Completed'];
+  static const _stages = [
+    'Created',
+    'Research',
+    'In Progress',
+    'Review',
+    'Completed',
+  ];
   static const _activeIndex = 2;
 
   @override
@@ -20,10 +26,22 @@ class SmartProgressTimeline extends StatelessWidget {
           decoration: BoxDecoration(
             color: DashboardColors.surfaceLow.withValues(alpha: .42),
             borderRadius: BorderRadius.circular(24),
-            border: Border.all(color: DashboardColors.tertiary.withValues(alpha: .12 + value * .08)),
+            border: Border.all(
+              color: DashboardColors.tertiary.withValues(
+                alpha: .12 + value * .08,
+              ),
+            ),
             boxShadow: [
-              BoxShadow(color: DashboardColors.primary.withValues(alpha: .08), blurRadius: 36),
-              BoxShadow(color: DashboardColors.tertiary.withValues(alpha: .06 + value * .04), blurRadius: 48),
+              BoxShadow(
+                color: DashboardColors.primary.withValues(alpha: .08),
+                blurRadius: 36,
+              ),
+              BoxShadow(
+                color: DashboardColors.tertiary.withValues(
+                  alpha: .06 + value * .04,
+                ),
+                blurRadius: 48,
+              ),
             ],
           ),
           child: Column(
@@ -37,18 +55,34 @@ class SmartProgressTimeline extends StatelessWidget {
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
                       color: DashboardColors.tertiary,
-                      boxShadow: [BoxShadow(color: DashboardColors.tertiary.withValues(alpha: .44), blurRadius: 16)],
+                      boxShadow: [
+                        BoxShadow(
+                          color: DashboardColors.tertiary.withValues(
+                            alpha: .44,
+                          ),
+                          blurRadius: 16,
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 10),
                   const Text(
                     'SMART PROGRESS',
-                    style: TextStyle(color: DashboardColors.onSurface, fontSize: 12, fontWeight: FontWeight.w900, letterSpacing: 1.2),
+                    style: TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.2,
+                    ),
                   ),
                   const Spacer(),
                   Text(
                     '${((_activeIndex + 1) / _stages.length * 100).round()}%',
-                    style: const TextStyle(color: DashboardColors.tertiary, fontSize: 12, fontWeight: FontWeight.w900),
+                    style: const TextStyle(
+                      color: DashboardColors.tertiary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ],
               ),
@@ -76,7 +110,13 @@ class SmartProgressTimeline extends StatelessWidget {
 }
 
 class _TimelineStage extends StatelessWidget {
-  const _TimelineStage({required this.label, required this.completed, required this.active, required this.last, required this.animationValue});
+  const _TimelineStage({
+    required this.label,
+    required this.completed,
+    required this.active,
+    required this.last,
+    required this.animationValue,
+  });
 
   final String label;
   final bool completed;
@@ -86,9 +126,10 @@ class _TimelineStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active
-        ? DashboardColors.tertiary
-        : completed
+    final color =
+        active
+            ? DashboardColors.tertiary
+            : completed
             ? DashboardColors.primary
             : DashboardColors.outlineVariant;
 
@@ -104,14 +145,38 @@ class _TimelineStage extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 color: color.withValues(alpha: active || completed ? .95 : .28),
-                border: Border.all(color: color.withValues(alpha: active ? .95 : .45), width: active ? 2 : 1),
-                boxShadow: active
-                    ? [BoxShadow(color: color.withValues(alpha: .52 * animationValue), blurRadius: 22, spreadRadius: 2)]
-                    : completed
-                        ? [BoxShadow(color: color.withValues(alpha: .22), blurRadius: 12)]
+                border: Border.all(
+                  color: color.withValues(alpha: active ? .95 : .45),
+                  width: active ? 2 : 1,
+                ),
+                boxShadow:
+                    active
+                        ? [
+                          BoxShadow(
+                            color: color.withValues(
+                              alpha: .52 * animationValue,
+                            ),
+                            blurRadius: 22,
+                            spreadRadius: 2,
+                          ),
+                        ]
+                        : completed
+                        ? [
+                          BoxShadow(
+                            color: color.withValues(alpha: .22),
+                            blurRadius: 12,
+                          ),
+                        ]
                         : null,
               ),
-              child: completed ? const Icon(Icons.check_rounded, size: 10, color: DashboardColors.background) : null,
+              child:
+                  completed
+                      ? const Icon(
+                        Icons.check_rounded,
+                        size: 10,
+                        color: DashboardColors.background,
+                      )
+                      : null,
             ),
             if (!last)
               AnimatedContainer(
@@ -140,20 +205,40 @@ class _TimelineStage extends StatelessWidget {
             margin: EdgeInsets.only(bottom: last ? 0 : 14),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-              color: active ? DashboardColors.tertiary.withValues(alpha: .08) : Colors.white.withValues(alpha: .02),
+              color:
+                  active
+                      ? DashboardColors.tertiary.withValues(alpha: .08)
+                      : Colors.white.withValues(alpha: .02),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: color.withValues(alpha: active ? .22 : .08)),
+              border: Border.all(
+                color: color.withValues(alpha: active ? .22 : .08),
+              ),
             ),
             child: Row(
               children: [
                 Expanded(
                   child: Text(
                     label,
-                    style: TextStyle(color: active || completed ? DashboardColors.onSurface : DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: active ? FontWeight.w900 : FontWeight.w700),
+                    style: TextStyle(
+                      color:
+                          active || completed
+                              ? DashboardColors.onSurface
+                              : DashboardColors.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: active ? FontWeight.w900 : FontWeight.w700,
+                    ),
                   ),
                 ),
                 if (active)
-                  const Text('ACTIVE', style: TextStyle(color: DashboardColors.tertiary, fontSize: 9, fontWeight: FontWeight.w900, letterSpacing: 1)),
+                  const Text(
+                    'ACTIVE',
+                    style: TextStyle(
+                      color: DashboardColors.tertiary,
+                      fontSize: 9,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1,
+                    ),
+                  ),
               ],
             ),
           ),

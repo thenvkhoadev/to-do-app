@@ -11,7 +11,9 @@ class ProfileRemoteDataSource {
         .from('users')
         .stream(primaryKey: ['id'])
         .eq('id', userId)
-        .map((rows) => rows.isEmpty ? null : UserProfileModel.fromJson(rows.first));
+        .map(
+          (rows) => rows.isEmpty ? null : UserProfileModel.fromJson(rows.first),
+        );
   }
 
   Future<void> updateSettings(

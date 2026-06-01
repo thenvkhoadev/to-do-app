@@ -10,14 +10,18 @@ class TaskRepositoryImpl implements TaskRepository {
 
   @override
   Stream<List<NexusTask>> watchTasks(String userId) {
-    return _remoteDataSource.watchTasks(userId).map((tasks) => tasks.map((task) => task.toEntity()).toList());
+    return _remoteDataSource
+        .watchTasks(userId)
+        .map((tasks) => tasks.map((task) => task.toEntity()).toList());
   }
 
   @override
-  Future<void> createTask(NexusTask task) => _remoteDataSource.createTask(_toModel(task));
+  Future<void> createTask(NexusTask task) =>
+      _remoteDataSource.createTask(_toModel(task));
 
   @override
-  Future<void> updateTask(NexusTask task) => _remoteDataSource.updateTask(_toModel(task));
+  Future<void> updateTask(NexusTask task) =>
+      _remoteDataSource.updateTask(_toModel(task));
 
   @override
   Future<void> deleteTask(String id) => _remoteDataSource.deleteTask(id);

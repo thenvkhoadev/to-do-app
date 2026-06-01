@@ -1,5 +1,5 @@
 name: to_do_app
-description: "A new Flutter project."
+description: "NEXUS AI is a premium AI-powered productivity workspace for tasks, focus, analytics, and intelligent recommendations."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -42,10 +42,12 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   google_fonts: ^6.2.1
   intl: ^0.20.2
+  flutter_svg: ^2.0.10
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  flutter_launcher_icons: ^0.14.3
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -53,6 +55,21 @@ dev_dependencies:
   # package. See that file for information about deactivating specific lint
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/logo/NEXUSAI.png"
+  remove_alpha_ios: true
+  windows:
+    generate: true
+    image_path: "assets/logo/NEXUSAI.png"
+  web:
+    generate: true
+    image_path: "assets/logo/NEXUSAI.png"
+  macos:
+    generate: true
+    image_path: "assets/logo/NEXUSAI.png"
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
@@ -67,6 +84,7 @@ flutter:
 
   assets:
     - .env
+    - assets/logo/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -98,3 +116,4 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+  

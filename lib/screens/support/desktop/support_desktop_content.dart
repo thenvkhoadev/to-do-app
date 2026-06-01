@@ -23,7 +23,9 @@ class SupportDesktopContent extends StatelessWidget {
                 sliver: SliverToBoxAdapter(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: DashboardSpacing.desktopMaxWidth),
+                      constraints: BoxConstraints(
+                        maxWidth: DashboardSpacing.desktopMaxWidth,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [

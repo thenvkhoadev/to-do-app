@@ -27,9 +27,20 @@ class SignUpPage extends StatelessWidget {
               children: [
                 BackgroundGlow(isDesktop: isDesktop),
                 SafeArea(
-                  child: isDesktop
-                      ? const Row(children: [Expanded(child: LeftHeroSection()), Expanded(child: _AuthPane(isDesktop: true, isMobile: false))])
-                      : _AuthPane(isDesktop: false, isMobile: isMobile),
+                  child:
+                      isDesktop
+                          ? const Row(
+                            children: [
+                              Expanded(child: LeftHeroSection()),
+                              Expanded(
+                                child: _AuthPane(
+                                  isDesktop: true,
+                                  isMobile: false,
+                                ),
+                              ),
+                            ],
+                          )
+                          : _AuthPane(isDesktop: false, isMobile: isMobile),
                 ),
               ],
             ),
@@ -48,12 +59,18 @@ class _AuthPane extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final horizontalPadding = isDesktop ? AuthSpacing.containerMargin : AuthSpacing.gutter;
+    final horizontalPadding =
+        isDesktop ? AuthSpacing.containerMargin : AuthSpacing.gutter;
 
     return Center(
       child: SingleChildScrollView(
         keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-        padding: EdgeInsets.fromLTRB(horizontalPadding, isDesktop ? AuthSpacing.containerMargin : 16, horizontalPadding, 32),
+        padding: EdgeInsets.fromLTRB(
+          horizontalPadding,
+          isDesktop ? AuthSpacing.containerMargin : 16,
+          horizontalPadding,
+          32,
+        ),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 448),
           child: AutofillGroup(
@@ -64,7 +81,10 @@ class _AuthPane extends StatelessWidget {
                   const AuthHeader(compact: true),
                   const SizedBox(height: 40),
                 ],
-                AuthTitle(textAlign: isDesktop ? TextAlign.left : TextAlign.center, compact: isMobile),
+                AuthTitle(
+                  textAlign: isDesktop ? TextAlign.left : TextAlign.center,
+                  compact: isMobile,
+                ),
                 SizedBox(height: isDesktop ? AuthSpacing.stackLg : 40),
                 const SocialLoginButtons(),
                 SizedBox(height: isDesktop ? 24 : 32),
@@ -72,13 +92,22 @@ class _AuthPane extends StatelessWidget {
                 SizedBox(height: isDesktop ? 24 : 32),
                 RegisterForm(isDesktop: isDesktop),
                 const SizedBox(height: 32),
-                FooterLinks(onLogin: () => context.canPop() ? context.pop() : context.go('/login')),
+                FooterLinks(
+                  onLogin:
+                      () =>
+                          context.canPop()
+                              ? context.pop()
+                              : context.go('/login'),
+                ),
                 if (!isDesktop) ...[
                   const SizedBox(height: 32),
                   Container(
                     width: 64,
                     height: 4,
-                    decoration: BoxDecoration(color: AuthColors.outlineVariant.withValues(alpha: 0.2), borderRadius: BorderRadius.circular(999)),
+                    decoration: BoxDecoration(
+                      color: AuthColors.outlineVariant.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
                   ),
                 ],
               ],
@@ -100,15 +129,24 @@ class AuthTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     final center = textAlign == TextAlign.center;
     return Column(
-      crossAxisAlignment: center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
+      crossAxisAlignment:
+          center ? CrossAxisAlignment.center : CrossAxisAlignment.start,
       children: [
         Text.rich(
           TextSpan(
             text: 'Join the Future of ',
-            children: [TextSpan(text: 'Focus', style: TextStyle(color: AuthColors.primary))],
+            children: [
+              TextSpan(
+                text: 'Focus',
+                style: TextStyle(color: AuthColors.primary),
+              ),
+            ],
           ),
           textAlign: textAlign,
-          style: compact ? AuthTextStyles.headlineMobile : AuthTextStyles.headlineLarge,
+          style:
+              compact
+                  ? AuthTextStyles.headlineMobile
+                  : AuthTextStyles.headlineLarge,
         ),
         const SizedBox(height: 12),
         ConstrainedBox(
@@ -116,7 +154,9 @@ class AuthTitle extends StatelessWidget {
           child: Text(
             'Synchronize your workflow with AI-driven precision.',
             textAlign: textAlign,
-            style: AuthTextStyles.bodyMedium.copyWith(color: AuthColors.onSurfaceVariant.withValues(alpha: 0.8)),
+            style: AuthTextStyles.bodyMedium.copyWith(
+              color: AuthColors.onSurfaceVariant.withValues(alpha: 0.8),
+            ),
           ),
         ),
       ],
@@ -131,15 +171,27 @@ class _EmailDivider extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Expanded(child: Divider(color: AuthColors.outlineVariant.withValues(alpha: 0.2), height: 1)),
+        Expanded(
+          child: Divider(
+            color: AuthColors.outlineVariant.withValues(alpha: 0.2),
+            height: 1,
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Text(
             'OR CONTINUE WITH EMAIL',
-            style: AuthTextStyles.labelCaps.copyWith(color: AuthColors.onSurfaceVariant.withValues(alpha: 0.4)),
+            style: AuthTextStyles.labelCaps.copyWith(
+              color: AuthColors.onSurfaceVariant.withValues(alpha: 0.4),
+            ),
           ),
         ),
-        Expanded(child: Divider(color: AuthColors.outlineVariant.withValues(alpha: 0.2), height: 1)),
+        Expanded(
+          child: Divider(
+            color: AuthColors.outlineVariant.withValues(alpha: 0.2),
+            height: 1,
+          ),
+        ),
       ],
     );
   }

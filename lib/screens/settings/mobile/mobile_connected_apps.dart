@@ -20,11 +20,23 @@ class MobileConnectedApps extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             itemCount: SettingsMockData.integrations.length,
             separatorBuilder: (_, _) => const SizedBox(width: 14),
-            itemBuilder: (context, index) => SizedBox(width: 220, child: IntegrationCard(integration: SettingsMockData.integrations[index])),
+            itemBuilder:
+                (context, index) => SizedBox(
+                  width: 220,
+                  child: IntegrationCard(
+                    integration: SettingsMockData.integrations[index],
+                  ),
+                ),
           ),
         ),
         const SizedBox(height: 8),
-        const Text('Swipe to manage integrations.', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12)),
+        const Text(
+          'Swipe to manage integrations.',
+          style: TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 12,
+          ),
+        ),
       ],
     );
   }

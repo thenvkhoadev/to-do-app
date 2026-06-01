@@ -10,16 +10,24 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_insights
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_preview_overlay.dart';
 
 class TasksProjectsDesktopContent extends StatefulWidget {
-  const TasksProjectsDesktopContent({this.onNewTask, this.onViewDetails, super.key});
+  const TasksProjectsDesktopContent({
+    this.onNewTask,
+    this.onViewDetails,
+    this.searchQuery,
+    super.key,
+  });
 
   final VoidCallback? onNewTask;
   final ValueChanged<TasksProjectItem>? onViewDetails;
+  final String? searchQuery;
 
   @override
-  State<TasksProjectsDesktopContent> createState() => _TasksProjectsDesktopContentState();
+  State<TasksProjectsDesktopContent> createState() =>
+      _TasksProjectsDesktopContentState();
 }
 
-class _TasksProjectsDesktopContentState extends State<TasksProjectsDesktopContent> {
+class _TasksProjectsDesktopContentState
+    extends State<TasksProjectsDesktopContent> {
   TasksProjectItem? _previewItem;
 
   void _openPreview(TasksProjectItem item) {
@@ -54,16 +62,34 @@ class _TasksProjectsDesktopContentState extends State<TasksProjectsDesktopConten
                     Expanded(
                       child: SingleChildScrollView(
                         padding: const EdgeInsets.only(right: 24),
-                        child: wide
-                            ? Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: _DesktopGrid(twoColumns: true, onOpenPreview: _openPreview, onNewTask: widget.onNewTask)),
-                                  const SizedBox(width: 24),
-                                  SizedBox(width: 340, child: _ProjectsRightRail(onNewTask: widget.onNewTask)),
-                                ],
-                              )
-                            : _DesktopGrid(twoColumns: constraints.maxWidth >= 1040, onOpenPreview: _openPreview, onNewTask: widget.onNewTask),
+                        child:
+                            wide
+                                ? Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(
+                                      child: _DesktopGrid(
+                                        twoColumns: true,
+                                        onOpenPreview: _openPreview,
+                                        onNewTask: widget.onNewTask,
+                                        searchQuery: widget.searchQuery,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 24),
+                                    SizedBox(
+                                      width: 340,
+                                      child: _ProjectsRightRail(
+                                        onNewTask: widget.onNewTask,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                                : _DesktopGrid(
+                                  twoColumns: constraints.maxWidth >= 1040,
+                                  onOpenPreview: _openPreview,
+                                  onNewTask: widget.onNewTask,
+                                  searchQuery: widget.searchQuery,
+                                ),
                       ),
                     ),
                   ],
@@ -71,7 +97,12 @@ class _TasksProjectsDesktopContentState extends State<TasksProjectsDesktopConten
               ),
               if (_previewItem != null)
                 Positioned.fill(
-                  child: TaskPreviewOverlay(item: _previewItem!, visible: true, onClose: _closePreview, onViewDetails: widget.onViewDetails),
+                  child: TaskPreviewOverlay(
+                    item: _previewItem!,
+                    visible: true,
+                    onClose: _closePreview,
+                    onViewDetails: widget.onViewDetails,
+                  ),
                 ),
             ],
           );
@@ -89,7 +120,10 @@ class TasksProjectsMobileSliverBody extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SliverPadding(
-      padding: compact ? EdgeInsets.zero : const EdgeInsets.fromLTRB(16, 96, 16, 128),
+      padding:
+          compact
+              ? EdgeInsets.zero
+              : const EdgeInsets.fromLTRB(16, 96, 16, 128),
       sliver: SliverToBoxAdapter(
         child: Center(
           child: ConstrainedBox(
@@ -146,14 +180,33 @@ class _ProjectsRightRail extends StatelessWidget {
 }
 
 class _DesktopGrid extends StatelessWidget {
-  const _DesktopGrid({required this.twoColumns, this.onOpenPreview, this.onNewTask});
+  const _DesktopGrid({
+    required this.twoColumns,
+    this.onOpenPreview,
+    this.onNewTask,
+    this.searchQuery,
+  });
 
   final bool twoColumns;
   final ValueChanged<TasksProjectItem>? onOpenPreview;
   final VoidCallback? onNewTask;
+  final String? searchQuery;
 
   @override
   Widget build(BuildContext context) {
+    final query = (searchQuery ?? '').trim().toLowerCase();
+    final items =
+        query.isEmpty
+            ? tasksProjectItems
+            : tasksProjectItems
+                .where(
+                  (item) =>
+                      item.kind == TasksProjectCardKind.add ||
+                      item.title.toLowerCase().contains(query) ||
+                      item.description.toLowerCase().contains(query) ||
+                      item.badge.toLowerCase().contains(query),
+                )
+                .toList();
     return ScrollbarTheme(
       data: ScrollbarTheme.of(context).copyWith(
         thumbVisibility: WidgetStateProperty.all(false),
@@ -163,22 +216,24 @@ class _DesktopGrid extends StatelessWidget {
         shrinkWrap: true,
         physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.only(right: 48, bottom: 8),
-        itemCount: tasksProjectItems.length,
+        itemCount: items.length,
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: twoColumns ? 2 : 1,
-        crossAxisSpacing: 24,
-        mainAxisSpacing: 24,
-        mainAxisExtent: 242,
-      ),
+          crossAxisCount: twoColumns ? 2 : 1,
+          crossAxisSpacing: 24,
+          mainAxisSpacing: 24,
+          mainAxisExtent: 242,
+        ),
         itemBuilder: (context, index) {
-          final item = tasksProjectItems[index];
+          final item = items[index];
           return TasksProjectsCard(
             item: item,
-            onTap: item.kind == TasksProjectCardKind.add ? onNewTask : () => onOpenPreview?.call(item),
+            onTap:
+                item.kind == TasksProjectCardKind.add
+                    ? onNewTask
+                    : () => onOpenPreview?.call(item),
           );
         },
       ),
     );
   }
 }
-

@@ -38,11 +38,15 @@ class NexusTheme {
         fillColor: NexusColors.surfaceContainer.withValues(alpha: 0.72),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: NexusColors.outlineVariant.withValues(alpha: 0.45)),
+          borderSide: BorderSide(
+            color: NexusColors.outlineVariant.withValues(alpha: 0.45),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: NexusColors.outlineVariant.withValues(alpha: 0.45)),
+          borderSide: BorderSide(
+            color: NexusColors.outlineVariant.withValues(alpha: 0.45),
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

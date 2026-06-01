@@ -20,9 +20,14 @@ class ProfileAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final size = radius * 2;
-    final initial = username.trim().isNotEmpty ? username.trim().characters.first.toUpperCase() : '?';
+    final initial =
+        username.trim().isNotEmpty
+            ? username.trim().characters.first.toUpperCase()
+            : '?';
     final imageUrl = avatarUrl?.trim();
-    final borderRadius = BorderRadius.circular(roundedRectangle ? radius * 0.44 : 999);
+    final borderRadius = BorderRadius.circular(
+      roundedRectangle ? radius * 0.44 : 999,
+    );
 
     return Stack(
       clipBehavior: Clip.none,
@@ -46,30 +51,34 @@ class ProfileAvatar extends StatelessWidget {
             ],
           ),
           child: ClipRRect(
-            borderRadius: BorderRadius.circular(roundedRectangle ? radius * 0.36 : 999),
+            borderRadius: BorderRadius.circular(
+              roundedRectangle ? radius * 0.36 : 999,
+            ),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                gradient: imageUrl == null || imageUrl.isEmpty
-                    ? const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Color(0xFF8083FF), Color(0xFF6F00BE)],
-                      )
-                    : null,
+                gradient:
+                    imageUrl == null || imageUrl.isEmpty
+                        ? const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Color(0xFF8083FF), Color(0xFF6F00BE)],
+                        )
+                        : null,
                 color: NexusColors.surfaceContainerHigh,
               ),
-              child: imageUrl != null && imageUrl.isNotEmpty
-                  ? Image.network(imageUrl, fit: BoxFit.cover)
-                  : Center(
-                      child: Text(
-                        initial,
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w900,
-                          fontSize: radius * 0.78,
+              child:
+                  imageUrl != null && imageUrl.isNotEmpty
+                      ? Image.network(imageUrl, fit: BoxFit.cover)
+                      : Center(
+                        child: Text(
+                          initial,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: radius * 0.78,
+                          ),
                         ),
                       ),
-                    ),
             ),
           ),
         ),
@@ -84,7 +93,12 @@ class ProfileAvatar extends StatelessWidget {
                 shape: BoxShape.circle,
                 color: NexusColors.success,
                 border: Border.all(color: const Color(0xFF0D1322), width: 3),
-                boxShadow: [BoxShadow(color: NexusColors.success.withValues(alpha: 0.65), blurRadius: 12)],
+                boxShadow: [
+                  BoxShadow(
+                    color: NexusColors.success.withValues(alpha: 0.65),
+                    blurRadius: 12,
+                  ),
+                ],
               ),
             ),
           ),

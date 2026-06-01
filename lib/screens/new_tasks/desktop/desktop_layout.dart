@@ -765,13 +765,13 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 : Icons
                                                                     .check_box_outline_blank_rounded,
                                                             color:
-                                                              item.isDone
-                                                                  ? DashboardColors
-                                                                      .primary
-                                                                  : DashboardColors
-                                                                      .outline,
-                                                          size: 20,
-                                                        ),
+                                                                item.isDone
+                                                                    ? DashboardColors
+                                                                        .primary
+                                                                    : DashboardColors
+                                                                        .outline,
+                                                            size: 20,
+                                                          ),
                                                         ),
                                                       ),
                                                       const SizedBox(width: 12),
@@ -887,30 +887,33 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               cursor: SystemMouseCursors.click,
                                               child: _GlassBox(
                                                 dashed: true,
-                                                padding: const EdgeInsets.all(12),
+                                                padding: const EdgeInsets.all(
+                                                  12,
+                                                ),
                                                 child: Row(
-                                                children: const [
-                                                  Icon(
-                                                    Icons.add_rounded,
-                                                    color:
-                                                        DashboardColors.outline,
-                                                    size: 20,
-                                                  ),
-                                                  SizedBox(width: 12),
-                                                  Text(
-                                                    'Add another subtask...',
-                                                    style: TextStyle(
+                                                  children: const [
+                                                    Icon(
+                                                      Icons.add_rounded,
                                                       color:
                                                           DashboardColors
-                                                              .onSurfaceVariant,
-                                                      fontSize: 14,
+                                                              .outline,
+                                                      size: 20,
                                                     ),
-                                                  ),
-                                                ],
+                                                    SizedBox(width: 12),
+                                                    Text(
+                                                      'Add another subtask...',
+                                                      style: TextStyle(
+                                                        color:
+                                                            DashboardColors
+                                                                .onSurfaceVariant,
+                                                        fontSize: 14,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
                                         const SizedBox(height: 24),
                                         const _SmartCreationTabs(),
                                       ],
@@ -1010,74 +1013,71 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 SystemMouseCursors
                                                                     .click,
                                                             child: Container(
-                                                            margin:
-                                                                const EdgeInsets.symmetric(
-                                                                  horizontal: 2,
-                                                                ),
-                                                            padding:
-                                                                const EdgeInsets.symmetric(
-                                                                  vertical: 8,
-                                                                ),
-                                                            decoration: BoxDecoration(
-                                                              color:
-                                                                  isSelected
-                                                                      ? accentColor.withValues(
-                                                                        alpha:
-                                                                            .18,
-                                                                      )
-                                                                      : Colors
-                                                                          .white
-                                                                          .withValues(
-                                                                            alpha:
-                                                                                .02,
-                                                                          ),
-                                                              borderRadius:
-                                                                  BorderRadius.circular(
-                                                                    10,
+                                                              margin:
+                                                                  const EdgeInsets.symmetric(
+                                                                    horizontal:
+                                                                        2,
                                                                   ),
-                                                              border: Border.all(
+                                                              padding:
+                                                                  const EdgeInsets.symmetric(
+                                                                    vertical: 8,
+                                                                  ),
+                                                              decoration: BoxDecoration(
                                                                 color:
                                                                     isSelected
-                                                                        ? accentColor
-                                                                        : DashboardColors.outlineVariant.withValues(
+                                                                        ? accentColor.withValues(
                                                                           alpha:
-                                                                              .2,
+                                                                              .18,
+                                                                        )
+                                                                        : Colors.white.withValues(
+                                                                          alpha:
+                                                                              .02,
                                                                         ),
-                                                              ),
-                                                              boxShadow:
-                                                                  isSelected
-                                                                      ? [
-                                                                        BoxShadow(
-                                                                          color: accentColor.withValues(
-                                                                            alpha:
-                                                                                .1,
-                                                                          ),
-                                                                          blurRadius:
-                                                                              10,
-                                                                        ),
-                                                                      ]
-                                                                      : null,
-                                                            ),
-                                                            child: Center(
-                                                              child: Text(
-                                                                priority,
-                                                                style: GoogleFonts.inter(
-                                                                  fontSize: 12,
-                                                                  fontWeight:
-                                                                      isSelected
-                                                                          ? FontWeight
-                                                                              .w800
-                                                                          : FontWeight
-                                                                              .w600,
+                                                                borderRadius:
+                                                                    BorderRadius.circular(
+                                                                      10,
+                                                                    ),
+                                                                border: Border.all(
                                                                   color:
                                                                       isSelected
                                                                           ? accentColor
-                                                                          : DashboardColors
-                                                                              .onSurfaceVariant,
+                                                                          : DashboardColors.outlineVariant.withValues(
+                                                                            alpha:
+                                                                                .2,
+                                                                          ),
+                                                                ),
+                                                                boxShadow:
+                                                                    isSelected
+                                                                        ? [
+                                                                          BoxShadow(
+                                                                            color: accentColor.withValues(
+                                                                              alpha:
+                                                                                  .1,
+                                                                            ),
+                                                                            blurRadius:
+                                                                                10,
+                                                                          ),
+                                                                        ]
+                                                                        : null,
+                                                              ),
+                                                              child: Center(
+                                                                child: Text(
+                                                                  priority,
+                                                                  style: GoogleFonts.inter(
+                                                                    fontSize:
+                                                                        12,
+                                                                    fontWeight:
+                                                                        isSelected
+                                                                            ? FontWeight.w800
+                                                                            : FontWeight.w600,
+                                                                    color:
+                                                                        isSelected
+                                                                            ? accentColor
+                                                                            : DashboardColors.onSurfaceVariant,
+                                                                  ),
                                                                 ),
                                                               ),
                                                             ),
-                                                          ),
                                                           ),
                                                         ),
                                                       );
@@ -1109,43 +1109,42 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 SystemMouseCursors
                                                                     .click,
                                                             child: _GlassBox(
-                                                            padding:
-                                                                const EdgeInsets.all(
-                                                                  12,
-                                                                ),
-                                                            child: Row(
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .event_rounded,
-                                                                  color:
-                                                                      DashboardColors
-                                                                          .primary,
-                                                                  size: 16,
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Flexible(
-                                                                  child: Text(
-                                                                    _formatDate(
-                                                                      _selectedDate,
-                                                                    ),
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    style: GoogleFonts.inter(
-                                                                      fontSize:
-                                                                          13,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    12,
+                                                                  ),
+                                                              child: Row(
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .event_rounded,
+                                                                    color:
+                                                                        DashboardColors
+                                                                            .primary,
+                                                                    size: 16,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      _formatDate(
+                                                                        _selectedDate,
+                                                                      ),
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style: GoogleFonts.inter(
+                                                                        fontSize:
+                                                                            13,
+                                                                        fontWeight:
+                                                                            FontWeight.w700,
+                                                                      ),
                                                                     ),
                                                                   ),
-                                                                ),
-                                                              ],
+                                                                ],
+                                                              ),
                                                             ),
-                                                          ),
                                                           ),
                                                         ),
                                                       ],
@@ -1172,41 +1171,40 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                 SystemMouseCursors
                                                                     .click,
                                                             child: _GlassBox(
-                                                            padding:
-                                                                const EdgeInsets.all(
-                                                                  12,
-                                                                ),
-                                                            child: Row(
-                                                              children: [
-                                                                const Icon(
-                                                                  Icons
-                                                                      .timer_rounded,
-                                                                  color:
-                                                                      DashboardColors
-                                                                          .primary,
-                                                                  size: 16,
-                                                                ),
-                                                                const SizedBox(
-                                                                  width: 8,
-                                                                ),
-                                                                Flexible(
-                                                                  child: Text(
-                                                                    '${_selectedEstimate.round()} hours',
-                                                                    overflow:
-                                                                        TextOverflow
-                                                                            .ellipsis,
-                                                                    style: GoogleFonts.inter(
-                                                                      fontSize:
-                                                                          13,
-                                                                      fontWeight:
-                                                                          FontWeight
-                                                                              .w700,
+                                                              padding:
+                                                                  const EdgeInsets.all(
+                                                                    12,
+                                                                  ),
+                                                              child: Row(
+                                                                children: [
+                                                                  const Icon(
+                                                                    Icons
+                                                                        .timer_rounded,
+                                                                    color:
+                                                                        DashboardColors
+                                                                            .primary,
+                                                                    size: 16,
+                                                                  ),
+                                                                  const SizedBox(
+                                                                    width: 8,
+                                                                  ),
+                                                                  Flexible(
+                                                                    child: Text(
+                                                                      '${_selectedEstimate.round()} hours',
+                                                                      overflow:
+                                                                          TextOverflow
+                                                                              .ellipsis,
+                                                                      style: GoogleFonts.inter(
+                                                                        fontSize:
+                                                                            13,
+                                                                        fontWeight:
+                                                                            FontWeight.w700,
+                                                                      ),
                                                                     ),
                                                                   ),
-                                                                ),
-                                                              ],
+                                                                ],
+                                                              ),
                                                             ),
-                                                          ),
                                                           ),
                                                         ),
                                                       ],
@@ -1323,7 +1321,9 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                           );
                                                         },
                                                         child: const MouseRegion(
-                                                          cursor: SystemMouseCursors.click,
+                                                          cursor:
+                                                              SystemMouseCursors
+                                                                  .click,
                                                           child: _AddTag(),
                                                         ),
                                                       ),

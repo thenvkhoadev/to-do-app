@@ -13,7 +13,10 @@ class AccountSecuritySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SettingsSectionTitle(title: 'Account Security', icon: Icons.security_rounded),
+          const SettingsSectionTitle(
+            title: 'Account Security',
+            icon: Icons.security_rounded,
+          ),
           const SizedBox(height: DashboardSpacing.md),
           LayoutBuilder(
             builder: (context, constraints) {
@@ -23,7 +26,8 @@ class AccountSecuritySection extends StatelessWidget {
                   children: [
                     for (final action in SettingsMockData.security) ...[
                       SecurityActionCard(action: action),
-                      if (action != SettingsMockData.security.last) const SizedBox(height: 12),
+                      if (action != SettingsMockData.security.last)
+                        const SizedBox(height: 12),
                     ],
                   ],
                 );
@@ -32,8 +36,16 @@ class AccountSecuritySection extends StatelessWidget {
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 itemCount: SettingsMockData.security.length,
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: 12, mainAxisSpacing: 12, childAspectRatio: 3.3),
-                itemBuilder: (context, index) => SecurityActionCard(action: SettingsMockData.security[index]),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 3.3,
+                ),
+                itemBuilder:
+                    (context, index) => SecurityActionCard(
+                      action: SettingsMockData.security[index],
+                    ),
               );
             },
           ),

@@ -17,7 +17,20 @@ class MobileSupportActions extends StatelessWidget {
         GlassCard(
           radius: DashboardRadii.lg,
           padding: EdgeInsets.all(18),
-          child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [Icon(Icons.mail_rounded, color: DashboardColors.onSurface), SizedBox(width: 10), Text('Email Support', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.w900))]),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.mail_rounded, color: DashboardColors.onSurface),
+              SizedBox(width: 10),
+              Text(
+                'Email Support',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );

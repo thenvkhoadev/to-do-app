@@ -23,7 +23,12 @@ class AnalyticsMobileLayout extends StatelessWidget {
             slivers: [
               const SliverToBoxAdapter(child: SizedBox(height: 92)),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(DashboardSpacing.md, 0, DashboardSpacing.md, 136),
+                padding: const EdgeInsets.fromLTRB(
+                  DashboardSpacing.md,
+                  0,
+                  DashboardSpacing.md,
+                  136,
+                ),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -44,8 +49,18 @@ class AnalyticsMobileLayout extends StatelessWidget {
             ],
           ),
         ),
-        const Positioned(top: 0, left: 0, right: 0, child: _AnalyticsMobileTopBar()),
-        Positioned(left: 0, right: 0, bottom: 0, child: AnalyticsMobileBottomNavigation(bottomInset: bottomInset)),
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _AnalyticsMobileTopBar(),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: AnalyticsMobileBottomNavigation(bottomInset: bottomInset),
+        ),
       ],
     );
   }
@@ -63,9 +78,41 @@ class _AnalyticsMobileTopBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
           child: Container(
             height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: DashboardSpacing.md),
-            decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .48), border: Border(bottom: BorderSide(color: DashboardColors.primaryContainer.withValues(alpha: .18)))),
-            child: const Row(children: [ProfileAvatar(radius: 19), SizedBox(width: 12), Expanded(child: Text('Analytics', style: TextStyle(color: DashboardColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -.5))), SizedBox(width: 8), Icon(Icons.auto_awesome_rounded, color: DashboardColors.primary)]),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashboardSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: DashboardColors.surface.withValues(alpha: .48),
+              border: Border(
+                bottom: BorderSide(
+                  color: DashboardColors.primaryContainer.withValues(
+                    alpha: .18,
+                  ),
+                ),
+              ),
+            ),
+            child: const Row(
+              children: [
+                ProfileAvatar(radius: 19),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Analytics',
+                    style: TextStyle(
+                      color: DashboardColors.primary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -.5,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Icon(
+                  Icons.auto_awesome_rounded,
+                  color: DashboardColors.primary,
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -100,7 +147,27 @@ class _StatBlock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(children: [Text(value, style: const TextStyle(color: DashboardColors.primary, fontSize: 20, fontWeight: FontWeight.w900)), const SizedBox(height: 5), Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w800))]);
+    return Column(
+      children: [
+        Text(
+          value,
+          style: const TextStyle(
+            color: DashboardColors.primary,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          label,
+          style: const TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -108,5 +175,8 @@ class _Divider extends StatelessWidget {
   const _Divider();
 
   @override
-  Widget build(BuildContext context) => SizedBox(height: 38, child: VerticalDivider(color: Colors.white.withValues(alpha: .08)));
+  Widget build(BuildContext context) => SizedBox(
+    height: 38,
+    child: VerticalDivider(color: Colors.white.withValues(alpha: .08)),
+  );
 }

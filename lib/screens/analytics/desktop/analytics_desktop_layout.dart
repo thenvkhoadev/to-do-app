@@ -19,7 +19,9 @@ class AnalyticsDesktopLayout extends StatelessWidget {
                 sliver: SliverToBoxAdapter(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: DashboardSpacing.desktopMaxWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: DashboardSpacing.desktopMaxWidth,
+                      ),
                       child: const AnalyticsDashboard(),
                     ),
                   ),

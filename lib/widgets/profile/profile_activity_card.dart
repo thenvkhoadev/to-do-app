@@ -26,7 +26,10 @@ class ProfileActivityCard extends StatelessWidget {
           ProfileSectionLabel(label: title, icon: icon, color: color),
           const SizedBox(height: 20),
           for (var i = 0; i < items.length; i++) ...[
-            _ActivityRow(item: items[i], color: i == 0 ? color : NexusColors.onSurfaceVariant),
+            _ActivityRow(
+              item: items[i],
+              color: i == 0 ? color : NexusColors.onSurfaceVariant,
+            ),
             if (i != items.length - 1) const SizedBox(height: 14),
           ],
         ],
@@ -80,15 +83,40 @@ class _ActivityRow extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(item.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurface, fontSize: 15, fontWeight: FontWeight.w900)),
+                Text(
+                  item.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: NexusColors.onSurface,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(item.subtitle, maxLines: 2, overflow: TextOverflow.ellipsis, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 12, height: 1.35)),
+                Text(
+                  item.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
               ],
             ),
           ),
           if (item.trailing != null) ...[
             const SizedBox(width: 10),
-            Text(item.trailing!, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+            Text(
+              item.trailing!,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ],
         ],
       ),

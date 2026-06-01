@@ -16,7 +16,10 @@ class SupportScreen extends StatelessWidget {
       data: DashboardTheme.dark(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final content = constraints.maxWidth >= DashboardBreakpoints.mobile ? const SupportDesktopContent() : const SupportMobileContent();
+          final content =
+              constraints.maxWidth >= DashboardBreakpoints.mobile
+                  ? const SupportDesktopContent()
+                  : const SupportMobileContent();
           if (embeddedInDashboard) return content;
           return DashboardScaffold(child: content);
         },

@@ -41,9 +41,34 @@ class AnalyticsDashboard extends StatelessWidget {
               const Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(flex: 4, child: Column(children: [AnalyticsFocusScoreCard(), SizedBox(height: DashboardSpacing.md), AnalyticsSidebarPanel()])),
+                  Expanded(
+                    flex: 4,
+                    child: Column(
+                      children: [
+                        AnalyticsFocusScoreCard(),
+                        SizedBox(height: DashboardSpacing.md),
+                        AnalyticsSidebarPanel(),
+                      ],
+                    ),
+                  ),
                   SizedBox(width: DashboardSpacing.md),
-                  Expanded(flex: 8, child: Column(children: [ProductivityChart(), SizedBox(height: DashboardSpacing.md), Row(crossAxisAlignment: CrossAxisAlignment.start, children: [Expanded(child: CategoryBreakdown()), SizedBox(width: DashboardSpacing.md), Expanded(child: AiInsightsPanel())])])),
+                  Expanded(
+                    flex: 8,
+                    child: Column(
+                      children: [
+                        ProductivityChart(),
+                        SizedBox(height: DashboardSpacing.md),
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: CategoryBreakdown()),
+                            SizedBox(width: DashboardSpacing.md),
+                            Expanded(child: AiInsightsPanel()),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
           ],
@@ -64,8 +89,15 @@ class _KpiGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: AnalyticsMockData.metrics.length,
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: compact ? 2 : 4, crossAxisSpacing: DashboardSpacing.md, mainAxisSpacing: DashboardSpacing.md, childAspectRatio: compact ? 1.65 : 1.45),
-      itemBuilder: (context, index) => MetricCard(metric: AnalyticsMockData.metrics[index]),
+      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: compact ? 2 : 4,
+        crossAxisSpacing: DashboardSpacing.md,
+        mainAxisSpacing: DashboardSpacing.md,
+        childAspectRatio: compact ? 1.65 : 1.45,
+      ),
+      itemBuilder:
+          (context, index) =>
+              MetricCard(metric: AnalyticsMockData.metrics[index]),
     );
   }
 }

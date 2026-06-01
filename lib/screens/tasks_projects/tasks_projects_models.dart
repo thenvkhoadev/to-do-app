@@ -223,24 +223,93 @@ const tasksProjectActivities = [
 ];
 
 const tasksProjectQuickActions = [
-  TasksProjectQuickAction(label: 'New Task', icon: Icons.add_rounded, accent: DashboardColors.primary),
-  TasksProjectQuickAction(label: 'AI Generate', icon: Icons.auto_awesome_rounded, accent: DashboardColors.secondary),
-  TasksProjectQuickAction(label: 'Focus Mode', icon: Icons.center_focus_strong_rounded, accent: DashboardColors.tertiary),
-  TasksProjectQuickAction(label: 'Upload', icon: Icons.cloud_upload_rounded, accent: DashboardColors.outline),
-  TasksProjectQuickAction(label: 'Analytics', icon: Icons.query_stats_rounded, accent: DashboardColors.tertiaryContainer),
+  TasksProjectQuickAction(
+    label: 'New Task',
+    icon: Icons.add_rounded,
+    accent: DashboardColors.primary,
+  ),
+  TasksProjectQuickAction(
+    label: 'AI Generate',
+    icon: Icons.auto_awesome_rounded,
+    accent: DashboardColors.secondary,
+  ),
+  TasksProjectQuickAction(
+    label: 'Focus Mode',
+    icon: Icons.center_focus_strong_rounded,
+    accent: DashboardColors.tertiary,
+  ),
+  TasksProjectQuickAction(
+    label: 'Upload',
+    icon: Icons.cloud_upload_rounded,
+    accent: DashboardColors.outline,
+  ),
+  TasksProjectQuickAction(
+    label: 'Analytics',
+    icon: Icons.query_stats_rounded,
+    accent: DashboardColors.tertiaryContainer,
+  ),
 ];
 
 const tasksProjectCommands = [
-  TasksProjectCommand(title: 'Create task', subtitle: 'Add a project task with AI context', icon: Icons.add_task_rounded, shortcut: 'N'),
-  TasksProjectCommand(title: 'Ask AI to summarize blockers', subtitle: 'Generate a concise dependency report', icon: Icons.psychology_rounded, shortcut: 'A'),
-  TasksProjectCommand(title: 'Show at-risk projects', subtitle: 'Filter urgent and delayed project work', icon: Icons.warning_amber_rounded, shortcut: 'R'),
-  TasksProjectCommand(title: 'Open productivity heatmap', subtitle: 'Review focus intensity across the week', icon: Icons.grid_view_rounded, shortcut: 'H'),
-  TasksProjectCommand(title: 'Filter high priority', subtitle: 'Show critical and urgent tasks only', icon: Icons.filter_alt_rounded, shortcut: 'F'),
+  TasksProjectCommand(
+    title: 'Create task',
+    subtitle: 'Add a project task with AI context',
+    icon: Icons.add_task_rounded,
+    shortcut: 'N',
+  ),
+  TasksProjectCommand(
+    title: 'Ask AI to summarize blockers',
+    subtitle: 'Generate a concise dependency report',
+    icon: Icons.psychology_rounded,
+    shortcut: 'A',
+  ),
+  TasksProjectCommand(
+    title: 'Show at-risk projects',
+    subtitle: 'Filter urgent and delayed project work',
+    icon: Icons.warning_amber_rounded,
+    shortcut: 'R',
+  ),
+  TasksProjectCommand(
+    title: 'Open productivity heatmap',
+    subtitle: 'Review focus intensity across the week',
+    icon: Icons.grid_view_rounded,
+    shortcut: 'H',
+  ),
+  TasksProjectCommand(
+    title: 'Filter high priority',
+    subtitle: 'Show critical and urgent tasks only',
+    icon: Icons.filter_alt_rounded,
+    shortcut: 'F',
+  ),
 ];
 
 const tasksProjectHeatmapValues = [
-  .18, .42, .22, .78, .35, .62, .20,
-  .28, .12, .48, .52, .31, .74, .44,
-  .82, .68, .92, .56, .47, .88, .71,
-  .34, .25, .58, .81, .63, .95, .52,
+  .18,
+  .42,
+  .22,
+  .78,
+  .35,
+  .62,
+  .20,
+  .28,
+  .12,
+  .48,
+  .52,
+  .31,
+  .74,
+  .44,
+  .82,
+  .68,
+  .92,
+  .56,
+  .47,
+  .88,
+  .71,
+  .34,
+  .25,
+  .58,
+  .81,
+  .63,
+  .95,
+  .52,
 ];

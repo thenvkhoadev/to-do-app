@@ -15,15 +15,26 @@ class SplashScreen extends StatelessWidget {
             children: [
               Hero(
                 tag: 'nexus-logo',
-                child: Icon(Icons.bubble_chart_rounded, color: NexusColors.primary, size: 68),
+                child: Icon(
+                  Icons.bubble_chart_rounded,
+                  color: NexusColors.primary,
+                  size: 68,
+                ),
               ),
               SizedBox(height: 20),
               Text(
-                'NexusAI',
-                style: TextStyle(fontSize: 34, fontWeight: FontWeight.w900, letterSpacing: -1.2),
+                'NEXUS AI',
+                style: TextStyle(
+                  fontSize: 34,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: -1.2,
+                ),
               ),
               SizedBox(height: 10),
-              Text('Your cognitive command center', style: TextStyle(color: NexusColors.onSurfaceVariant)),
+              Text(
+                'Your cognitive command center',
+                style: TextStyle(color: NexusColors.onSurfaceVariant),
+              ),
             ],
           ),
         ),

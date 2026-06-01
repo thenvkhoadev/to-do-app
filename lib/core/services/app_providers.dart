@@ -6,7 +6,9 @@ import 'package:to_do_app/core/services/auth_service.dart';
 import 'package:to_do_app/core/storage/secure_storage_service.dart';
 import 'package:to_do_app/core/storage/session_storage.dart';
 
-final supabaseClientProvider = Provider<SupabaseClient>((ref) => Supabase.instance.client);
+final supabaseClientProvider = Provider<SupabaseClient>(
+  (ref) => Supabase.instance.client,
+);
 
 final secureStorageServiceProvider = Provider<SecureStorageService>((ref) {
   return SecureStorageService(secureStorage);
@@ -17,7 +19,10 @@ final sessionStorageProvider = Provider<SessionStorage>((ref) {
 });
 
 final authServiceProvider = Provider<AuthService>((ref) {
-  return AuthService(ref.watch(supabaseClientProvider), ref.watch(sessionStorageProvider));
+  return AuthService(
+    ref.watch(supabaseClientProvider),
+    ref.watch(sessionStorageProvider),
+  );
 });
 
 final dioProvider = Provider<Dio>((ref) {

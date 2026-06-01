@@ -15,12 +15,24 @@ class SupportHeader extends StatelessWidget {
         child: Container(
           height: 66,
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .5), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
+          decoration: BoxDecoration(
+            color: DashboardColors.surface.withValues(alpha: .5),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+          ),
           child: const Row(
             children: [
               Icon(Icons.support_agent_rounded, color: DashboardColors.primary),
               SizedBox(width: 12),
-              Text('Support', style: TextStyle(color: DashboardColors.primary, fontSize: 24, fontWeight: FontWeight.w900)),
+              Text(
+                'Support',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               Spacer(),
               _HeaderIcon(icon: Icons.notifications_none_rounded),
               SizedBox(width: 12),
@@ -42,6 +54,10 @@ class _HeaderIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return IconButton(onPressed: () {}, tooltip: 'Support action', icon: Icon(icon, color: DashboardColors.onSurfaceVariant));
+    return IconButton(
+      onPressed: () {},
+      tooltip: 'Support action',
+      icon: Icon(icon, color: DashboardColors.onSurfaceVariant),
+    );
   }
 }

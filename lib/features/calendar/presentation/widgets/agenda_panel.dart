@@ -217,7 +217,8 @@ class _AgendaPanelState extends State<AgendaPanel> {
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           transitionBuilder:
-              (child, animation) => FadeTransition(opacity: animation, child: child),
+              (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
           child:
               _isExpanded
                   ? _ExpandedAgenda(
@@ -432,11 +433,14 @@ class _ExpandedAgenda extends StatelessWidget {
           switchInCurve: Curves.easeOutCubic,
           switchOutCurve: Curves.easeInCubic,
           transitionBuilder:
-              (child, animation) => FadeTransition(opacity: animation, child: child),
+              (child, animation) =>
+                  FadeTransition(opacity: animation, child: child),
           child:
               filteredTasks.isEmpty
                   ? _EmptyAgenda(
-                    key: ValueKey('filtered-empty-${_dateKey(date)}-$selectedFilter'),
+                    key: ValueKey(
+                      'filtered-empty-${_dateKey(date)}-$selectedFilter',
+                    ),
                     onCreateTask: onCreateTask,
                   )
                   : _AgendaTimeline(

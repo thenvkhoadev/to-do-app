@@ -13,8 +13,14 @@ class AuthService {
 
   User? get currentUser => _client.auth.currentUser;
 
-  Future<AuthResponse> signIn({required String email, required String password}) async {
-    final response = await _client.auth.signInWithPassword(email: email, password: password);
+  Future<AuthResponse> signIn({
+    required String email,
+    required String password,
+  }) async {
+    final response = await _client.auth.signInWithPassword(
+      email: email,
+      password: password,
+    );
     final session = response.session;
     if (session != null) await _sessionStorage.saveSession(session);
     return response;

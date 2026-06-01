@@ -14,13 +14,23 @@ class NotificationsSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SettingsSectionTitle(title: 'Notifications', icon: Icons.notifications_active_rounded),
+          const SettingsSectionTitle(
+            title: 'Notifications',
+            icon: Icons.notifications_active_rounded,
+          ),
           const SizedBox(height: 6),
-          const Text('Tune how TaskFlow AI interrupts your deep work flow.', style: TextStyle(color: DashboardColors.onSurfaceVariant, height: 1.45)),
+          const Text(
+            'Tune how NEXUS AI interrupts your deep work flow.',
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              height: 1.45,
+            ),
+          ),
           const SizedBox(height: DashboardSpacing.md),
           for (final option in SettingsMockData.notifications) ...[
             ToggleSettingTile(option: option),
-            if (option != SettingsMockData.notifications.last) const SizedBox(height: 12),
+            if (option != SettingsMockData.notifications.last)
+              const SizedBox(height: 12),
           ],
         ],
       ),

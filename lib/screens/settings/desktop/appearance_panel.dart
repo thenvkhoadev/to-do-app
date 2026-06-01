@@ -13,11 +13,26 @@ class AppearancePanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Appearance', style: TextStyle(color: DashboardColors.onSurface, fontSize: 21, fontWeight: FontWeight.w900)),
+          Text(
+            'Appearance',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 21,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           SizedBox(height: DashboardSpacing.md),
-          AppearanceOptionTile(title: 'Dark Mode', icon: Icons.dark_mode_rounded, selected: true),
+          AppearanceOptionTile(
+            title: 'Dark Mode',
+            icon: Icons.dark_mode_rounded,
+            selected: true,
+          ),
           SizedBox(height: 10),
-          AppearanceOptionTile(title: 'Light Mode', icon: Icons.light_mode_rounded, selected: false),
+          AppearanceOptionTile(
+            title: 'Light Mode',
+            icon: Icons.light_mode_rounded,
+            selected: false,
+          ),
         ],
       ),
     );

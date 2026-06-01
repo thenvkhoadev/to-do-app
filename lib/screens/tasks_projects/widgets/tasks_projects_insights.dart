@@ -31,27 +31,72 @@ class TasksProjectsSmartInsightBanner extends StatelessWidget {
                     ],
                   ),
                 ),
-                child: Icon(tasksProjectInsight.icon, color: tasksProjectInsight.accent, size: compact ? 22 : 26),
+                child: Icon(
+                  tasksProjectInsight.icon,
+                  color: tasksProjectInsight.accent,
+                  size: compact ? 22 : 26,
+                ),
               ),
               SizedBox(width: compact ? 12 : 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(tasksProjectInsight.label, style: const TextStyle(color: DashboardColors.primary, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.2)),
+                    Text(
+                      tasksProjectInsight.label,
+                      style: const TextStyle(
+                        color: DashboardColors.primary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text(tasksProjectInsight.title, style: TextStyle(color: DashboardColors.onSurface, fontSize: compact ? 18 : 22, fontWeight: FontWeight.w800, height: 1.15)),
+                    Text(
+                      tasksProjectInsight.title,
+                      style: TextStyle(
+                        color: DashboardColors.onSurface,
+                        fontSize: compact ? 18 : 22,
+                        fontWeight: FontWeight.w800,
+                        height: 1.15,
+                      ),
+                    ),
                     const SizedBox(height: 6),
-                    Text(tasksProjectInsight.message, maxLines: compact ? 3 : 2, overflow: TextOverflow.ellipsis, style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: compact ? 13 : 14, height: 1.45)),
+                    Text(
+                      tasksProjectInsight.message,
+                      maxLines: compact ? 3 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                        fontSize: compact ? 13 : 14,
+                        height: 1.45,
+                      ),
+                    ),
                   ],
                 ),
               ),
               if (!compact) ...[
                 const SizedBox(width: 16),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(color: DashboardColors.primary.withValues(alpha: .12), borderRadius: BorderRadius.circular(999), border: Border.all(color: DashboardColors.primary.withValues(alpha: .22))),
-                  child: Text(tasksProjectInsight.confidence, style: const TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w800)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: DashboardColors.primary.withValues(alpha: .12),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: DashboardColors.primary.withValues(alpha: .22),
+                    ),
+                  ),
+                  child: Text(
+                    tasksProjectInsight.confidence,
+                    style: const TextStyle(
+                      color: DashboardColors.primary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ),
               ],
             ],
@@ -72,7 +117,23 @@ class TasksProjectsMiniStatsRow extends StatelessWidget {
     if (compact) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        child: Row(children: tasksProjectStats.map((stat) => Padding(padding: const EdgeInsets.only(right: 12), child: SizedBox(width: 164, child: TasksProjectsMiniStatCard(stat: stat, compact: true)))).toList()),
+        child: Row(
+          children:
+              tasksProjectStats
+                  .map(
+                    (stat) => Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: SizedBox(
+                        width: 164,
+                        child: TasksProjectsMiniStatCard(
+                          stat: stat,
+                          compact: true,
+                        ),
+                      ),
+                    ),
+                  )
+                  .toList(),
+        ),
       );
     }
 
@@ -82,7 +143,18 @@ class TasksProjectsMiniStatsRow extends StatelessWidget {
         return Wrap(
           spacing: 14,
           runSpacing: 14,
-          children: tasksProjectStats.map((stat) => SizedBox(width: tight ? (constraints.maxWidth - 14) / 2 : (constraints.maxWidth - 42) / 4, child: TasksProjectsMiniStatCard(stat: stat))).toList(),
+          children:
+              tasksProjectStats
+                  .map(
+                    (stat) => SizedBox(
+                      width:
+                          tight
+                              ? (constraints.maxWidth - 14) / 2
+                              : (constraints.maxWidth - 42) / 4,
+                      child: TasksProjectsMiniStatCard(stat: stat),
+                    ),
+                  )
+                  .toList(),
         );
       },
     );
@@ -90,7 +162,11 @@ class TasksProjectsMiniStatsRow extends StatelessWidget {
 }
 
 class TasksProjectsMiniStatCard extends StatelessWidget {
-  const TasksProjectsMiniStatCard({required this.stat, this.compact = false, super.key});
+  const TasksProjectsMiniStatCard({
+    required this.stat,
+    this.compact = false,
+    super.key,
+  });
 
   final TasksProjectStat stat;
   final bool compact;
@@ -104,7 +180,10 @@ class TasksProjectsMiniStatCard extends StatelessWidget {
           Container(
             width: 38,
             height: 38,
-            decoration: BoxDecoration(color: stat.accent.withValues(alpha: .14), borderRadius: BorderRadius.circular(14)),
+            decoration: BoxDecoration(
+              color: stat.accent.withValues(alpha: .14),
+              borderRadius: BorderRadius.circular(14),
+            ),
             child: Icon(stat.icon, color: stat.accent, size: 20),
           ),
           const SizedBox(width: 12),
@@ -112,13 +191,37 @@ class TasksProjectsMiniStatCard extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(stat.value, style: const TextStyle(color: DashboardColors.onSurface, fontSize: 20, fontWeight: FontWeight.w900, height: 1)),
+                Text(
+                  stat.value,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
                 const SizedBox(height: 5),
-                Text(stat.label, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w700)),
+                Text(
+                  stat.label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: DashboardColors.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(stat.delta, style: TextStyle(color: stat.accent, fontSize: 11, fontWeight: FontWeight.w900)),
+          Text(
+            stat.delta,
+            style: TextStyle(
+              color: stat.accent,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );
@@ -134,10 +237,22 @@ class _InsightShimmer extends StatelessWidget {
       tween: Tween(begin: -1, end: 1),
       duration: const Duration(seconds: 3),
       curve: Curves.easeInOut,
-      builder: (context, value, _) => Transform.translate(
-        offset: Offset(value * 420, 0),
-        child: Container(width: 90, decoration: BoxDecoration(gradient: LinearGradient(colors: [Colors.transparent, Colors.white.withValues(alpha: .035), Colors.transparent]))),
-      ),
+      builder:
+          (context, value, _) => Transform.translate(
+            offset: Offset(value * 420, 0),
+            child: Container(
+              width: 90,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.white.withValues(alpha: .035),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
     );
   }
 }

@@ -24,7 +24,12 @@ class SettingsMobileLayout extends StatelessWidget {
             slivers: [
               const SliverToBoxAdapter(child: SizedBox(height: 92)),
               SliverPadding(
-                padding: const EdgeInsets.fromLTRB(DashboardSpacing.md, 0, DashboardSpacing.md, 136),
+                padding: const EdgeInsets.fromLTRB(
+                  DashboardSpacing.md,
+                  0,
+                  DashboardSpacing.md,
+                  136,
+                ),
                 sliver: SliverToBoxAdapter(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -45,8 +50,18 @@ class SettingsMobileLayout extends StatelessWidget {
             ],
           ),
         ),
-        const Positioned(top: 0, left: 0, right: 0, child: _SettingsMobileTopBar()),
-        Positioned(left: 0, right: 0, bottom: 0, child: SettingsMobileBottomNavigation(bottomInset: bottomInset)),
+        const Positioned(
+          top: 0,
+          left: 0,
+          right: 0,
+          child: _SettingsMobileTopBar(),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: SettingsMobileBottomNavigation(bottomInset: bottomInset),
+        ),
       ],
     );
   }
@@ -64,9 +79,34 @@ class _SettingsMobileTopBar extends StatelessWidget {
           filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
           child: Container(
             height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: DashboardSpacing.md),
-            decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .48), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
-            child: const Row(children: [ProfileAvatar(radius: 19), SizedBox(width: 12), Expanded(child: Text('Settings', style: TextStyle(color: DashboardColors.primary, fontSize: 24, fontWeight: FontWeight.w900, letterSpacing: -.5))), SizedBox(width: 8), Icon(Icons.settings_rounded, color: DashboardColors.primary)]),
+            padding: const EdgeInsets.symmetric(
+              horizontal: DashboardSpacing.md,
+            ),
+            decoration: BoxDecoration(
+              color: DashboardColors.surface.withValues(alpha: .48),
+              border: Border(
+                bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+              ),
+            ),
+            child: const Row(
+              children: [
+                ProfileAvatar(radius: 19),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Settings',
+                    style: TextStyle(
+                      color: DashboardColors.primary,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: -.5,
+                    ),
+                  ),
+                ),
+                SizedBox(width: 8),
+                Icon(Icons.settings_rounded, color: DashboardColors.primary),
+              ],
+            ),
           ),
         ),
       ),

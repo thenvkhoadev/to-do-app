@@ -17,9 +17,33 @@ class ConnectedAppsSection extends StatelessWidget {
           trailing: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4), decoration: BoxDecoration(color: DashboardColors.primaryContainer.withValues(alpha: .18), borderRadius: BorderRadius.circular(DashboardRadii.full)), child: const Text('LIVE', style: TextStyle(color: DashboardColors.primary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1))),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
+                decoration: BoxDecoration(
+                  color: DashboardColors.primaryContainer.withValues(
+                    alpha: .18,
+                  ),
+                  borderRadius: BorderRadius.circular(DashboardRadii.full),
+                ),
+                child: const Text(
+                  'LIVE',
+                  style: TextStyle(
+                    color: DashboardColors.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: 1,
+                  ),
+                ),
+              ),
               const SizedBox(width: 12),
-              const Text('View all', style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w800)),
+              const Text(
+                'View all',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
             ],
           ),
         ),
@@ -31,8 +55,16 @@ class ConnectedAppsSection extends StatelessWidget {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: SettingsMockData.integrations.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: columns, crossAxisSpacing: DashboardSpacing.md, mainAxisSpacing: DashboardSpacing.md, childAspectRatio: columns == 1 ? 2.4 : .92),
-              itemBuilder: (context, index) => IntegrationCard(integration: SettingsMockData.integrations[index]),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: columns,
+                crossAxisSpacing: DashboardSpacing.md,
+                mainAxisSpacing: DashboardSpacing.md,
+                childAspectRatio: columns == 1 ? 2.4 : .92,
+              ),
+              itemBuilder:
+                  (context, index) => IntegrationCard(
+                    integration: SettingsMockData.integrations[index],
+                  ),
             );
           },
         ),

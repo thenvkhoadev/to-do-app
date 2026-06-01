@@ -28,7 +28,9 @@ class SettingsDesktopLayout extends StatelessWidget {
                 sliver: SliverToBoxAdapter(
                   child: Center(
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: DashboardSpacing.desktopMaxWidth),
+                      constraints: const BoxConstraints(
+                        maxWidth: DashboardSpacing.desktopMaxWidth,
+                      ),
                       child: const _SettingsDesktopContent(),
                     ),
                   ),
@@ -53,12 +55,30 @@ class _SettingsDesktopTopbar extends StatelessWidget {
         child: Container(
           height: 66,
           padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(color: DashboardColors.surface.withValues(alpha: .5), border: Border(bottom: BorderSide(color: Colors.white.withValues(alpha: .08)))),
+          decoration: BoxDecoration(
+            color: DashboardColors.surface.withValues(alpha: .5),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
+            ),
+          ),
           child: const Row(
             children: [
-              Text('Settings', style: TextStyle(color: DashboardColors.primary, fontSize: 24, fontWeight: FontWeight.w900)),
+              Text(
+                'Settings',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
               SizedBox(width: 12),
-              Text('/ Dashboard', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 15)),
+              Text(
+                '/ Dashboard',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 15,
+                ),
+              ),
               Spacer(),
               _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
               SizedBox(width: 12),
@@ -83,8 +103,32 @@ class _TopIcon extends StatelessWidget {
   Widget build(BuildContext context) {
     return Stack(
       children: [
-        Material(color: Colors.transparent, shape: const CircleBorder(), child: InkWell(customBorder: const CircleBorder(), onTap: () {}, child: SizedBox(width: 42, height: 42, child: Icon(icon, color: DashboardColors.onSurface)))),
-        if (badge) Positioned(top: 10, right: 10, child: Container(width: 8, height: 8, decoration: const BoxDecoration(shape: BoxShape.circle, color: DashboardColors.error))),
+        Material(
+          color: Colors.transparent,
+          shape: const CircleBorder(),
+          child: InkWell(
+            customBorder: const CircleBorder(),
+            onTap: () {},
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Icon(icon, color: DashboardColors.onSurface),
+            ),
+          ),
+        ),
+        if (badge)
+          Positioned(
+            top: 10,
+            right: 10,
+            child: Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: DashboardColors.error,
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -122,7 +166,9 @@ class _SettingsDesktopContent extends StatelessWidget {
         );
 
         if (stacked) {
-          return Column(children: [main, const SizedBox(height: DashboardSpacing.md), side]);
+          return Column(
+            children: [main, const SizedBox(height: DashboardSpacing.md), side],
+          );
         }
 
         return Row(

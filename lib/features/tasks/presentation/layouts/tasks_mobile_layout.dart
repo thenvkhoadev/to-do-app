@@ -65,7 +65,7 @@ class _MobileTasksTopBar extends StatelessWidget {
                         ],
                       ).createShader(rect),
                   child: const Text(
-                    'TaskFlow AI',
+                    'NEXUS AI',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,

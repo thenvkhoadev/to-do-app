@@ -43,16 +43,42 @@ class ProfileStatsCard extends StatelessWidget {
                 child: Icon(icon, color: color, size: 22),
               ),
               const Spacer(),
-              Icon(Icons.trending_up_rounded, color: color.withValues(alpha: 0.85), size: 20),
+              Icon(
+                Icons.trending_up_rounded,
+                color: color.withValues(alpha: 0.85),
+                size: 20,
+              ),
             ],
           ),
           const SizedBox(height: 18),
-          Text(value, style: const TextStyle(color: NexusColors.onSurface, fontSize: 30, fontWeight: FontWeight.w900, height: 1)),
+          Text(
+            value,
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 30,
+              fontWeight: FontWeight.w900,
+              height: 1,
+            ),
+          ),
           const SizedBox(height: 8),
-          Text(label, style: const TextStyle(color: NexusColors.onSurfaceVariant, fontSize: 13, fontWeight: FontWeight.w800)),
+          Text(
+            label,
+            style: const TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
           if (caption != null) ...[
             const SizedBox(height: 6),
-            Text(caption!, style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.w900)),
+            Text(
+              caption!,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
           ],
           if (progress != null) ...[
             const SizedBox(height: 14),

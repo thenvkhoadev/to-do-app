@@ -28,7 +28,9 @@ class AiSummaryBlock extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: DashboardColors.secondary.withValues(alpha: .10 + value * .06),
+                color: DashboardColors.secondary.withValues(
+                  alpha: .10 + value * .06,
+                ),
                 blurRadius: 34,
                 spreadRadius: 1,
               ),
@@ -57,11 +59,17 @@ class AiSummaryBlock extends StatelessWidget {
               children: const [
                 _AiSummaryHeader(),
                 SizedBox(height: 16),
-                _AiSummaryMetric(label: 'Estimated completion', value: '4h 20m'),
+                _AiSummaryMetric(
+                  label: 'Estimated completion',
+                  value: '4h 20m',
+                ),
                 SizedBox(height: 9),
                 _AiSummaryMetric(label: 'Risk level', value: 'Medium'),
                 SizedBox(height: 9),
-                _AiSummaryMetric(label: 'Suggested focus window', value: '2PM - 5PM'),
+                _AiSummaryMetric(
+                  label: 'Suggested focus window',
+                  value: '2PM - 5PM',
+                ),
               ],
             ),
           ),
@@ -89,16 +97,32 @@ class _AiSummaryHeader extends StatelessWidget {
                 DashboardColors.tertiary.withValues(alpha: .18),
               ],
             ),
-            border: Border.all(color: DashboardColors.tertiary.withValues(alpha: .24)),
-            boxShadow: [BoxShadow(color: DashboardColors.tertiary.withValues(alpha: .16), blurRadius: 20)],
+            border: Border.all(
+              color: DashboardColors.tertiary.withValues(alpha: .24),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: DashboardColors.tertiary.withValues(alpha: .16),
+                blurRadius: 20,
+              ),
+            ],
           ),
-          child: const Icon(Icons.auto_awesome_rounded, color: DashboardColors.tertiary, size: 18),
+          child: const Icon(
+            Icons.auto_awesome_rounded,
+            color: DashboardColors.tertiary,
+            size: 18,
+          ),
         ),
         const SizedBox(width: 12),
         const Expanded(
           child: Text(
             'AI Summary',
-            style: TextStyle(color: DashboardColors.onSurface, fontSize: 14, fontWeight: FontWeight.w900, letterSpacing: .2),
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              letterSpacing: .2,
+            ),
           ),
         ),
         Container(
@@ -106,9 +130,19 @@ class _AiSummaryHeader extends StatelessWidget {
           decoration: BoxDecoration(
             color: DashboardColors.tertiary.withValues(alpha: .10),
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: DashboardColors.tertiary.withValues(alpha: .20)),
+            border: Border.all(
+              color: DashboardColors.tertiary.withValues(alpha: .20),
+            ),
           ),
-          child: const Text('AI', style: TextStyle(color: DashboardColors.tertiary, fontSize: 10, fontWeight: FontWeight.w900, letterSpacing: 1)),
+          child: const Text(
+            'AI',
+            style: TextStyle(
+              color: DashboardColors.tertiary,
+              fontSize: 10,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1,
+            ),
+          ),
         ),
       ],
     );
@@ -124,8 +158,24 @@ class _AiSummaryMetric extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
     children: [
-      Expanded(child: Text(label, style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w600))),
-      Text(value, style: const TextStyle(color: DashboardColors.onSurface, fontSize: 12, fontWeight: FontWeight.w900)),
+      Expanded(
+        child: Text(
+          label,
+          style: const TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      Text(
+        value,
+        style: const TextStyle(
+          color: DashboardColors.onSurface,
+          fontSize: 12,
+          fontWeight: FontWeight.w900,
+        ),
+      ),
     ],
   );
 }

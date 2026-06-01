@@ -4,9 +4,10 @@ import 'package:to_do_app/features/tasks/presentation/layouts/tasks_mobile_layou
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksScreen extends StatelessWidget {
-  const TasksScreen({this.openNewTask, super.key});
+  const TasksScreen({this.openNewTask, this.searchQuery, super.key});
 
   final bool? openNewTask;
+  final String? searchQuery;
 
   @override
   Widget build(BuildContext context) {
@@ -41,6 +42,7 @@ class TasksScreen extends StatelessWidget {
                   if (constraints.maxWidth >= 1100) {
                     return TasksDesktopLayout(
                       openNewTask: openNewTask ?? false,
+                      searchQuery: searchQuery,
                     );
                   }
                   return const TasksMobileLayout();

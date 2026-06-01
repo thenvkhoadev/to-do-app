@@ -14,11 +14,25 @@ class AiInsightsPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const Row(children: [Icon(Icons.flare_rounded, color: DashboardColors.primary), SizedBox(width: 8), Text('AI Recommendations', style: TextStyle(color: DashboardColors.onSurface, fontSize: 22, fontWeight: FontWeight.w900))]),
+          const Row(
+            children: [
+              Icon(Icons.flare_rounded, color: DashboardColors.primary),
+              SizedBox(width: 8),
+              Text(
+                'AI Recommendations',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ],
+          ),
           const SizedBox(height: 20),
           for (final insight in AnalyticsMockData.insights) ...[
             InsightCard(insight: insight),
-            if (insight != AnalyticsMockData.insights.last) const SizedBox(height: 12),
+            if (insight != AnalyticsMockData.insights.last)
+              const SizedBox(height: 12),
           ],
         ],
       ),

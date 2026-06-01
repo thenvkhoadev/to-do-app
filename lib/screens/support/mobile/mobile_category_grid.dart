@@ -12,8 +12,17 @@ class MobileCategoryGrid extends StatelessWidget {
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
       itemCount: 4,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(crossAxisCount: 2, crossAxisSpacing: DashboardSpacing.sm, mainAxisSpacing: DashboardSpacing.sm, childAspectRatio: .92),
-      itemBuilder: (context, index) => SupportCategoryCard(category: SupportMockData.categories[index], compact: true),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: DashboardSpacing.sm,
+        mainAxisSpacing: DashboardSpacing.sm,
+        childAspectRatio: .92,
+      ),
+      itemBuilder:
+          (context, index) => SupportCategoryCard(
+            category: SupportMockData.categories[index],
+            compact: true,
+          ),
     );
   }
 }

@@ -14,12 +14,18 @@ class NexusBackground extends StatelessWidget {
         Positioned(
           top: -160,
           left: -120,
-          child: _GlowOrb(size: 420, color: NexusColors.primaryContainer.withValues(alpha: 0.22)),
+          child: _GlowOrb(
+            size: 420,
+            color: NexusColors.primaryContainer.withValues(alpha: 0.22),
+          ),
         ),
         Positioned(
           right: -140,
           top: MediaQuery.sizeOf(context).height * 0.18,
-          child: _GlowOrb(size: 360, color: NexusColors.secondary.withValues(alpha: 0.12)),
+          child: _GlowOrb(
+            size: 360,
+            color: NexusColors.secondary.withValues(alpha: 0.12),
+          ),
         ),
         Positioned.fill(child: CustomPaint(painter: _GridPainter())),
         Positioned.fill(child: child),
@@ -50,9 +56,10 @@ class _GlowOrb extends StatelessWidget {
 class _GridPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.025)
-      ..strokeWidth = 1;
+    final paint =
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.025)
+          ..strokeWidth = 1;
 
     for (double x = 0; x < size.width; x += 42) {
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);

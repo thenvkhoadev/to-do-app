@@ -15,12 +15,13 @@ class TaskProgressBar extends StatelessWidget {
         tween: Tween(begin: 0, end: value),
         duration: const Duration(milliseconds: 700),
         curve: Curves.easeOutCubic,
-        builder: (context, animated, _) => LinearProgressIndicator(
-          value: animated,
-          minHeight: height,
-          backgroundColor: Colors.white.withValues(alpha: .07),
-          valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
-        ),
+        builder:
+            (context, animated, _) => LinearProgressIndicator(
+              value: animated,
+              minHeight: height,
+              backgroundColor: Colors.white.withValues(alpha: .07),
+              valueColor: const AlwaysStoppedAnimation(DashboardColors.primary),
+            ),
       ),
     );
   }

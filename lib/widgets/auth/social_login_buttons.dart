@@ -44,7 +44,9 @@ class _SocialButton extends StatelessWidget {
                   child: Text(
                     label,
                     overflow: TextOverflow.ellipsis,
-                    style: AuthTextStyles.labelSmall.copyWith(color: AuthColors.onSurface),
+                    style: AuthTextStyles.labelSmall.copyWith(
+                      color: AuthColors.onSurface,
+                    ),
                   ),
                 ),
               ],
@@ -61,7 +63,11 @@ class _GoogleMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: 20, height: 20, child: CustomPaint(painter: _GoogleLogoPainter()));
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
   }
 }
 
@@ -73,7 +79,11 @@ class _GithubMark extends StatelessWidget {
     return SizedBox(
       width: 20,
       height: 20,
-      child: CustomPaint(painter: _GithubLogoPainter(color: AuthColors.onSurface.withValues(alpha: 0.72))),
+      child: CustomPaint(
+        painter: _GithubLogoPainter(
+          color: AuthColors.onSurface.withValues(alpha: 0.72),
+        ),
+      ),
     );
   }
 }
@@ -82,15 +92,25 @@ class _GoogleLogoPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final stroke = size.width * 0.18;
-    final rect = Rect.fromLTWH(stroke / 2, stroke / 2, size.width - stroke, size.height - stroke);
-    final paint = Paint()
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = stroke
-      ..strokeCap = StrokeCap.square;
+    final rect = Rect.fromLTWH(
+      stroke / 2,
+      stroke / 2,
+      size.width - stroke,
+      size.height - stroke,
+    );
+    final paint =
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = stroke
+          ..strokeCap = StrokeCap.square;
 
     paint.color = const Color(0xFF4285F4);
     canvas.drawArc(rect, -0.12, 1.55, false, paint);
-    canvas.drawLine(Offset(size.width * 0.55, size.height * 0.5), Offset(size.width * 0.95, size.height * 0.5), paint);
+    canvas.drawLine(
+      Offset(size.width * 0.55, size.height * 0.5),
+      Offset(size.width * 0.95, size.height * 0.5),
+      paint,
+    );
     paint.color = const Color(0xFF34A853);
     canvas.drawArc(rect, 1.43, 1.25, false, paint);
     paint.color = const Color(0xFFFBBC05);
@@ -145,5 +165,6 @@ class _GithubLogoPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _GithubLogoPainter oldDelegate) => oldDelegate.color != color;
+  bool shouldRepaint(covariant _GithubLogoPainter oldDelegate) =>
+      oldDelegate.color != color;
 }

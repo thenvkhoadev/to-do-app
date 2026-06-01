@@ -14,13 +14,28 @@ class TicketFormCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text('Submit a Ticket', style: TextStyle(color: DashboardColors.onSurface, fontSize: 24, fontWeight: FontWeight.w900)),
+          Text(
+            'Submit a Ticket',
+            style: TextStyle(
+              color: DashboardColors.onSurface,
+              fontSize: 24,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
           SizedBox(height: DashboardSpacing.md),
           _CompactIssueSelector(),
           SizedBox(height: 16),
-          SupportTextField(label: 'Description', hint: 'Tell us what is happening...', maxLines: 3),
+          SupportTextField(
+            label: 'Description',
+            hint: 'Tell us what is happening...',
+            maxLines: 3,
+          ),
           SizedBox(height: 18),
-          GradientButton(label: 'Submit Ticket', icon: Icons.send_rounded, expanded: true),
+          GradientButton(
+            label: 'Submit Ticket',
+            icon: Icons.send_rounded,
+            expanded: true,
+          ),
         ],
       ),
     );
@@ -49,7 +64,15 @@ class _CompactIssueSelectorState extends State<_CompactIssueSelector> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('ISSUE CATEGORY', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.w900, letterSpacing: 1.1)),
+          const Text(
+            'ISSUE CATEGORY',
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.1,
+            ),
+          ),
           const SizedBox(height: 10),
           Wrap(
             spacing: 8,
@@ -70,7 +93,11 @@ class _CompactIssueSelectorState extends State<_CompactIssueSelector> {
 }
 
 class _IssueChip extends StatelessWidget {
-  const _IssueChip({required this.label, required this.selected, required this.onTap});
+  const _IssueChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
   final String label;
   final bool selected;
@@ -79,7 +106,10 @@ class _IssueChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: selected ? DashboardColors.primary.withValues(alpha: .16) : Colors.white.withValues(alpha: .05),
+      color:
+          selected
+              ? DashboardColors.primary.withValues(alpha: .16)
+              : Colors.white.withValues(alpha: .05),
       borderRadius: BorderRadius.circular(999),
       child: InkWell(
         borderRadius: BorderRadius.circular(999),
@@ -89,16 +119,38 @@ class _IssueChip extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: selected ? DashboardColors.primary.withValues(alpha: .42) : Colors.white.withValues(alpha: .06)),
+            border: Border.all(
+              color:
+                  selected
+                      ? DashboardColors.primary.withValues(alpha: .42)
+                      : Colors.white.withValues(alpha: .06),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               if (selected) ...[
-                const Icon(Icons.check_rounded, color: DashboardColors.primary, size: 14),
+                const Icon(
+                  Icons.check_rounded,
+                  color: DashboardColors.primary,
+                  size: 14,
+                ),
                 const SizedBox(width: 5),
               ],
-              Flexible(child: Text(label, overflow: TextOverflow.ellipsis, style: TextStyle(color: selected ? DashboardColors.primary : DashboardColors.onSurfaceVariant, fontSize: 12, fontWeight: FontWeight.w800))),
+              Flexible(
+                child: Text(
+                  label,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color:
+                        selected
+                            ? DashboardColors.primary
+                            : DashboardColors.onSurfaceVariant,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

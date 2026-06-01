@@ -108,7 +108,7 @@ class _LandingTopNav extends StatelessWidget {
           child: Row(
             children: [
               const Text(
-                'TaskFlow AI',
+                'NEXUS AI',
                 style: TextStyle(
                   color: Color(0xFFDDE2F8),
                   fontSize: 24,
@@ -187,7 +187,7 @@ class _DesktopHero extends StatelessWidget {
           const SizedBox(
             width: 720,
             child: Text(
-              'The premium productivity command center for high-performing professionals. Eliminate friction, automate scheduling, and enter deep work faster with TaskFlow AI.',
+              'The premium productivity command center for high-performing professionals. Eliminate friction, automate scheduling, and enter deep work faster with NEXUS AI.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFFC7C4D7),
@@ -255,7 +255,7 @@ class _MobileHero extends StatelessWidget {
           const SizedBox(
             width: 330,
             child: Text(
-              'TaskFlow AI streamlines your mental cycles by automating deep work logistics.',
+              'NEXUS AI streamlines your mental cycles by automating deep work logistics.',
               textAlign: TextAlign.center,
               style: TextStyle(
                 color: Color(0xFFC7C4D7),
@@ -453,7 +453,7 @@ class _DesktopFeaturesSection extends StatelessWidget {
                   icon: Icons.psychology_rounded,
                   title: 'Deep Work Detection',
                   body:
-                      'TaskFlow monitors digital patterns to silence notifications during peak focus periods.',
+                      'NEXUS AI monitors digital patterns to silence notifications during peak focus periods.',
                   color: Color(0xFFC0C1FF),
                 ),
               ),
@@ -614,7 +614,7 @@ class _FinalCtaSection extends StatelessWidget {
             const SizedBox(
               width: 620,
               child: Text(
-                'Join 50,000+ high-performers who have optimized their lives with TaskFlow AI. Start your free trial today.',
+                'Join 50,000+ high-performers who have optimized their lives with NEXUS AI. Start your free trial today.',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Color(0xFFC7C4D7),
@@ -718,7 +718,7 @@ class _MobileFooterContent extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TaskFlow AI',
+          'NEXUS AI',
           style: TextStyle(
             color: Color(0xFFDDE2F8),
             fontSize: 24,
@@ -759,7 +759,7 @@ class _FooterBrand extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'TaskFlow AI',
+          'NEXUS AI',
           style: TextStyle(
             color: Color(0xFFDDE2F8),
             fontSize: 24,
@@ -886,8 +886,8 @@ class _FooterCopyright extends StatelessWidget {
       ),
       child: Text(
         center
-            ? '© 2024 TaskFlow AI. Engineered for deep work.'
-            : '© 2024 TaskFlow AI.\nEngineered for deep work.',
+            ? '© 2024 NEXUS AI. Engineered for deep work.'
+            : '© 2024 NEXUS AI.\nEngineered for deep work.',
         textAlign: center ? TextAlign.center : TextAlign.start,
         style: const TextStyle(
           color: Color(0xFFC7C4D7),
@@ -997,8 +997,8 @@ class _TestimonialCard extends StatelessWidget {
           const SizedBox(height: 20),
           Text(
             desktop
-                ? '“TaskFlow AI changed how our engineering team operates. We have seen a 40% increase in sprint completion rates since AI started managing our focus blocks.”'
-                : '“TaskFlow AI is the first tool that actually respects my mental state. It manages my attention.”',
+                ? '“NEXUS AI changed how our engineering team operates. We have seen a 40% increase in sprint completion rates since AI started managing our focus blocks.”'
+                : '“NEXUS AI is the first tool that actually respects my mental state. It manages my attention.”',
             style: TextStyle(
               color: const Color(0xFFDDE2F8),
               fontSize: desktop ? 28 : 22,

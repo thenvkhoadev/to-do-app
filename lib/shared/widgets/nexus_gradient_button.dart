@@ -22,7 +22,9 @@ class NexusGradientButton extends StatelessWidget {
       child: Ink(
         width: double.infinity,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [NexusColors.primaryContainer, NexusColors.secondary]),
+          gradient: const LinearGradient(
+            colors: [NexusColors.primaryContainer, NexusColors.secondary],
+          ),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -45,7 +47,10 @@ class NexusGradientButton extends StatelessWidget {
                   const SizedBox(
                     width: 18,
                     height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.white,
+                    ),
                   )
                 else ...[
                   Text(

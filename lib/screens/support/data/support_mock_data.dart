@@ -9,7 +9,7 @@ class SupportMockData {
     SupportCategory(
       title: 'Getting Started',
       label: 'Guide',
-      description: 'Master the fundamentals of TaskFlow AI in under 5 minutes.',
+      description: 'Master the fundamentals of NEXUS AI in under 5 minutes.',
       icon: Icons.rocket_launch_rounded,
       color: DashboardColors.primary,
       links: ['Installation Guide', 'Creating your first workspace'],
@@ -56,23 +56,28 @@ class SupportMockData {
   static const faqs = [
     SupportFAQ(
       question: 'How do I reset my AI focus model?',
-      answer: 'Go to Settings > Intelligence > Model Data, then choose Retrain AI. TaskFlow will rebuild your focus model after 2-3 days of active use.',
+      answer:
+          'Go to Settings > Intelligence > Model Data, then choose Retrain AI. NEXUS AI will rebuild your focus model after 2-3 days of active use.',
     ),
     SupportFAQ(
       question: 'Why are Slack notifications not blocked in Focus Mode?',
-      answer: 'Check that TaskFlow AI has system-level Focus Control permission and confirm Slack is not whitelisted in your Focus exceptions.',
+      answer:
+          'Check that NEXUS AI has system-level Focus Control permission and confirm Slack is not whitelisted in your Focus exceptions.',
     ),
     SupportFAQ(
       question: 'Can I export Intelligence reports to PDF?',
-      answer: 'Yes. Open the Intelligence tab, choose Export, then select PDF, CSV, or Markdown format.',
+      answer:
+          'Yes. Open the Intelligence tab, choose Export, then select PDF, CSV, or Markdown format.',
     ),
     SupportFAQ(
       question: 'Can I sync tasks across multiple workspaces?',
-      answer: 'Workspace sync is available on Pro plans. Connect each workspace from Integrations, then enable cross-workspace task mirroring.',
+      answer:
+          'Workspace sync is available on Pro plans. Connect each workspace from Integrations, then enable cross-workspace task mirroring.',
     ),
     SupportFAQ(
       question: 'What happens to data when I am offline?',
-      answer: 'TaskFlow keeps recent tasks and schedules locally, then syncs changes when your connection returns.',
+      answer:
+          'NEXUS AI keeps recent tasks and schedules locally, then syncs changes when your connection returns.',
     ),
   ];
 

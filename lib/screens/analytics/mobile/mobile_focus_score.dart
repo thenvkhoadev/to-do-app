@@ -12,9 +12,25 @@ class MobileFocusScore extends StatelessWidget {
         FocusGauge(value: .84, size: 196, label: 'Focus Score'),
         SizedBox(height: 18),
         Text.rich(
-          TextSpan(text: 'You maintained ', children: [TextSpan(text: 'Deep Work', style: TextStyle(color: DashboardColors.primary, fontWeight: FontWeight.w900)), TextSpan(text: ' for 12% longer than last week.')]),
+          TextSpan(
+            text: 'You maintained ',
+            children: [
+              TextSpan(
+                text: 'Deep Work',
+                style: TextStyle(
+                  color: DashboardColors.primary,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              TextSpan(text: ' for 12% longer than last week.'),
+            ],
+          ),
           textAlign: TextAlign.center,
-          style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 15, height: 1.5),
+          style: TextStyle(
+            color: DashboardColors.onSurfaceVariant,
+            fontSize: 15,
+            height: 1.5,
+          ),
         ),
       ],
     );

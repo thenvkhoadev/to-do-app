@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/colors.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
@@ -1344,30 +1345,43 @@ class _SearchField extends StatelessWidget {
     return Container(
       height: 44,
       constraints: BoxConstraints(maxWidth: wide ? 520 : 420),
-      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
         color: NexusColors.surfaceContainerHigh.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
       ),
-      child: Row(
-        children: [
-          const Icon(
+      child: TextField(
+        textInputAction: TextInputAction.search,
+        textAlignVertical: TextAlignVertical.center,
+        style: const TextStyle(color: NexusColors.onSurface, fontSize: 14),
+        cursorColor: NexusColors.primary,
+        decoration: InputDecoration(
+          prefixIcon: const Icon(
             Icons.search_rounded,
             color: NexusColors.onSurfaceVariant,
             size: 20,
           ),
-          const SizedBox(width: 12),
-          Text(
-            wide
-                ? 'Search tasks, insights, or commands (/)'
-                : 'Search Nexus...',
-            style: const TextStyle(
-              color: NexusColors.onSurfaceVariant,
-              fontSize: 14,
-            ),
+          prefixIconConstraints: const BoxConstraints(
+            minWidth: 44,
+            minHeight: 44,
           ),
-        ],
+          isDense: true,
+          contentPadding: EdgeInsets.zero,
+          border: InputBorder.none,
+          hintText:
+              wide
+                  ? 'Search tasks, insights, or commands (/)'
+                  : 'Search Nexus...',
+          hintStyle: const TextStyle(
+            color: NexusColors.onSurfaceVariant,
+            fontSize: 14,
+          ),
+        ),
+        onSubmitted: (value) {
+          final query = value.trim();
+          if (query.isEmpty) return;
+          context.go('/tasks?search=${Uri.encodeComponent(query)}');
+        },
       ),
     );
   }

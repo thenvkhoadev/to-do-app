@@ -18,8 +18,12 @@ class JwtInterceptor extends Interceptor {
   }
 
   @override
-  Future<void> onError(DioException err, ErrorInterceptorHandler handler) async {
-    if (err.response?.statusCode != 401 || err.requestOptions.extra['retried'] == true) {
+  Future<void> onError(
+    DioException err,
+    ErrorInterceptorHandler handler,
+  ) async {
+    if (err.response?.statusCode != 401 ||
+        err.requestOptions.extra['retried'] == true) {
       handler.next(err);
       return;
     }

@@ -42,7 +42,9 @@ class DashboardTheme {
       error: DashboardColors.error,
     );
 
-    final textTheme = GoogleFonts.interTextTheme(ThemeData.dark().textTheme).apply(
+    final textTheme = GoogleFonts.interTextTheme(
+      ThemeData.dark().textTheme,
+    ).apply(
       bodyColor: DashboardColors.onSurface,
       displayColor: DashboardColors.onSurface,
     );

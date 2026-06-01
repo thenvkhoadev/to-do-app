@@ -13,11 +13,15 @@ class MobileNotifications extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SettingsSectionTitle(title: 'Notifications', icon: Icons.notifications_active_rounded),
+          const SettingsSectionTitle(
+            title: 'Notifications',
+            icon: Icons.notifications_active_rounded,
+          ),
           const SizedBox(height: DashboardSpacing.md),
           for (final option in SettingsMockData.notifications) ...[
             ToggleSettingTile(option: option),
-            if (option != SettingsMockData.notifications.last) const SizedBox(height: 12),
+            if (option != SettingsMockData.notifications.last)
+              const SizedBox(height: 12),
           ],
         ],
       ),

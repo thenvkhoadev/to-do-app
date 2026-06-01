@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
@@ -107,7 +108,7 @@ class MobileTopBar extends StatelessWidget {
                         ],
                       ).createShader(rect),
                   child: const Text(
-                    'TaskFlow AI',
+                    'NEXUS AI',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 22,
@@ -133,12 +134,14 @@ class MobileTopBar extends StatelessWidget {
   }
 }
 
-class MobileHeroSection extends StatelessWidget {
+class MobileHeroSection extends ConsumerWidget {
   const MobileHeroSection({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final isTight = MediaQuery.sizeOf(context).width < 380;
+    final greeting = dashboardGreeting(DateTime.now());
+    final username = dashboardUsername(ref);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -149,12 +152,12 @@ class MobileHeroSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Text.rich(
-          const TextSpan(
-            text: 'Good morning, ',
+          TextSpan(
+            text: '$greeting, ',
             children: [
               TextSpan(
-                text: 'Alex',
-                style: TextStyle(color: DashboardColors.primary),
+                text: username,
+                style: const TextStyle(color: DashboardColors.primary),
               ),
             ],
           ),

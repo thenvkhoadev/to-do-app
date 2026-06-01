@@ -118,7 +118,7 @@ class _BrandHeader extends StatelessWidget {
                 colors: [Color(0xFFC0C1FF), Color(0xFFDDB7FF)],
               ).createShader(bounds),
           child: const Text(
-            'TaskFlow AI',
+            'NEXUS AI',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 48,

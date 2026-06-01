@@ -5,7 +5,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 class AuthRefreshListenable extends ChangeNotifier {
   AuthRefreshListenable(SupabaseClient client) {
-    _subscription = client.auth.onAuthStateChange.listen((_) => notifyListeners());
+    _subscription = client.auth.onAuthStateChange.listen(
+      (_) => notifyListeners(),
+    );
   }
 
   late final StreamSubscription<AuthState> _subscription;

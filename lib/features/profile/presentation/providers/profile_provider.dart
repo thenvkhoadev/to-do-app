@@ -4,7 +4,9 @@ import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dar
 import 'package:to_do_app/features/profile/data/datasource/profile_remote_datasource.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
-final profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>((ref) {
+final profileRemoteDataSourceProvider = Provider<ProfileRemoteDataSource>((
+  ref,
+) {
   return ProfileRemoteDataSource(ref.watch(supabaseClientProvider));
 });
 

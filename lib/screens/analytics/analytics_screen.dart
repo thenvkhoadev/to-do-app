@@ -16,7 +16,11 @@ class AnalyticsScreen extends StatelessWidget {
       data: DashboardTheme.dark(),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final content = embeddedInDashboard || constraints.maxWidth >= DashboardBreakpoints.desktop ? const AnalyticsDesktopLayout() : const AnalyticsMobileLayout();
+          final content =
+              embeddedInDashboard ||
+                      constraints.maxWidth >= DashboardBreakpoints.desktop
+                  ? const AnalyticsDesktopLayout()
+                  : const AnalyticsMobileLayout();
           if (embeddedInDashboard) return content;
           return DashboardScaffold(child: content);
         },

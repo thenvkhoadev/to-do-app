@@ -103,31 +103,31 @@ class _HeaderButton extends StatelessWidget {
       borderRadius: BorderRadius.circular(999),
       child: Ink(
         decoration: BoxDecoration(
-        gradient:
-            gradient
-                ? const LinearGradient(
-                  colors: [
-                    DashboardColors.primaryContainer,
-                    DashboardColors.secondaryContainer,
-                  ],
-                )
-                : null,
-        color: gradient ? null : Colors.white.withValues(alpha: .03),
-        borderRadius: BorderRadius.circular(999),
-        border:
-            gradient
-                ? null
-                : Border.all(color: Colors.white.withValues(alpha: .1)),
-        boxShadow:
-            gradient
-                ? [
-                  BoxShadow(
-                    color: DashboardColors.primary.withValues(alpha: .15),
-                    blurRadius: 30,
-                  ),
-                ]
-                : null,
-      ),
+          gradient:
+              gradient
+                  ? const LinearGradient(
+                    colors: [
+                      DashboardColors.primaryContainer,
+                      DashboardColors.secondaryContainer,
+                    ],
+                  )
+                  : null,
+          color: gradient ? null : Colors.white.withValues(alpha: .03),
+          borderRadius: BorderRadius.circular(999),
+          border:
+              gradient
+                  ? null
+                  : Border.all(color: Colors.white.withValues(alpha: .1)),
+          boxShadow:
+              gradient
+                  ? [
+                    BoxShadow(
+                      color: DashboardColors.primary.withValues(alpha: .15),
+                      blurRadius: 30,
+                    ),
+                  ]
+                  : null,
+        ),
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
           onTap: onTap,

@@ -17,7 +17,11 @@ class BackgroundGlow extends StatelessWidget {
           Positioned(
             top: -size.height * 0.12,
             right: -size.width * 0.04,
-            child: const _GlowOrb(size: 400, color: Color(0x0DDDB7FF), blur: 120),
+            child: const _GlowOrb(
+              size: 400,
+              color: Color(0x0DDDB7FF),
+              blur: 120,
+            ),
           ),
           Positioned(
             bottom: 0,
@@ -36,7 +40,12 @@ class BackgroundGlow extends StatelessWidget {
             right: -100,
             child: _GlowOrb(size: 320, color: Color(0x1A6F00BE), blur: 100),
           ),
-          const Positioned(left: 80, right: 80, bottom: 0, child: _BottomBeam()),
+          const Positioned(
+            left: 80,
+            right: 80,
+            bottom: 0,
+            child: _BottomBeam(),
+          ),
         ],
       ],
     );
@@ -44,7 +53,12 @@ class BackgroundGlow extends StatelessWidget {
 }
 
 class FloatingGlowOrb extends StatelessWidget {
-  const FloatingGlowOrb({super.key, required this.size, required this.color, required this.blur});
+  const FloatingGlowOrb({
+    super.key,
+    required this.size,
+    required this.color,
+    required this.blur,
+  });
 
   final double size;
   final Color color;
@@ -80,7 +94,9 @@ class _GlowOrb extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        boxShadow: [BoxShadow(color: color, blurRadius: blur, spreadRadius: blur / 3)],
+        boxShadow: [
+          BoxShadow(color: color, blurRadius: blur, spreadRadius: blur / 3),
+        ],
       ),
     );
   }
@@ -95,7 +111,11 @@ class _BottomBeam extends StatelessWidget {
       height: 1,
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.transparent, AuthColors.primary.withValues(alpha: 0.4), Colors.transparent],
+          colors: [
+            Colors.transparent,
+            AuthColors.primary.withValues(alpha: 0.4),
+            Colors.transparent,
+          ],
         ),
       ),
     );

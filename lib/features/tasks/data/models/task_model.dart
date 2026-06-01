@@ -35,8 +35,14 @@ class TaskModel {
       priority: json['priority']?.toString() ?? 'medium',
       status: json['status']?.toString() ?? 'todo',
       aiGenerated: json['ai_generated'] == true,
-      dueDate: json['due_date'] == null ? null : DateTime.tryParse(json['due_date'].toString()),
-      createdAt: json['created_at'] == null ? null : DateTime.tryParse(json['created_at'].toString()),
+      dueDate:
+          json['due_date'] == null
+              ? null
+              : DateTime.tryParse(json['due_date'].toString()),
+      createdAt:
+          json['created_at'] == null
+              ? null
+              : DateTime.tryParse(json['created_at'].toString()),
     );
   }
 
@@ -56,15 +62,15 @@ class TaskModel {
   }
 
   NexusTask toEntity() => NexusTask(
-        id: id,
-        userId: userId,
-        title: title,
-        description: description,
-        category: category,
-        priority: priority,
-        status: status,
-        aiGenerated: aiGenerated,
-        dueDate: dueDate,
-        createdAt: createdAt,
-      );
+    id: id,
+    userId: userId,
+    title: title,
+    description: description,
+    category: category,
+    priority: priority,
+    status: status,
+    aiGenerated: aiGenerated,
+    dueDate: dueDate,
+    createdAt: createdAt,
+  );
 }

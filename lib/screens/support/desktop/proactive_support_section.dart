@@ -12,11 +12,24 @@ class ProactiveSupportSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SupportSectionTitle(title: 'Proactive Support', subtitle: 'We identified these trending questions from users like you.', trailing: Text('View all FAQs →', style: TextStyle(color: DashboardColors.primary, fontSize: 13, fontWeight: FontWeight.w900))),
+        const SupportSectionTitle(
+          title: 'Proactive Support',
+          subtitle:
+              'We identified these trending questions from users like you.',
+          trailing: Text(
+            'View all FAQs →',
+            style: TextStyle(
+              color: DashboardColors.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+        ),
         const SizedBox(height: DashboardSpacing.md),
         for (final faq in SupportMockData.faqs.take(3)) ...[
           SupportFAQTile(faq: faq),
-          if (faq != SupportMockData.faqs.take(3).last) const SizedBox(height: 12),
+          if (faq != SupportMockData.faqs.take(3).last)
+            const SizedBox(height: 12),
         ],
       ],
     );

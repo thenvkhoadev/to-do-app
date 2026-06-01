@@ -13,11 +13,15 @@ class MobileSecuritySection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          const SettingsSectionTitle(title: 'Account Security', icon: Icons.security_rounded),
+          const SettingsSectionTitle(
+            title: 'Account Security',
+            icon: Icons.security_rounded,
+          ),
           const SizedBox(height: DashboardSpacing.md),
           for (final action in SettingsMockData.security) ...[
             SecurityActionCard(action: action),
-            if (action != SettingsMockData.security.last) const SizedBox(height: 12),
+            if (action != SettingsMockData.security.last)
+              const SizedBox(height: 12),
           ],
         ],
       ),
