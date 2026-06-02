@@ -45,9 +45,10 @@ class _TasksProjectsDesktopContentState
           final wide = constraints.maxWidth >= 1180;
           return Stack(
             children: [
-              Padding(
+              SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
                 child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     TasksProjectsHeader(onNewTask: widget.onNewTask),
                     const SizedBox(height: 18),
@@ -59,39 +60,33 @@ class _TasksProjectsDesktopContentState
                       const TasksProjectsAnalyticsStrip(),
                     ],
                     const SizedBox(height: 18),
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(right: 24),
-                        child:
-                            wide
-                                ? Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(
-                                      child: _DesktopGrid(
-                                        twoColumns: true,
-                                        onOpenPreview: _openPreview,
-                                        onNewTask: widget.onNewTask,
-                                        searchQuery: widget.searchQuery,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 24),
-                                    SizedBox(
-                                      width: 340,
-                                      child: _ProjectsRightRail(
-                                        onNewTask: widget.onNewTask,
-                                      ),
-                                    ),
-                                  ],
-                                )
-                                : _DesktopGrid(
-                                  twoColumns: constraints.maxWidth >= 1040,
-                                  onOpenPreview: _openPreview,
-                                  onNewTask: widget.onNewTask,
-                                  searchQuery: widget.searchQuery,
-                                ),
-                      ),
-                    ),
+                    wide
+                        ? Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(
+                              child: _DesktopGrid(
+                                twoColumns: true,
+                                onOpenPreview: _openPreview,
+                                onNewTask: widget.onNewTask,
+                                searchQuery: widget.searchQuery,
+                              ),
+                            ),
+                            const SizedBox(width: 24),
+                            SizedBox(
+                              width: 340,
+                              child: _ProjectsRightRail(
+                                onNewTask: widget.onNewTask,
+                              ),
+                            ),
+                          ],
+                        )
+                        : _DesktopGrid(
+                          twoColumns: constraints.maxWidth >= 720,
+                          onOpenPreview: _openPreview,
+                          onNewTask: widget.onNewTask,
+                          searchQuery: widget.searchQuery,
+                        ),
                   ],
                 ),
               ),

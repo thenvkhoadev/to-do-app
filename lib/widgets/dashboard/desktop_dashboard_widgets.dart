@@ -725,21 +725,38 @@ class DesktopTopbar extends StatelessWidget {
               bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
             ),
           ),
-          child: Row(
-            children: [
-              const SearchBarWidget(),
-              const Spacer(),
-              const _TopIcon(
-                icon: Icons.notifications_none_rounded,
-                badge: true,
-              ),
-              const SizedBox(width: 12),
-              const _TopIcon(icon: Icons.bolt_rounded),
-              const SizedBox(width: 12),
-              const XPLevelCard(),
-              const SizedBox(width: 12),
-              ProfileAvatar(onTap: onProfileTap, showUsername: true),
-            ],
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const SearchBarWidget(),
+                      const SizedBox(width: 24),
+                      Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const _TopIcon(
+                            icon: Icons.notifications_none_rounded,
+                            badge: true,
+                          ),
+                          const SizedBox(width: 12),
+                          const _TopIcon(icon: Icons.bolt_rounded),
+                          const SizedBox(width: 12),
+                          const XPLevelCard(),
+                          const SizedBox(width: 12),
+                          ProfileAvatar(onTap: onProfileTap, showUsername: true),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),

@@ -2367,6 +2367,7 @@ class _ProductivityBarChart extends StatelessWidget {
             for (var i = 0; i < series.length; i++)
               Expanded(
                 child: Column(
+                  mainAxisSize: MainAxisSize.min, // Changed from MainAxisAlignment.end
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(

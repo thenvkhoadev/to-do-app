@@ -200,15 +200,18 @@ class IntegrationCard extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 5),
-          Text(
-            integration.description,
-            style: const TextStyle(
-              color: DashboardColors.onSurfaceVariant,
-              fontSize: 12,
-              height: 1.4,
+          Expanded(
+            child: Text(
+              integration.description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                height: 1.4,
+              ),
             ),
           ),
-          const Spacer(),
           const SizedBox(height: 16),
           Row(
             children: [
