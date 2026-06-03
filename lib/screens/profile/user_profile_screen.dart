@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 // ─────────────────────────────────────────────
@@ -43,6 +44,11 @@ class UserProfileScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final showEdit = ref.watch(showEditProfileProvider);
+    if (showEdit) {
+      return const EditProfileScreen();
+    }
+
     final vm = _ProfileVM.from(ref.watch(userProfileProvider).valueOrNull);
     return DecoratedBox(
       decoration: const BoxDecoration(
@@ -1355,18 +1361,18 @@ class _HeroInfo extends StatelessWidget {
 }
 
 /// Hero — Edit Profile + Share Link buttons (vertical stack).
-class _HeroActions extends StatelessWidget {
+class _HeroActions extends ConsumerWidget {
   const _HeroActions({required this.profile});
   final _ProfileVM profile;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
         _GradientButton(
           label: 'EDIT PROFILE',
-          onTap: () => _showEditProfileSheet(context, profile),
+          onTap: () => ref.read(showEditProfileProvider.notifier).state = true,
         ),
         const SizedBox(height: 12),
         InkWell(

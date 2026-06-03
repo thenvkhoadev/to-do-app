@@ -15,3 +15,6 @@ final userProfileProvider = StreamProvider<UserProfileModel?>((ref) {
   if (user == null) return const Stream.empty();
   return ref.watch(profileRemoteDataSourceProvider).watchProfile(user.id);
 });
+
+final showEditProfileProvider = StateProvider<bool>((ref) => false);
+
