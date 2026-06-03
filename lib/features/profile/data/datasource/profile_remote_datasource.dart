@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
@@ -50,5 +51,24 @@ class ProfileRemoteDataSource {
     if (avatarUrl != null) patch['avatar_url'] = avatarUrl;
 
     await _client.from('users').update(patch).eq('id', userId);
+  }
+
+  Future<String?> uploadAvatar(String userId, Uint8List fileBytes, {String? fileName}) async {
+    try {
+      final name = fileName ?? 'avatar_$userId${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = '$userId/$name';
+
+      await _client.storage.from('avatars').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      final imageUrl = _client.storage.from('avatars').getPublicUrl(path);
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Error uploading avatar: $e');
+      return null;
+    }
   }
 }
