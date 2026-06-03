@@ -68,7 +68,7 @@ class ProfileRemoteDataSource {
       return imageUrl;
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
-      return null;
+      throw Exception(e.toString());
     }
   }
 }
