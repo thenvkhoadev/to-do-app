@@ -40,12 +40,19 @@ class ProfileHeaderCard extends ConsumerStatefulWidget {
 }
 
 class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
+  bool _isCameraHovered = false;
+  bool _isDialogOpen = false;
+
   void _removeAvatar() {
     widget.avatarUrlController.clear();
   }
 
-  void _triggerAvatarChange(BuildContext context) {
-    showDialog<void>(
+  void _triggerAvatarChange(BuildContext context) async {
+    setState(() {
+      _isDialogOpen = true;
+    });
+
+    await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
       builder: (ctx) => _ProfilePhotoDialog(
@@ -75,7 +82,14 @@ class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
         },
       ),
     );
+
+    if (mounted) {
+      setState(() {
+        _isDialogOpen = false;
+      });
+    }
   }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
@@ -89,39 +103,35 @@ class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
           builder: (context, constraints) {
             final isDesktop = constraints.maxWidth >= 900;
 
+            final avatarSize = isDesktop ? 160.0 : 120.0;
+            final cameraSize = isDesktop ? 42.0 : 36.0;
+
             final avatarWidget = Center(
-              child: Stack(
-                clipBehavior: Clip.none,
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 130,
-                    height: 130,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: EditProfileColors.primary.withValues(alpha: 0.25),
-                          blurRadius: 30,
-                          spreadRadius: 2,
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => _triggerAvatarChange(context),
-                    child: Container(
-                      width: 120,
-                      height: 120,
-                      padding: const EdgeInsets.all(3),
+              child: SizedBox(
+                width: avatarSize,
+                height: avatarSize,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: const Color(0xFF7C5CFF).withValues(alpha: 0.25),
+                            blurRadius: 30,
+                            spreadRadius: 2,
+                          ),
+                        ],
                         gradient: const LinearGradient(
-                          colors: [EditProfileColors.primary, EditProfileColors.secondary],
+                          colors: [Color(0xFF7C5CFF), Color(0xFFA855F7)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                       ),
+                      padding: const EdgeInsets.all(3),
                       child: Hero(
                         tag: 'profile_avatar_hero',
                         child: Container(
@@ -130,40 +140,84 @@ class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
                             color: EditProfileColors.cardBg,
                           ),
                           clipBehavior: Clip.antiAlias,
-                          child: Material(
-                            type: MaterialType.transparency,
-                            child: currentAvatar.isNotEmpty
-                                ? Image.network(
-                                    currentAvatar,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, __, ___) => _buildPlaceholderAvatar(currentUsername),
-                                  )
-                                : _buildPlaceholderAvatar(currentUsername),
+                          child: GestureDetector(
+                            onTap: () => _triggerAvatarChange(context),
+                            child: Material(
+                              type: MaterialType.transparency,
+                              child: Stack(
+                                fit: StackFit.expand,
+                                children: [
+                                  currentAvatar.isNotEmpty
+                                      ? Image.network(
+                                          currentAvatar,
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (_, __, ___) => _buildPlaceholderAvatar(currentUsername),
+                                        )
+                                      : _buildPlaceholderAvatar(currentUsername),
+                                  AnimatedOpacity(
+                                    opacity: _isDialogOpen ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Container(
+                                      color: Colors.black.withValues(alpha: 0.4),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: GestureDetector(
-                      onTap: () => _triggerAvatarChange(context),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: EditProfileColors.primary,
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          color: Colors.white,
-                          size: 16,
+                    Positioned(
+                      bottom: 8,
+                      right: 8,
+                      child: MouseRegion(
+                        onEnter: (_) => setState(() => _isCameraHovered = true),
+                        onExit: (_) => setState(() => _isCameraHovered = false),
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => _triggerAvatarChange(context),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: cameraSize,
+                            height: cameraSize,
+                            transform: Matrix4.diagonal3Values(_isCameraHovered ? 1.08 : 1.0, _isCameraHovered ? 1.08 : 1.0, 1.0),
+                            transformAlignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: const Color(0xFF7C5CFF),
+                              border: Border.all(
+                                color: const Color(0xFF0B1020),
+                                width: 3,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF7C5CFF).withValues(
+                                    alpha: _isCameraHovered ? 0.65 : 0.45,
+                                  ),
+                                  blurRadius: _isCameraHovered ? 25 : 20,
+                                  spreadRadius: _isCameraHovered ? 1 : 0,
+                                ),
+                              ],
+                            ),
+                            child: Center(
+                              child: AnimatedRotation(
+                                turns: _isDialogOpen ? 0.25 : 0.0,
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeInOut,
+                                child: const Icon(
+                                  Icons.photo_camera,
+                                  color: Colors.white,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
 
