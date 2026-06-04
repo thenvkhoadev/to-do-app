@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:crop_your_image/crop_your_image.dart';
 import 'edit_profile_shared.dart';
 import '../../providers/profile_provider.dart';
 
@@ -485,6 +486,31 @@ class _ProfilePhotoDialogState extends State<_ProfilePhotoDialog> {
     );
   }
 
+  Future<void> _cropAndProcessImage({
+    required String? path,
+    required Uint8List originalBytes,
+    required String name,
+  }) async {
+    try {
+      final croppedBytes = await showDialog<Uint8List?>(
+        context: context,
+        barrierDismissible: false,
+        barrierColor: Colors.black.withValues(alpha: 0.65),
+        builder: (context) => _CropImageDialog(imageBytes: originalBytes),
+      );
+
+      if (croppedBytes == null) {
+        // Cancel Crop: close crop, do not change image, do not open confirmation dialog
+        return;
+      }
+
+      await _handleImageSelection(croppedBytes, name);
+    } catch (e) {
+      debugPrint('Error cropping image: $e. Falling back to original image.');
+      await _handleImageSelection(originalBytes, name);
+    }
+  }
+
   Future<void> _pickAndUpload() async {
     try {
       XFile? image;
@@ -507,12 +533,12 @@ class _ProfilePhotoDialogState extends State<_ProfilePhotoDialog> {
           final bytes = file.bytes;
           final name = file.name;
           if (bytes != null) {
-            await _handleImageSelection(bytes, name);
+            await _cropAndProcessImage(path: file.path, originalBytes: bytes, name: name);
             return;
           } else if (file.path != null) {
             final ioFile = File(file.path!);
             final bytesFromPath = await ioFile.readAsBytes();
-            await _handleImageSelection(bytesFromPath, name);
+            await _cropAndProcessImage(path: file.path, originalBytes: bytesFromPath, name: name);
             return;
           }
         }
@@ -521,7 +547,7 @@ class _ProfilePhotoDialogState extends State<_ProfilePhotoDialog> {
 
       if (image == null) return;
       final bytes = await image.readAsBytes();
-      await _handleImageSelection(bytes, image.name);
+      await _cropAndProcessImage(path: image.path, originalBytes: bytes, name: image.name);
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to select image: $e';
@@ -1738,13 +1764,23 @@ class _AvatarUploadConfirmationDialogState extends ConsumerState<AvatarUploadCon
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          label,
-          style: const TextStyle(color: EditProfileColors.textSecondary, fontSize: 13),
+        Expanded(
+          flex: 2,
+          child: Text(
+            label,
+            style: const TextStyle(color: EditProfileColors.textSecondary, fontSize: 13),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
-        Text(
-          value,
-          style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+        const SizedBox(width: 8),
+        Expanded(
+          flex: 3,
+          child: Text(
+            value,
+            style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+            textAlign: TextAlign.right,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
       ],
     );
@@ -2581,5 +2617,135 @@ class _AnimatedToastWidgetState extends State<_AnimatedToastWidget> with SingleT
         child: animatedToast,
       );
     }
+  }
+}
+
+class _CropImageDialog extends StatefulWidget {
+  const _CropImageDialog({
+    required this.imageBytes,
+  });
+
+  final Uint8List imageBytes;
+
+  @override
+  State<_CropImageDialog> createState() => _CropImageDialogState();
+}
+
+class _CropImageDialogState extends State<_CropImageDialog> {
+  final _cropController = CropController();
+  bool _isCropping = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF0B1020),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: 500,
+          height: 600,
+          color: const Color(0xFF0B1020),
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Crop Avatar',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              
+              // Cropper
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Crop(
+                      image: widget.imageBytes,
+                      controller: _cropController,
+                      onCropped: (result) {
+                        if (!mounted) return;
+                        setState(() => _isCropping = false);
+                        if (result is CropSuccess) {
+                          Navigator.pop(context, result.croppedImage);
+                        } else if (result is CropFailure) {
+                          debugPrint('Crop error: ${result.cause}');
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('Failed to crop image')),
+                          );
+                        }
+                      },
+                      aspectRatio: 1.0,
+                      interactive: false,
+                      cornerDotBuilder: (size, edgeAlignment) => const DotControl(
+                        color: Color(0xFF7C5CFF),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              
+              // Footer Actions
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    ElevatedButton(
+                      onPressed: _isCropping
+                          ? null
+                          : () {
+                              setState(() => _isCropping = true);
+                              _cropController.crop();
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF7C5CFF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: _isCropping
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text('Save'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }

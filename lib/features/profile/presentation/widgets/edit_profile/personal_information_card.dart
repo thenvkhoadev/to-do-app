@@ -261,7 +261,7 @@ class _PersonalInformationCardState extends State<PersonalInformationCard> {
                   label: 'Occupation',
                   child: DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: _occupations.contains(widget.selectedOccupation) ? widget.selectedOccupation : _occupations.first,
+                    initialValue: _occupations.contains(widget.selectedOccupation) ? widget.selectedOccupation : _occupations.first,
                     dropdownColor: EditProfileColors.cardBg,
                     style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 14),
                     decoration: _inputDecoration(),
@@ -287,7 +287,7 @@ class _PersonalInformationCardState extends State<PersonalInformationCard> {
                   label: 'Preferred Timezone',
                   child: DropdownButtonFormField<String>(
                     isExpanded: true,
-                    value: _timezones.contains(widget.selectedTimezone) ? widget.selectedTimezone : _timezones.firstWhere((t) => t.contains('Bangkok, Hanoi'), orElse: () => _timezones.first),
+                    initialValue: _timezones.contains(widget.selectedTimezone) ? widget.selectedTimezone : _timezones.firstWhere((t) => t.contains('Bangkok, Hanoi'), orElse: () => _timezones.first),
                     dropdownColor: EditProfileColors.cardBg,
                     style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 14),
                     decoration: _inputDecoration(),

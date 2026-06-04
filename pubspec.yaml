@@ -45,6 +45,7 @@ dependencies:
   flutter_svg: ^2.0.10
   image_picker: ^1.2.2
   file_picker: ^11.0.2
+  crop_your_image: ^2.0.0
 
 dev_dependencies:
   flutter_test:
