@@ -127,6 +127,7 @@ class _ProfileCompletionCardState extends State<ProfileCompletionCard> with Sing
         children: [
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               const Text(
                 'Profile Completion',
@@ -179,32 +180,34 @@ class _ProfileCompletionCardState extends State<ProfileCompletionCard> with Sing
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
-              Column(
-                children: items.map((item) {
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      children: [
-                        Icon(
-                          item.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
-                          color: item.isCompleted ? EditProfileColors.success : EditProfileColors.textOutline.withValues(alpha: 0.6),
-                          size: 18,
-                        ),
-                        const SizedBox(width: 12),
-                        Text(
-                          item.label,
-                          style: TextStyle(
-                            color: item.isCompleted ? EditProfileColors.success : EditProfileColors.textSecondary,
-                            fontSize: 14,
-                            fontWeight: item.isCompleted ? FontWeight.bold : FontWeight.normal,
+              if (_newPercent < 1.0) ...[
+                const SizedBox(height: 24),
+                Column(
+                  children: items.map((item) {
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          Icon(
+                            item.isCompleted ? Icons.check_circle : Icons.radio_button_unchecked,
+                            color: item.isCompleted ? EditProfileColors.success : EditProfileColors.textOutline.withValues(alpha: 0.6),
+                            size: 18,
                           ),
-                        ),
-                      ],
-                    ),
-                  );
-                }).toList(),
-              ),
+                          const SizedBox(width: 12),
+                          Text(
+                            item.label,
+                            style: TextStyle(
+                              color: item.isCompleted ? EditProfileColors.success : EditProfileColors.textSecondary,
+                              fontSize: 14,
+                              fontWeight: item.isCompleted ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
             ],
           ),
           if (_showCelebration)

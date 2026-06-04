@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'dart:math';
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -818,6 +821,7 @@ class _MobileBadge extends StatelessWidget {
   }
 }
 
+// ignore: unused_element
 Future<void> _showEditProfileSheet(BuildContext context, _ProfileVM vm) {
   return showDialog<void>(
     context: context,
@@ -1221,13 +1225,16 @@ class _DesktopHeroSection extends StatelessWidget {
   }
 }
 
-/// Hero — circular avatar with primary glow + green online dot (test.html).
-class _HeroAvatar extends StatelessWidget {
+/// Hero — circular avatar with primary glow + status indicator dot (test.html).
+class _HeroAvatar extends ConsumerWidget {
   const _HeroAvatar({required this.profile});
   final _ProfileVM profile;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusState = ref.watch(userStatusProvider);
+    final details = _getStatusDetails(statusState.status);
+
     return Stack(
       clipBehavior: Clip.none,
       alignment: Alignment.center,
@@ -1273,7 +1280,7 @@ class _HeroAvatar extends StatelessWidget {
             width: 26,
             height: 26,
             decoration: BoxDecoration(
-              color: const Color(0xFF22C55E),
+              color: details.color,
               shape: BoxShape.circle,
               border: Border.all(color: NexusColors.surface, width: 4),
             ),
@@ -1351,6 +1358,8 @@ class _HeroInfo extends StatelessWidget {
             ),
           ),
         ],
+        const SizedBox(height: 16),
+        const _StatusIndicator(),
         if (profile.coreTech.isNotEmpty) ...[
           const SizedBox(height: 16),
           Wrap(
@@ -1518,32 +1527,692 @@ class _HeroMeta extends StatelessWidget {
 /// Section 1 — "Online" status dot + label. Static: no repeating animation,
 /// so it does not pump a frame every vsync (which surfaced a mouse_tracker
 /// reentrancy assertion).
-class _StatusIndicator extends StatelessWidget {
+class _StatusDetails {
+  final String label;
+  final String description;
+  final Color color;
+  final IconData icon;
+
+  const _StatusDetails({
+    required this.label,
+    required this.description,
+    required this.color,
+    required this.icon,
+  });
+}
+
+_StatusDetails _getStatusDetails(String status) {
+  switch (status) {
+    case 'idle':
+      return const _StatusDetails(
+        label: 'Chờ',
+        description: 'Tạm thời không hoạt động',
+        color: Color(0xFFF59E0B),
+        icon: Icons.access_time_filled_rounded,
+      );
+    case 'dnd':
+      return const _StatusDetails(
+        label: 'Không Làm Phiền',
+        description: 'Hạn chế hiển thị thông báo',
+        color: Color(0xFFEF4444),
+        icon: Icons.do_not_disturb_on_rounded,
+      );
+    case 'invisible':
+      return const _StatusDetails(
+        label: 'Vô Hình',
+        description: 'Hiển thị như ngoại tuyến',
+        color: Color(0xFF94A3B8),
+        icon: Icons.visibility_off_rounded,
+      );
+    case 'online':
+    default:
+      return const _StatusDetails(
+        label: 'Trực Tuyến',
+        description: 'Đang hoạt động',
+        color: Color(0xFF22C55E),
+        icon: Icons.circle,
+      );
+  }
+}
+
+/// Section 1 — "Online" status dot + label. Dynamic: reacts to status changes
+/// and counts down to auto-expiration.
+class _StatusIndicator extends ConsumerStatefulWidget {
   const _StatusIndicator();
 
   @override
+  ConsumerState<_StatusIndicator> createState() => _StatusIndicatorState();
+}
+
+class _StatusIndicatorState extends ConsumerState<_StatusIndicator> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    // Rebuild every second to update the countdown timer in real-time
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      final statusState = ref.read(userStatusProvider);
+      if (statusState.expiresAt != null) {
+        if (DateTime.now().isAfter(statusState.expiresAt!)) {
+          ref.read(userStatusProvider.notifier).checkExpiration();
+        } else {
+          setState(() {});
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const accent = Color(0xFF4ADE80);
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: const [
-        DecoratedBox(
+    final statusState = ref.watch(userStatusProvider);
+    final details = _getStatusDetails(statusState.status);
+
+    String timerLabel = '';
+    if (statusState.expiresAt != null) {
+      final diff = statusState.expiresAt!.difference(DateTime.now());
+      if (diff.isNegative) {
+        timerLabel = '';
+      } else if (diff.inDays > 0) {
+        timerLabel = ' (${diff.inDays}d)';
+      } else if (diff.inHours > 0) {
+        timerLabel = ' (${diff.inHours}h)';
+      } else {
+        final minutes = diff.inMinutes;
+        final seconds = diff.inSeconds % 60;
+        timerLabel = ' (${minutes}m ${seconds}s)';
+      }
+    }
+
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => _showStatusSelector(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
           decoration: BoxDecoration(
-            color: accent,
-            shape: BoxShape.circle,
-            boxShadow: [BoxShadow(color: accent, blurRadius: 8)],
+            color: details.color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: details.color.withValues(alpha: 0.25)),
           ),
-          child: SizedBox(width: 8, height: 8),
-        ),
-        SizedBox(width: 6),
-        Text(
-          'Online',
-          style: TextStyle(
-            color: accent,
-            fontSize: 12,
-            fontFamily: 'JetBrains Mono',
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              DecoratedBox(
+                decoration: BoxDecoration(
+                  color: details.color,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: details.color,
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    )
+                  ],
+                ),
+                child: const SizedBox(width: 8, height: 8),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '${details.label}$timerLabel',
+                style: TextStyle(
+                  color: details.color,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
+              const SizedBox(width: 4),
+              Icon(
+                Icons.keyboard_arrow_down_rounded,
+                color: details.color.withValues(alpha: 0.7),
+                size: 14,
+              ),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showStatusSelector(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (context) {
+        return const _StatusSelectorDialog();
+      },
+    );
+  }
+}
+
+class _StatusSelectorDialog extends ConsumerStatefulWidget {
+  const _StatusSelectorDialog();
+
+  @override
+  ConsumerState<_StatusSelectorDialog> createState() => _StatusSelectorDialogState();
+}
+
+class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
+  String? _selectedStatus; // For mobile
+  String? _hoveredStatus;  // For desktop hover
+  String? _focusedStatus;  // For desktop lock-on
+
+  final List<(String, String, String, Color)> _statuses = [
+    ('online', 'Trực Tuyến', 'Hiển thị người dùng đang hoạt động', Color(0xFF22C55E)),
+    ('idle', 'Chờ', 'Hiển thị người dùng đang tạm thời không hoạt động', Color(0xFFF59E0B)),
+    ('dnd', 'Vui Lòng Không Làm Phiền', 'Hạn chế hiển thị thông báo', Color(0xFFEF4444)),
+    ('invisible', 'Vô Hình', 'Người dùng xuất hiện dưới dạng ngoại tuyến', Color(0xFF94A3B8)),
+  ];
+
+  final List<(String, String)> _durations = [
+    ('1m', 'Trong vòng 1 phút'),
+    ('15m', 'Trong vòng 15 phút'),
+    ('1h', 'Trong vòng 1 giờ'),
+    ('8h', 'Trong vòng 8 giờ'),
+    ('24h', 'Trong vòng 24 giờ'),
+    ('3d', 'Trong 3 ngày'),
+    ('permanent', 'Vĩnh viễn'),
+  ];
+
+  @override
+  @override
+  Widget build(BuildContext context) {
+    final currentStatus = ref.watch(userStatusProvider);
+    final targetStatus = _hoveredStatus ?? _focusedStatus ?? currentStatus.status;
+    final showRightPanel = targetStatus != 'online';
+
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      insetPadding: const EdgeInsets.all(24),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final screenWidth = MediaQuery.of(context).size.width;
+          final maxDialogWidth = screenWidth - 48;
+          final isWide = screenWidth >= 740;
+          final spacerWidth = isWide 
+              ? min(292.0, max(0.0, (maxDialogWidth - 400) / 2))
+              : 0.0;
+          final stackWidth = 400.0 + 2 * spacerWidth;
+
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: isWide ? stackWidth : 400),
+            child: MouseRegion(
+              onExit: (_) {
+                setState(() {
+                  _hoveredStatus = null;
+                  _focusedStatus = null;
+                });
+              },
+              child: isWide
+                  ? SizedBox(
+                      width: stackWidth,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          SizedBox(width: spacerWidth),
+                          // Left Column: Status list wrapped in its own _GlassPanel
+                          SizedBox(
+                            width: 400,
+                            child: _GlassPanel(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24),
+                                child: _buildSideBySideLayoutLeft(currentStatus.status, targetStatus, showRightPanel),
+                              ),
+                            ),
+                          ),
+                          // Right Column: Spacer and duration panel using OverflowBox to prevent squishing
+                          SizedBox(
+                            width: spacerWidth,
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: OverflowBox(
+                                alignment: Alignment.centerLeft,
+                                maxWidth: 292,
+                                minWidth: 292,
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const SizedBox(width: 12),
+                                    SizedBox(
+                                      width: 280,
+                                      child: IgnorePointer(
+                                        ignoring: !showRightPanel,
+                                        child: AnimatedOpacity(
+                                          opacity: showRightPanel ? 1.0 : 0.0,
+                                          duration: const Duration(milliseconds: 200),
+                                          curve: Curves.easeInOut,
+                                          child: AnimatedSlide(
+                                            offset: Offset(showRightPanel ? 0.0 : -0.1, 0.0),
+                                            duration: const Duration(milliseconds: 200),
+                                            curve: Curves.easeOutCubic,
+                                            child: _GlassPanel(
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(24),
+                                                child: _buildSideBySideLayoutRight(targetStatus),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : _GlassPanel(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: _buildMobileLayout(currentStatus.status),
+                      ),
+                    ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildSideBySideLayoutLeft(String activeStatus, String targetStatus, bool showRightPanel) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Trạng Thái Hoạt Động',
+                style: TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Geist',
+                ),
+              ),
+            ),
+            Visibility(
+              visible: !showRightPanel,
+              maintainSize: true,
+              maintainAnimation: true,
+              maintainState: true,
+              child: IconButton(
+                icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+                onPressed: () => Navigator.of(context).pop(),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._statuses.map((item) {
+          final isSelected = item.$1 == activeStatus;
+          final isCurrentTarget = item.$1 == targetStatus;
+
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: MouseRegion(
+              onEnter: (_) {
+                setState(() {
+                  _hoveredStatus = item.$1;
+                });
+              },
+              child: InkWell(
+                onTap: () {
+                  if (item.$1 == 'online') {
+                    ref.read(userStatusProvider.notifier).setStatus('online', 'permanent');
+                    Navigator.of(context).pop();
+                  } else {
+                    setState(() {
+                      _focusedStatus = item.$1;
+                    });
+                  }
+                },
+                borderRadius: BorderRadius.circular(12),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: isCurrentTarget
+                        ? item.$4.withValues(alpha: 0.08)
+                        : Colors.white.withValues(alpha: 0.03),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: isCurrentTarget
+                          ? item.$4.withValues(alpha: 0.4)
+                          : Colors.white.withValues(alpha: 0.05),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: item.$4,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: item.$4,
+                              blurRadius: isCurrentTarget ? 6 : 2,
+                            )
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.$2,
+                              style: TextStyle(
+                                color: NexusColors.onSurface,
+                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontSize: 14,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item.$3,
+                              style: const TextStyle(
+                                color: NexusColors.onSurfaceVariant,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isSelected)
+                        Icon(Icons.check_circle_rounded, color: item.$4, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildSideBySideLayoutRight(String targetStatus) {
+    final statusInfo = _statuses.firstWhere((s) => s.$1 == targetStatus);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                'Thời lượng: ${statusInfo.$2}',
+                style: const TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Geist',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._durations.map((d) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () {
+                ref.read(userStatusProvider.notifier).setStatus(targetStatus, d.$1);
+                Navigator.of(context).pop();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      d.$2,
+                      style: const TextStyle(
+                        color: NexusColors.onSurface,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: NexusColors.onSurfaceVariant,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMobileLayout(String activeStatus) {
+    return AnimatedSwitcher(
+      duration: const Duration(milliseconds: 250),
+      child: _selectedStatus == null
+          ? _buildMobileStatusList(activeStatus)
+          : _buildMobileDurationList(_selectedStatus!),
+    );
+  }
+
+  Widget _buildMobileStatusList(String activeStatus) {
+    return Column(
+      key: const ValueKey('status_list_mobile'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Expanded(
+              child: Text(
+                'Trạng Thái Hoạt Động',
+                style: TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Geist',
+                ),
+              ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._statuses.map((item) {
+          final isSelected = item.$1 == activeStatus;
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () {
+                if (item.$1 == 'online') {
+                  ref.read(userStatusProvider.notifier).setStatus('online', 'permanent');
+                  Navigator.of(context).pop();
+                } else {
+                  setState(() {
+                    _selectedStatus = item.$1;
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? item.$4.withValues(alpha: 0.08)
+                      : Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: isSelected
+                        ? item.$4.withValues(alpha: 0.3)
+                        : Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 12,
+                      height: 12,
+                      decoration: BoxDecoration(
+                        color: item.$4,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: item.$4,
+                            blurRadius: 4,
+                          )
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            item.$2,
+                            style: TextStyle(
+                              color: NexusColors.onSurface,
+                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              fontSize: 14,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            item.$3,
+                            style: const TextStyle(
+                              color: NexusColors.onSurfaceVariant,
+                              fontSize: 11,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (isSelected)
+                      Icon(Icons.check_circle_rounded, color: item.$4, size: 18),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildMobileDurationList(String status) {
+    final statusInfo = _statuses.firstWhere((s) => s.$1 == status);
+    return Column(
+      key: const ValueKey('duration_list_mobile'),
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: NexusColors.onSurfaceVariant, size: 16),
+              onPressed: () {
+                setState(() {
+                  _selectedStatus = null;
+                });
+              },
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'Thời lượng: ${statusInfo.$2}',
+                style: const TextStyle(
+                  color: NexusColors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w600,
+                  fontFamily: 'Geist',
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ..._durations.map((d) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: InkWell(
+              onTap: () {
+                ref.read(userStatusProvider.notifier).setStatus(status, d.$1);
+                Navigator.of(context).pop();
+              },
+              borderRadius: BorderRadius.circular(12),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.03),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.05),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      d.$2,
+                      style: const TextStyle(
+                        color: NexusColors.onSurface,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.chevron_right_rounded,
+                      color: NexusColors.onSurfaceVariant,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
@@ -4392,6 +5061,8 @@ class _MobileProfileScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = vm;
+    final statusState = ref.watch(userStatusProvider);
+    final details = _getStatusDetails(statusState.status);
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 24, 16, 132),
@@ -4427,6 +5098,19 @@ class _MobileProfileScreen extends ConsumerWidget {
                         avatarUrl: profile.avatarUrl,
                         initial: profile.initial,
                         fontSize: 38,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    bottom: 0,
+                    right: 0,
+                    child: Container(
+                      width: 22,
+                      height: 22,
+                      decoration: BoxDecoration(
+                        color: details.color,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: NexusColors.surface, width: 3),
                       ),
                     ),
                   ),
@@ -4509,7 +5193,19 @@ class _MobileProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              if (profile.bio.isNotEmpty) ...[
+                const SizedBox(height: 16),
+                Text(
+                  profile.bio,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: NexusColors.onSurfaceVariant,
+                    fontSize: 14,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 16),
               const _StatusIndicator(),
               const SizedBox(height: 6),
               Text(
@@ -4574,18 +5270,6 @@ class _MobileProfileScreen extends ConsumerWidget {
                   ),
                 ],
               ),
-              if (profile.bio.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                Text(
-                  profile.bio,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: NexusColors.onSurfaceVariant,
-                    fontSize: 14,
-                    height: 1.4,
-                  ),
-                ),
-              ],
             ],
           ),
           const SizedBox(height: 24),
@@ -5737,12 +6421,12 @@ class _CompletionChecklistItem extends StatelessWidget {
   }
 }
 
-class _DesktopProfileCompletionCard extends StatelessWidget {
+class _DesktopProfileCompletionCard extends ConsumerWidget {
   const _DesktopProfileCompletionCard({required this.vm});
   final _ProfileVM vm;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = vm.completionItems;
     final pct = vm.completionPercent;
     final missing = items.firstWhere((i) => !i.done, orElse: () => items.first);
@@ -5751,6 +6435,7 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
         padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -5829,21 +6514,25 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
-            const SizedBox(height: 20),
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const SizedBox(height: 18),
-              _CompletionChecklistItem(item: items[i]),
-            ],
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: _GradientButton(
-                label: pct == 100 ? 'VIEW PROFILE' : 'COMPLETE PROFILE',
-                onTap: () => _showEditProfileSheet(context, vm),
+            if (pct < 100) ...[
+              const SizedBox(height: 24),
+              Divider(height: 1, color: Colors.white.withValues(alpha: 0.06)),
+              const SizedBox(height: 20),
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 18),
+                _CompletionChecklistItem(item: items[i]),
+              ],
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: _GradientButton(
+                  label: 'Update Profile',
+                  onTap: () {
+                    ref.read(showEditProfileProvider.notifier).state = true;
+                  },
+                ),
               ),
-            ),
+            ],
           ],
         ),
       ),
@@ -5851,30 +6540,32 @@ class _DesktopProfileCompletionCard extends StatelessWidget {
   }
 }
 
-class _MobileProfileCompletionCard extends StatelessWidget {
+class _MobileProfileCompletionCard extends ConsumerWidget {
   const _MobileProfileCompletionCard({required this.vm});
   final _ProfileVM vm;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final items = vm.completionItems;
+    final pct = vm.completionPercent;
     return _MobileGlassCard(
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
-                _CompletionRing(percent: vm.completionPercent, size: 72),
+                _CompletionRing(percent: pct, size: 72),
                 const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
-                        'Profile Completion',
-                        style: TextStyle(
+                      Text(
+                        pct == 100 ? 'All set!' : 'Profile Completion',
+                        style: const TextStyle(
                           color: NexusColors.onSurface,
                           fontSize: 14,
                           fontWeight: FontWeight.w500,
@@ -5883,8 +6574,8 @@ class _MobileProfileCompletionCard extends StatelessWidget {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        vm.completionPercent == 100
-                            ? 'All set'
+                        pct == 100
+                            ? 'Your profile is fully set up.'
                             : '${items.where((i) => i.done).length} of ${items.length} complete',
                         style: const TextStyle(
                           color: NexusColors.onSurfaceVariant,
@@ -5898,10 +6589,22 @@ class _MobileProfileCompletionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
-            for (var i = 0; i < items.length; i++) ...[
-              if (i > 0) const SizedBox(height: 10),
-              _CompletionChecklistItem(item: items[i]),
+            if (pct < 100) ...[
+              const SizedBox(height: 16),
+              for (var i = 0; i < items.length; i++) ...[
+                if (i > 0) const SizedBox(height: 10),
+                _CompletionChecklistItem(item: items[i]),
+              ],
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: _GradientButton(
+                  label: 'Update Profile',
+                  onTap: () {
+                    ref.read(showEditProfileProvider.notifier).state = true;
+                  },
+                ),
+              ),
             ],
           ],
         ),
@@ -8979,6 +9682,267 @@ class _ExportActionRow extends StatelessWidget {
               size: 18,
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class ProfileSavedDialog extends StatefulWidget {
+  const ProfileSavedDialog({super.key});
+
+  @override
+  State<ProfileSavedDialog> createState() => _ProfileSavedDialogState();
+}
+
+class _ProfileSavedDialogState extends State<ProfileSavedDialog> {
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer(const Duration(seconds: 5), () {
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => Navigator.of(context).pop(),
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: Material(
+          color: Colors.transparent,
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 380),
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+                child: Container(
+                  padding: const EdgeInsets.all(40),
+                  decoration: BoxDecoration(
+                    color: NexusColors.surfaceContainerLow.withValues(alpha: 0.4),
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.08),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFC0C1FF).withValues(alpha: 0.08),
+                        blurRadius: 60,
+                        spreadRadius: 10,
+                      ),
+                    ],
+                    gradient: RadialGradient(
+                      center: const Alignment(0, -1.8),
+                      radius: 1.5,
+                      colors: [
+                        const Color(0xFFC0C1FF).withValues(alpha: 0.15),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Success check animation
+                      TweenAnimationBuilder<double>(
+                        tween: Tween<double>(begin: 0.0, end: 1.0),
+                        duration: const Duration(milliseconds: 500),
+                        curve: Curves.easeOutBack,
+                        builder: (context, value, child) {
+                          return Transform.scale(
+                            scale: 0.8 + value * 0.2,
+                            child: Opacity(
+                              opacity: value.clamp(0.0, 1.0),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _PulseRing(
+                          child: Container(
+                            width: 96,
+                            height: 96,
+                            decoration: BoxDecoration(
+                              color: NexusColors.primary.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: NexusColors.primary.withValues(alpha: 0.2),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.check_circle_rounded,
+                              color: NexusColors.primary,
+                              size: 56,
+                              shadows: [
+                                Shadow(
+                                  color: const Color(0xFFC0C1FF).withValues(alpha: 0.6),
+                                  blurRadius: 15,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 28),
+                      const Text(
+                        'Profile Updated Successfully',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: NexusColors.onSurface,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w600,
+                          letterSpacing: -0.6,
+                          fontFamily: 'Geist',
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      const Text(
+                        'Your information has been synced across all your TaskFlow AI instances. Your workspace is ready for deep work.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: NexusColors.onSurfaceVariant,
+                          fontSize: 14,
+                          height: 1.5,
+                          fontFamily: 'Geist',
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Divider(
+                        color: NexusColors.outlineVariant.withValues(alpha: 0.3),
+                        height: 1,
+                      ),
+                      const SizedBox(height: 24),
+                      const _PulseText(text: 'CLICK ANYWHERE TO CLOSE'),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseRing extends StatefulWidget {
+  const _PulseRing({required this.child});
+  final Widget child;
+
+  @override
+  State<_PulseRing> createState() => _PulseRingState();
+}
+
+class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        Positioned(
+          width: 136,
+          height: 136,
+          child: Center(
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (context, child) {
+                final size = 96.0 + _controller.value * 40.0;
+                return Container(
+                  width: size,
+                  height: size,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: NexusColors.primary.withValues(alpha: (1.0 - _controller.value) * 0.4),
+                      width: 1.5,
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        widget.child,
+      ],
+    );
+  }
+}
+
+class _PulseText extends StatefulWidget {
+  const _PulseText({required this.text});
+  final String text;
+
+  @override
+  State<_PulseText> createState() => _PulseTextState();
+}
+
+class _PulseTextState extends State<_PulseText> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Opacity(
+          opacity: 0.3 + _controller.value * 0.5,
+          child: child,
+        );
+      },
+      child: Text(
+        widget.text,
+        style: const TextStyle(
+          color: NexusColors.onSurfaceVariant,
+          fontSize: 11,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 2.0,
+          fontFamily: 'Geist',
         ),
       ),
     );

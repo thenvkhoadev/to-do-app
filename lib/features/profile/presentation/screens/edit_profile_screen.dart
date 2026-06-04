@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../widgets/edit_profile/edit_profile_shared.dart';
@@ -85,14 +87,19 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
       ref.invalidate(userProfileProvider);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile saved successfully!'),
-            backgroundColor: EditProfileColors.success,
-          ),
-        );
-        // Switch back to view mode
+        // Switch back to view mode (outer screen)
         ref.read(showEditProfileProvider.notifier).state = false;
+
+        // In the next frame, show the dialog on the outer screen using root context
+        final rootContext = Navigator.of(context).context;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showDialog<void>(
+            context: rootContext,
+            barrierDismissible: true,
+            barrierColor: Colors.black.withValues(alpha: 0.6),
+            builder: (context) => const ProfileSavedDialog(),
+          );
+        });
       }
     } catch (e) {
       if (mounted) {
