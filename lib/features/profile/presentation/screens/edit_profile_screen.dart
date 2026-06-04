@@ -82,6 +82,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             privacyMode: _privacyMode,
           );
 
+      ref.invalidate(userProfileProvider);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
