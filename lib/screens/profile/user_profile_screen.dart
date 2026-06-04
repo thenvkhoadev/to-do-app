@@ -1,5 +1,6 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
@@ -1388,11 +1389,6 @@ class _HeroInfo extends StatelessWidget {
               icon: Icons.calendar_month_rounded,
               label: 'MEMBER SINCE ${profile.joinedLabel.toUpperCase()}',
             ),
-            const _HeroMeta(
-              icon: Icons.circle,
-              label: 'ONLINE',
-              iconColor: Color(0xFF22C55E),
-            ),
           ],
         ),
       ],
@@ -1416,10 +1412,20 @@ class _HeroActions extends ConsumerWidget {
         ),
         const SizedBox(height: 12),
         InkWell(
-          onTap:
-              () => ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Share link copied (demo).')),
-              ),
+          onTap: () async {
+            final username = profile.username.isNotEmpty ? profile.username : profile.accountId;
+            final shareUrl = 'https://nexusai.com/$username';
+            await Clipboard.setData(ClipboardData(text: shareUrl));
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Copied link: nexusai.com/$username'),
+                  behavior: SnackBarBehavior.floating,
+                  backgroundColor: const Color(0xFF7C5CFF),
+                ),
+              );
+            }
+          },
           borderRadius: BorderRadius.circular(999),
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
@@ -1484,18 +1490,16 @@ class _HeroMeta extends StatelessWidget {
   const _HeroMeta({
     required this.icon,
     required this.label,
-    this.iconColor = NexusColors.onSurfaceVariant,
   });
   final IconData icon;
   final String label;
-  final Color iconColor;
 
   @override
   Widget build(BuildContext context) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 12, color: iconColor),
+        Icon(icon, size: 12, color: NexusColors.onSurfaceVariant),
         const SizedBox(width: 6),
         Text(
           label,
@@ -4584,6 +4588,8 @@ class _MobileProfileScreen extends ConsumerWidget {
               ],
             ],
           ),
+          const SizedBox(height: 24),
+          _HeroActions(profile: profile),
           const SizedBox(height: 24),
 
           // Stats Bento
