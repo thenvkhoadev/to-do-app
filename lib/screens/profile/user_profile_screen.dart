@@ -85,6 +85,10 @@ class _ProfileVM {
     required this.focusScore,
     required this.streakDays,
     required this.focusHours,
+    required this.occupation,
+    required this.locationNode,
+    required this.preferredTimezone,
+    required this.coreTech,
     required this.model,
   });
 
@@ -99,6 +103,10 @@ class _ProfileVM {
   final int focusScore;
   final int streakDays;
   final int focusHours;
+  final String? occupation;
+  final String? locationNode;
+  final String? preferredTimezone;
+  final List<String> coreTech;
   final UserProfileModel? model;
 
   String get initial =>
@@ -605,6 +613,10 @@ class _ProfileVM {
       focusScore: m?.focusScore ?? 0,
       streakDays: m?.streakDays ?? 0,
       focusHours: m?.focusHours ?? 0,
+      occupation: m?.occupation,
+      locationNode: m?.locationNode,
+      preferredTimezone: m?.preferredTimezone,
+      coreTech: m?.coreTech ?? const [],
       model: m,
     );
   }
@@ -1338,12 +1350,40 @@ class _HeroInfo extends StatelessWidget {
             ),
           ),
         ],
+        if (profile.coreTech.isNotEmpty) ...[
+          const SizedBox(height: 16),
+          Wrap(
+            alignment: wrapAlign,
+            spacing: 8,
+            runSpacing: 8,
+            children: profile.coreTech.map((tech) => _HeroBadge(
+              label: tech,
+              color: NexusColors.primary,
+              bg: NexusColors.primary.withValues(alpha: 0.05),
+            )).toList(),
+          ),
+        ],
         const SizedBox(height: 20),
         Wrap(
           alignment: wrapAlign,
           spacing: 24,
           runSpacing: 8,
           children: [
+            if (profile.occupation != null && profile.occupation!.isNotEmpty)
+              _HeroMeta(
+                icon: Icons.work_outline,
+                label: profile.occupation!.toUpperCase(),
+              ),
+            if (profile.locationNode != null && profile.locationNode!.isNotEmpty)
+              _HeroMeta(
+                icon: Icons.location_on_outlined,
+                label: profile.locationNode!.toUpperCase(),
+              ),
+            if (profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty)
+              _HeroMeta(
+                icon: Icons.schedule,
+                label: profile.preferredTimezone!.split(' ').first,
+              ),
             _HeroMeta(
               icon: Icons.calendar_month_rounded,
               label: 'MEMBER SINCE ${profile.joinedLabel.toUpperCase()}',
@@ -4478,6 +4518,36 @@ class _MobileProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
+              if (profile.occupation != null && profile.occupation!.isNotEmpty ||
+                  profile.locationNode != null && profile.locationNode!.isNotEmpty ||
+                  profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty) ...[
+                Wrap(
+                  alignment: WrapAlignment.center,
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    if (profile.occupation != null && profile.occupation!.isNotEmpty)
+                      _MiniChip(
+                        icon: Icons.work_outline,
+                        label: profile.occupation!,
+                        color: NexusColors.onSurfaceVariant,
+                      ),
+                    if (profile.locationNode != null && profile.locationNode!.isNotEmpty)
+                      _MiniChip(
+                        icon: Icons.location_on_outlined,
+                        label: profile.locationNode!,
+                        color: NexusColors.onSurfaceVariant,
+                      ),
+                    if (profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty)
+                      _MiniChip(
+                        icon: Icons.schedule,
+                        label: profile.preferredTimezone!.split(' ').first,
+                        color: NexusColors.onSurfaceVariant,
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
               Wrap(
                 alignment: WrapAlignment.center,
                 spacing: 8,
@@ -4742,6 +4812,16 @@ class _MobileProfileScreen extends ConsumerWidget {
                       label: 'BIO',
                       value: profile.bio.isEmpty ? '—' : profile.bio,
                     ),
+                    if (profile.coreTech.isNotEmpty) ...[
+                      Divider(
+                        color: Colors.white.withValues(alpha: 0.05),
+                        height: 1,
+                      ),
+                      _MobileIdentityField(
+                        label: 'CORE TECH STACK',
+                        value: profile.coreTech.join(', '),
+                      ),
+                    ],
                   ],
                 ),
               ),

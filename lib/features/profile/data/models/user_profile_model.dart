@@ -6,6 +6,7 @@ class UserProfileModel {
     this.fullName,
     this.avatarUrl,
     this.bio,
+    this.occupation,
     this.tier = 'free',
     this.role = 'user',
     this.focusScore = 82,
@@ -19,6 +20,9 @@ class UserProfileModel {
     this.themeMode = 'dark',
     this.notificationsEnabled = true,
     this.privacyMode = false,
+    this.coreTech = const [],
+    this.locationNode,
+    this.preferredTimezone,
     this.createdAt,
     this.updatedAt,
   });
@@ -29,6 +33,7 @@ class UserProfileModel {
   final String? fullName;
   final String? avatarUrl;
   final String? bio;
+  final String? occupation;
   final String tier;
   final String role;
   final int focusScore;
@@ -42,6 +47,9 @@ class UserProfileModel {
   final String themeMode;
   final bool notificationsEnabled;
   final bool privacyMode;
+  final List<String> coreTech;
+  final String? locationNode;
+  final String? preferredTimezone;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -53,6 +61,7 @@ class UserProfileModel {
       fullName: json['full_name']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
       bio: json['bio']?.toString(),
+      occupation: json['occupation']?.toString(),
       tier: json['tier']?.toString() ?? 'free',
       role: json['role']?.toString() ?? 'user',
       focusScore: json['focus_score'] as int? ?? 82,
@@ -66,6 +75,9 @@ class UserProfileModel {
       themeMode: json['theme_mode']?.toString() ?? 'dark',
       notificationsEnabled: json['notifications_enabled'] as bool? ?? true,
       privacyMode: json['privacy_mode'] as bool? ?? false,
+      coreTech: List<String>.from(json['core_tech'] ?? []),
+      locationNode: json['user_preferences']?['location_node']?.toString(),
+      preferredTimezone: json['user_preferences']?['preferred_timezone']?.toString(),
       createdAt:
           json['created_at'] == null
               ? null

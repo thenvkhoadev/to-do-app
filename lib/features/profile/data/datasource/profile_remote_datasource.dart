@@ -12,9 +12,23 @@ class ProfileRemoteDataSource {
         .from('users')
         .stream(primaryKey: ['id'])
         .eq('id', userId)
-        .map(
-          (rows) => rows.isEmpty ? null : UserProfileModel.fromJson(rows.first),
-        );
+        .asyncMap((rows) async {
+      if (rows.isEmpty) return null;
+
+      final userData = rows.first;
+
+      try {
+        final prefsRes = await _client
+            .from('user_preferences')
+            .select()
+            .eq('user_id', userId)
+            .maybeSingle();
+
+        userData['user_preferences'] = prefsRes;
+      } catch (_) {}
+
+      return UserProfileModel.fromJson(userData);
+    });
   }
 
   Future<void> updateSettings(
@@ -40,7 +54,11 @@ class ProfileRemoteDataSource {
     String? fullName,
     String? username,
     String? bio,
+    String? occupation,
     String? avatarUrl,
+    List<String>? coreTech,
+    String? locationNode,
+    String? preferredTimezone,
   }) async {
     final patch = <String, dynamic>{
       'updated_at': DateTime.now().toUtc().toIso8601String(),
@@ -48,9 +66,26 @@ class ProfileRemoteDataSource {
     if (fullName != null) patch['full_name'] = fullName;
     if (username != null) patch['username'] = username;
     if (bio != null) patch['bio'] = bio;
+    if (occupation != null) patch['occupation'] = occupation;
     if (avatarUrl != null) patch['avatar_url'] = avatarUrl;
+    if (coreTech != null) patch['core_tech'] = coreTech;
 
     await _client.from('users').update(patch).eq('id', userId);
+
+    if (locationNode != null || preferredTimezone != null) {
+      final prefsPatch = <String, dynamic>{
+        'user_id': userId,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      };
+      if (locationNode != null) prefsPatch['location_node'] = locationNode;
+      if (preferredTimezone != null) prefsPatch['preferred_timezone'] = preferredTimezone;
+
+      // Upsert preferences
+      await _client.from('user_preferences').upsert(
+        prefsPatch,
+        onConflict: 'user_id',
+      );
+    }
   }
 
   Future<String?> uploadAvatar(String userId, Uint8List fileBytes, {String? fileName}) async {

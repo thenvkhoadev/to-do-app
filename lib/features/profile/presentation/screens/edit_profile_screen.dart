@@ -30,6 +30,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
   final _avatarUrlController = TextEditingController();
+  final _locationController = TextEditingController();
 
   bool _initialized = false;
   bool _isSaving = false;
@@ -39,6 +40,8 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   bool _notificationsEnabled = true;
   bool _privacyMode = false;
   bool _aiCopilotEnabled = true;
+  String _preferredTimezone = '(UTC+07:00) Bangkok, Hanoi, Jakarta';
+  String _occupation = 'Focus Architect';
 
   List<String> _skills = ['Flutter', 'Dart', 'AI Engineering', 'Supabase'];
 
@@ -48,6 +51,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _usernameController.dispose();
     _bioController.dispose();
     _avatarUrlController.dispose();
+    _locationController.dispose();
     super.dispose();
   }
 
@@ -63,7 +67,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             fullName: _fullNameController.text.trim(),
             username: _usernameController.text.trim(),
             bio: _bioController.text.trim(),
+            occupation: _occupation,
             avatarUrl: _avatarUrlController.text.trim(),
+            coreTech: _skills,
+            locationNode: _locationController.text.trim(),
+            preferredTimezone: _preferredTimezone,
           );
 
       // 2. Save settings preferences
@@ -130,6 +138,20 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           _themeMode = profile.themeMode;
           _notificationsEnabled = profile.notificationsEnabled;
           _privacyMode = profile.privacyMode;
+
+          if (profile.coreTech.isNotEmpty) {
+            _skills = List<String>.from(profile.coreTech);
+          }
+          if (profile.locationNode != null) {
+            _locationController.text = profile.locationNode!;
+          }
+          if (profile.preferredTimezone != null) {
+            _preferredTimezone = profile.preferredTimezone!;
+          }
+          if (profile.occupation != null) {
+            _occupation = profile.occupation!;
+          }
+
           _initialized = true;
         }
 
@@ -214,6 +236,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                             fullNameController: _fullNameController,
                                             usernameController: _usernameController,
                                             bioController: _bioController,
+                                            locationController: _locationController,
+                                            selectedTimezone: _preferredTimezone,
+                                            onTimezoneChanged: (val) {
+                                              setState(() => _preferredTimezone = val);
+                                            },
+                                            selectedOccupation: _occupation,
+                                            onOccupationChanged: (val) {
+                                              setState(() => _occupation = val);
+                                            },
                                             email: profile.email,
                                             createdAtLabel: createdAtLabel,
                                             avatarUrlLabel: profile.avatarUrl ?? 'None',
@@ -364,6 +395,15 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                                       fullNameController: _fullNameController,
                                       usernameController: _usernameController,
                                       bioController: _bioController,
+                                      locationController: _locationController,
+                                      selectedTimezone: _preferredTimezone,
+                                      onTimezoneChanged: (val) {
+                                        setState(() => _preferredTimezone = val);
+                                      },
+                                      selectedOccupation: _occupation,
+                                      onOccupationChanged: (val) {
+                                        setState(() => _occupation = val);
+                                      },
                                       email: profile.email,
                                       createdAtLabel: createdAtLabel,
                                       avatarUrlLabel: profile.avatarUrl ?? 'None',

@@ -6,6 +6,11 @@ class PersonalInformationCard extends StatefulWidget {
     required this.fullNameController,
     required this.usernameController,
     required this.bioController,
+    required this.locationController,
+    required this.selectedTimezone,
+    required this.onTimezoneChanged,
+    required this.selectedOccupation,
+    required this.onOccupationChanged,
     required this.email,
     required this.createdAtLabel,
     required this.avatarUrlLabel,
@@ -17,6 +22,11 @@ class PersonalInformationCard extends StatefulWidget {
   final TextEditingController fullNameController;
   final TextEditingController usernameController;
   final TextEditingController bioController;
+  final TextEditingController locationController;
+  final String selectedTimezone;
+  final ValueChanged<String> onTimezoneChanged;
+  final String selectedOccupation;
+  final ValueChanged<String> onOccupationChanged;
   final String email;
   final String createdAtLabel;
   final String avatarUrlLabel;
@@ -28,15 +38,76 @@ class PersonalInformationCard extends StatefulWidget {
 }
 
 class _PersonalInformationCardState extends State<PersonalInformationCard> {
-  String _selectedOccupation = 'Focus Architect';
-  String _selectedTimezone = 'UTC+9 (Tokyo Standard)';
-  final _locationController = TextEditingController(text: 'NEO-TOKYO NODE');
+  static const List<String> _timezones = [
+    '(UTC-12:00) International Date Line West',
+    '(UTC-11:00) Coordinated Universal Time-11',
+    '(UTC-10:00) Hawaii',
+    '(UTC-09:00) Alaska',
+    '(UTC-08:00) Pacific Time (US & Canada)',
+    '(UTC-07:00) Mountain Time (US & Canada)',
+    '(UTC-06:00) Central Time (US & Canada), Mexico City',
+    '(UTC-05:00) Eastern Time (US & Canada), Bogota, Lima',
+    '(UTC-04:00) Atlantic Time (Canada), Caracas, La Paz',
+    '(UTC-03:30) Newfoundland',
+    '(UTC-03:00) Brasilia, Buenos Aires, Georgetown',
+    '(UTC-02:00) Mid-Atlantic',
+    '(UTC-01:00) Azores, Cape Verde Is.',
+    '(UTC±00:00) Dublin, Edinburgh, Lisbon, London',
+    '(UTC+01:00) Amsterdam, Berlin, Rome, Vienna, Paris',
+    '(UTC+02:00) Athens, Bucharest, Istanbul, Jerusalem',
+    '(UTC+03:00) Moscow, St. Petersburg, Baghdad, Kuwait',
+    '(UTC+03:30) Tehran',
+    '(UTC+04:00) Abu Dhabi, Muscat, Baku, Tbilisi',
+    '(UTC+04:30) Kabul',
+    '(UTC+05:00) Islamabad, Karachi, Tashkent',
+    '(UTC+05:30) Chennai, Kolkata, Mumbai, New Delhi',
+    '(UTC+05:45) Kathmandu',
+    '(UTC+06:00) Astana, Dhaka, Almaty',
+    '(UTC+06:30) Yangon (Rangoon)',
+    '(UTC+07:00) Bangkok, Hanoi, Jakarta',
+    '(UTC+08:00) Beijing, Hong Kong, Singapore, Taipei',
+    '(UTC+08:45) Eucla',
+    '(UTC+09:00) Osaka, Sapporo, Tokyo, Seoul',
+    '(UTC+09:30) Adelaide, Darwin',
+    '(UTC+10:00) Brisbane, Canberra, Melbourne, Sydney',
+    '(UTC+10:30) Lord Howe Island',
+    '(UTC+11:00) Magadan, Solomon Is., New Caledonia',
+    '(UTC+12:00) Auckland, Wellington, Fiji, Kamchatka',
+    '(UTC+13:00) Nuku\'alofa, Samoa',
+    '(UTC+14:00) Kiritimati Island',
+  ];
 
-  @override
-  void dispose() {
-    _locationController.dispose();
-    super.dispose();
-  }
+  static const List<String> _occupations = [
+    'Focus Architect',
+    'Full Stack Developer',
+    'Frontend Developer',
+    'Backend Developer',
+    'Mobile Developer',
+    'UI/UX Designer',
+    'Product Designer',
+    'Product Manager',
+    'Project Manager',
+    'Scrum Master',
+    'Data Scientist',
+    'Data Analyst',
+    'Data Engineer',
+    'Machine Learning Engineer',
+    'AI Research Engineer',
+    'DevOps Engineer',
+    'Cloud Architect',
+    'Security Engineer',
+    'QA Engineer',
+    'Software Tester',
+    'System Administrator',
+    'Database Administrator',
+    'Network Engineer',
+    'Tech Lead',
+    'Engineering Manager',
+    'CTO / Founder',
+    'Freelancer / Contractor',
+    'Student / Learner',
+    'Other'
+  ];
 
   void _addSkillDialog() {
     final skillController = TextEditingController();
@@ -189,16 +260,17 @@ class _PersonalInformationCardState extends State<PersonalInformationCard> {
                 _buildField(
                   label: 'Occupation',
                   child: DropdownButtonFormField<String>(
-                    initialValue: _selectedOccupation,
+                    isExpanded: true,
+                    value: _occupations.contains(widget.selectedOccupation) ? widget.selectedOccupation : _occupations.first,
                     dropdownColor: EditProfileColors.cardBg,
                     style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 14),
                     decoration: _inputDecoration(),
-                    items: ['Focus Architect', 'Full Stack Developer', 'AI Research Engineer']
-                        .map((o) => DropdownMenuItem(value: o, child: Text(o)))
+                    items: _occupations
+                        .map((o) => DropdownMenuItem(value: o, child: Text(o, overflow: TextOverflow.ellipsis)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() => _selectedOccupation = val);
+                        widget.onOccupationChanged(val);
                       }
                     },
                   ),
@@ -206,7 +278,7 @@ class _PersonalInformationCardState extends State<PersonalInformationCard> {
                 _buildField(
                   label: 'Location Node',
                   child: TextField(
-                    controller: _locationController,
+                    controller: widget.locationController,
                     style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 14),
                     decoration: _inputDecoration(),
                   ),
@@ -214,16 +286,17 @@ class _PersonalInformationCardState extends State<PersonalInformationCard> {
                 _buildField(
                   label: 'Preferred Timezone',
                   child: DropdownButtonFormField<String>(
-                    initialValue: _selectedTimezone,
+                    isExpanded: true,
+                    value: _timezones.contains(widget.selectedTimezone) ? widget.selectedTimezone : _timezones.firstWhere((t) => t.contains('Bangkok, Hanoi'), orElse: () => _timezones.first),
                     dropdownColor: EditProfileColors.cardBg,
                     style: const TextStyle(color: EditProfileColors.textPrimary, fontSize: 14),
                     decoration: _inputDecoration(),
-                    items: ['UTC+9 (Tokyo Standard)', 'UTC-8 (Pacific Standard)', 'UTC+1 (Central European)']
-                        .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                    items: _timezones
+                        .map((t) => DropdownMenuItem(value: t, child: Text(t, overflow: TextOverflow.ellipsis)))
                         .toList(),
                     onChanged: (val) {
                       if (val != null) {
-                        setState(() => _selectedTimezone = val);
+                        widget.onTimezoneChanged(val);
                       }
                     },
                   ),
