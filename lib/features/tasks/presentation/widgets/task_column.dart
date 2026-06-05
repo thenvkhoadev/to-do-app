@@ -28,6 +28,8 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
 
   int _priorityWeight(TaskBoardPriority p) {
     switch (p) {
+      case TaskBoardPriority.urgent:
+        return 4;
       case TaskBoardPriority.high:
         return 3;
       case TaskBoardPriority.medium:

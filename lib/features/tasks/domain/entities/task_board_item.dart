@@ -3,7 +3,7 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 
 enum TaskBoardStatus { draft, todo, inProgress, completed }
 
-enum TaskBoardPriority { high, medium, low, done }
+enum TaskBoardPriority { urgent, high, medium, low, done }
 
 class TaskBoardItem {
   const TaskBoardItem({
@@ -37,6 +37,7 @@ class TaskBoardItem {
   final DateTime? dueDate;
 
   String get priorityLabel => switch (priority) {
+    TaskBoardPriority.urgent => 'Urgent',
     TaskBoardPriority.high => 'High Priority',
     TaskBoardPriority.medium => 'Med Priority',
     TaskBoardPriority.low => 'Low Priority',
@@ -44,6 +45,7 @@ class TaskBoardItem {
   };
 
   Color get priorityColor => switch (priority) {
+    TaskBoardPriority.urgent => DashboardColors.error,
     TaskBoardPriority.high => DashboardColors.error,
     TaskBoardPriority.medium => DashboardColors.secondary,
     TaskBoardPriority.low => DashboardColors.tertiary,

@@ -3,6 +3,7 @@ class TaskAttachmentModel {
     required this.id,
     required this.taskId,
     required this.fileName,
+    required this.storagePath,
     required this.fileUrl,
     this.createdAt,
   });
@@ -10,6 +11,7 @@ class TaskAttachmentModel {
   final String id;
   final String taskId;
   final String fileName;
+  final String storagePath;
   final String fileUrl;
   final DateTime? createdAt;
 
@@ -34,6 +36,7 @@ class TaskAttachmentModel {
       id: json['id']?.toString() ?? '',
       taskId: json['task_id']?.toString() ?? '',
       fileName: json['file_name']?.toString() ?? '',
+      storagePath: json['storage_path']?.toString() ?? '',
       fileUrl: json['file_url']?.toString() ?? '',
       createdAt: json['created_at'] != null
           ? DateTime.tryParse(json['created_at'].toString())
@@ -45,6 +48,7 @@ class TaskAttachmentModel {
         'id': id,
         'task_id': taskId,
         'file_name': fileName,
+        'storage_path': storagePath,
         'file_url': fileUrl,
         'created_at': createdAt?.toIso8601String(),
       };

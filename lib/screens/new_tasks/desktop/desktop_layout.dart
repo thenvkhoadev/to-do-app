@@ -72,20 +72,12 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   final List<String> _selectedTagIds = [];
   final List<TeamMember> _selectedAssignees = [];
   List<PlatformFileInfo> _selectedFiles = [];
+  final FocusNode _editorFocusNode = FocusNode();
+  final Map<String, quill.Attribute> _explicitActiveAttributes = {};
+  int? _lastToggledOffset;
 
   // Subtasks State
-  final List<SubtaskItem> _subtasks = [
-    SubtaskItem(
-      id: 'sub-1',
-      text: 'Define core project architecture',
-      isDone: false,
-    ),
-    SubtaskItem(
-      id: 'sub-2',
-      text: 'Draft stakeholder communication plan',
-      isDone: false,
-    ),
-  ];
+  final List<SubtaskItem> _subtasks = [];
   bool _isAiGeneratingSubtasks = false;
   bool _localSavingDraft = false;
   bool _localDeploying = false;
@@ -99,17 +91,71 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   void initState() {
     super.initState();
     _quillController = quill.QuillController.basic();
+    _quillController.addListener(_onQuillSelectionChanged);
     _titleController.addListener(_onInputChanged);
     _descriptionController.addListener(_onInputChanged);
   }
 
   @override
   void dispose() {
+    _quillController.removeListener(_onQuillSelectionChanged);
     _titleController.dispose();
     _descriptionController.dispose();
     _newSubtaskController.dispose();
     _quillController.dispose();
+    _editorFocusNode.dispose();
     super.dispose();
+  }
+
+  void _onQuillSelectionChanged() {
+    if (mounted) {
+      final sel = _quillController.selection;
+      if (sel.isValid) {
+        final currentOffset = sel.start;
+        if (sel.isCollapsed) {
+          if (_lastToggledOffset != null && currentOffset == _lastToggledOffset) {
+            final style = _quillController.getSelectionStyle();
+            bool needReapply = false;
+            for (final attr in _explicitActiveAttributes.values) {
+              final hasAttr = style.containsKey(attr.key) &&
+                  style.attributes[attr.key]?.value == true;
+              if (!hasAttr) {
+                needReapply = true;
+                break;
+              }
+            }
+            if (needReapply) {
+              for (final attr in _explicitActiveAttributes.values) {
+                _quillController.formatSelection(attr);
+              }
+            }
+          } else {
+            _explicitActiveAttributes.clear();
+            final style = _quillController.getSelectionStyle();
+            for (final attr in [quill.Attribute.bold, quill.Attribute.italic]) {
+              final hasAttr = style.containsKey(attr.key) &&
+                  style.attributes[attr.key]?.value == true;
+              if (hasAttr) {
+                _explicitActiveAttributes[attr.key] = attr;
+              }
+            }
+            _lastToggledOffset = currentOffset;
+          }
+        } else {
+          _explicitActiveAttributes.clear();
+          final style = _quillController.getSelectionStyle();
+          for (final attr in [quill.Attribute.bold, quill.Attribute.italic]) {
+            final hasAttr = style.containsKey(attr.key) &&
+                style.attributes[attr.key]?.value == true;
+            if (hasAttr) {
+              _explicitActiveAttributes[attr.key] = attr;
+            }
+          }
+          _lastToggledOffset = currentOffset;
+        }
+      }
+      setState(() {});
+    }
   }
 
   void _onInputChanged() {
@@ -250,50 +296,67 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   }
 
   void _toggleQuillFormat(quill.Attribute attribute) {
+    if (!_editorFocusNode.hasFocus) {
+      _editorFocusNode.requestFocus();
+    }
+
     final sel = _quillController.selection;
     if (!sel.isValid) return;
 
-    int start = sel.start;
-    int end = sel.end;
+    _lastToggledOffset = sel.start;
 
-    // No selection — expand to word at cursor
     if (sel.isCollapsed) {
       final plainText = _quillController.document.toPlainText();
       final cursor = sel.start;
-      start = cursor;
-      end = cursor;
+      int start = cursor;
+      int end = cursor;
       while (start > 0 && _isQuillWordChar(plainText[start - 1])) {
         start--;
       }
       while (end < plainText.length && _isQuillWordChar(plainText[end])) {
         end++;
       }
-      if (start == end) return;
 
-      _quillController.updateSelection(
-        TextSelection(baseOffset: start, extentOffset: end),
-        quill.ChangeSource.local,
-      );
+      if (start != end) {
+        _quillController.updateSelection(
+          TextSelection(baseOffset: start, extentOffset: end),
+          quill.ChangeSource.local,
+        );
+
+        final style = _quillController.getSelectionStyle();
+        final isActive = style.containsKey(attribute.key) &&
+            style.attributes[attribute.key]?.value == true;
+
+        if (isActive) {
+          _explicitActiveAttributes.remove(attribute.key);
+          _quillController.formatSelection(
+              quill.Attribute.clone(attribute, null));
+        } else {
+          _explicitActiveAttributes[attribute.key] = attribute;
+          _quillController.formatSelection(attribute);
+        }
+
+        _quillController.updateSelection(
+          TextSelection.collapsed(offset: end),
+          quill.ChangeSource.local,
+        );
+        _lastToggledOffset = end;
+        return;
+      }
     }
 
-    // Check if the attribute is already applied on the selection
+    // Check if the attribute is already applied on the selection/cursor
     final style = _quillController.getSelectionStyle();
     final isActive = style.containsKey(attribute.key) &&
         style.attributes[attribute.key]?.value == true;
 
     if (isActive) {
+      _explicitActiveAttributes.remove(attribute.key);
       _quillController.formatSelection(
           quill.Attribute.clone(attribute, null));
     } else {
+      _explicitActiveAttributes[attribute.key] = attribute;
       _quillController.formatSelection(attribute);
-    }
-
-    // Collapse selection back to end if we auto-expanded
-    if (sel.isCollapsed) {
-      _quillController.updateSelection(
-        TextSelection.collapsed(offset: end),
-        quill.ChangeSource.local,
-      );
     }
   }
 
@@ -658,6 +721,10 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
         'High': 'high',
         'Medium': 'medium',
         'Low': 'low',
+        'medium': 'medium',
+        'high': 'high',
+        'low': 'low',
+        'urgent': 'urgent',
       };
 
       final created = await ref.read(taskCreationProvider.notifier).createTask(
@@ -1166,33 +1233,44 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           // Toolbar
-                                          Row(
-                                            children: [
-                                              _FormatButton(
-                                                icon: Icons.format_bold_rounded,
-                                                onTap: () => _toggleQuillFormat(
-                                                    quill.Attribute.bold),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              _FormatButton(
-                                                icon:
-                                                    Icons.format_italic_rounded,
-                                                onTap: () => _toggleQuillFormat(
-                                                    quill.Attribute.italic),
-                                              ),
-                                              const SizedBox(width: 10),
-                                              _FormatButton(
-                                                icon: Icons.link_rounded,
-                                                onTap: () =>
-                                                    _insertQuillLink(),
-                                              ),
-                                              const Spacer(),
-                                              const Icon(
-                                                Icons.auto_awesome_rounded,
-                                                color: DashboardColors.primary,
-                                                size: 20,
-                                              ),
-                                            ],
+                                          Builder(
+                                            builder: (context) {
+                                              final style = _quillController.getSelectionStyle();
+                                              final isBold = style.containsKey(quill.Attribute.bold.key) &&
+                                                  style.attributes[quill.Attribute.bold.key]?.value == true;
+                                              final isItalic = style.containsKey(quill.Attribute.italic.key) &&
+                                                  style.attributes[quill.Attribute.italic.key]?.value == true;
+                                              return Row(
+                                                children: [
+                                                  _FormatButton(
+                                                    icon: Icons.format_bold_rounded,
+                                                    isSelected: isBold,
+                                                    onTap: () => _toggleQuillFormat(
+                                                        quill.Attribute.bold),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  _FormatButton(
+                                                    icon:
+                                                        Icons.format_italic_rounded,
+                                                    isSelected: isItalic,
+                                                    onTap: () => _toggleQuillFormat(
+                                                        quill.Attribute.italic),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  _FormatButton(
+                                                    icon: Icons.link_rounded,
+                                                    onTap: () =>
+                                                        _insertQuillLink(),
+                                                  ),
+                                                  const Spacer(),
+                                                  const Icon(
+                                                    Icons.auto_awesome_rounded,
+                                                    color: DashboardColors.primary,
+                                                    size: 20,
+                                                  ),
+                                                ],
+                                              );
+                                            }
                                           ),
                                           const SizedBox(height: 10),
                                           const Divider(
@@ -1203,6 +1281,7 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                           // Editor
                                           quill.QuillEditor.basic(
                                             controller: _quillController,
+                                            focusNode: _editorFocusNode,
                                             config: quill.QuillEditorConfig(
                                               minHeight: 100,
                                               maxHeight: 200,
@@ -3145,10 +3224,15 @@ class _AttachmentCardState extends State<_AttachmentCard> {
 
 
 class _FormatButton extends StatefulWidget {
-  const _FormatButton({required this.icon, required this.onTap});
+  const _FormatButton({
+    required this.icon,
+    required this.onTap,
+    this.isSelected = false,
+  });
 
   final IconData icon;
   final VoidCallback onTap;
+  final bool isSelected;
 
   @override
   State<_FormatButton> createState() => _FormatButtonState();
@@ -3170,15 +3254,20 @@ class _FormatButtonState extends State<_FormatButton> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: _hovered
-                ? DashboardColors.primary.withValues(alpha: .12)
-                : Colors.transparent,
+            color: widget.isSelected
+                ? DashboardColors.primary.withValues(alpha: .22)
+                : _hovered
+                    ? DashboardColors.primary.withValues(alpha: .12)
+                    : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
+            border: widget.isSelected
+                ? Border.all(color: DashboardColors.primary.withValues(alpha: .3))
+                : null,
           ),
           child: Icon(
             widget.icon,
             size: 18,
-            color: _hovered
+            color: (widget.isSelected || _hovered)
                 ? DashboardColors.primary
                 : DashboardColors.onSurfaceVariant,
           ),

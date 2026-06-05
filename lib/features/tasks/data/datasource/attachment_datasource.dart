@@ -1,8 +1,10 @@
 import 'dart:io';
 
+import 'package:diacritic/diacritic.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart';
+import 'package:uuid/uuid.dart';
 
 class AttachmentRemoteDataSource {
   AttachmentRemoteDataSource(this._client);
@@ -30,19 +32,17 @@ class AttachmentRemoteDataSource {
     required List<PlatformFileInfo> files,
   }) async {
     final results = <Map<String, dynamic>>[];
+    const uuid = Uuid();
+
     for (final file in files) {
       try {
-        final ext = file.extension.isNotEmpty ? '.${file.extension.toLowerCase()}' : '';
-        final baseName = file.name
-            .replaceAll(RegExp(r'\.[^.]+$'), '')
-            .replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '_')
-            .replaceAll(RegExp(r'_+'), '_')
-            .replaceAll(RegExp(r'^_|_$'), '');
-        final safeName = '${baseName.isEmpty ? 'file' : baseName}_${DateTime.now().millisecondsSinceEpoch}$ext';
-        final path = '$userId/$taskId/$safeName';
+        final safeFileName = sanitizeFileName(file.name);
+        final storageFileName = '${uuid.v4()}_$safeFileName';
+        final storagePath = '$userId/$taskId/$storageFileName';
+
         if (file.bytes != null) {
           await _client.storage.from(_bucket).uploadBinary(
-                path,
+                storagePath,
                 file.bytes!,
                 fileOptions: FileOptions(
                   upsert: true,
@@ -51,7 +51,7 @@ class AttachmentRemoteDataSource {
               );
         } else if (file.filePath != null) {
           await _client.storage.from(_bucket).upload(
-                path,
+                storagePath,
                 File(file.filePath!),
                 fileOptions: FileOptions(
                   upsert: true,
@@ -62,13 +62,14 @@ class AttachmentRemoteDataSource {
           continue;
         }
 
-        final url = _client.storage.from(_bucket).getPublicUrl(path).trim();
+        final url = _client.storage.from(_bucket).getPublicUrl(storagePath).trim();
 
         final row = await _client
             .from('task_attachments')
             .insert({
               'task_id': taskId,
               'file_name': file.name,
+              'storage_path': storagePath,
               'file_url': url,
             })
             .select()
@@ -76,10 +77,28 @@ class AttachmentRemoteDataSource {
         results.add(row);
       } catch (e) {
         debugPrint('Attachment upload error for ${file.name}: $e');
-
       }
     }
     return results;
+  }
+
+  String sanitizeFileName(String fileName) {
+    final parts = fileName.split('.');
+    if (parts.length < 2) {
+      return removeDiacritics(fileName)
+          .toLowerCase()
+          .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+          .replaceAll(RegExp(r'-+'), '-')
+          .replaceAll(RegExp(r'^-|-$'), '');
+    }
+    final extension = parts.removeLast();
+    final name = parts.join('.');
+    final normalized = removeDiacritics(name)
+        .toLowerCase()
+        .replaceAll(RegExp(r'[^a-z0-9]+'), '-')
+        .replaceAll(RegExp(r'-+'), '-')
+        .replaceAll(RegExp(r'^-|-$'), '');
+    return normalized.isEmpty ? 'file.$extension' : '$normalized.$extension';
   }
 
   String _mimeType(String ext) => switch (ext.toLowerCase()) {

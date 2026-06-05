@@ -65,6 +65,8 @@ TaskBoardItem _mapTaskToBoardItem(
   TaskBoardPriority boardPriority;
   switch (task.priority) {
     case 'urgent':
+      boardPriority = TaskBoardPriority.urgent;
+      break;
     case 'high':
       boardPriority = TaskBoardPriority.high;
       break;
