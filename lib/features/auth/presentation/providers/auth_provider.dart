@@ -42,12 +42,24 @@ class AuthController extends StateNotifier<AsyncValue<AppUser?>> {
        _signInUseCase = signInUseCase,
        _signUpUseCase = signUpUseCase,
        _signOutUseCase = signOutUseCase,
-       super(AsyncValue.data(repository.currentUser()));
+       super(AsyncValue.data(repository.currentUser())) {
+    _authSub = _repository.authStateChanges().listen((user) {
+      if (!mounted) return;
+      state = AsyncValue.data(user);
+    });
+  }
 
   final AuthRepository _repository;
   final SignInUseCase _signInUseCase;
   final SignUpUseCase _signUpUseCase;
   final SignOutUseCase _signOutUseCase;
+  late final StreamSubscription<AppUser?> _authSub;
+
+  @override
+  void dispose() {
+    _authSub.cancel();
+    super.dispose();
+  }
 
   Future<void> signIn({required String email, required String password}) async {
     state = const AsyncValue.loading();

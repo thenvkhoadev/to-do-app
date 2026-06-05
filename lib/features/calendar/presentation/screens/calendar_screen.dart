@@ -259,9 +259,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         start: start,
         end: start.add(const Duration(minutes: 45)),
         title: task.title,
-        subtitle: task.description ?? task.category,
+        subtitle: task.description ?? task.categoryId,
         color: _taskColor(task),
-        category: task.category,
+        category: task.categoryId,
         participants: const [],
       );
     }).toList();
@@ -272,7 +272,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       return AgendaPanelEvent(
         start: task.dueDate!,
         title: task.title,
-        subtitle: task.description ?? task.category,
+        subtitle: task.description ?? task.categoryId,
         color: _taskColor(task),
         durationMinutes: 45,
         status: task.status,
@@ -285,7 +285,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Color _taskColor(NexusTask task) {
     final priority = task.priority.toLowerCase();
     final status = task.status.toLowerCase();
-    final category = task.category.toLowerCase();
+    final category = (task.categoryId ?? '').toLowerCase();
 
     if (status.contains('complete')) return const Color(0xFF22C55E);
     if (priority.contains('high')) return const Color(0xFFF97316);
@@ -295,7 +295,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   String _agendaType(NexusTask task) {
-    final category = task.category.toLowerCase();
+    final category = (task.categoryId ?? '').toLowerCase();
     if (category.contains('meeting')) return 'Meeting';
     if (category.contains('reminder')) return 'Reminder';
     return 'Task';

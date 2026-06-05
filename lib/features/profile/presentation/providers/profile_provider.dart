@@ -18,3 +18,9 @@ final userProfileProvider = StreamProvider<UserProfileModel?>((ref) {
 
 final showEditProfileProvider = StateProvider<bool>((ref) => false);
 
+final allUsersProvider = FutureProvider<List<UserProfileModel>>((ref) async {
+  final supabase = ref.watch(supabaseClientProvider);
+  final data = await supabase.from('users').select();
+  return (data as List).map((json) => UserProfileModel.fromJson(json)).toList();
+});
+

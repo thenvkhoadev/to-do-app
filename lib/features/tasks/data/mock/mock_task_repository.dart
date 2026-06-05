@@ -7,6 +7,12 @@ class MockTaskRepository {
     final tasks = allTasks();
     return [
       TaskColumnData(
+        title: 'Draft',
+        status: TaskBoardStatus.draft,
+        tasks:
+            tasks.where((task) => task.status == TaskBoardStatus.draft).toList(),
+      ),
+      TaskColumnData(
         title: 'To Do',
         status: TaskBoardStatus.todo,
         tasks:

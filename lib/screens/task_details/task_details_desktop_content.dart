@@ -1,7 +1,12 @@
 import 'dart:ui';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart';
+import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TaskDetailsDesktopContent extends StatelessWidget {
@@ -11,7 +16,7 @@ class TaskDetailsDesktopContent extends StatelessWidget {
     super.key,
   });
 
-  final TasksProjectItem item;
+  final TaskBoardItem item;
   final VoidCallback onBack;
 
   @override
@@ -78,7 +83,7 @@ class TaskDetailsDesktopContent extends StatelessWidget {
 class _TaskDetailsHeader extends StatelessWidget {
   const _TaskDetailsHeader({required this.item, required this.onBack});
 
-  final TasksProjectItem item;
+  final TaskBoardItem item;
   final VoidCallback onBack;
 
   @override
@@ -105,7 +110,10 @@ class _TaskDetailsHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              _Pill(label: item.badge, color: item.accent),
+              _Pill(
+                label: item.tags.isNotEmpty ? item.tags.first.toUpperCase() : 'GENERAL',
+                color: item.priorityColor,
+              ),
               Container(
                 width: 5,
                 height: 5,
@@ -116,7 +124,7 @@ class _TaskDetailsHeader extends StatelessWidget {
                 ),
               ),
               Text(
-                'TASK-${940 + item.kind.index}',
+                'TASK-${item.id.length > 5 ? item.id.substring(0, 5).toUpperCase() : item.id.toUpperCase()}',
                 style: const TextStyle(
                   color: DashboardColors.onSurfaceVariant,
                   fontSize: 12,
@@ -135,7 +143,7 @@ class _TaskDetailsHeader extends StatelessWidget {
 
 class _LeftColumn extends StatelessWidget {
   const _LeftColumn({required this.item});
-  final TasksProjectItem item;
+  final TaskBoardItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -148,11 +156,11 @@ class _LeftColumn extends StatelessWidget {
         const SizedBox(height: 16),
         const _TeamPresenceRow(),
         const SizedBox(height: 24),
-        const _SmartTabsSection(),
+        _SmartTabsSection(taskId: item.id),
         const SizedBox(height: 24),
         const _FocusHistoryChart(),
         const SizedBox(height: 24),
-        const _ContextualIntelligenceSection(),
+        _ContextualIntelligenceSection(taskId: item.id),
         const SizedBox(height: 24),
         const _ProductivityEnhancements(),
       ],
@@ -162,13 +170,13 @@ class _LeftColumn extends StatelessWidget {
 
 class _RightColumn extends StatelessWidget {
   const _RightColumn({required this.item});
-  final TasksProjectItem item;
+  final TaskBoardItem item;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        _AiAtomicExecutionPanel(progress: item.progress ?? .75),
+        _AiAtomicExecutionPanel(progress: item.progress),
         const SizedBox(height: 16),
         const _SmartPriorityHeatmap(),
         const SizedBox(height: 16),
@@ -182,7 +190,7 @@ class _RightColumn extends StatelessWidget {
 
 class _TaskHero extends StatelessWidget {
   const _TaskHero({required this.item});
-  final TasksProjectItem item;
+  final TaskBoardItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +217,7 @@ class _TaskHero extends StatelessWidget {
           ],
         ),
         const SizedBox(height: 14),
-        const _AiInsightsCard(),
+        _AiInsightsCard(aiSuggestion: item.aiSuggestion),
         const SizedBox(height: 16),
         Text(
           item.description,
@@ -221,7 +229,7 @@ class _TaskHero extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const _ExpandableSubtasksSection(),
+        _ExpandableSubtasksSection(taskId: item.id),
       ],
     );
   }
@@ -229,7 +237,7 @@ class _TaskHero extends StatelessWidget {
 
 class _TaskMetadataCards extends StatelessWidget {
   const _TaskMetadataCards({required this.item});
-  final TasksProjectItem item;
+  final TaskBoardItem item;
 
   @override
   Widget build(BuildContext context) {
@@ -238,38 +246,32 @@ class _TaskMetadataCards extends StatelessWidget {
         Expanded(
           child: _MetadataCard(
             label: 'PRIORITY',
-            value: _priorityLabel(item),
+            value: item.priorityLabel,
             icon: Icons.error_rounded,
-            color: DashboardColors.error,
+            color: item.priorityColor,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _MetadataCard(
-            label: 'DEADLINE',
-            value: item.metaRight ?? 'Today',
-            icon: Icons.calendar_today_rounded,
+            label: 'ESTIMATE',
+            value: item.estimate.isNotEmpty ? item.estimate : 'No estimate',
+            icon: Icons.timer_rounded,
             color: DashboardColors.onSurface,
           ),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: _MetadataCard(
-            label: 'PROJECT',
-            value: item.badge,
-            icon: Icons.folder_rounded,
+            label: 'STATUS',
+            value: item.status.name.toUpperCase(),
+            icon: Icons.info_outline_rounded,
             color: DashboardColors.tertiary,
           ),
         ),
       ],
     );
   }
-
-  String _priorityLabel(TasksProjectItem item) => switch (item.kind) {
-    TasksProjectCardKind.urgent || TasksProjectCardKind.priority => 'High',
-    TasksProjectCardKind.review => 'Medium',
-    _ => 'Smart',
-  };
 }
 
 class _MetadataCard extends StatelessWidget {
@@ -449,11 +451,14 @@ class _ChartBar extends StatelessWidget {
   }
 }
 
-class _ContextualIntelligenceSection extends StatelessWidget {
-  const _ContextualIntelligenceSection();
+class _ContextualIntelligenceSection extends ConsumerWidget {
+  const _ContextualIntelligenceSection({required this.taskId});
+  final String taskId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attachmentsAsync = ref.watch(taskAttachmentsProvider(taskId));
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -489,26 +494,68 @@ class _ContextualIntelligenceSection extends StatelessWidget {
           subtitle: "AI-extracted summary: 12 references to 'NEXUS AI'...",
         ),
         const SizedBox(height: 12),
-        Row(
-          children: const [
-            Expanded(
-              child: _AssetCard(
-                icon: Icons.table_chart_rounded,
-                title: 'Revenue_Projections.xlsx',
-                color: DashboardColors.tertiary,
+        attachmentsAsync.when(
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 8),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
-            SizedBox(width: 12),
-            Expanded(
-              child: _AssetCard(
-                icon: Icons.analytics_rounded,
-                title: 'Market_Analysis_v4.pdf',
-                color: DashboardColors.secondary,
-              ),
-            ),
-          ],
+          ),
+          error: (err, stack) => Text(
+            'Error loading attachments: $err',
+            style: const TextStyle(color: DashboardColors.error, fontSize: 12),
+          ),
+          data: (attachments) {
+            if (attachments.isEmpty) {
+              return const SizedBox.shrink();
+            }
+            return Column(
+              children: [
+                for (var i = 0; i < attachments.length; i += 2) ...[
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildAssetCard(attachments[i]),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: i + 1 < attachments.length
+                            ? _buildAssetCard(attachments[i + 1])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                  if (i + 2 < attachments.length) const SizedBox(height: 12),
+                ],
+                const SizedBox(height: 12),
+              ],
+            );
+          },
         ),
       ],
+    );
+  }
+
+  Widget _buildAssetCard(TaskAttachmentModel att) {
+    final isImage = att.mimeType.startsWith('image/');
+    final isPdf = att.mimeType == 'application/pdf';
+    return _AssetCard(
+      icon: isImage
+          ? Icons.image_rounded
+          : isPdf
+              ? Icons.picture_as_pdf_rounded
+              : Icons.insert_drive_file_rounded,
+      title: att.fileName,
+      color: isImage
+          ? DashboardColors.primary
+          : isPdf
+              ? DashboardColors.secondary
+              : DashboardColors.tertiary,
+      imageUrl: isImage ? att.fileUrl : null,
     );
   }
 }
@@ -583,40 +630,173 @@ class _AssetCard extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.color,
+    this.imageUrl,
   });
   final IconData icon;
   final String title;
   final Color color;
+  final String? imageUrl;
 
   @override
-  Widget build(BuildContext context) => _HoverScale(
-    child: _GlassPanel(
-      padding: const EdgeInsets.all(14),
-      child: Row(
-        children: [
-          Icon(icon, color: color),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: DashboardColors.onSurface,
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
+  Widget build(BuildContext context) {
+    if (imageUrl != null) {
+      return _HoverScale(
+        child: GestureDetector(
+          onTap: () {
+            showDialog(
+              context: context,
+              builder: (context) => Dialog(
+                backgroundColor: Colors.transparent,
+                insetPadding: const EdgeInsets.all(16),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        color: Colors.black87,
+                        width: double.infinity,
+                        height: double.infinity,
+                      ),
+                    ),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: InteractiveViewer(
+                        child: CachedNetworkImage(
+                          imageUrl: imageUrl!,
+                          fit: BoxFit.contain,
+                          errorWidget: (_, __, ___) => Container(
+                            padding: const EdgeInsets.all(24),
+                            color: DashboardColors.surfaceLow,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(icon, color: color, size: 48),
+                                const SizedBox(height: 12),
+                                Text(
+                                  title,
+                                  style: const TextStyle(
+                                    color: DashboardColors.onSurface,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          placeholder: (_, __) => const Center(
+                            child: CircularProgressIndicator(),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 16,
+                      right: 16,
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black45,
+                        child: IconButton(
+                          icon: const Icon(Icons.close, color: Colors.white),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
+            );
+          },
+          child: _GlassPanel(
+            padding: EdgeInsets.zero,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Container(
+                  height: 120,
+                  clipBehavior: Clip.antiAlias,
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(28),
+                    ),
+                  ),
+                  child: CachedNetworkImage(
+                    imageUrl: imageUrl!,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, __, ___) => Center(
+                      child: Icon(icon, color: color, size: 36),
+                    ),
+                    placeholder: (_, __) => const Center(
+                      child: SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: DashboardColors.onSurface,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.open_in_new_rounded,
+                        color: DashboardColors.onSurfaceVariant,
+                        size: 16,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
-          const Icon(
-            Icons.open_in_new_rounded,
-            color: DashboardColors.onSurfaceVariant,
-            size: 16,
-          ),
-        ],
+        ),
+      );
+    }
+
+    return _HoverScale(
+      child: _GlassPanel(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 24,
+              height: 24,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Icon(
+              Icons.open_in_new_rounded,
+              color: DashboardColors.onSurfaceVariant,
+              size: 16,
+            ),
+          ],
+        ),
       ),
-    ),
-  );
+    );
+  }
 }
 
 class _ProductivityEnhancements extends StatelessWidget {
@@ -1084,7 +1264,8 @@ class _ShimmerOverlay extends StatelessWidget {
 }
 
 class _AiInsightsCard extends StatelessWidget {
-  const _AiInsightsCard();
+  const _AiInsightsCard({this.aiSuggestion});
+  final String? aiSuggestion;
 
   @override
   Widget build(BuildContext context) => TweenAnimationBuilder<double>(
@@ -1117,8 +1298,8 @@ class _AiInsightsCard extends StatelessWidget {
       padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Row(
+        children: [
+          const Row(
             children: [
               Icon(
                 Icons.auto_awesome_rounded,
@@ -1136,11 +1317,15 @@ class _AiInsightsCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 12),
-          _InsightLine('82% roadmap alignment'),
-          _InsightLine('Market volatility risk detected'),
-          _InsightLine('Suggested release window: Q1'),
-          _InsightLine('Resource allocation imbalance found'),
+          const SizedBox(height: 12),
+          if (aiSuggestion != null) ...[
+            _InsightLine(aiSuggestion!),
+            const SizedBox(height: 6),
+          ],
+          const _InsightLine('82% roadmap alignment'),
+          const _InsightLine('Market volatility risk detected'),
+          const _InsightLine('Suggested release window: Q1'),
+          const _InsightLine('Resource allocation imbalance found'),
         ],
       ),
     ),
@@ -1286,21 +1471,20 @@ class _PulseDot extends StatelessWidget {
           ),
         ),
   );
-}
-
-class _SmartTabsSection extends StatelessWidget {
-  const _SmartTabsSection();
+}class _SmartTabsSection extends ConsumerWidget {
+  const _SmartTabsSection({required this.taskId});
+  final String taskId;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return DefaultTabController(
       length: 5,
       child: _GlassPanel(
         padding: const EdgeInsets.all(10),
-        child: const Column(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            TabBar(
+            const TabBar(
               isScrollable: true,
               dividerColor: Colors.transparent,
               splashBorderRadius: BorderRadius.all(Radius.circular(999)),
@@ -1331,26 +1515,265 @@ class _SmartTabsSection extends StatelessWidget {
                 Tab(text: 'AI'),
               ],
             ),
-            SizedBox(height: 12),
+            const SizedBox(height: 12),
             SizedBox(
               height: 88,
               child: TabBarView(
                 children: [
-                  _TabCopy(
+                  const _TabCopy(
                     'Roadmap context, key blockers, and active execution plan are synced.',
                   ),
-                  _TabCopy(
+                  const _TabCopy(
                     'AI notes updated from meeting summary and linked documents.',
                   ),
-                  _TabCopy('4 updates in the last 30 minutes.'),
-                  _TabCopy('2 PDFs, 1 spreadsheet, 1 strategy board.'),
-                  _TabCopy('AI recommends splitting into 4 milestones.'),
+                  const _TabCopy('4 updates in the last 30 minutes.'),
+                  _FilesTab(taskId: taskId),
+                  const _TabCopy('AI recommends splitting into 4 milestones.'),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+class _FilesTab extends ConsumerWidget {
+  const _FilesTab({required this.taskId});
+  final String taskId;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final attachmentsAsync = ref.watch(taskAttachmentsProvider(taskId));
+
+    return attachmentsAsync.when(
+      loading: () => const Center(
+        child: SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      ),
+      error: (err, stack) => Text('Error: $err', style: const TextStyle(fontSize: 12, color: DashboardColors.error)),
+      data: (attachments) {
+        if (attachments.isEmpty) {
+          return const Center(
+            child: Text(
+              'No files attached',
+              style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13),
+            ),
+          );
+        }
+        return ListView.builder(
+          scrollDirection: Axis.horizontal,
+          itemCount: attachments.length,
+          itemBuilder: (context, index) {
+            final att = attachments[index];
+            final isImage = att.mimeType.startsWith('image/');
+            final isPdf = att.mimeType == 'application/pdf';
+            final ext = att.fileName.split('.').last.toUpperCase();
+            final sizeStr = '$ext Document';
+
+            if (isImage) {
+              return GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    builder: (context) => Dialog(
+                      backgroundColor: Colors.transparent,
+                      insetPadding: const EdgeInsets.all(16),
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: Container(
+                              color: Colors.black87,
+                              width: double.infinity,
+                              height: double.infinity,
+                            ),
+                          ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: InteractiveViewer(
+                              child: CachedNetworkImage(
+                                imageUrl: att.fileUrl,
+                                fit: BoxFit.contain,
+                                errorWidget: (_, __, ___) => Container(
+                                  padding: const EdgeInsets.all(24),
+                                  color: DashboardColors.surfaceLow,
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(
+                                        Icons.image_rounded,
+                                        color: DashboardColors.primary,
+                                        size: 48,
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Text(
+                                        att.fileName,
+                                        style: const TextStyle(
+                                          color: DashboardColors.onSurface,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                placeholder: (_, __) => const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            top: 16,
+                            right: 16,
+                            child: CircleAvatar(
+                              backgroundColor: Colors.black45,
+                              child: IconButton(
+                                icon: const Icon(Icons.close, color: Colors.white),
+                                onPressed: () => Navigator.pop(context),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+                child: MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Container(
+                    margin: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: .02),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .06),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 68,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: CachedNetworkImage(
+                            imageUrl: att.fileUrl,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, __, ___) => const Center(
+                              child: Icon(
+                                Icons.image_rounded,
+                                color: DashboardColors.primary,
+                                size: 24,
+                              ),
+                            ),
+                            placeholder: (_, __) => const Center(
+                              child: SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              att.fileName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: DashboardColors.onSurface,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            Text(
+                              sizeStr,
+                              style: const TextStyle(
+                                color: DashboardColors.onSurfaceVariant,
+                                fontSize: 10,
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(width: 8),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Container(
+              margin: const EdgeInsets.only(right: 12, top: 4, bottom: 4),
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .02),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .06),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: (isPdf
+                              ? DashboardColors.secondary
+                              : DashboardColors.tertiary)
+                          .withValues(alpha: .12),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      isPdf
+                          ? Icons.picture_as_pdf_rounded
+                          : Icons.insert_drive_file_rounded,
+                      color: isPdf
+                          ? DashboardColors.secondary
+                          : DashboardColors.tertiary,
+                      size: 20,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        att.fileName,
+                        style: const TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        sizeStr,
+                        style: const TextStyle(
+                          color: DashboardColors.onSurfaceVariant,
+                          fontSize: 10,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                ],
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
@@ -1371,113 +1794,341 @@ class _TabCopy extends StatelessWidget {
   );
 }
 
-class _ExpandableSubtasksSection extends StatelessWidget {
-  const _ExpandableSubtasksSection();
+class _ExpandableSubtasksSection extends ConsumerStatefulWidget {
+  const _ExpandableSubtasksSection({required this.taskId});
+  final String taskId;
+
   @override
-  Widget build(BuildContext context) => Column(
-    children: const [
-      _SubtaskExpansion(
-        title: 'Strategic Research',
-        progress: .82,
-        items: ['Validate Q4 market signals', 'Compare release windows'],
-      ),
-      _SubtaskExpansion(
-        title: 'Competitive Mapping',
-        progress: .64,
-        items: ['Review AI calendar tools', 'Tag pricing threats'],
-      ),
-      _SubtaskExpansion(
-        title: 'Resource Planning',
-        progress: .40,
-        items: ['Balance design capacity', 'Flag engineering risk'],
-      ),
-    ],
-  );
+  ConsumerState<_ExpandableSubtasksSection> createState() => _ExpandableSubtasksSectionState();
 }
 
-class _SubtaskExpansion extends StatelessWidget {
-  const _SubtaskExpansion({
-    required this.title,
-    required this.progress,
-    required this.items,
-  });
-  final String title;
-  final double progress;
-  final List<String> items;
+class _ExpandableSubtasksSectionState extends ConsumerState<_ExpandableSubtasksSection> {
+  final _textController = TextEditingController();
+  bool _isAdding = false;
+  bool _isGenerating = false;
+
+  @override
+  void dispose() {
+    _textController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addSubtask(String title) async {
+    if (title.trim().isEmpty) return;
+    try {
+      final subtask = TaskSubtaskModel(
+        id: '',
+        taskId: widget.taskId,
+        title: title.trim(),
+        isDone: false,
+      );
+      await ref.read(subtaskDataSourceProvider).createSubtask(subtask);
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+      _textController.clear();
+      setState(() {
+        _isAdding = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add subtask: $e')),
+      );
+    }
+  }
+
+  Future<void> _toggleSubtask(TaskSubtaskModel subtask, bool value) async {
+    try {
+      await ref
+          .read(subtaskDataSourceProvider)
+          .updateSubtask(subtask.id, {'is_done': value});
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update subtask: $e')),
+      );
+    }
+  }
+
+  Future<void> _deleteSubtask(String id) async {
+    try {
+      await ref.read(subtaskDataSourceProvider).deleteSubtask(id);
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to delete subtask: $e')),
+      );
+    }
+  }
+
+  Future<void> _generateWithAi() async {
+    setState(() {
+      _isGenerating = true;
+    });
+    await Future.delayed(const Duration(milliseconds: 1200));
+    try {
+      final suggested = [
+        'Review architecture guidelines',
+        'Write integration test suite',
+        'Verify schema compatibility',
+      ];
+      final datasource = ref.read(subtaskDataSourceProvider);
+      final subtasks = suggested
+          .map((t) => TaskSubtaskModel(
+                id: '',
+                taskId: widget.taskId,
+                title: t,
+                isDone: false,
+              ))
+          .toList();
+      await datasource.insertMultipleSubtasks(subtasks);
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to generate subtasks: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isGenerating = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: _GlassPanel(
-        padding: EdgeInsets.zero,
-        child: Material(
-          color: Colors.transparent,
-          child: ExpansionTile(
-            tilePadding: const EdgeInsets.symmetric(horizontal: 14),
-            childrenPadding: const EdgeInsets.fromLTRB(18, 0, 18, 14),
-            iconColor: DashboardColors.primary,
-            collapsedIconColor: DashboardColors.onSurfaceVariant,
-            title: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    title,
-                    style: const TextStyle(
-                      color: DashboardColors.onSurface,
-                      fontWeight: FontWeight.w800,
+    final subtasksAsync = ref.watch(taskSubtasksProvider(widget.taskId));
+
+    return _GlassPanel(
+      padding: const EdgeInsets.all(20),
+      child: subtasksAsync.when(
+        loading: () => const Center(
+          child: Padding(
+            padding: EdgeInsets.symmetric(vertical: 16),
+            child: SizedBox(
+              width: 24,
+              height: 24,
+              child: CircularProgressIndicator(strokeWidth: 2.5),
+            ),
+          ),
+        ),
+        error: (err, stack) => Text(
+          'Error loading subtasks: $err',
+          style: const TextStyle(color: DashboardColors.error, fontSize: 13),
+        ),
+        data: (subtasks) {
+          final doneCount = subtasks.where((s) => s.isDone).length;
+          final totalCount = subtasks.length;
+          final progress = totalCount > 0 ? doneCount / totalCount : 0.0;
+
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                children: [
+                  const Text(
+                    'SUBTASKS',
+                    style: TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w900,
+                      letterSpacing: 1.1,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (totalCount > 0) ...[
+                    Text(
+                      '$doneCount of $totalCount completed (${(progress * 100).round()}%)',
+                      style: const TextStyle(
+                        color: DashboardColors.primary,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  if (_isGenerating)
+                    const SizedBox(
+                      width: 14,
+                      height: 14,
+                      child: CircularProgressIndicator(strokeWidth: 1.5),
+                    )
+                  else
+                    TextButton.icon(
+                      onPressed: _generateWithAi,
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      icon: const Icon(Icons.auto_awesome_rounded, size: 14, color: DashboardColors.primary),
+                      label: const Text(
+                        'Generate with AI',
+                        style: TextStyle(
+                          color: DashboardColors.primary,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              if (totalCount > 0) ...[
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(999),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 6,
+                    backgroundColor: DashboardColors.surfaceHighest,
+                    valueColor: const AlwaysStoppedAnimation(
+                      DashboardColors.primary,
                     ),
                   ),
                 ),
-                Text(
-                  '${(progress * 100).round()}%',
-                  style: const TextStyle(
-                    color: DashboardColors.primary,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                const SizedBox(height: 20),
               ],
-            ),
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: LinearProgressIndicator(
-                  value: progress,
-                  minHeight: 5,
-                  backgroundColor: DashboardColors.surfaceHighest,
-                  valueColor: const AlwaysStoppedAnimation(
-                    DashboardColors.primary,
+              if (subtasks.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No subtasks',
+                    style: TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              for (final item in items)
-                Padding(
-                  padding: const EdgeInsets.only(top: 6),
-                  child: Row(
-                    children: [
-                      const Icon(
-                        Icons.check_circle_outline_rounded,
-                        color: DashboardColors.onSurfaceVariant,
-                        size: 16,
+                )
+              else
+                ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: subtasks.length,
+                  itemBuilder: (context, index) {
+                    final item = subtasks[index];
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () => _toggleSubtask(item, !item.isDone),
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Container(
+                                width: 20,
+                                height: 20,
+                                decoration: BoxDecoration(
+                                  color: item.isDone
+                                      ? DashboardColors.primary.withValues(alpha: .14)
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: item.isDone ? DashboardColors.primary : DashboardColors.outline,
+                                  ),
+                                ),
+                                child: item.isDone
+                                    ? const Icon(
+                                        Icons.check_rounded,
+                                        color: DashboardColors.primary,
+                                        size: 14,
+                                      )
+                                    : null,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              item.title,
+                              style: TextStyle(
+                                color: item.isDone
+                                    ? DashboardColors.onSurfaceVariant
+                                    : DashboardColors.onSurface,
+                                decoration: item.isDone ? TextDecoration.lineThrough : null,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.close_rounded, size: 16),
+                            color: DashboardColors.outline.withValues(alpha: .5),
+                            onPressed: () => _deleteSubtask(item.id),
+                            constraints: const BoxConstraints(),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ],
                       ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          item,
-                          style: const TextStyle(
+                    );
+                  },
+                ),
+              const SizedBox(height: 4),
+              if (_isAdding)
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _textController,
+                        autofocus: true,
+                        style: const TextStyle(fontSize: 14, color: DashboardColors.onSurface),
+                        decoration: const InputDecoration(
+                          hintText: 'Enter subtask...',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: DashboardColors.outline),
+                          isDense: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 4),
+                        ),
+                        onSubmitted: _addSubtask,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.check_rounded, color: DashboardColors.primary, size: 18),
+                      onPressed: () => _addSubtask(_textController.text),
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, color: DashboardColors.error, size: 18),
+                      onPressed: () {
+                        setState(() {
+                          _isAdding = false;
+                          _textController.clear();
+                        });
+                      },
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.all(4),
+                    ),
+                  ],
+                )
+              else
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _isAdding = true;
+                    });
+                  },
+                  child: MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: Row(
+                      children: const [
+                        Icon(Icons.add_rounded, color: DashboardColors.outline, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'Add another subtask...',
+                          style: TextStyle(
                             color: DashboardColors.onSurfaceVariant,
-                            fontSize: 12,
+                            fontSize: 14,
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
             ],
-          ),
-        ),
+          );
+        },
       ),
     );
   }

@@ -6,6 +6,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/screens/analytics/analytics_screen.dart';
 import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
@@ -27,9 +28,9 @@ class DesktopDashboardLayout extends StatefulWidget {
 
 class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
   int _selectedIndex = 0;
-  TasksProjectItem? _detailsItem;
+  TaskBoardItem? _detailsItem;
 
-  void _openTaskDetails(TasksProjectItem item) =>
+  void _openTaskDetails(TaskBoardItem item) =>
       setState(() => _detailsItem = item);
 
   void _closeTaskDetails() => setState(() => _detailsItem = null);
@@ -208,7 +209,7 @@ class _ProjectsBoardPane extends StatelessWidget {
 
   final VoidCallback onProfileTap;
   final VoidCallback onNewTask;
-  final ValueChanged<TasksProjectItem> onViewDetails;
+  final ValueChanged<TaskBoardItem> onViewDetails;
 
   @override
   Widget build(BuildContext context) {

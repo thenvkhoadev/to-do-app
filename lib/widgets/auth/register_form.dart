@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/screens/blank_page.dart';
 import 'package:to_do_app/theme/auth_theme.dart';
 import 'package:to_do_app/widgets/auth/auth_text_field.dart';
 import 'package:to_do_app/widgets/auth/gradient_button.dart';
 
-class RegisterForm extends StatefulWidget {
+class RegisterForm extends ConsumerStatefulWidget {
   const RegisterForm({super.key, required this.isDesktop});
 
   final bool isDesktop;
 
   @override
-  State<RegisterForm> createState() => _RegisterFormState();
+  ConsumerState<RegisterForm> createState() => _RegisterFormState();
 }
 
-class _RegisterFormState extends State<RegisterForm> {
+class _RegisterFormState extends ConsumerState<RegisterForm> {
   final _formKey = GlobalKey<FormState>();
   final _fullNameController = TextEditingController();
   final _usernameController = TextEditingController();
@@ -47,11 +49,15 @@ class _RegisterFormState extends State<RegisterForm> {
 
     setState(() => _loading = true);
     try {
-      await Supabase.instance.client.auth.signUp(
+      final response = await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
         data: {'full_name': fullName, 'username': username},
       );
+      final userId = response.user?.id;
+      if (userId != null) {
+        await ref.read(taskCreationProvider.notifier).seedUserData(userId);
+      }
       if (mounted) {
         Navigator.of(
           context,

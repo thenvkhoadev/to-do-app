@@ -12,12 +12,14 @@ class TaskRepositoryImpl implements TaskRepository {
   Stream<List<NexusTask>> watchTasks(String userId) {
     return _remoteDataSource
         .watchTasks(userId)
-        .map((tasks) => tasks.map((task) => task.toEntity()).toList());
+        .map((tasks) => tasks.map((t) => t.toEntity()).toList());
   }
 
   @override
-  Future<void> createTask(NexusTask task) =>
-      _remoteDataSource.createTask(_toModel(task));
+  Future<NexusTask> createTask(NexusTask task) async {
+    final model = await _remoteDataSource.createTask(_toModel(task));
+    return model.toEntity();
+  }
 
   @override
   Future<void> updateTask(NexusTask task) =>
@@ -26,18 +28,29 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<void> deleteTask(String id) => _remoteDataSource.deleteTask(id);
 
-  TaskModel _toModel(NexusTask task) {
-    return TaskModel(
-      id: task.id,
-      userId: task.userId,
-      title: task.title,
-      description: task.description,
-      category: task.category,
-      priority: task.priority,
-      status: task.status,
-      aiGenerated: task.aiGenerated,
-      dueDate: task.dueDate,
-      createdAt: task.createdAt,
-    );
-  }
+  @override
+  Future<void> seedSampleTasks(String userId, String? categoryId) =>
+      _remoteDataSource.seedSampleTasks(userId, categoryId);
+
+  TaskModel _toModel(NexusTask task) => TaskModel(
+        id: task.id,
+        userId: task.userId,
+        title: task.title,
+        description: task.description,
+        categoryId: task.categoryId,
+        priority: task.priority,
+        status: task.status,
+        aiGenerated: task.aiGenerated,
+        dueDate: task.dueDate,
+        reminderAt: task.reminderAt,
+        completedAt: task.completedAt,
+        parentTaskId: task.parentTaskId,
+        sortOrder: task.sortOrder,
+        estimatedMinutes: task.estimatedMinutes,
+        createdAt: task.createdAt,
+        updatedAt: task.updatedAt,
+        deletedAt: task.deletedAt,
+        tagIds: task.tagIds,
+        assigneeIds: task.assigneeIds,
+      );
 }

@@ -1,7 +1,17 @@
 import 'dart:ui';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/tasks/data/datasource/attachment_datasource.dart';
+import 'package:to_do_app/features/tasks/data/models/category_model.dart';
+import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class SubtaskItem {
@@ -18,44 +28,17 @@ class TeamMember {
     required this.avatarText,
     required this.color,
     required this.isOnline,
+    this.avatarUrl,
   });
   final String id;
   final String name;
   final String avatarText;
   final Color color;
   final bool isOnline;
+  final String? avatarUrl;
 }
 
-const mockTeamMembers = [
-  TeamMember(
-    id: 'alex',
-    name: 'Alex Rivera',
-    avatarText: 'A',
-    color: DashboardColors.primary,
-    isOnline: true,
-  ),
-  TeamMember(
-    id: 'maria',
-    name: 'Maria Santos',
-    avatarText: 'M',
-    color: DashboardColors.secondary,
-    isOnline: true,
-  ),
-  TeamMember(
-    id: 'kevin',
-    name: 'Kevin Park',
-    avatarText: 'K',
-    color: DashboardColors.tertiary,
-    isOnline: false,
-  ),
-  TeamMember(
-    id: 'sarah',
-    name: 'Sarah Connor',
-    avatarText: 'S',
-    color: DashboardColors.error,
-    isOnline: true,
-  ),
-];
+
 
 const mockProjects = [
   {'name': 'AI Core 2.0', 'color': DashboardColors.primary},
@@ -64,30 +47,31 @@ const mockProjects = [
   {'name': 'Latency Analysis', 'color': DashboardColors.secondary},
 ];
 
-class NewTasksDesktopLayout extends StatefulWidget {
+class NewTasksDesktopLayout extends ConsumerStatefulWidget {
   const NewTasksDesktopLayout({this.onClose, super.key});
 
   final VoidCallback? onClose;
 
   @override
-  State<NewTasksDesktopLayout> createState() => _NewTasksDesktopLayoutState();
+  ConsumerState<NewTasksDesktopLayout> createState() =>
+      _NewTasksDesktopLayoutState();
 }
 
-class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
+class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _newSubtaskController = TextEditingController();
+  late final quill.QuillController _quillController;
   bool _isAddingSubtask = false;
 
   // Form State
-  String _selectedProject = 'AI Core 2.0';
-  String _selectedPriority = 'Smart AI';
-  DateTime _selectedDate = DateTime(2026, 11, 24);
+  String? _selectedCategoryId;
+  String _selectedPriority = 'medium';
+  DateTime _selectedDate = DateTime.now().add(const Duration(days: 7));
   double _selectedEstimate = 4.0;
-  final List<String> _selectedTags = ['#Strategy', '#DeepWork'];
-  final List<TeamMember> _selectedAssignees = [
-    mockTeamMembers[0], // Pre-assign Alex Rivera
-  ];
+  final List<String> _selectedTagIds = [];
+  final List<TeamMember> _selectedAssignees = [];
+  List<PlatformFileInfo> _selectedFiles = [];
 
   // Subtasks State
   final List<SubtaskItem> _subtasks = [
@@ -103,6 +87,8 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     ),
   ];
   bool _isAiGeneratingSubtasks = false;
+  bool _localSavingDraft = false;
+  bool _localDeploying = false;
 
   // AI Suggestion Dock State
   bool _showSuggestionDock = false;
@@ -112,6 +98,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
   @override
   void initState() {
     super.initState();
+    _quillController = quill.QuillController.basic();
     _titleController.addListener(_onInputChanged);
     _descriptionController.addListener(_onInputChanged);
   }
@@ -121,6 +108,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     _titleController.dispose();
     _descriptionController.dispose();
     _newSubtaskController.dispose();
+    _quillController.dispose();
     super.dispose();
   }
 
@@ -162,17 +150,48 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     }
   }
 
+  TeamMember _mapUserToTeamMember(UserProfileModel user) {
+    final name = user.fullName ?? user.username ?? user.email;
+    final avatarText = name.isNotEmpty ? name[0].toUpperCase() : 'U';
+    final colors = [
+      DashboardColors.primary,
+      DashboardColors.secondary,
+      DashboardColors.tertiary,
+      DashboardColors.outline,
+    ];
+    final index = user.id.hashCode.abs() % colors.length;
+    final color = colors[index];
+    return TeamMember(
+      id: user.id,
+      name: name,
+      avatarText: avatarText,
+      color: color,
+      isOnline: true,
+      avatarUrl: user.avatarUrl,
+    );
+  }
+
   void _applyAiSuggestion() {
     setState(() {
       if (_suggestionApplyType == 'security_assign') {
-        // Assign to Kevin Park (mockTeamMembers[2])
-        if (!_selectedAssignees.any((m) => m.id == 'kevin')) {
-          _selectedAssignees.add(mockTeamMembers[2]);
+        final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
+        final kevinUser = allUsers.firstWhere(
+          (u) => (u.fullName ?? u.username ?? '').toLowerCase().contains('kevin'),
+          orElse: () => allUsers.isNotEmpty
+              ? allUsers.first
+              : const UserProfileModel(
+                  id: 'kevin',
+                  email: 'kevin@example.com',
+                  fullName: 'Kevin Park',
+                ),
+        );
+        final kevinMember = _mapUserToTeamMember(kevinUser);
+        if (!_selectedAssignees.any((m) => m.id == kevinMember.id)) {
+          _selectedAssignees.add(kevinMember);
         }
-        _selectedProject = 'Security Audit';
-        _selectedPriority = 'High';
+        _selectedPriority = 'high';
       } else if (_suggestionApplyType == 'priority_high') {
-        _selectedPriority = 'High';
+        _selectedPriority = 'high';
         _selectedEstimate = 8.0;
       } else if (_suggestionApplyType == 'milestones') {
         // AI suggest subtasks directly
@@ -228,6 +247,143 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
         ),
       );
     }
+  }
+
+  void _toggleQuillFormat(quill.Attribute attribute) {
+    final sel = _quillController.selection;
+    if (!sel.isValid) return;
+
+    int start = sel.start;
+    int end = sel.end;
+
+    // No selection — expand to word at cursor
+    if (sel.isCollapsed) {
+      final plainText = _quillController.document.toPlainText();
+      final cursor = sel.start;
+      start = cursor;
+      end = cursor;
+      while (start > 0 && _isQuillWordChar(plainText[start - 1])) {
+        start--;
+      }
+      while (end < plainText.length && _isQuillWordChar(plainText[end])) {
+        end++;
+      }
+      if (start == end) return;
+
+      _quillController.updateSelection(
+        TextSelection(baseOffset: start, extentOffset: end),
+        quill.ChangeSource.local,
+      );
+    }
+
+    // Check if the attribute is already applied on the selection
+    final style = _quillController.getSelectionStyle();
+    final isActive = style.containsKey(attribute.key) &&
+        style.attributes[attribute.key]?.value == true;
+
+    if (isActive) {
+      _quillController.formatSelection(
+          quill.Attribute.clone(attribute, null));
+    } else {
+      _quillController.formatSelection(attribute);
+    }
+
+    // Collapse selection back to end if we auto-expanded
+    if (sel.isCollapsed) {
+      _quillController.updateSelection(
+        TextSelection.collapsed(offset: end),
+        quill.ChangeSource.local,
+      );
+    }
+  }
+
+  bool _isQuillWordChar(String c) => RegExp(r'[\wÀ-ɏ]').hasMatch(c);
+
+  Future<void> _insertQuillLink() async {
+    final urlController = TextEditingController();
+    final labelController = TextEditingController();
+
+    // Pre-fill label from selection
+    final sel = _quillController.selection;
+    if (sel.isValid && !sel.isCollapsed) {
+      final doc = _quillController.document;
+      labelController.text = doc.getPlainText(sel.start, sel.end - sel.start);
+    }
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DashboardColors.surfaceLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+              color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+        ),
+        title: Text('Insert Link',
+            style: GoogleFonts.interTight(
+                fontWeight: FontWeight.w700,
+                color: DashboardColors.onSurface)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: labelController,
+              decoration: const InputDecoration(labelText: 'Label'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: urlController,
+              decoration: const InputDecoration(
+                  labelText: 'URL', hintText: 'https://'),
+              keyboardType: TextInputType.url,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel',
+                style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+                backgroundColor: DashboardColors.primaryContainer),
+            onPressed: () {
+              final url = urlController.text.trim();
+              final label = labelController.text.trim();
+              if (url.isNotEmpty) {
+                final sel = _quillController.selection;
+                if (sel.isValid && !sel.isCollapsed) {
+                  // Apply link attribute to selection
+                  _quillController.formatSelection(
+                      quill.LinkAttribute(url));
+                } else {
+                  // Insert label text with link
+                  final insertText = label.isNotEmpty ? label : url;
+                  _quillController.document.insert(
+                      sel.isValid ? sel.start : 0, insertText);
+                  final insertSel = TextSelection(
+                    baseOffset: sel.isValid ? sel.start : 0,
+                    extentOffset:
+                        (sel.isValid ? sel.start : 0) + insertText.length,
+                  );
+                  _quillController.updateSelection(
+                      insertSel, quill.ChangeSource.local);
+                  _quillController.formatSelection(
+                      quill.LinkAttribute(url));
+                }
+              }
+              Navigator.pop(context);
+            },
+            child: const Text('Insert',
+                style: TextStyle(color: DashboardColors.onPrimary)),
+          ),
+        ],
+      ),
+    );
+
+    urlController.dispose();
+    labelController.dispose();
   }
 
   void _addNewSubtask() {
@@ -374,7 +530,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     );
   }
 
-  void _openAssigneePicker() {
+  void _openAssigneePicker(List<TeamMember> teamMembers) {
     showDialog(
       context: context,
       builder: (context) {
@@ -400,7 +556,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                 child: ListView(
                   shrinkWrap: true,
                   children:
-                      mockTeamMembers.map((m) {
+                      teamMembers.map((m) {
                         final isSelected = _selectedAssignees.any(
                           (selected) => selected.id == m.id,
                         );
@@ -412,14 +568,19 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                           secondary: CircleAvatar(
                             radius: 16,
                             backgroundColor: m.color.withValues(alpha: .18),
-                            child: Text(
-                              m.avatarText,
-                              style: TextStyle(
-                                color: m.color,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w900,
-                              ),
-                            ),
+                            backgroundImage: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
+                                ? NetworkImage(m.avatarUrl!)
+                                : null,
+                            child: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
+                                ? null
+                                : Text(
+                                    m.avatarText,
+                                    style: TextStyle(
+                                      color: m.color,
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w900,
+                                    ),
+                                  ),
                           ),
                           title: Text(
                             m.name,
@@ -471,36 +632,446 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
     );
   }
 
-  void _deployTask() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            const Icon(
-              Icons.rocket_launch_rounded,
-              color: DashboardColors.onPrimary,
-              size: 20,
+  Future<void> _deployTask({bool isDraft = false}) async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please enter a task title.')),
+      );
+      return;
+    }
+
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null) return;
+
+    setState(() {
+      if (isDraft) {
+        _localSavingDraft = true;
+      } else {
+        _localDeploying = true;
+      }
+    });
+
+    try {
+      final priorityMap = {
+        'Smart AI': 'medium',
+        'High': 'high',
+        'Medium': 'medium',
+        'Low': 'low',
+      };
+
+      final created = await ref.read(taskCreationProvider.notifier).createTask(
+            userId: user.id,
+            title: title,
+            description: _quillController.document.toPlainText().trim().isEmpty
+                ? null
+                : _quillController.document.toPlainText().trim(),
+            categoryId: _selectedCategoryId,
+            priority: priorityMap[_selectedPriority] ?? 'medium',
+            status: isDraft ? 'draft' : 'todo',
+            dueDate: _selectedDate,
+            estimatedMinutes: (_selectedEstimate * 60).round(),
+            tagIds: _selectedTagIds,
+            attachments: _selectedFiles,
+            assigneeIds: _selectedAssignees.map((m) => m.id).toList(),
+            subtaskTitles: _subtasks.map((e) => e.text).toList(),
+          );
+
+      if (!mounted) return;
+
+      if (created != null) {
+        ref.invalidate(taskAttachmentsProvider(created.id));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.rocket_launch_rounded,
+                    color: DashboardColors.onPrimary, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isDraft
+                        ? 'Saved "${created.title}" as draft!'
+                        : 'Deployed "${created.title}" to workspace!',
+                    style: const TextStyle(
+                        color: DashboardColors.onPrimary,
+                        fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Text(
-                'Deploying "${_titleController.text.isNotEmpty ? _titleController.text : 'New Task'}" to workspace...',
-                style: const TextStyle(
-                  color: DashboardColors.onPrimary,
-                  fontWeight: FontWeight.w700,
+            backgroundColor: DashboardColors.primary,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        widget.onClose?.call();
+      } else {
+        final error = ref.read(taskCreationProvider).error;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to create task: ${error ?? 'Unknown error'}'),
+            backgroundColor: DashboardColors.error,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _localSavingDraft = false;
+          _localDeploying = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _showAddTagDialog() async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null) return;
+
+    final controller = TextEditingController();
+    String selectedColorHex = '#8083FF';
+    final colors = ['#8083FF', '#7CFFB2', '#FF6B9D', '#FFD166', '#06D6A0', '#FF5733'];
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: DashboardColors.surfaceLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(
+                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
                 ),
               ),
-            ),
-          ],
-        ),
-        backgroundColor: DashboardColors.primary,
-        duration: const Duration(seconds: 3),
-      ),
+              title: Text(
+                'Create New Tag',
+                style: GoogleFonts.interTight(
+                  fontWeight: FontWeight.w700,
+                  color: DashboardColors.onSurface,
+                ),
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextField(
+                    controller: controller,
+                    autofocus: true,
+                    style: const TextStyle(color: DashboardColors.onSurface),
+                    decoration: InputDecoration(
+                      labelText: 'Tag Name',
+                      labelStyle: const TextStyle(color: DashboardColors.onSurfaceVariant),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: const BorderSide(color: DashboardColors.primary),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text(
+                    'Select Tag Color',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: DashboardColors.onSurfaceVariant,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: colors.map((colorHex) {
+                      final color = _parseTagColor(colorHex);
+                      final isSelected = selectedColorHex == colorHex;
+                      return GestureDetector(
+                        onTap: () {
+                          setDialogState(() {
+                            selectedColorHex = colorHex;
+                          });
+                        },
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: color,
+                            shape: BoxShape.circle,
+                            border: isSelected
+                                ? Border.all(color: Colors.white, width: 2)
+                                : null,
+                            boxShadow: isSelected
+                                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                                : null,
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: DashboardColors.onSurfaceVariant),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DashboardColors.primaryContainer,
+                  ),
+                  onPressed: () async {
+                    final name = controller.text.trim();
+                    if (name.isEmpty) return;
+                    try {
+                      final tagDs = ref.read(tagDataSourceProvider);
+                      final newTag = await tagDs.createTag(TagModel(
+                        id: '',
+                        userId: user.id,
+                        name: name,
+                        color: selectedColorHex,
+                      ));
+                      // Automatically select the newly created tag
+                      setState(() {
+                        _selectedTagIds.add(newTag.id);
+                      });
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to create tag: $e')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text(
+                    'Create',
+                    style: TextStyle(color: DashboardColors.onPrimary),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
+    controller.dispose();
+  }
+
+  Future<void> _showAddCategoryDialog() async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null) return;
+
+    final controller = TextEditingController();
+    String selectedColorHex = '#8083FF';
+    String selectedIcon = 'work';
+    final colors = ['#8083FF', '#7CFFB2', '#FF6B9D', '#FFD166', '#06D6A0', '#FF5733'];
+    final icons = {
+      'work': Icons.work_rounded,
+      'person': Icons.person_rounded,
+      'school': Icons.school_rounded,
+      'heart': Icons.favorite_rounded,
+      'balance': Icons.account_balance_rounded,
+      'sports': Icons.sports_basketball_rounded,
+    };
+
+    await showDialog(
+      context: context,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return AlertDialog(
+              backgroundColor: DashboardColors.surfaceLow,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+                side: BorderSide(
+                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
+                ),
+              ),
+              title: Text(
+                'Create New Category',
+                style: GoogleFonts.interTight(
+                  fontWeight: FontWeight.w700,
+                  color: DashboardColors.onSurface,
+                ),
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextField(
+                      controller: controller,
+                      autofocus: true,
+                      style: const TextStyle(color: DashboardColors.onSurface),
+                      decoration: InputDecoration(
+                        labelText: 'Category Name',
+                        labelStyle: const TextStyle(color: DashboardColors.onSurfaceVariant),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: DashboardColors.primary),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Select Category Color',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: DashboardColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: colors.map((colorHex) {
+                        final color = _parseTagColor(colorHex);
+                        final isSelected = selectedColorHex == colorHex;
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedColorHex = colorHex;
+                            });
+                          },
+                          child: Container(
+                            width: 32,
+                            height: 32,
+                            decoration: BoxDecoration(
+                              color: color,
+                              shape: BoxShape.circle,
+                              border: isSelected
+                                  ? Border.all(color: Colors.white, width: 2)
+                                  : null,
+                              boxShadow: isSelected
+                                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
+                                  : null,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Select Icon',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: DashboardColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: icons.entries.map((entry) {
+                        final isSelected = selectedIcon == entry.key;
+                        final color = _parseTagColor(selectedColorHex);
+                        return GestureDetector(
+                          onTap: () {
+                            setDialogState(() {
+                              selectedIcon = entry.key;
+                            });
+                          },
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? color.withValues(alpha: .18)
+                                  : Colors.white.withValues(alpha: .02),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? color
+                                    : DashboardColors.outlineVariant.withValues(alpha: .2),
+                              ),
+                            ),
+                            child: Icon(
+                              entry.value,
+                              color: isSelected ? color : DashboardColors.onSurfaceVariant,
+                              size: 20,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text(
+                    'Cancel',
+                    style: TextStyle(color: DashboardColors.onSurfaceVariant),
+                  ),
+                ),
+                FilledButton(
+                  style: FilledButton.styleFrom(
+                    backgroundColor: DashboardColors.primaryContainer,
+                  ),
+                  onPressed: () async {
+                    final name = controller.text.trim();
+                    if (name.isEmpty) return;
+                    try {
+                      final categoryDs = ref.read(categoryDataSourceProvider);
+                      final newCat = await categoryDs.createCategory(CategoryModel(
+                        id: '',
+                        userId: user.id,
+                        name: name,
+                        color: selectedColorHex,
+                        icon: selectedIcon,
+                      ));
+                      // Automatically select the newly created category
+                      setState(() {
+                        _selectedCategoryId = newCat.id;
+                      });
+                      if (context.mounted) Navigator.pop(context);
+                    } catch (e) {
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Failed to create category: $e')),
+                        );
+                      }
+                    }
+                  },
+                  child: const Text(
+                    'Create',
+                    style: TextStyle(color: DashboardColors.onPrimary),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+    controller.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final categoriesAsync = ref.watch(userCategoriesProvider);
+    final tagsAsync = ref.watch(userTagsProvider);
+    final categories = categoriesAsync.valueOrNull ?? [];
+    final tags = tagsAsync.valueOrNull ?? [];
+    final isDeploying = _localSavingDraft || _localDeploying;
+
+    final allUsersAsync = ref.watch(allUsersProvider);
+    final allUsers = allUsersAsync.valueOrNull ?? [];
+    final teamMembers = allUsers.map(_mapUserToTeamMember).toList();
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final otherTeamMembers = teamMembers.where((m) => m.id != currentUser?.id).toList();
+
     return Stack(
       children: [
         const _DesktopBackdrop(),
@@ -547,10 +1118,13 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    _TeamPresenceRow(
-                                      members: _selectedAssignees,
-                                    ),
-                                    const SizedBox(height: 24),
+                                    if (_selectedAssignees.isNotEmpty) ...[
+                                      _TeamPresenceRow(
+                                        members: _selectedAssignees,
+                                        fallbackMembers: teamMembers,
+                                      ),
+                                      const SizedBox(height: 24),
+                                    ],
                                     const _Label('TASK TITLE'),
                                     TextField(
                                       controller: _titleController,
@@ -588,44 +1162,68 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     _GlassBox(
                                       padding: const EdgeInsets.all(16),
                                       child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
-                                          TextField(
-                                            controller: _descriptionController,
-                                            maxLines: 4,
-                                            style: GoogleFonts.inter(
-                                              fontSize: 16,
-                                              height: 1.5,
-                                            ),
-                                            decoration:
-                                                const InputDecoration.collapsed(
-                                                  hintText:
-                                                      'Outline the objective and requirements...',
-                                                ),
-                                          ),
-                                          const SizedBox(height: 16),
+                                          // Toolbar
                                           Row(
-                                            children: const [
-                                              Icon(
-                                                Icons.format_bold_rounded,
-                                                size: 20,
+                                            children: [
+                                              _FormatButton(
+                                                icon: Icons.format_bold_rounded,
+                                                onTap: () => _toggleQuillFormat(
+                                                    quill.Attribute.bold),
                                               ),
-                                              SizedBox(width: 10),
-                                              Icon(
-                                                Icons.format_italic_rounded,
-                                                size: 20,
+                                              const SizedBox(width: 10),
+                                              _FormatButton(
+                                                icon:
+                                                    Icons.format_italic_rounded,
+                                                onTap: () => _toggleQuillFormat(
+                                                    quill.Attribute.italic),
                                               ),
-                                              SizedBox(width: 10),
-                                              Icon(
-                                                Icons.link_rounded,
-                                                size: 20,
+                                              const SizedBox(width: 10),
+                                              _FormatButton(
+                                                icon: Icons.link_rounded,
+                                                onTap: () =>
+                                                    _insertQuillLink(),
                                               ),
-                                              Spacer(),
-                                              Icon(
+                                              const Spacer(),
+                                              const Icon(
                                                 Icons.auto_awesome_rounded,
                                                 color: DashboardColors.primary,
                                                 size: 20,
                                               ),
                                             ],
+                                          ),
+                                          const SizedBox(height: 10),
+                                          const Divider(
+                                            height: 1,
+                                            color: DashboardColors.surfaceHighest,
+                                          ),
+                                          const SizedBox(height: 10),
+                                          // Editor
+                                          quill.QuillEditor.basic(
+                                            controller: _quillController,
+                                            config: quill.QuillEditorConfig(
+                                              minHeight: 100,
+                                              maxHeight: 200,
+                                              placeholder:
+                                                  'Outline the objective and requirements...',
+                                              customStyles:
+                                                  quill.DefaultStyles(
+                                                paragraph: quill.DefaultTextBlockStyle(
+                                                  GoogleFonts.inter(
+                                                    fontSize: 16,
+                                                    height: 1.5,
+                                                    color: DashboardColors
+                                                        .onSurface,
+                                                  ),
+                                                  quill.HorizontalSpacing.zero,
+                                                  quill.VerticalSpacing.zero,
+                                                  quill.VerticalSpacing.zero,
+                                                  null,
+                                                ),
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -959,14 +1557,29 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               const _SuggestionCard(),
                                               const SizedBox(height: 24),
                                               // Assigned Project selector
-                                              const _Label('ASSIGNED PROJECT'),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                children: [
+                                                  const _Label('ASSIGNED PROJECT'),
+                                                  IconButton(
+                                                    icon: const Icon(
+                                                      Icons.add_rounded,
+                                                      color: DashboardColors.primary,
+                                                      size: 18,
+                                                    ),
+                                                    padding: EdgeInsets.zero,
+                                                    constraints: const BoxConstraints(),
+                                                    onPressed: _showAddCategoryDialog,
+                                                  ),
+                                                ],
+                                              ),
                                               const SizedBox(height: 8),
-                                              _AssignedProjectDropdown(
-                                                selectedProject:
-                                                    _selectedProject,
-                                                onSelected: (value) {
+                                              _CategoryDropdown(
+                                                categories: categories,
+                                                selectedId: _selectedCategoryId,
+                                                onSelected: (id) {
                                                   setState(() {
-                                                    _selectedProject = value;
+                                                    _selectedCategoryId = id;
                                                   });
                                                 },
                                               ),
@@ -977,29 +1590,32 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               Row(
                                                 children:
                                                     [
-                                                      'Smart AI',
-                                                      'High',
-                                                      'Medium',
-                                                      'Low',
+                                                      'medium',
+                                                      'high',
+                                                      'urgent',
+                                                      'low',
                                                     ].map((priority) {
                                                       final isSelected =
                                                           _selectedPriority ==
                                                           priority;
                                                       final Color accentColor =
                                                           switch (priority) {
-                                                            'High' =>
+                                                            'urgent' =>
                                                               DashboardColors
                                                                   .error,
-                                                            'Medium' =>
+                                                            'high' =>
                                                               DashboardColors
-                                                                  .secondary,
-                                                            'Low' =>
+                                                                  .error,
+                                                            'low' =>
                                                               DashboardColors
                                                                   .tertiary,
                                                             _ =>
                                                               DashboardColors
-                                                                  .primary,
+                                                                  .secondary,
                                                           };
+                                                      final label =
+                                                          priority[0].toUpperCase() +
+                                                          priority.substring(1);
                                                       return Expanded(
                                                         child: GestureDetector(
                                                           onTap: () {
@@ -1023,16 +1639,13 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                                     vertical: 8,
                                                                   ),
                                                               decoration: BoxDecoration(
-                                                                color:
-                                                                    isSelected
-                                                                        ? accentColor.withValues(
-                                                                          alpha:
-                                                                              .18,
-                                                                        )
-                                                                        : Colors.white.withValues(
-                                                                          alpha:
-                                                                              .02,
-                                                                        ),
+                                                                color: isSelected
+                                                                    ? accentColor.withValues(
+                                                                        alpha: .18,
+                                                                      )
+                                                                    : Colors.white.withValues(
+                                                                        alpha: .02,
+                                                                      ),
                                                                 borderRadius:
                                                                     BorderRadius.circular(
                                                                       10,
@@ -1062,7 +1675,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                               ),
                                                               child: Center(
                                                                 child: Text(
-                                                                  priority,
+                                                                  label,
                                                                   style: GoogleFonts.inter(
                                                                     fontSize:
                                                                         12,
@@ -1086,6 +1699,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                               const SizedBox(height: 16),
                                               const _SmartPriorityHeatmap(),
                                               const SizedBox(height: 24),
+
                                               // Due Date & Estimate Interactive Tiles
                                               Row(
                                                 children: [
@@ -1222,111 +1836,60 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                 crossAxisAlignment:
                                                     CrossAxisAlignment.start,
                                                 children: [
-                                                  const _Label('TAGS & LABELS'),
+                                                  Row(
+                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    children: [
+                                                      const _Label('TAGS & LABELS'),
+                                                      IconButton(
+                                                        icon: const Icon(
+                                                          Icons.add_rounded,
+                                                          color: DashboardColors.primary,
+                                                          size: 18,
+                                                        ),
+                                                        padding: EdgeInsets.zero,
+                                                        constraints: const BoxConstraints(),
+                                                        onPressed: _showAddTagDialog,
+                                                      ),
+                                                    ],
+                                                  ),
                                                   const SizedBox(height: 10),
                                                   Wrap(
                                                     spacing: 8,
                                                     runSpacing: 8,
                                                     children: [
-                                                      ..._selectedTags.map((
-                                                        tag,
-                                                      ) {
-                                                        final Color color =
-                                                            tag == '#Strategy'
-                                                                ? DashboardColors
-                                                                    .secondary
-                                                                : DashboardColors
-                                                                    .tertiary;
+                                                      ...tags.map((tag) {
+                                                        final isSelected =
+                                                            _selectedTagIds
+                                                                .contains(
+                                                                    tag.id);
+                                                        final color = _parseTagColor(
+                                                            tag.color);
                                                         return GestureDetector(
                                                           onTap: () {
                                                             setState(() {
-                                                              _selectedTags
-                                                                  .remove(tag);
+                                                              if (isSelected) {
+                                                                _selectedTagIds
+                                                                    .remove(
+                                                                        tag.id);
+                                                              } else {
+                                                                _selectedTagIds
+                                                                    .add(
+                                                                        tag.id);
+                                                              }
                                                             });
                                                           },
-                                                          child: _Tag(
-                                                            tag,
-                                                            color,
+                                                          child: MouseRegion(
+                                                            cursor:
+                                                                SystemMouseCursors
+                                                                    .click,
+                                                            child: _Tag(
+                                                              '#${tag.name}',
+                                                              color,
+                                                              isSelected: isSelected,
+                                                            ),
                                                           ),
                                                         );
                                                       }),
-                                                      GestureDetector(
-                                                        onTap: () {
-                                                          showDialog(
-                                                            context: context,
-                                                            builder: (context) {
-                                                              final controller =
-                                                                  TextEditingController();
-                                                              return AlertDialog(
-                                                                backgroundColor:
-                                                                    DashboardColors
-                                                                        .surfaceLow,
-                                                                title:
-                                                                    const Text(
-                                                                      'Add Tag',
-                                                                    ),
-                                                                content: TextField(
-                                                                  controller:
-                                                                      controller,
-                                                                  decoration:
-                                                                      const InputDecoration(
-                                                                        hintText:
-                                                                            'e.g. #Backend',
-                                                                      ),
-                                                                ),
-                                                                actions: [
-                                                                  TextButton(
-                                                                    onPressed:
-                                                                        () => Navigator.pop(
-                                                                          context,
-                                                                        ),
-                                                                    child: const Text(
-                                                                      'Cancel',
-                                                                    ),
-                                                                  ),
-                                                                  FilledButton(
-                                                                    onPressed: () {
-                                                                      final text =
-                                                                          controller
-                                                                              .text
-                                                                              .trim();
-                                                                      if (text
-                                                                          .isNotEmpty) {
-                                                                        setState(() {
-                                                                          final cleanedText =
-                                                                              text.startsWith('#')
-                                                                                  ? text
-                                                                                  : '#$text';
-                                                                          if (!_selectedTags.contains(
-                                                                            cleanedText,
-                                                                          )) {
-                                                                            _selectedTags.add(
-                                                                              cleanedText,
-                                                                            );
-                                                                          }
-                                                                        });
-                                                                      }
-                                                                      Navigator.pop(
-                                                                        context,
-                                                                      );
-                                                                    },
-                                                                    child:
-                                                                        const Text(
-                                                                          'Add',
-                                                                        ),
-                                                                  ),
-                                                                ],
-                                                              );
-                                                            },
-                                                          );
-                                                        },
-                                                        child: const MouseRegion(
-                                                          cursor:
-                                                              SystemMouseCursors
-                                                                  .click,
-                                                          child: _AddTag(),
-                                                        ),
-                                                      ),
                                                     ],
                                                   ),
                                                 ],
@@ -1337,7 +1900,13 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                       ),
                                     ),
                                     const SizedBox(height: 32),
-                                    const _AttachmentCard(),
+                                    _AttachmentCard(
+                                      onFilesChanged: (files) {
+                                        setState(() {
+                                          _selectedFiles = files;
+                                        });
+                                      },
+                                    ),
                                     const SizedBox(height: 20),
                                     const _KnowledgeGraphPreview(),
                                     const SizedBox(height: 20),
@@ -1361,7 +1930,7 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                         child: Row(
                           children: [
                             GestureDetector(
-                              onTap: _openAssigneePicker,
+                              onTap: () => _openAssigneePicker(otherTeamMembers),
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Row(
@@ -1397,15 +1966,20 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                                   radius: 16,
                                                   backgroundColor: m.color
                                                       .withValues(alpha: .2),
-                                                  child: Text(
-                                                    m.avatarText,
-                                                    style: TextStyle(
-                                                      color: m.color,
-                                                      fontSize: 12,
-                                                      fontWeight:
-                                                          FontWeight.w900,
-                                                    ),
-                                                  ),
+                                                  backgroundImage: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
+                                                      ? NetworkImage(m.avatarUrl!)
+                                                      : null,
+                                                  child: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
+                                                      ? null
+                                                      : Text(
+                                                          m.avatarText,
+                                                          style: TextStyle(
+                                                            color: m.color,
+                                                            fontSize: 12,
+                                                            fontWeight:
+                                                                FontWeight.w900,
+                                                          ),
+                                                        ),
                                                 ),
                                               );
                                             },
@@ -1427,30 +2001,52 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                               ),
                             ),
                             const Spacer(),
-                            OutlinedButton(
-                              onPressed: () {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Draft saved successfully!'),
-                                  ),
-                                );
-                              },
-                              child: const Text('Save Draft'),
+                             OutlinedButton(
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: DashboardColors.onSurface,
+                                side: BorderSide(
+                                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
+                                ),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 18,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                              onPressed: isDeploying ? null : () => _deployTask(isDraft: true),
+                              child: _localSavingDraft
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: DashboardColors.onSurface,
+                                      ),
+                                    )
+                                  : const Text('Save Draft'),
                             ),
                             const SizedBox(width: 16),
                             DecoratedBox(
                               decoration: BoxDecoration(
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   colors: [
-                                    DashboardColors.primary,
-                                    DashboardColors.secondary,
+                                    isDeploying
+                                        ? DashboardColors.primary
+                                            .withValues(alpha: .5)
+                                        : DashboardColors.primary,
+                                    isDeploying
+                                        ? DashboardColors.secondary
+                                            .withValues(alpha: .5)
+                                        : DashboardColors.secondary,
                                   ],
                                 ),
                                 borderRadius: BorderRadius.circular(999),
                                 boxShadow: [
                                   BoxShadow(
                                     color: DashboardColors.primary.withValues(
-                                      alpha: .30,
+                                      alpha: isDeploying ? .10 : .30,
                                     ),
                                     blurRadius: 20,
                                   ),
@@ -1466,12 +2062,22 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                                     vertical: 18,
                                   ),
                                 ),
-                                onPressed: _deployTask,
-                                icon: const Icon(
-                                  Icons.rocket_launch_rounded,
-                                  size: 16,
-                                ),
-                                label: const Text('Deploy Task'),
+                                onPressed: isDeploying ? null : () => _deployTask(isDraft: false),
+                                icon: _localDeploying
+                                    ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: DashboardColors.onPrimary,
+                                        ),
+                                      )
+                                    : const Icon(
+                                        Icons.rocket_launch_rounded,
+                                        size: 16,
+                                      ),
+                                label: Text(
+                                    _localDeploying ? 'Deploying...' : 'Deploy Task'),
                               ),
                             ),
                           ],
@@ -1493,29 +2099,29 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
         AnimatedPositioned(
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
-          bottom: _showSuggestionDock ? 36 : -100,
-          left: 0,
-          right: 0,
+          top: _showSuggestionDock ? 60 : -100, // Di chuyển lên phía trên để không đè nút bên dưới
+          left: 12,
+          right: 30,
           child: Center(
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(24),
+              borderRadius: BorderRadius.circular(16),
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 24,
-                    vertical: 14,
+                    horizontal: 16,
+                    vertical: 8,
                   ),
                   decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: .45),
-                    borderRadius: BorderRadius.circular(24),
+                    color: Colors.black.withValues(alpha: .55),
+                    borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: DashboardColors.primary.withValues(alpha: .22),
+                      color: DashboardColors.primary.withValues(alpha: .30),
                     ),
                     boxShadow: [
                       BoxShadow(
-                        color: DashboardColors.primary.withValues(alpha: .15),
-                        blurRadius: 34,
+                        color: DashboardColors.primary.withValues(alpha: .20),
+                        blurRadius: 24,
                       ),
                     ],
                   ),
@@ -1525,30 +2131,36 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                       const Icon(
                         Icons.auto_awesome_rounded,
                         color: DashboardColors.secondary,
-                        size: 18,
+                        size: 16,
                       ),
-                      const SizedBox(width: 10),
-                      Text(
-                        _suggestionText,
-                        style: const TextStyle(
-                          color: DashboardColors.onSurface,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _suggestionText,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: DashboardColors.onSurface,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 16),
                       TextButton(
                         onPressed: _applyAiSuggestion,
                         style: TextButton.styleFrom(
                           foregroundColor: DashboardColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text(
                           'Apply',
-                          style: TextStyle(fontWeight: FontWeight.w900),
+                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
                         ),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
                       TextButton(
                         onPressed: () {
                           setState(() {
@@ -1557,9 +2169,11 @@ class _NewTasksDesktopLayoutState extends State<NewTasksDesktopLayout> {
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: DashboardColors.onSurfaceVariant,
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('Dismiss'),
+                        child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
                       ),
                     ],
                   ),
@@ -2011,6 +2625,283 @@ Map<String, Object> _projectByName(String name) {
   );
 }
 
+Color _parseTagColor(String? hex) {
+  if (hex == null) return DashboardColors.primary;
+  try {
+    return Color(int.parse(hex.replaceFirst('#', '0xFF')));
+  } catch (_) {
+    return DashboardColors.primary;
+  }
+}
+
+class _CategoryDropdown extends StatefulWidget {
+  const _CategoryDropdown({
+    required this.categories,
+    required this.selectedId,
+    required this.onSelected,
+  });
+
+  final List<CategoryModel> categories;
+  final String? selectedId;
+  final ValueChanged<String?> onSelected;
+
+  @override
+  State<_CategoryDropdown> createState() => _CategoryDropdownState();
+}
+
+class _CategoryDropdownState extends State<_CategoryDropdown> {
+  bool _isOpen = false;
+  bool _isHovered = false;
+  final MenuController _controller = MenuController();
+
+  String get _selectedName {
+    if (widget.selectedId == null) return 'No category';
+    return widget.categories
+            .firstWhere(
+              (c) => c.id == widget.selectedId,
+              orElse: () => widget.categories.first,
+            )
+            .name;
+  }
+
+  Color get _selectedColor {
+    if (widget.selectedId == null) return DashboardColors.outline;
+    final cat = widget.categories.firstWhere(
+      (c) => c.id == widget.selectedId,
+      orElse: () => widget.categories.first,
+    );
+    return _parseTagColor(cat.color);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return MenuAnchor(
+          controller: _controller,
+          alignmentOffset: const Offset(0, 8),
+          style: MenuStyle(
+            padding: WidgetStateProperty.all(EdgeInsets.zero),
+            backgroundColor: WidgetStateProperty.all(Colors.transparent),
+            shadowColor: WidgetStateProperty.all(Colors.transparent),
+            surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
+            elevation: WidgetStateProperty.all(0),
+            shape: WidgetStateProperty.all(
+              RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(18)),
+            ),
+          ),
+          menuChildren: [
+            SizedBox(
+              width: constraints.maxWidth,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: DashboardColors.surface.withValues(alpha: .78),
+                      borderRadius: BorderRadius.circular(18),
+                      border: Border.all(
+                          color: Colors.white.withValues(alpha: .10)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: .28),
+                          blurRadius: 34,
+                          offset: const Offset(0, 18),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _CategoryMenuItem(
+                          name: 'No category',
+                          color: DashboardColors.outline,
+                          selected: widget.selectedId == null,
+                          onTap: () {
+                            widget.onSelected(null);
+                            _controller.close();
+                            setState(() => _isOpen = false);
+                          },
+                        ),
+                        ...widget.categories.map((cat) {
+                          return _CategoryMenuItem(
+                            name: cat.name,
+                            color: _parseTagColor(cat.color),
+                            selected: cat.id == widget.selectedId,
+                            onTap: () {
+                              widget.onSelected(cat.id);
+                              _controller.close();
+                              setState(() => _isOpen = false);
+                            },
+                          );
+                        }),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+          builder: (context, controller, child) {
+            return MouseRegion(
+              onEnter: (_) => setState(() => _isHovered = true),
+              onExit: (_) => setState(() => _isHovered = false),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () {
+                  if (_controller.isOpen) {
+                    _controller.close();
+                    setState(() => _isOpen = false);
+                  } else {
+                    _controller.open();
+                    setState(() => _isOpen = true);
+                  }
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 150),
+                  height: 56,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: _isHovered || _isOpen
+                        ? Colors.white.withValues(alpha: .065)
+                        : Colors.white.withValues(alpha: .04),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _isOpen
+                          ? DashboardColors.primary.withValues(alpha: .34)
+                          : Colors.white.withValues(alpha: .10),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: _selectedColor,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          _selectedName,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: DashboardColors.onSurface,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      AnimatedRotation(
+                        turns: _isOpen ? .5 : 0,
+                        duration: const Duration(milliseconds: 180),
+                        child: const Icon(
+                          Icons.keyboard_arrow_down_rounded,
+                          color: DashboardColors.outline,
+                          size: 22,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CategoryMenuItem extends StatefulWidget {
+  const _CategoryMenuItem({
+    required this.name,
+    required this.color,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String name;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  State<_CategoryMenuItem> createState() => _CategoryMenuItemState();
+}
+
+class _CategoryMenuItemState extends State<_CategoryMenuItem> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: widget.onTap,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            height: 44,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            decoration: BoxDecoration(
+              color: widget.selected
+                  ? widget.color.withValues(alpha: .16)
+                  : _hovered
+                      ? Colors.white.withValues(alpha: .055)
+                      : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: widget.selected
+                  ? Border.all(color: widget.color.withValues(alpha: .28))
+                  : null,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: widget.color,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    widget.name,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: DashboardColors.onSurface,
+                      fontWeight: widget.selected
+                          ? FontWeight.w800
+                          : FontWeight.w600,
+                    ),
+                  ),
+                ),
+                AnimatedOpacity(
+                  opacity: widget.selected ? 1 : 0,
+                  duration: const Duration(milliseconds: 150),
+                  child: Icon(Icons.check_rounded,
+                      color: widget.color, size: 18),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _SuggestionCard extends StatelessWidget {
   const _SuggestionCard();
 
@@ -2055,8 +2946,45 @@ class _SuggestionCard extends StatelessWidget {
   }
 }
 
-class _AttachmentCard extends StatelessWidget {
-  const _AttachmentCard();
+class _AttachmentCard extends StatefulWidget {
+  const _AttachmentCard({required this.onFilesChanged});
+  final ValueChanged<List<PlatformFileInfo>> onFilesChanged;
+
+  @override
+  State<_AttachmentCard> createState() => _AttachmentCardState();
+}
+
+class _AttachmentCardState extends State<_AttachmentCard> {
+  final List<PlatformFileInfo> _files = [];
+
+  Future<void> _pickFiles() async {
+    final result = await FilePicker.pickFiles(
+      allowMultiple: true,
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg', 'doc', 'docx', 'txt'],
+      withData: true,
+    );
+    if (result == null) return;
+    setState(() {
+      for (final f in result.files) {
+        if (!_files.any((e) => e.name == f.name)) {
+          _files.add(PlatformFileInfo(
+            name: f.name,
+            sizeBytes: f.size,
+            extension: f.extension ?? '',
+            bytes: f.bytes,
+            filePath: f.path,
+          ));
+        }
+      }
+    });
+    widget.onFilesChanged(_files);
+  }
+
+  void _removeFile(int index) {
+    setState(() => _files.removeAt(index));
+    widget.onFilesChanged(_files);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -2065,59 +2993,197 @@ class _AttachmentCard extends StatelessWidget {
       children: [
         const _Label('ATTACHMENTS'),
         const SizedBox(height: 12),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: DashboardColors.outlineVariant.withValues(alpha: .20),
-              width: 2,
+        GestureDetector(
+          onTap: _pickFiles,
+          child: MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: double.infinity,
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: DashboardColors.primary.withValues(alpha: .22),
+                  width: 2,
+                ),
+                color: DashboardColors.primary.withValues(alpha: .03),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: DashboardColors.primary.withValues(alpha: .10),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.upload_file_rounded,
+                      color: DashboardColors.primary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'Upload files',
+                          style: GoogleFonts.inter(
+                            color: DashboardColors.primary,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' or click to browse',
+                          style: GoogleFonts.inter(
+                            color: DashboardColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'PDF, PNG, JPG, DOC, TXT up to 10MB',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: DashboardColors.outline,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-          child: Column(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: .05),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.upload_file_rounded),
-              ),
-              const SizedBox(height: 12),
-              Text.rich(
-                TextSpan(
+        ),
+        if (_files.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ..._files.asMap().entries.map((entry) {
+            final i = entry.key;
+            final f = entry.value;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _GlassBox(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                child: Row(
                   children: [
-                    TextSpan(
-                      text: 'Upload files',
-                      style: GoogleFonts.inter(
-                        color: DashboardColors.primary,
-                        fontWeight: FontWeight.w800,
+                    Container(
+                      width: 32,
+                      height: 32,
+                      decoration: BoxDecoration(
+                        color: _extColor(f.extension)
+                            .withValues(alpha: .15),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Center(
+                        child: Text(
+                          f.extension.toUpperCase(),
+                          style: GoogleFonts.jetBrainsMono(
+                            fontSize: 9,
+                            fontWeight: FontWeight.w900,
+                            color: _extColor(f.extension),
+                          ),
+                        ),
                       ),
                     ),
-                    TextSpan(
-                      text: ' or drag and drop',
-                      style: GoogleFonts.inter(
-                        color: DashboardColors.onSurfaceVariant,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            f.name,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: DashboardColors.onSurface,
+                            ),
+                          ),
+                          Text(
+                            _formatSize(f.sizeBytes),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: DashboardColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
                       ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 16),
+                      color: DashboardColors.outline
+                          .withValues(alpha: .6),
+                      onPressed: () => _removeFile(i),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'PDF, PNG, JPG up to 10MB',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: DashboardColors.outline,
-                ),
-              ),
-            ],
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Color _extColor(String ext) => switch (ext.toLowerCase()) {
+        'pdf' => DashboardColors.error,
+        'png' || 'jpg' || 'jpeg' => DashboardColors.secondary,
+        'doc' || 'docx' => const Color(0xFF2B7CD3),
+        'txt' => DashboardColors.tertiary,
+        _ => DashboardColors.outline,
+      };
+
+  String _formatSize(int bytes) {
+    if (bytes < 1024) return '${bytes}B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)}KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
+  }
+}
+
+
+
+class _FormatButton extends StatefulWidget {
+  const _FormatButton({required this.icon, required this.onTap});
+
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  State<_FormatButton> createState() => _FormatButtonState();
+}
+
+class _FormatButtonState extends State<_FormatButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _hovered
+                ? DashboardColors.primary.withValues(alpha: .12)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(
+            widget.icon,
+            size: 18,
+            color: _hovered
+                ? DashboardColors.primary
+                : DashboardColors.onSurfaceVariant,
           ),
         ),
-      ],
+      ),
     );
   }
 }
@@ -2185,40 +3251,39 @@ class _Label extends StatelessWidget {
 }
 
 class _Tag extends StatelessWidget {
-  const _Tag(this.text, this.color);
+  const _Tag(this.text, this.color, {this.isSelected = false});
 
   final String text;
   final Color color;
+  final bool isSelected;
 
   @override
   Widget build(BuildContext context) {
+    // Tự động điều chỉnh màu chữ dựa trên độ sáng (luminance) của nền tag khi được chọn
+    final textColor = isSelected
+        ? (color.computeLuminance() > 0.5 ? const Color(0xFF121214) : Colors.white)
+        : color;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .18),
+        color: isSelected ? color : color.withValues(alpha: .12),
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: .22)),
+        border: Border.all(
+          color: isSelected ? color : color.withValues(alpha: .3),
+          width: 1.5,
+        ),
       ),
-      child: Text(text, style: GoogleFonts.inter(fontSize: 12, color: color)),
+      child: Text(
+        text,
+        style: GoogleFonts.inter(
+          fontSize: 12,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w600,
+          color: textColor,
+        ),
+      ),
     );
   }
-}
-
-class _AddTag extends StatelessWidget {
-  const _AddTag();
-
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 32,
-    height: 28,
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(
-        color: DashboardColors.outlineVariant.withValues(alpha: .30),
-      ),
-    ),
-    child: const Icon(Icons.add_rounded, size: 16),
-  );
 }
 
 class _Glow extends StatelessWidget {
@@ -2316,15 +3381,18 @@ class _InsightLine extends StatelessWidget {
 }
 
 class _TeamPresenceRow extends StatelessWidget {
-  const _TeamPresenceRow({required this.members});
+  const _TeamPresenceRow({required this.members, required this.fallbackMembers});
   final List<TeamMember> members;
+  final List<TeamMember> fallbackMembers;
 
   @override
   Widget build(BuildContext context) {
     final visible =
         members.isEmpty
-            ? mockTeamMembers.take(3).toList()
+            ? fallbackMembers.take(3).toList()
             : members.take(3).toList();
+    final activeCount = fallbackMembers.isEmpty ? visible.length : fallbackMembers.length;
+    final firstActiveName = fallbackMembers.isNotEmpty ? fallbackMembers.first.name : 'Someone';
     return _GlassBox(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -2343,10 +3411,10 @@ class _TeamPresenceRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              '3 collaborators active • Maria is viewing this draft',
-              style: TextStyle(
+              '$activeCount collaborators active • $firstActiveName is viewing this draft',
+              style: const TextStyle(
                 color: DashboardColors.onSurfaceVariant,
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
@@ -2375,14 +3443,19 @@ class _PresenceAvatar extends StatelessWidget {
           child: CircleAvatar(
             radius: 14,
             backgroundColor: member.color.withValues(alpha: .18),
-            child: Text(
-              member.avatarText,
-              style: TextStyle(
-                color: member.color,
-                fontSize: 11,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
+            backgroundImage: (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+                ? NetworkImage(member.avatarUrl!)
+                : null,
+            child: (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+                ? null
+                : Text(
+                    member.avatarText,
+                    style: TextStyle(
+                      color: member.color,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w900,
+                    ),
+                  ),
           ),
         ),
         if (member.isOnline)

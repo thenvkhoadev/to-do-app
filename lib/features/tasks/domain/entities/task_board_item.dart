@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
-enum TaskBoardStatus { todo, inProgress, completed }
+enum TaskBoardStatus { draft, todo, inProgress, completed }
 
 enum TaskBoardPriority { high, medium, low, done }
 
@@ -19,6 +19,7 @@ class TaskBoardItem {
     this.aiSuggestion,
     this.completed = false,
     this.dueLabel,
+    this.dueDate,
   });
 
   final String id;
@@ -33,6 +34,7 @@ class TaskBoardItem {
   final String? aiSuggestion;
   final bool completed;
   final String? dueLabel;
+  final DateTime? dueDate;
 
   String get priorityLabel => switch (priority) {
     TaskBoardPriority.high => 'High Priority',

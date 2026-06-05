@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/ai_suggestion_banner.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/glass_container.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_priority_chip.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_progress_bar.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
-class TaskCard extends StatefulWidget {
+class TaskCard extends ConsumerStatefulWidget {
   const TaskCard({
     required this.task,
     this.mobile = false,
@@ -19,11 +23,308 @@ class TaskCard extends StatefulWidget {
   final VoidCallback? onTap;
 
   @override
-  State<TaskCard> createState() => _TaskCardState();
+  ConsumerState<TaskCard> createState() => _TaskCardState();
 }
 
-class _TaskCardState extends State<TaskCard> {
+class _TaskCardState extends ConsumerState<TaskCard> {
   bool _hovered = false;
+
+  void _showContextMenu(BuildContext context, Offset globalPosition) async {
+    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final RelativeRect position = RelativeRect.fromRect(
+      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
+      Offset.zero & overlay.size,
+    );
+
+    final result = await showMenu<String>(
+      context: context,
+      position: position,
+      color: DashboardColors.surfaceLow,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.white12),
+      ),
+      items: [
+        const PopupMenuItem<String>(
+          value: 'view',
+          child: Row(
+            children: [
+              Icon(Icons.open_in_new_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+              SizedBox(width: 8),
+              Text('Xem chi tiết', style: TextStyle(color: DashboardColors.onSurface)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+              SizedBox(width: 8),
+              Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+              SizedBox(width: 8),
+              Text('Xóa', style: TextStyle(color: DashboardColors.error)),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    if (result == null) return;
+    _handleMenuAction(result);
+  }
+
+  void _handleMenuAction(String action) {
+    if (action == 'view') {
+      widget.onTap?.call();
+    } else if (action == 'edit') {
+      _showEditDialog();
+    } else if (action == 'delete') {
+      _confirmDelete();
+    }
+  }
+
+  Future<void> _confirmDelete() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DashboardColors.surfaceLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.white12),
+        ),
+        title: const Text('Xác nhận xóa', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
+        content: Text('Bạn có chắc chắn muốn xóa công việc "${widget.task.title}" không?', style: const TextStyle(color: DashboardColors.onSurfaceVariant)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: DashboardColors.error),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && mounted) {
+      try {
+        await ref.read(taskRepositoryProvider).deleteTask(widget.task.id);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Đã xóa công việc thành công')),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi khi xóa: $e')),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _showEditDialog() async {
+    try {
+      final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
+      final nexusTask = tasks.firstWhere(
+        (t) => t.id == widget.task.id,
+        orElse: () => throw Exception('Không tìm thấy task trong database'),
+      );
+
+      final titleController = TextEditingController(text: nexusTask.title);
+      final descController = TextEditingController(text: nexusTask.description ?? '');
+      final estController = TextEditingController(text: nexusTask.estimatedMinutes?.toString() ?? '');
+      String priority = nexusTask.priority.toLowerCase();
+      DateTime? dueDate = nexusTask.dueDate;
+
+      if (priority != 'low' && priority != 'medium' && priority != 'high' && priority != 'urgent') {
+        priority = 'medium';
+      }
+
+      await showDialog(
+        context: context,
+        builder: (context) {
+          return StatefulBuilder(
+            builder: (context, setDialogState) {
+              return AlertDialog(
+                backgroundColor: DashboardColors.surfaceLow,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                  side: const BorderSide(color: Colors.white12),
+                ),
+                title: const Text('Chỉnh sửa công việc', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
+                content: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      TextField(
+                        controller: titleController,
+                        style: const TextStyle(color: DashboardColors.onSurface),
+                        decoration: const InputDecoration(
+                          labelText: 'Tiêu đề',
+                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: descController,
+                        maxLines: 3,
+                        style: const TextStyle(color: DashboardColors.onSurface),
+                        decoration: const InputDecoration(
+                          labelText: 'Mô tả',
+                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      DropdownButtonFormField<String>(
+                        dropdownColor: DashboardColors.surfaceLow,
+                        initialValue: priority,
+                        style: const TextStyle(color: DashboardColors.onSurface),
+                        decoration: const InputDecoration(
+                          labelText: 'Độ ưu tiên',
+                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
+                        ),
+                        items: const [
+                          DropdownMenuItem(value: 'low', child: Text('Low')),
+                          DropdownMenuItem(value: 'medium', child: Text('Medium')),
+                          DropdownMenuItem(value: 'high', child: Text('High')),
+                          DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
+                        ],
+                        onChanged: (val) {
+                          if (val != null) {
+                            setDialogState(() {
+                              priority = val;
+                            });
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: estController,
+                        keyboardType: TextInputType.number,
+                        style: const TextStyle(color: DashboardColors.onSurface),
+                        decoration: const InputDecoration(
+                          labelText: 'Thời gian ước tính (phút)',
+                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
+                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
+                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              dueDate == null
+                                  ? 'Chưa chọn hạn chót'
+                                  : 'Hạn chót: ${dueDate!.day}/${dueDate!.month}/${dueDate!.year}',
+                              style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13),
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () async {
+                              final picked = await showDatePicker(
+                                context: context,
+                                initialDate: dueDate ?? DateTime.now(),
+                                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                                lastDate: DateTime.now().add(const Duration(days: 3650)),
+                              );
+                              if (picked != null) {
+                                setDialogState(() {
+                                  dueDate = picked;
+                                });
+                              }
+                            },
+                            child: const Text('Chọn ngày', style: TextStyle(color: DashboardColors.primary)),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+                  ),
+                  FilledButton(
+                    style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
+                    onPressed: () async {
+                      final title = titleController.text.trim();
+                      if (title.isEmpty) return;
+
+                      final updated = nexusTask.copyWith(
+                        title: title,
+                        description: descController.text.trim(),
+                        priority: priority,
+                        estimatedMinutes: int.tryParse(estController.text),
+                        dueDate: dueDate,
+                      );
+
+                      await ref.read(taskRepositoryProvider).updateTask(updated);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Đã cập nhật công việc thành công')),
+                        );
+                      }
+                    },
+                    child: const Text('Lưu', style: TextStyle(color: Colors.white)),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Không thể sửa task này: $e')),
+        );
+      }
+    }
+  }
+
+  String _getInitials(UserProfileModel user) {
+    final name = user.fullName ?? user.username ?? user.email;
+    if (name.trim().isEmpty) return '?';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) {
+      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    }
+    return parts[0][0].toUpperCase();
+  }
+
+  Color _getUserColor(String userId) {
+    final colors = [
+      DashboardColors.primary,
+      DashboardColors.secondary,
+      DashboardColors.tertiary,
+      DashboardColors.outline,
+    ];
+    final index = userId.hashCode.abs() % colors.length;
+    return colors[index];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,6 +332,34 @@ class _TaskCardState extends State<TaskCard> {
         widget.task.status == TaskBoardStatus.inProgress &&
         widget.task.aiSuggestion != null;
     final completed = widget.task.completed;
+
+
+    final allUsers = ref.watch(allUsersProvider).valueOrNull ?? [];
+    final assignees = <UserProfileModel>[];
+
+    final assigneeIdsAsync = ref.watch(taskAssigneeIdsProvider(widget.task.id));
+    assigneeIdsAsync.whenOrNull(
+      data: (uids) {
+        for (final uid in uids) {
+          final user = allUsers.firstWhere(
+            (u) => u.id == uid,
+            orElse: () => UserProfileModel(id: uid, email: ''),
+          );
+          if (user.fullName != null || user.username != null || user.email.isNotEmpty) {
+            assignees.add(user);
+          }
+        }
+      },
+    );
+
+    // Fallback if the database has no assignees yet or is loading/offline, but the task has assignee initials
+    if (assignees.isEmpty && widget.task.assignee.isNotEmpty) {
+      assignees.add(UserProfileModel(
+        id: 'fallback',
+        email: '',
+        fullName: widget.task.assignee,
+      ));
+    }
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -48,6 +377,7 @@ class _TaskCardState extends State<TaskCard> {
           opacity: completed ? .62 : 1,
           child: GestureDetector(
             onTap: widget.onTap,
+            onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
             child: GlassContainer(
               radius: widget.mobile ? 18 : 16,
               padding: EdgeInsets.all(widget.mobile ? 16 : 18),
@@ -61,10 +391,21 @@ class _TaskCardState extends State<TaskCard> {
                     const SizedBox(width: 12),
                   ],
                   Expanded(
-                    child:
-                        widget.mobile
-                            ? _MobileTaskBody(task: widget.task)
-                            : _DesktopTaskBody(task: widget.task),
+                    child: widget.mobile
+                        ? _MobileTaskBody(
+                            task: widget.task,
+                            onMenuSelected: _handleMenuAction,
+                            assignees: assignees,
+                            getInitials: _getInitials,
+                            getUserColor: _getUserColor,
+                          )
+                        : _DesktopTaskBody(
+                            task: widget.task,
+                            onMenuSelected: _handleMenuAction,
+                            assignees: assignees,
+                            getInitials: _getInitials,
+                            getUserColor: _getUserColor,
+                          ),
                   ),
                 ],
               ),
@@ -77,9 +418,19 @@ class _TaskCardState extends State<TaskCard> {
 }
 
 class _DesktopTaskBody extends StatelessWidget {
-  const _DesktopTaskBody({required this.task});
+  const _DesktopTaskBody({
+    required this.task,
+    required this.onMenuSelected,
+    required this.assignees,
+    required this.getInitials,
+    required this.getUserColor,
+  });
 
   final TaskBoardItem task;
+  final ValueChanged<String> onMenuSelected;
+  final List<UserProfileModel> assignees;
+  final String Function(UserProfileModel) getInitials;
+  final Color Function(String) getUserColor;
 
   @override
   Widget build(BuildContext context) {
@@ -107,16 +458,17 @@ class _DesktopTaskBody extends StatelessWidget {
                 ),
               ),
             ],
+            const SizedBox(width: 8),
+            _TaskContextMenuButton(onSelected: onMenuSelected),
           ],
         ),
         const SizedBox(height: 14),
         Text(
           task.title,
           style: TextStyle(
-            color:
-                task.completed
-                    ? DashboardColors.onSurfaceVariant
-                    : DashboardColors.onSurface,
+            color: task.completed
+                ? DashboardColors.onSurfaceVariant
+                : DashboardColors.onSurface,
             fontWeight: FontWeight.w800,
             fontSize: 16,
             decoration: task.completed ? TextDecoration.lineThrough : null,
@@ -163,7 +515,7 @@ class _DesktopTaskBody extends StatelessWidget {
         const SizedBox(height: 14),
         Row(
           children: [
-            _AvatarChip(label: task.assignee),
+            _buildAssigneesRow(assignees, getInitials, getUserColor),
             const Spacer(),
             ...task.tags.take(2).map((tag) => _TagChip(label: tag)),
           ],
@@ -174,9 +526,19 @@ class _DesktopTaskBody extends StatelessWidget {
 }
 
 class _MobileTaskBody extends StatelessWidget {
-  const _MobileTaskBody({required this.task});
+  const _MobileTaskBody({
+    required this.task,
+    required this.onMenuSelected,
+    required this.assignees,
+    required this.getInitials,
+    required this.getUserColor,
+  });
 
   final TaskBoardItem task;
+  final ValueChanged<String> onMenuSelected;
+  final List<UserProfileModel> assignees;
+  final String Function(UserProfileModel) getInitials;
+  final Color Function(String) getUserColor;
 
   @override
   Widget build(BuildContext context) {
@@ -194,6 +556,8 @@ class _MobileTaskBody extends StatelessWidget {
                   if (task.aiSuggestion != null) const _AiMiniChip(),
                   const SizedBox(width: 6),
                   TaskPriorityChip(priority: task.priority, compact: true),
+                  const Spacer(),
+                  _TaskContextMenuButton(onSelected: onMenuSelected),
                 ],
               ),
               const SizedBox(height: 8),
@@ -204,8 +568,7 @@ class _MobileTaskBody extends StatelessWidget {
                   fontSize: 16,
                   height: 1.25,
                   fontWeight: FontWeight.w800,
-                  decoration:
-                      task.completed ? TextDecoration.lineThrough : null,
+                  decoration: task.completed ? TextDecoration.lineThrough : null,
                 ),
               ),
               const SizedBox(height: 7),
@@ -231,6 +594,140 @@ class _MobileTaskBody extends StatelessWidget {
                 const SizedBox(height: 12),
                 AiSuggestionBanner(text: task.aiSuggestion!, compact: true),
               ],
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  _buildAssigneesRow(assignees, getInitials, getUserColor),
+                  const Spacer(),
+                  ...task.tags.take(2).map((tag) => _TagChip(label: tag)),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Widget _buildAssigneesRow(
+  List<UserProfileModel> assignees,
+  String Function(UserProfileModel) getInitials,
+  Color Function(String) getUserColor,
+) {
+  if (assignees.isEmpty) {
+    return Container(
+      width: 26,
+      height: 26,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white24),
+      ),
+      child: const Icon(Icons.person_add_alt_1_rounded, size: 12, color: Colors.white38),
+    );
+  }
+
+  final double width = 26.0 + (assignees.length - 1) * 18.0;
+  return SizedBox(
+    width: width,
+    height: 26,
+    child: Stack(
+      children: List.generate(assignees.length, (index) {
+        final user = assignees[index];
+        final initials = getInitials(user);
+        final color = getUserColor(user.id);
+        final hasImage = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
+
+        return Positioned(
+          left: index * 18.0,
+          child: Container(
+            width: 26,
+            height: 26,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: DashboardColors.background,
+            ),
+            padding: const EdgeInsets.all(1.0),
+            child: Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: color.withValues(alpha: .18),
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: hasImage
+                  ? Image.network(
+                      user.avatarUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, __, ___) => Center(
+                        child: Text(
+                          initials,
+                          style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900),
+                        ),
+                      ),
+                    )
+                  : Center(
+                      child: Text(
+                        initials,
+                        style: TextStyle(color: color, fontSize: 9, fontWeight: FontWeight.w900),
+                      ),
+                    ),
+            ),
+          ),
+        );
+      }),
+    ),
+  );
+}
+
+class _TaskContextMenuButton extends StatelessWidget {
+  const _TaskContextMenuButton({required this.onSelected});
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      icon: const Icon(
+        Icons.more_horiz_rounded,
+        size: 18,
+        color: DashboardColors.onSurfaceVariant,
+      ),
+      padding: EdgeInsets.zero,
+      constraints: const BoxConstraints(),
+      color: DashboardColors.surfaceLow,
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: const BorderSide(color: Colors.white12),
+      ),
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        const PopupMenuItem<String>(
+          value: 'view',
+          child: Row(
+            children: [
+              Icon(Icons.open_in_new_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+              SizedBox(width: 8),
+              Text('Xem chi tiết', style: TextStyle(color: DashboardColors.onSurface)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'edit',
+          child: Row(
+            children: [
+              Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+              SizedBox(width: 8),
+              Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
+            ],
+          ),
+        ),
+        const PopupMenuItem<String>(
+          value: 'delete',
+          child: Row(
+            children: [
+              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+              SizedBox(width: 8),
+              Text('Xóa', style: TextStyle(color: DashboardColors.error)),
             ],
           ),
         ),
@@ -275,25 +772,20 @@ class _TaskCheckbox extends StatelessWidget {
       width: 26,
       height: 26,
       decoration: BoxDecoration(
-        color:
-            done
-                ? DashboardColors.primary.withValues(alpha: .16)
-                : Colors.transparent,
+        color: done ? DashboardColors.primary.withValues(alpha: .16) : Colors.transparent,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color:
-              done ? DashboardColors.primary : DashboardColors.outlineVariant,
+          color: done ? DashboardColors.primary : DashboardColors.outlineVariant,
           width: 2,
         ),
       ),
-      child:
-          done
-              ? const Icon(
-                Icons.check_rounded,
-                color: DashboardColors.primary,
-                size: 17,
-              )
-              : null,
+      child: done
+          ? const Icon(
+              Icons.check_rounded,
+              color: DashboardColors.primary,
+              size: 17,
+            )
+          : null,
     );
   }
 }
@@ -302,55 +794,31 @@ class _AiMiniChip extends StatelessWidget {
   const _AiMiniChip();
   @override
   Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
-    decoration: BoxDecoration(
-      borderRadius: BorderRadius.circular(999),
-      border: Border.all(color: DashboardColors.primary.withValues(alpha: .3)),
-    ),
-    child: const Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(
-          Icons.auto_awesome_rounded,
-          color: DashboardColors.primary,
-          size: 11,
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: DashboardColors.primary.withValues(alpha: .3)),
         ),
-        SizedBox(width: 3),
-        Text(
-          'AI',
-          style: TextStyle(
-            color: DashboardColors.primary,
-            fontSize: 9,
-            fontWeight: FontWeight.w900,
-          ),
+        child: const Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome_rounded,
+              color: DashboardColors.primary,
+              size: 11,
+            ),
+            SizedBox(width: 3),
+            Text(
+              'AI',
+              style: TextStyle(
+                color: DashboardColors.primary,
+                fontSize: 9,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ],
         ),
-      ],
-    ),
-  );
-}
-
-class _AvatarChip extends StatelessWidget {
-  const _AvatarChip({required this.label});
-  final String label;
-  @override
-  Widget build(BuildContext context) => Container(
-    width: 26,
-    height: 26,
-    alignment: Alignment.center,
-    decoration: BoxDecoration(
-      shape: BoxShape.circle,
-      color: Colors.white.withValues(alpha: .09),
-      border: Border.all(color: Colors.white.withValues(alpha: .12)),
-    ),
-    child: Text(
-      label,
-      style: const TextStyle(
-        color: DashboardColors.onSurface,
-        fontSize: 10,
-        fontWeight: FontWeight.w900,
-      ),
-    ),
-  );
+      );
 }
 
 class _TagChip extends StatelessWidget {
@@ -358,21 +826,21 @@ class _TagChip extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(left: 6),
-    child: Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: DashboardColors.surfaceHighest.withValues(alpha: .55),
-        borderRadius: BorderRadius.circular(7),
-      ),
-      child: Text(
-        '#$label',
-        style: const TextStyle(
-          color: DashboardColors.onSurfaceVariant,
-          fontSize: 10,
-          fontWeight: FontWeight.w700,
+        padding: const EdgeInsets.only(left: 6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: DashboardColors.surfaceHighest.withValues(alpha: .55),
+            borderRadius: BorderRadius.circular(7),
+          ),
+          child: Text(
+            '#$label',
+            style: const TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
-      ),
-    ),
-  );
+      );
 }
