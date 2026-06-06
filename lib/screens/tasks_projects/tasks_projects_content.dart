@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
@@ -234,39 +235,51 @@ class _TasksProjectsDesktopContentState
                   ],
                 ),
               ),
-              Positioned.fill(
-                child: IgnorePointer(
-                  ignoring: !isPanelOpen,
+              if (isPanelOpen)
+                Positioned.fill(
                   child: GestureDetector(
                     onTap: () => _selectTask(null),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 240),
-                      color: isPanelOpen
-                          ? Colors.black.withValues(alpha: 0.35)
-                          : Colors.transparent,
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 250),
+                      builder: (context, value, child) {
+                        return BackdropFilter(
+                          filter: ImageFilter.blur(
+                            sigmaX: 5.0 * value,
+                            sigmaY: 5.0 * value,
+                          ),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.35 * value),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
-              ),
-              AnimatedPositioned(
-                duration: const Duration(milliseconds: 280),
-                curve: Curves.easeOutCubic,
-                top: 0,
-                bottom: 0,
-                right: isPanelOpen ? 0 : -420,
-                width: 420,
-                child: _activeTask != null
-                    ? TaskDetailPanel(
-                        task: _activeTask!,
-                        onClose: () => _selectTask(null),
-                        onViewDetails: () {
-                          final task = _activeTask!;
-                          _selectTask(null);
-                          widget.onViewDetails?.call(task);
-                        },
-                      )
-                    : const SizedBox.shrink(),
-              ),
+              (() {
+                final panelWidth = constraints.maxWidth >= 1600
+                    ? 520.0
+                    : (constraints.maxWidth >= 1200 ? 480.0 : 420.0);
+                return AnimatedPositioned(
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeOutCubic,
+                  top: 0,
+                  bottom: 0,
+                  right: isPanelOpen ? 0 : -panelWidth,
+                  width: panelWidth,
+                  child: _activeTask != null
+                      ? TaskDetailPanel(
+                          task: _activeTask!,
+                          onClose: () => _selectTask(null),
+                          onViewDetails: () {
+                            final task = _activeTask!;
+                            _selectTask(null);
+                            widget.onViewDetails?.call(task);
+                          },
+                        )
+                      : const SizedBox.shrink(),
+                );
+              }()),
             ],
           );
         },

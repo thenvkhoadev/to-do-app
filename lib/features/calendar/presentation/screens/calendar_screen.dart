@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -27,7 +28,7 @@ class CalendarScreen extends ConsumerStatefulWidget {
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   CalendarView _view = CalendarView.month;
   DateTime _focusedDate = DateTime.now();
-  DateTime? _selectedDate;
+  DateTime? _selectedDate = DateTime.now();
   bool _agendaVisible = false;
   TaskBoardItem? _selectedTask;
 
@@ -108,14 +109,22 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   void _setView(CalendarView view) {
-    setState(() => _view = view);
+    setState(() {
+      _view = view;
+      if (view == CalendarView.day) {
+        _agendaVisible = false;
+        _selectedDate ??= _focusedDate;
+      }
+    });
   }
 
   void _selectDate(DateTime date) {
     setState(() {
       _selectedDate = date;
       _focusedDate = date;
-      _agendaVisible = true;
+      if (_view != CalendarView.day) {
+        _agendaVisible = true;
+      }
     });
   }
 
@@ -135,7 +144,11 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final nextDate = _shiftDate(_focusedDate, direction);
     setState(() {
       _focusedDate = nextDate;
-      _selectedDate = null;
+      if (_view == CalendarView.day) {
+        _selectedDate = nextDate;
+      } else {
+        _selectedDate = null;
+      }
     });
   }
 
@@ -155,7 +168,8 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   Widget build(BuildContext context) {
     final tasksAsync = ref.watch(userTasksProvider);
     final allTasks = tasksAsync.valueOrNull ?? const <NexusTask>[];
-    final selectedTasks = _selectedTasksFor(allTasks);
+    final effectiveDate = _selectedDate ?? _focusedDate;
+    final selectedTasks = _selectedTasksFor(allTasks, effectiveDate);
     final selectedDayEvents = _dayEventsFor(selectedTasks);
     final selectedAgendaEvents = _agendaEventsFor(selectedTasks);
     final monthTaskEvents = _monthTaskEvents(allTasks);
@@ -164,6 +178,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       builder: (context, constraints) {
         if (constraints.maxWidth >= 900) {
           final isPanelOpen = _selectedTask != null;
+          final panelWidth = constraints.maxWidth >= 1600
+              ? 520.0
+              : (constraints.maxWidth >= 1200 ? 480.0 : 420.0);
           return Stack(
             children: [
               Positioned.fill(
@@ -174,48 +191,61 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   onToday: _goToToday,
                   onPrevious: _goToPrevious,
                   onNext: _goToNext,
-                  calendar: _calendarContent(selectedDayEvents, monthTaskEvents, allTasks, true),
-                  agendaVisible: _agendaVisible,
-                  onToggleAgenda:
-                      () => setState(() => _agendaVisible = !_agendaVisible),
-                  agenda:
-                      _selectedDate == null
-                          ? SelectDateAgendaPrompt(
-                            onHideAgenda:
-                                () => setState(() => _agendaVisible = false),
-                            onCreateTask: () => context.go('/tasks?newTask=1'),
-                          )
-                          : AgendaPanel(
-                            date: _selectedDate!,
-                            events: selectedAgendaEvents,
-                            isLoading: tasksAsync.isLoading,
-                            errorMessage:
-                                tasksAsync.hasError
-                                    ? 'Unable to load tasks for this day.'
-                                    : null,
-                            onHideAgenda:
-                                () => setState(() => _agendaVisible = false),
-                            onCreateTask: () => context.go('/tasks?newTask=1'),
-                            onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, true),
-                          ),
+                  calendar: _calendarContent(
+                    selectedDayEvents,
+                    selectedAgendaEvents,
+                    tasksAsync,
+                    monthTaskEvents,
+                    allTasks,
+                    true,
+                  ),
+                  agendaVisible: _view == CalendarView.day ? false : _agendaVisible,
+                  onToggleAgenda: _view == CalendarView.day
+                      ? null
+                      : () => setState(() => _agendaVisible = !_agendaVisible),
+                  agenda: AgendaPanel(
+                    date: effectiveDate,
+                    events: selectedAgendaEvents,
+                    isLoading: tasksAsync.isLoading,
+                    errorMessage:
+                        tasksAsync.hasError
+                            ? 'Unable to load tasks for this day.'
+                            : null,
+                    onHideAgenda:
+                        () => setState(() => _agendaVisible = false),
+                    onCreateTask: () => context.go('/tasks?newTask=1'),
+                    onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, true),
+                  ),
                 ),
               ),
               if (isPanelOpen)
                 Positioned.fill(
                   child: GestureDetector(
                     onTap: () => _selectTask(null),
-                    child: Container(
-                      color: Colors.black.withValues(alpha: 0.35),
+                    child: TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 250),
+                      builder: (context, value, child) {
+                        return BackdropFilter(
+                          filter: ImageFilter.blur(
+                            sigmaX: 5.0 * value,
+                            sigmaY: 5.0 * value,
+                          ),
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.35 * value),
+                          ),
+                        );
+                      },
                     ),
                   ),
                 ),
               AnimatedPositioned(
-                duration: const Duration(milliseconds: 280),
+                duration: const Duration(milliseconds: 250),
                 curve: Curves.easeOutCubic,
                 top: 0,
                 bottom: 0,
-                right: isPanelOpen ? 0 : -420,
-                width: 420,
+                right: isPanelOpen ? 0 : -panelWidth,
+                width: panelWidth,
                 child: _selectedTask != null
                     ? TaskDetailPanel(
                         task: _selectedTask!,
@@ -236,6 +266,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
           title: _title,
           weekSelector: WeekView(
             selectedDate: _selectedDate,
+            focusedDate: _focusedDate,
             onDateSelected: _selectDate,
             onPreviousWeek: _goToPrevious,
             onNextWeek: _goToNext,
@@ -243,28 +274,25 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             dayEvents: _dayEventsFor(allTasks),
             onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
           ),
-          timelineAgenda:
-              _selectedDate == null
-                  ? SelectDateAgendaPrompt(
-                    compact: true,
-                    onCreateTask: () => context.go('/tasks?newTask=1'),
-                  )
-                  : DayView(
-                    date: _selectedDate!,
-                    events: selectedDayEvents,
-                    onEventTap:
-                        (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
-                  ),
+          timelineAgenda: AgendaPanel(
+            date: effectiveDate,
+            events: selectedAgendaEvents,
+            isLoading: tasksAsync.isLoading,
+            errorMessage:
+                tasksAsync.hasError
+                    ? 'Unable to load tasks for this day.'
+                    : null,
+            onCreateTask: () => context.go('/tasks?newTask=1'),
+            onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
+            physics: const NeverScrollableScrollPhysics(),
+          ),
           bottomNavigation: MobileBottomNavBar(
             bottomInset: MediaQuery.paddingOf(context).bottom,
           ),
           actions: [
             IconButton(
-              onPressed:
-                  _selectedDate == null
-                      ? null
-                      : () =>
-                          _openMobileAgenda(selectedAgendaEvents, tasksAsync, allTasks),
+              onPressed: () =>
+                  _openMobileAgenda(selectedAgendaEvents, tasksAsync, allTasks),
               icon: const Icon(Icons.view_agenda_rounded),
             ),
           ],
@@ -279,8 +307,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     AsyncValue<List<NexusTask>> tasksAsync,
     List<NexusTask> allTasks,
   ) {
-    final date = _selectedDate;
-    if (date == null) return;
+    final date = _selectedDate ?? _focusedDate;
 
     showModalBottomSheet<void>(
       context: context,
@@ -329,10 +356,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   Widget _calendarContent(
     List<DayCalendarEvent> selectedDayEvents,
+    List<AgendaPanelEvent> selectedAgendaEvents,
+    AsyncValue<List<NexusTask>> tasksAsync,
     Map<String, List<CalendarMonthEvent>> taskEvents,
     List<NexusTask> allTasks,
     bool isDesktop,
   ) {
+    final effectiveDate = _selectedDate ?? _focusedDate;
     return switch (_view) {
       CalendarView.month => CalendarMonthView(
         focusedDate: _focusedDate,
@@ -342,6 +372,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       ),
       CalendarView.week => WeekView(
         selectedDate: _selectedDate,
+        focusedDate: _focusedDate,
         onDateSelected: _selectDate,
         onPreviousWeek: _goToPrevious,
         onNextWeek: _goToNext,
@@ -349,28 +380,19 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
         dayEvents: _dayEventsFor(allTasks),
         onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, isDesktop),
       ),
-      CalendarView.day =>
-        _selectedDate == null
-            ? SelectDateAgendaPrompt(
-              compact: true,
-              onCreateTask: () => context.go('/tasks?newTask=1'),
-            )
-            : DayView(
-              date: _selectedDate!,
-              events: selectedDayEvents,
-              onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, isDesktop),
-            ),
+      CalendarView.day => DayView(
+          date: effectiveDate,
+          events: selectedDayEvents,
+          onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, isDesktop),
+        ),
     };
   }
 
-  List<NexusTask> _selectedTasksFor(List<NexusTask> tasks) {
-    final selectedDate = _selectedDate;
-    if (selectedDate == null) return const [];
-
+  List<NexusTask> _selectedTasksFor(List<NexusTask> tasks, DateTime targetDate) {
     return tasks
         .where(
           (task) =>
-              task.dueDate != null && _sameDay(task.dueDate!, selectedDate),
+              task.dueDate != null && _sameDay(task.dueDate!, targetDate),
         )
         .toList()
       ..sort((a, b) => a.dueDate!.compareTo(b.dueDate!));

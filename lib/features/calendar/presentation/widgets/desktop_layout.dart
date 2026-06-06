@@ -307,22 +307,35 @@ class CalendarAgendaPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth < 1200 ? 320.0 : 360.0;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final width = screenWidth >= 1600 ? 420.0 : 380.0;
 
-        return Container(
-          width: width,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surface.withValues(alpha: .42),
-            border: Border(
-              left: BorderSide(color: Colors.white.withValues(alpha: .08)),
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        border: Border(
+          left: BorderSide(color: Colors.white.withValues(alpha: .08)),
+        ),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0B1020).withValues(alpha: .82),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(
+                color: Colors.white.withValues(alpha: .08),
+              ),
             ),
+            child: child,
           ),
-          child: CalendarGlassPanel(child: child),
-        );
-      },
+        ),
+      ),
     );
   }
 }

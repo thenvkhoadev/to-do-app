@@ -9,6 +9,7 @@ class WeekView extends StatefulWidget {
     required this.onDateSelected,
     required this.onPreviousWeek,
     required this.onNextWeek,
+    this.focusedDate,
     this.taskEvents = const {},
     this.dayEvents = const [],
     this.onEventTap,
@@ -16,6 +17,7 @@ class WeekView extends StatefulWidget {
   });
 
   final DateTime? selectedDate;
+  final DateTime? focusedDate;
   final ValueChanged<DateTime> onDateSelected;
   final VoidCallback onPreviousWeek;
   final VoidCallback onNextWeek;
@@ -47,7 +49,7 @@ class _WeekViewState extends State<WeekView> {
 
   @override
   Widget build(BuildContext context) {
-    final baseDate = widget.selectedDate ?? _now;
+    final baseDate = widget.selectedDate ?? widget.focusedDate ?? _now;
     final weekStart = baseDate.subtract(Duration(days: baseDate.weekday - DateTime.monday));
     final days = List.generate(7, (i) => weekStart.add(Duration(days: i)));
 
