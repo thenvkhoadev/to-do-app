@@ -20,6 +20,10 @@ class TaskBoardItem {
     this.completed = false,
     this.dueLabel,
     this.dueDate,
+    this.createdAt,
+    this.updatedAt,
+    this.creatorName,
+    this.userId,
   });
 
   final String id;
@@ -35,6 +39,10 @@ class TaskBoardItem {
   final bool completed;
   final String? dueLabel;
   final DateTime? dueDate;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+  final String? creatorName;
+  final String? userId;
 
   String get priorityLabel => switch (priority) {
     TaskBoardPriority.urgent => 'Urgent',

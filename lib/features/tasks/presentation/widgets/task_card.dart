@@ -8,6 +8,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/task_progress_bar.
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
@@ -361,6 +362,38 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       ));
     }
 
+    final tagIdsAsync = ref.watch(taskTagIdsProvider(widget.task.id));
+    final allTags = ref.watch(userTagsProvider).valueOrNull ?? [];
+    final taskTags = <String>[];
+    tagIdsAsync.whenOrNull(
+      data: (tids) {
+        for (final tid in tids) {
+          final tag = allTags.firstWhere(
+            (t) => t.id == tid,
+            orElse: () => TagModel(id: '', name: '', userId: ''),
+          );
+          if (tag.name.isNotEmpty) {
+            taskTags.add(tag.name);
+          }
+        }
+      },
+    );
+    final subtasksAsync = ref.watch(taskSubtasksProvider(widget.task.id));
+    double? progressValue;
+    subtasksAsync.when(
+      data: (subtasks) {
+        if (subtasks.isNotEmpty) {
+          final doneCount = subtasks.where((s) => s.isDone).length;
+          progressValue = doneCount / subtasks.length;
+        } else {
+          progressValue = null;
+        }
+      },
+      loading: () => progressValue = null,
+      error: (_, __) => progressValue = null,
+    );
+    final displayTags = taskTags.isEmpty && tagIdsAsync.isLoading ? widget.task.tags : taskTags;
+
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
@@ -398,6 +431,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             assignees: assignees,
                             getInitials: _getInitials,
                             getUserColor: _getUserColor,
+                            tags: displayTags,
                           )
                         : _DesktopTaskBody(
                             task: widget.task,
@@ -405,6 +439,8 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             assignees: assignees,
                             getInitials: _getInitials,
                             getUserColor: _getUserColor,
+                            tags: displayTags,
+                            progress: progressValue,
                           ),
                   ),
                 ],
@@ -424,6 +460,8 @@ class _DesktopTaskBody extends StatelessWidget {
     required this.assignees,
     required this.getInitials,
     required this.getUserColor,
+    required this.tags,
+    required this.progress,
   });
 
   final TaskBoardItem task;
@@ -431,6 +469,8 @@ class _DesktopTaskBody extends StatelessWidget {
   final List<UserProfileModel> assignees;
   final String Function(UserProfileModel) getInitials;
   final Color Function(String) getUserColor;
+  final List<String> tags;
+  final double? progress;
 
   @override
   Widget build(BuildContext context) {
@@ -438,53 +478,36 @@ class _DesktopTaskBody extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             TaskPriorityChip(priority: task.priority),
             const Spacer(),
-            if (task.status != TaskBoardStatus.inProgress) ...[
-              const Icon(
-                Icons.schedule_rounded,
-                size: 14,
-                color: DashboardColors.onSurfaceVariant,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                task.estimate,
-                style: const TextStyle(
-                  color: DashboardColors.onSurfaceVariant,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-            ],
-            const SizedBox(width: 8),
             _TaskContextMenuButton(onSelected: onMenuSelected),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
         Text(
           task.title,
           style: TextStyle(
-            color: task.completed
-                ? DashboardColors.onSurfaceVariant
-                : DashboardColors.onSurface,
+            color: DashboardColors.onSurface,
+            fontSize: 18,
             fontWeight: FontWeight.w800,
-            fontSize: 16,
             decoration: task.completed ? TextDecoration.lineThrough : null,
+            decorationColor: DashboardColors.onSurfaceVariant,
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          task.description,
-          maxLines: 3,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: DashboardColors.onSurfaceVariant,
-            fontSize: 13,
-            height: 1.45,
+        if (task.description.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            task.description,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 13,
+              height: 1.45,
+            ),
           ),
-        ),
+        ],
         if (task.aiSuggestion != null) ...[
           const SizedBox(height: 14),
           AiSuggestionBanner(text: task.aiSuggestion!, compact: true),
@@ -501,23 +524,27 @@ class _DesktopTaskBody extends StatelessWidget {
             ),
             const Spacer(),
             Text(
-              '${(task.progress * 100).round()}%',
-              style: const TextStyle(
-                color: DashboardColors.primary,
+              progress != null
+                  ? '${(progress! * 100).round()}%'
+                  : 'No subtasks available',
+              style: TextStyle(
+                color: progress != null
+                    ? DashboardColors.primary
+                    : DashboardColors.onSurfaceVariant,
                 fontSize: 12,
-                fontWeight: FontWeight.w900,
+                fontWeight: progress != null ? FontWeight.w900 : FontWeight.w500,
               ),
             ),
           ],
         ),
         const SizedBox(height: 8),
-        TaskProgressBar(value: task.progress),
+        TaskProgressBar(value: progress ?? 0.0),
         const SizedBox(height: 14),
         Row(
           children: [
             _buildAssigneesRow(assignees, getInitials, getUserColor),
             const Spacer(),
-            ...task.tags.take(2).map((tag) => _TagChip(label: tag)),
+            ...tags.take(2).map((tag) => _TagChip(label: tag)),
           ],
         ),
       ],
@@ -532,6 +559,7 @@ class _MobileTaskBody extends StatelessWidget {
     required this.assignees,
     required this.getInitials,
     required this.getUserColor,
+    required this.tags,
   });
 
   final TaskBoardItem task;
@@ -539,6 +567,7 @@ class _MobileTaskBody extends StatelessWidget {
   final List<UserProfileModel> assignees;
   final String Function(UserProfileModel) getInitials;
   final Color Function(String) getUserColor;
+  final List<String> tags;
 
   @override
   Widget build(BuildContext context) {
@@ -599,7 +628,7 @@ class _MobileTaskBody extends StatelessWidget {
                 children: [
                   _buildAssigneesRow(assignees, getInitials, getUserColor),
                   const Spacer(),
-                  ...task.tags.take(2).map((tag) => _TagChip(label: tag)),
+                  ...tags.take(2).map((tag) => _TagChip(label: tag)),
                 ],
               ),
             ],

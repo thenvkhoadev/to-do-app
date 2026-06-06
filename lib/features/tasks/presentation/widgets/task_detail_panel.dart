@@ -7,6 +7,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/glass_container.da
 import 'package:to_do_app/features/tasks/presentation/widgets/task_priority_chip.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/screens/task_details/widgets/attachment_preview_dialog.dart';
 
 class TaskDetailPanel extends ConsumerStatefulWidget {
   const TaskDetailPanel({
@@ -215,12 +216,26 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
           if (attachments.isEmpty) {
             return const Padding(
               padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                'No attachments',
-                style: TextStyle(
-                  color: DashboardColors.onSurfaceVariant,
-                  fontSize: 13,
-                ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'No attachments',
+                    style: TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  SizedBox(height: 2),
+                  Text(
+                    'Files attached to this task will appear here.',
+                    style: TextStyle(
+                      color: DashboardColors.onSurfaceVariant,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             );
           }
@@ -232,27 +247,35 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                 runSpacing: 14,
                 children: attachments.map((att) {
                   final ext = att.fileName.split('.').last.toUpperCase();
-                  final sizeStr = '$ext Document';
                   final isImage = att.mimeType.startsWith('image/');
                   final isPdf = att.mimeType == 'application/pdf';
                   debugPrint('Attachment: ${att.fileName} mimeType=${att.mimeType} isImage=$isImage url=${att.fileUrl}');
 
                   return SizedBox(
                     width: (constraints.maxWidth - 10) / 2,
-                    child: _Attachment(
-                      icon: isImage
-                          ? Icons.image_rounded
-                          : isPdf
-                              ? Icons.picture_as_pdf_rounded
-                              : Icons.insert_drive_file_rounded,
-                      title: att.fileName,
-                      size: sizeStr,
-                      color: isImage
-                          ? DashboardColors.primary
-                          : isPdf
-                              ? DashboardColors.secondary
-                              : DashboardColors.tertiary,
-                      imageUrl: isImage ? att.fileUrl : null,
+                    child: AttachmentSizeWidget(
+                      url: att.fileUrl,
+                      builder: (context, sizeStr) {
+                        return InkWell(
+                          onTap: () => AttachmentPreviewDialog.show(context, att),
+                          borderRadius: BorderRadius.circular(12),
+                          child: _Attachment(
+                            icon: isImage
+                                ? Icons.image_rounded
+                                : isPdf
+                                    ? Icons.picture_as_pdf_rounded
+                                    : Icons.insert_drive_file_rounded,
+                            title: att.fileName,
+                            size: '$ext • $sizeStr',
+                            color: isImage
+                                ? DashboardColors.primary
+                                : isPdf
+                                    ? DashboardColors.secondary
+                                    : DashboardColors.tertiary,
+                            imageUrl: isImage ? att.fileUrl : null,
+                          ),
+                        );
+                      },
                     ),
                   );
                 }).toList(),

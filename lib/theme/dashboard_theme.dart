@@ -24,6 +24,8 @@ class DashboardColors {
   static const tertiary = Color(0xFFADC6FF);
   static const tertiaryContainer = Color(0xFF4D8EFF);
   static const error = Color(0xFFFFB4AB);
+  static const warning = Color(0xFFF59E0B);
+  static const success = Color(0xFF22C55E);
 }
 
 class DashboardTheme {

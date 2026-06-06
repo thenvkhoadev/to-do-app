@@ -103,6 +103,20 @@ TaskBoardItem _mapTaskToBoardItem(
     progress = 0.5;
   }
 
+  // 7. Get creator name
+  String? creatorName;
+  final creatorUser = users.firstWhere(
+    (u) => u.id == task.userId,
+    orElse: () => UserProfileModel(id: '', email: ''),
+  );
+  if (creatorUser.fullName != null && creatorUser.fullName!.isNotEmpty) {
+    creatorName = creatorUser.fullName;
+  } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+    creatorName = creatorUser.username;
+  } else if (creatorUser.email.isNotEmpty) {
+    creatorName = creatorUser.email;
+  }
+
   return TaskBoardItem(
     id: task.id,
     title: task.title,
@@ -116,6 +130,10 @@ TaskBoardItem _mapTaskToBoardItem(
     completed: task.status == 'done',
     dueLabel: task.dueDate != null ? '${task.dueDate!.day}/${task.dueDate!.month}' : null,
     dueDate: task.dueDate,
+    createdAt: task.createdAt,
+    updatedAt: task.updatedAt,
+    creatorName: creatorName,
+    userId: task.userId,
   );
 }
 

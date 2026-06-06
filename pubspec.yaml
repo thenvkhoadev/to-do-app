@@ -50,6 +50,12 @@ dependencies:
   cached_network_image: ^3.4.1
   diacritic: ^0.1.5
   uuid: ^4.5.1
+  url_launcher: ^6.3.2
+  open_filex: ^4.7.0
+  path_provider: ^2.1.5
+  syncfusion_flutter_pdfviewer: ^33.2.10
+  archive: ^4.0.9
+  xml: ^6.6.1
 
 dev_dependencies:
   flutter_test:
