@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 enum TaskBoardStatus { draft, todo, inProgress, completed }
@@ -43,6 +44,8 @@ class TaskBoardItem {
   final DateTime? updatedAt;
   final String? creatorName;
   final String? userId;
+
+  String get plainTextDescription => parseDescriptionToPlainText(description);
 
   String get priorityLabel => switch (priority) {
     TaskBoardPriority.urgent => 'Urgent',

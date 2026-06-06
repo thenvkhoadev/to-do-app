@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/ai_suggestion_banner.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 import 'widgets/desktop/desktop_task_header.dart';
@@ -113,6 +114,10 @@ class _DesktopLeftColumn extends StatelessWidget {
         DesktopHeroStats(item: item),
         const SizedBox(height: 24),
         DesktopTaskDescription(item: item),
+        if (item.aiSuggestion != null) ...[
+          const SizedBox(height: 16),
+          _AiSuggestionSection(text: item.aiSuggestion!),
+        ],
         const SizedBox(height: 24),
         DesktopSubtasks(taskId: item.id),
         const SizedBox(height: 24),
@@ -215,6 +220,10 @@ class _MobileLayout extends StatelessWidget {
                           MobileAssignees(item: item),
                           const SizedBox(height: 24),
                           MobileDescription(item: item),
+                          if (item.aiSuggestion != null) ...[
+                            const SizedBox(height: 16),
+                            _AiSuggestionSection(text: item.aiSuggestion!),
+                          ],
                           const SizedBox(height: 24),
                           MobileSubtasks(taskId: item.id),
                           const SizedBox(height: 24),
@@ -254,5 +263,15 @@ class _MobileLayout extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _AiSuggestionSection extends StatelessWidget {
+  const _AiSuggestionSection({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return AiSuggestionBanner(text: text);
   }
 }

@@ -362,6 +362,18 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
 
   bool _isQuillWordChar(String c) => RegExp(r'[\wÀ-ɏ]').hasMatch(c);
 
+  void _toggleBulletList() {
+    if (!_editorFocusNode.hasFocus) _editorFocusNode.requestFocus();
+    final style = _quillController.getSelectionStyle();
+    final currentList = style.attributes[quill.Attribute.list.key]?.value;
+    if (currentList == 'bullet') {
+      _quillController.formatSelection(
+          quill.Attribute.clone(quill.Attribute.list, null));
+    } else {
+      _quillController.formatSelection(const quill.ListAttribute('bullet'));
+    }
+  }
+
   Future<void> _insertQuillLink() async {
     final urlController = TextEditingController();
     final labelController = TextEditingController();
@@ -1261,6 +1273,11 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                     icon: Icons.link_rounded,
                                                     onTap: () =>
                                                         _insertQuillLink(),
+                                                  ),
+                                                  const SizedBox(width: 10),
+                                                  _FormatButton(
+                                                    icon: Icons.format_list_bulleted_rounded,
+                                                    onTap: () => _toggleBulletList(),
                                                   ),
                                                   const Spacer(),
                                                   const Icon(
