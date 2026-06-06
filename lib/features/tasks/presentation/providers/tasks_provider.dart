@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
@@ -54,32 +53,14 @@ final userTasksProvider = StreamProvider<List<NexusTask>>((ref) {
 
 final userCategoriesProvider = StreamProvider<List<CategoryModel>>((ref) {
   final user = ref.watch(authControllerProvider).valueOrNull;
-  if (user == null) {
-    debugPrint('userCategoriesProvider: User is null');
-    return const Stream.empty();
-  }
-  debugPrint('userCategoriesProvider: Fetching categories for ${user.id}');
-  return ref.watch(categoryDataSourceProvider).watchCategories(user.id).handleError((err) {
-    debugPrint('Error in userCategoriesProvider: $err');
-  }).map((event) {
-    debugPrint('userCategoriesProvider: Loaded ${event.length} categories');
-    return event;
-  });
+  if (user == null) return const Stream.empty();
+  return ref.watch(categoryDataSourceProvider).watchCategories(user.id);
 });
 
 final userTagsProvider = StreamProvider<List<TagModel>>((ref) {
   final user = ref.watch(authControllerProvider).valueOrNull;
-  if (user == null) {
-    debugPrint('userTagsProvider: User is null');
-    return const Stream.empty();
-  }
-  debugPrint('userTagsProvider: Fetching tags for ${user.id}');
-  return ref.watch(tagDataSourceProvider).watchTags(user.id).handleError((err) {
-    debugPrint('Error in userTagsProvider: $err');
-  }).map((event) {
-    debugPrint('userTagsProvider: Loaded ${event.length} tags');
-    return event;
-  });
+  if (user == null) return const Stream.empty();
+  return ref.watch(tagDataSourceProvider).watchTags(user.id);
 });
 
 // ── task creation notifier ────────────────────────────────────────────────

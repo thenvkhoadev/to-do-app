@@ -15,11 +15,15 @@ import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.d
 import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
 enum CalendarView { month, week, day }
 
 class CalendarScreen extends ConsumerStatefulWidget {
-  const CalendarScreen({super.key});
+  const CalendarScreen({this.onViewDetails, this.onCreateTask, super.key});
+  final ValueChanged<TaskBoardItem>? onViewDetails;
+  final VoidCallback? onCreateTask;
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -78,6 +82,36 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             : '${estMin}m'
         : '–';
 
+    final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
+    String resolvedAssigneeName = 'Unassigned';
+    if (t.assigneeIds.isNotEmpty) {
+      final assigneeId = t.assigneeIds.first;
+      final user = allUsers.firstWhere(
+        (u) => u.id == assigneeId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (user.fullName != null && user.fullName!.trim().isNotEmpty) {
+        resolvedAssigneeName = user.fullName!;
+      } else if (user.username != null && user.username!.isNotEmpty) {
+        resolvedAssigneeName = user.username!;
+      } else if (user.email.isNotEmpty) {
+        resolvedAssigneeName = user.email;
+      }
+    }
+    
+    String? resolvedCreatorName;
+    final creatorUser = allUsers.firstWhere(
+      (u) => u.id == t.userId,
+      orElse: () => UserProfileModel(id: '', email: ''),
+    );
+    if (creatorUser.fullName != null && creatorUser.fullName!.trim().isNotEmpty) {
+      resolvedCreatorName = creatorUser.fullName;
+    } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+      resolvedCreatorName = creatorUser.username;
+    } else if (creatorUser.email.isNotEmpty) {
+      resolvedCreatorName = creatorUser.email;
+    }
+
     return TaskBoardItem(
       id: t.id,
       title: t.title,
@@ -85,13 +119,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       status: status,
       priority: priority,
       estimate: estimate,
-      assignee: '',
+      assignee: resolvedAssigneeName,
       progress: t.status == 'done' ? 1.0 : (t.status == 'in_progress' ? 0.5 : 0.0),
       tags: const [],
       dueDate: t.dueDate,
       createdAt: t.createdAt,
       updatedAt: t.updatedAt,
       userId: t.userId,
+      creatorName: resolvedCreatorName,
     );
   }
 
@@ -130,6 +165,14 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   void _goToToday() {
     _selectDate(DateTime.now());
+  }
+
+  void _handleCreateTask() {
+    if (widget.onCreateTask != null) {
+      widget.onCreateTask!();
+    } else {
+      context.go('/tasks?newTask=1');
+    }
   }
 
   void _goToPrevious() {
@@ -213,7 +256,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                             : null,
                     onHideAgenda:
                         () => setState(() => _agendaVisible = false),
-                    onCreateTask: () => context.go('/tasks?newTask=1'),
+                    onCreateTask: _handleCreateTask,
                     onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, true),
                   ),
                 ),
@@ -251,9 +294,13 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         task: _selectedTask!,
                         onClose: () => _selectTask(null),
                         onViewDetails: () {
-                          final taskId = _selectedTask!.id;
+                          final task = _selectedTask!;
                           _selectTask(null);
-                          context.push('/task-detail/$taskId');
+                          if (widget.onViewDetails != null) {
+                            widget.onViewDetails!(task);
+                          } else {
+                            context.push('/task-detail/${task.id}');
+                          }
                         },
                       )
                     : const SizedBox.shrink(),
@@ -282,7 +329,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                 tasksAsync.hasError
                     ? 'Unable to load tasks for this day.'
                     : null,
-            onCreateTask: () => context.go('/tasks?newTask=1'),
+            onCreateTask: _handleCreateTask,
             onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
             physics: const NeverScrollableScrollPhysics(),
           ),
@@ -344,7 +391,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     tasksAsync.hasError
                         ? 'Unable to load tasks for this day.'
                         : null,
-                onCreateTask: () => context.go('/tasks?newTask=1'),
+                onCreateTask: _handleCreateTask,
                 onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
               ),
             );

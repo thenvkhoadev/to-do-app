@@ -45,6 +45,17 @@ class _DesktopSubtasksState extends ConsumerState<DesktopSubtasks> {
     } catch (_) {}
   }
 
+  Future<void> _toggleAll(List<TaskSubtaskModel> subtasks, bool checkAll) async {
+    try {
+      final datasource = ref.read(subtaskDataSourceProvider);
+      await Future.wait(subtasks.map((s) => datasource.updateSubtask(s.id, {'is_done': checkAll})));
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
   Future<void> _delete(String id) async {
     try {
       await ref.read(subtaskDataSourceProvider).deleteSubtask(id);
@@ -61,6 +72,51 @@ class _DesktopSubtasksState extends ConsumerState<DesktopSubtasks> {
         error: (e, _) => Text('Error: $e', style: const TextStyle(color: DashboardColors.error)),
         data: (subtasks) {
           final done = subtasks.where((s) => s.isDone).length;
+          final allDone = subtasks.isNotEmpty && subtasks.every((s) => s.isDone);
+          final anyDone = subtasks.any((s) => s.isDone);
+          final isIndeterminate = anyDone && !allDone;
+
+          Widget selectAllBox;
+          if (allDone) {
+            selectAllBox = Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: DashboardColors.success,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: DashboardColors.success,
+                ),
+              ),
+              child: const Icon(Icons.check_rounded, color: Colors.white, size: 14),
+            );
+          } else if (isIndeterminate) {
+            selectAllBox = Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: DashboardColors.success.withValues(alpha: .2),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: DashboardColors.success,
+                ),
+              ),
+              child: const Icon(Icons.remove_rounded, color: Colors.white, size: 14),
+            );
+          } else {
+            selectAllBox = Container(
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: DashboardColors.outline,
+                ),
+              ),
+            );
+          }
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
@@ -95,6 +151,38 @@ class _DesktopSubtasksState extends ConsumerState<DesktopSubtasks> {
                 ],
               ),
               const SizedBox(height: 20),
+              if (subtasks.isNotEmpty) ...[
+                Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    GestureDetector(
+                      onTap: () => _toggleAll(subtasks, !allDone),
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: selectAllBox,
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () => _toggleAll(subtasks, !allDone),
+                        child: MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: Text(
+                            allDone ? 'Deselect All' : 'Select All',
+                            style: const TextStyle(
+                              color: DashboardColors.onSurfaceVariant,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+              ],
               ...subtasks.map((s) => _SubtaskRow(
                     subtask: s,
                     onToggle: (v) => _toggle(s, v),

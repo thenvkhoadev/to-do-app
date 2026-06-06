@@ -5,6 +5,8 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/screens/task_details/task_detail_page.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
 class TaskDetailFromIdScreen extends ConsumerWidget {
   const TaskDetailFromIdScreen({required this.taskId, super.key});
@@ -29,7 +31,8 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
             if (nexusTask == null) {
               return _NotFoundState(onBack: () => context.pop());
             }
-            final item = _toTaskBoardItem(nexusTask);
+            final allUsers = ref.watch(allUsersProvider).valueOrNull ?? [];
+            final item = _toTaskBoardItem(nexusTask, allUsers);
             return TaskDetailPage(
               item: item,
               onBack: () => context.pop(),
@@ -40,7 +43,7 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
     );
   }
 
-  TaskBoardItem _toTaskBoardItem(dynamic t) {
+  TaskBoardItem _toTaskBoardItem(dynamic t, List<UserProfileModel> allUsers) {
     TaskBoardStatus status;
     switch ((t.status as String).toLowerCase()) {
       case 'in_progress':
@@ -80,6 +83,39 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
             : '${estMin}m'
         : '–';
 
+    String resolvedAssigneeName = 'Unassigned';
+    final assigneeIds = (t.assigneeIds as List?)?.cast<String>() ?? [];
+    if (assigneeIds.isNotEmpty) {
+      final assigneeId = assigneeIds.first;
+      final user = allUsers.firstWhere(
+        (u) => u.id == assigneeId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (user.fullName != null && user.fullName!.trim().isNotEmpty) {
+        resolvedAssigneeName = user.fullName!;
+      } else if (user.username != null && user.username!.isNotEmpty) {
+        resolvedAssigneeName = user.username!;
+      } else if (user.email.isNotEmpty) {
+        resolvedAssigneeName = user.email;
+      }
+    }
+    
+    String? resolvedCreatorName;
+    final userId = t.userId as String?;
+    if (userId != null && userId.isNotEmpty) {
+      final creatorUser = allUsers.firstWhere(
+        (u) => u.id == userId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (creatorUser.fullName != null && creatorUser.fullName!.trim().isNotEmpty) {
+        resolvedCreatorName = creatorUser.fullName;
+      } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+        resolvedCreatorName = creatorUser.username;
+      } else if (creatorUser.email.isNotEmpty) {
+        resolvedCreatorName = creatorUser.email;
+      }
+    }
+
     return TaskBoardItem(
       id: t.id as String,
       title: t.title as String,
@@ -87,13 +123,14 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
       status: status,
       priority: priority,
       estimate: estimate,
-      assignee: '',
-      progress: 0,
+      assignee: resolvedAssigneeName,
+      progress: status == TaskBoardStatus.completed ? 1.0 : (status == TaskBoardStatus.inProgress ? 0.5 : 0.0),
       tags: const [],
       dueDate: t.dueDate as DateTime?,
       createdAt: t.createdAt as DateTime?,
       updatedAt: t.updatedAt as DateTime?,
-      userId: t.userId as String?,
+      userId: userId,
+      creatorName: resolvedCreatorName,
     );
   }
 }

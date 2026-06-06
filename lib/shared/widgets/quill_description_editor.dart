@@ -34,10 +34,12 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
   bool _saving = false;
   final Map<String, quill.Attribute> _explicitActive = {};
   int? _lastToggledOffset;
+  String? _lastSavedText;
 
   @override
   void initState() {
     super.initState();
+    _lastSavedText = widget.initialText;
     _ctrl = quill.QuillController(
       document: widget.initialText.trim().isEmpty
           ? quill.Document()
@@ -67,6 +69,7 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
   void didUpdateWidget(QuillDescriptionEditor oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.taskId != widget.taskId) {
+      _lastSavedText = widget.initialText;
       _ctrl.document = widget.initialText.trim().isEmpty
           ? quill.Document()
           : _docFromText(widget.initialText);
@@ -75,7 +78,7 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
 
   @override
   void dispose() {
-    _save();
+    _save(isDisposing: true);
     _ctrl.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_onFocusChanged);
     _ctrl.dispose();
@@ -85,7 +88,7 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
 
   void _onFocusChanged() {
     if (!_focusNode.hasFocus) _save();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   void _onSelectionChanged() {
@@ -125,24 +128,32 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
     }
   }
 
-  Future<void> _save() async {
+  Future<void> _save({bool isDisposing = false}) async {
     final plain = _ctrl.document.toPlainText().trim();
     final String? descriptionToSave = plain.isEmpty ? null : jsonEncode(_ctrl.document.toDelta().toJson());
-    if (descriptionToSave == widget.initialText) return;
-    if (mounted) setState(() => _saving = true);
+    
+    final currentLastSaved = _lastSavedText ?? widget.initialText;
+    if (descriptionToSave == currentLastSaved) return;
+    
+    _lastSavedText = descriptionToSave;
+
+    if (!isDisposing && mounted) setState(() => _saving = true);
     try {
       await Supabase.instance.client
           .from('tasks')
           .update({'description': descriptionToSave})
           .eq('id', widget.taskId);
     } catch (e) {
-      if (mounted) {
+      if (_lastSavedText == descriptionToSave) {
+        _lastSavedText = currentLastSaved;
+      }
+      if (!isDisposing && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Failed to save description: $e')),
         );
       }
     } finally {
-      if (mounted) setState(() => _saving = false);
+      if (!isDisposing && mounted) setState(() => _saving = false);
     }
   }
 

@@ -13,14 +13,12 @@ class AttachmentRemoteDataSource {
   static const _bucket = 'task-attachments';
 
   Future<List<TaskAttachmentModel>> getAttachments(String taskId) async {
-    debugPrint('getAttachments: querying task_id=$taskId');
     final response = await _client
         .from('task_attachments')
         .select()
         .eq('task_id', taskId)
         .order('created_at', ascending: true);
 
-    debugPrint('getAttachments: got ${(response as List).length} rows: $response');
     return (response as List<dynamic>)
         .map((json) => TaskAttachmentModel.fromJson(json as Map<String, dynamic>))
         .toList();

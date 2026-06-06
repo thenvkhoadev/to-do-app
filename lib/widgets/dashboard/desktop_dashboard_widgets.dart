@@ -83,7 +83,11 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                         2 => const DesktopAiAssistantContent(
                           key: ValueKey('ai-assistant'),
                         ),
-                        3 => const CalendarScreen(key: ValueKey('calendar')),
+                        3 => CalendarScreen(
+                          key: const ValueKey('calendar'),
+                          onViewDetails: _openTaskDetails,
+                          onCreateTask: () => setState(() => _selectedIndex = 8),
+                        ),
                         4 => const AnalyticsScreen(
                           key: ValueKey('analytics'),
                           embeddedInDashboard: true,

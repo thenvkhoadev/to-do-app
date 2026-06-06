@@ -411,7 +411,7 @@ class _AgendaPanelState extends State<AgendaPanel> {
           mainAxisSpacing: 10,
           childAspectRatio: 2.8,
           children: [
-            _buildActionButton(context, Icons.add_rounded, '+ Task', () {
+            _buildActionButton(context, Icons.add_rounded, 'Task', () {
               widget.onCreateTask?.call();
             }),
             _buildActionButton(context, Icons.lens_blur_rounded, 'Focus', () {

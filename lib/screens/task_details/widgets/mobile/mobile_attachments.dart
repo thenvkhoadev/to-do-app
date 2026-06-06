@@ -5,6 +5,7 @@ import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart'
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/screens/task_details/widgets/attachment_preview_dialog.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class MobileAttachments extends ConsumerWidget {
   const MobileAttachments({required this.taskId, super.key});
@@ -96,39 +97,163 @@ class _AttachmentCard extends StatelessWidget {
   const _AttachmentCard({required this.attachment});
   final TaskAttachmentModel attachment;
 
-  String _getFileTypeLabel(String mime) {
-    if (mime.startsWith('image/')) return '🖼️ PNG';
-    if (mime == 'application/pdf') return '📄 PDF';
-    if (mime.contains('wordprocessingml') || mime.contains('msword')) return '📝 DOCX';
-    if (mime.contains('spreadsheetml') || mime.contains('excel')) return '📊 XLSX';
-    if (mime.contains('zip') || mime.contains('x-rar')) return '📦 ZIP';
+  String _getFileTypeLabel(String mime, String ext) {
+    if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext)) return '🖼️ PNG';
+    if (mime == 'application/pdf' || ext == 'pdf') return '📄 PDF';
+    if (mime.contains('wordprocessingml') || mime.contains('msword') || ['doc', 'docx'].contains(ext)) return '📝 DOCX';
+    if (mime.contains('spreadsheetml') || mime.contains('excel') || ['xls', 'xlsx'].contains(ext)) return '📊 XLSX';
+    if (mime.contains('zip') || mime.contains('x-rar') || ['zip', 'rar', '7z'].contains(ext)) return '📦 ZIP';
     return '📁 File';
   }
 
-  IconData _getFileIcon(String mime) {
-    if (mime.startsWith('image/')) return Icons.image_rounded;
-    if (mime == 'application/pdf') return Icons.picture_as_pdf_rounded;
-    if (mime.contains('wordprocessingml') || mime.contains('msword')) return Icons.description_rounded;
-    if (mime.contains('spreadsheetml') || mime.contains('excel')) return Icons.table_view_rounded;
-    if (mime.contains('zip') || mime.contains('x-rar')) return Icons.archive_rounded;
+  IconData _getFileIcon(String mime, String ext) {
+    if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext)) return Icons.image_rounded;
+    if (mime == 'application/pdf' || ext == 'pdf') return Icons.picture_as_pdf_rounded;
+    if (mime.contains('wordprocessingml') || mime.contains('msword') || ['doc', 'docx'].contains(ext)) return Icons.description_rounded;
+    if (mime.contains('spreadsheetml') || mime.contains('excel') || ['xls', 'xlsx'].contains(ext)) return Icons.table_view_rounded;
+    if (mime.contains('zip') || mime.contains('x-rar') || ['zip', 'rar', '7z'].contains(ext)) return Icons.archive_rounded;
     return Icons.insert_drive_file_rounded;
   }
 
-  Color _getFileColor(String mime) {
-    if (mime.startsWith('image/')) return const Color(0xFFC084FC); // Purple
-    if (mime == 'application/pdf') return const Color(0xFFEF4444); // Red
-    if (mime.contains('wordprocessingml') || mime.contains('msword')) return const Color(0xFF60A5FA); // Blue
-    if (mime.contains('spreadsheetml') || mime.contains('excel')) return const Color(0xFF34D399); // Green
-    if (mime.contains('zip') || mime.contains('x-rar')) return const Color(0xFFF59E0B); // Orange
+  Color _getFileColor(String mime, String ext) {
+    if (mime.startsWith('image/') || ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext)) return const Color(0xFFC084FC); // Purple
+    if (mime == 'application/pdf' || ext == 'pdf') return const Color(0xFFEF4444); // Red
+    if (mime.contains('wordprocessingml') || mime.contains('msword') || ['doc', 'docx'].contains(ext)) return const Color(0xFF60A5FA); // Blue
+    if (mime.contains('spreadsheetml') || mime.contains('excel') || ['xls', 'xlsx'].contains(ext)) return const Color(0xFF34D399); // Green
+    if (mime.contains('zip') || mime.contains('x-rar') || ['zip', 'rar', '7z'].contains(ext)) return const Color(0xFFF59E0B); // Orange
     return const Color(0xFF9CA3AF); // Grey
+  }
+
+  Widget _buildPreviewBox(BuildContext context, String ext, Color fileColor, IconData icon, bool isImage) {
+    if (isImage) {
+      return Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.08),
+          ),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: CachedNetworkImage(
+          imageUrl: attachment.fileUrl,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => const Center(
+            child: CircularProgressIndicator(strokeWidth: 1.5),
+          ),
+          errorWidget: (context, url, error) => Center(
+            child: Icon(icon, color: fileColor, size: 36),
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.08),
+        ),
+      ),
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Mock lines
+          Padding(
+            padding: const EdgeInsets.fromLTRB(12, 20, 12, 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  height: 3,
+                  width: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  height: 3,
+                  width: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+                const SizedBox(height: 5),
+                Container(
+                  height: 3,
+                  width: 30,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(1.5),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Top accent strip
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 4,
+              decoration: BoxDecoration(
+                color: fileColor,
+                borderRadius: const BorderRadius.only(
+                  topLeft: Radius.circular(10),
+                  topRight: Radius.circular(10),
+                ),
+              ),
+            ),
+          ),
+          // Document type badge
+          Positioned(
+            top: 8,
+            left: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+              decoration: BoxDecoration(
+                color: fileColor.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(3),
+                border: Border.all(
+                  color: fileColor.withValues(alpha: 0.4),
+                  width: 0.5,
+                ),
+              ),
+              child: Text(
+                ext.toUpperCase(),
+                style: TextStyle(
+                  color: fileColor,
+                  fontSize: 7,
+                  fontWeight: FontWeight.w900,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ),
+          ),
+          Center(
+            child: Icon(icon, color: fileColor.withValues(alpha: 0.75), size: 30),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final mime = attachment.mimeType;
-    final fileColor = _getFileColor(mime);
-    final icon = _getFileIcon(mime);
-    final typeLabel = _getFileTypeLabel(mime);
+    final ext = attachment.fileName.split('.').last.toLowerCase();
+    final fileColor = _getFileColor(mime, ext);
+    final icon = _getFileIcon(mime, ext);
+    final typeLabel = _getFileTypeLabel(mime, ext);
+    final isImage = mime.startsWith('image/') ||
+        ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'heic'].contains(ext);
 
     return InkWell(
       onTap: () => AttachmentPreviewDialog.show(context, attachment),
@@ -146,17 +271,7 @@ class _AttachmentCard extends StatelessWidget {
           children: [
             // Preview / Type Icon Top Area
             Expanded(
-              child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: fileColor.withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: fileColor.withValues(alpha: 0.15),
-                  ),
-                ),
-                child: Icon(icon, color: fileColor, size: 36),
-              ),
+              child: _buildPreviewBox(context, ext, fileColor, icon, isImage),
             ),
             const SizedBox(height: 8),
             // File Info

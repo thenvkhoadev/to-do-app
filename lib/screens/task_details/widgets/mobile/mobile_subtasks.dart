@@ -45,6 +45,17 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
     } catch (_) {}
   }
 
+  Future<void> _toggleAll(List<TaskSubtaskModel> subtasks, bool checkAll) async {
+    try {
+      final datasource = ref.read(subtaskDataSourceProvider);
+      await Future.wait(subtasks.map((s) => datasource.updateSubtask(s.id, {'is_done': checkAll})));
+      ref.invalidate(taskSubtasksProvider(widget.taskId));
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final async = ref.watch(taskSubtasksProvider(widget.taskId));
@@ -56,6 +67,34 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
           error: (e, _) => Text('$e', style: const TextStyle(color: DashboardColors.error, fontSize: 12)),
           data: (subtasks) {
             final done = subtasks.where((s) => s.isDone).length;
+            final allDone = subtasks.isNotEmpty && subtasks.every((s) => s.isDone);
+            final anyDone = subtasks.any((s) => s.isDone);
+            final isIndeterminate = anyDone && !allDone;
+
+            Widget selectAllBox;
+            if (allDone) {
+              selectAllBox = const Icon(
+                Icons.check_circle_rounded,
+                color: DashboardColors.success,
+                size: 22,
+              );
+            } else if (isIndeterminate) {
+              selectAllBox = const Icon(
+                Icons.remove_circle_rounded,
+                color: DashboardColors.success,
+                size: 22,
+              );
+            } else {
+              selectAllBox = Container(
+                width: 22,
+                height: 22,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: DashboardColors.primary, width: 2),
+                ),
+              );
+            }
+
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -84,6 +123,33 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
                   ],
                 ),
                 const SizedBox(height: 8),
+                if (subtasks.isNotEmpty) ...[
+                  _GlassCard(
+                    highlight: false,
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => _toggleAll(subtasks, !allDone),
+                          child: selectAllBox,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _toggleAll(subtasks, !allDone),
+                            child: Text(
+                              allDone ? 'Deselect All' : 'Select All',
+                              style: const TextStyle(
+                                color: DashboardColors.onSurfaceVariant,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
                 ...subtasks.map((s) => _SubtaskItem(
                       subtask: s,
                       onToggle: (v) => _toggle(s, v),

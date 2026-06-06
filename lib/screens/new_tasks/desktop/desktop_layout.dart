@@ -3821,31 +3821,79 @@ class _FocusForecastCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final progress = (hours / 8).clamp(.15, 1.0);
     return _GlassBox(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       tint: DashboardColors.tertiary.withValues(alpha: .04),
       borderColor: DashboardColors.tertiary.withValues(alpha: .14),
       child: Row(
         children: [
-          SizedBox(
-            width: 38,
-            height: 38,
-            child: CircularProgressIndicator(
-              value: (hours / 8).clamp(.15, 1),
-              strokeWidth: 3,
-              color: DashboardColors.tertiary,
-              backgroundColor: DashboardColors.surfaceHighest,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              'Focus Forecast • ${hours.round()}h session • score 88',
-              style: const TextStyle(
-                color: DashboardColors.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: CircularProgressIndicator(
+                  value: 1.0,
+                  strokeWidth: 3,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    DashboardColors.tertiary.withValues(alpha: .12),
+                  ),
+                ),
               ),
+              SizedBox(
+                width: 38,
+                height: 38,
+                child: CircularProgressIndicator(
+                  value: progress,
+                  strokeWidth: 3,
+                  valueColor: const AlwaysStoppedAnimation<Color>(DashboardColors.tertiary),
+                  backgroundColor: Colors.transparent,
+                ),
+              ),
+              const Icon(
+                Icons.radar_rounded,
+                color: DashboardColors.tertiary,
+                size: 16,
+              ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.auto_awesome_rounded,
+                      color: DashboardColors.tertiary,
+                      size: 12,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'FOCUS FORECAST',
+                      style: GoogleFonts.inter(
+                        color: DashboardColors.tertiary,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: .5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${hours.round()}h session planned • productivity score 88',
+                  style: const TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
