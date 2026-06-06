@@ -25,7 +25,7 @@ class MobileDescription extends StatelessWidget {
         _GlassCard(
           child: QuillDescriptionEditor(
             taskId: item.id,
-            initialText: item.plainTextDescription,
+            initialText: item.description,
             minHeight: 80,
             maxHeight: 220,
           ),

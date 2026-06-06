@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:google_fonts/google_fonts.dart';
@@ -76,6 +75,7 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
 
   @override
   void dispose() {
+    _save();
     _ctrl.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_onFocusChanged);
     _ctrl.dispose();
@@ -127,12 +127,13 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
 
   Future<void> _save() async {
     final plain = _ctrl.document.toPlainText().trim();
-    if (plain == widget.initialText.trim()) return;
-    setState(() => _saving = true);
+    final String? descriptionToSave = plain.isEmpty ? null : jsonEncode(_ctrl.document.toDelta().toJson());
+    if (descriptionToSave == widget.initialText) return;
+    if (mounted) setState(() => _saving = true);
     try {
       await Supabase.instance.client
           .from('tasks')
-          .update({'description': plain.isEmpty ? null : plain})
+          .update({'description': descriptionToSave})
           .eq('id', widget.taskId);
     } catch (e) {
       if (mounted) {
@@ -156,8 +157,12 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
       final plain = _ctrl.document.toPlainText();
       final cursor = sel.start;
       int start = cursor, end = cursor;
-      while (start > 0 && _isWordChar(plain[start - 1])) start--;
-      while (end < plain.length && _isWordChar(plain[end])) end++;
+      while (start > 0 && _isWordChar(plain[start - 1])) {
+        start--;
+      }
+      while (end < plain.length && _isWordChar(plain[end])) {
+        end++;
+      }
       if (start != end) {
         _ctrl.updateSelection(
           TextSelection(baseOffset: start, extentOffset: end),

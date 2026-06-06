@@ -1,9 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AgendaPanelEvent {
   const AgendaPanelEvent({
     required this.start,
     required this.title,
+    this.taskId,
     this.subtitle,
     this.color,
     this.durationMinutes = 30,
@@ -14,6 +16,7 @@ class AgendaPanelEvent {
 
   final DateTime start;
   final String title;
+  final String? taskId;
   final String? subtitle;
   final Color? color;
   final int durationMinutes;
@@ -33,6 +36,7 @@ class AgendaPanel extends StatefulWidget {
     this.errorMessage,
     this.onHideAgenda,
     this.onCreateTask,
+    this.onEventTap,
     super.key,
   });
 
@@ -45,6 +49,7 @@ class AgendaPanel extends StatefulWidget {
   final String? errorMessage;
   final VoidCallback? onHideAgenda;
   final VoidCallback? onCreateTask;
+  final ValueChanged<AgendaPanelEvent>? onEventTap;
 
   @override
   State<AgendaPanel> createState() => _AgendaPanelState();
@@ -244,6 +249,7 @@ class _AgendaPanelState extends State<AgendaPanel> {
                     onHideAgenda: widget.onHideAgenda,
                     onCreateTask: widget.onCreateTask,
                     nextEvent: _nextEvent(selectedDateTasks),
+                    onEventTap: widget.onEventTap,
                   )
                   : _CollapsedAgenda(
                     key: ValueKey('collapsed-${_dateKey(widget.date)}'),
@@ -308,6 +314,7 @@ class _ExpandedAgenda extends StatelessWidget {
     this.aiSuggestion,
     this.onAcceptSuggestion,
     this.onDismissSuggestion,
+    this.onEventTap,
     super.key,
   });
 
@@ -330,6 +337,7 @@ class _ExpandedAgenda extends StatelessWidget {
   final AgendaPanelEvent? nextEvent;
   final VoidCallback? onHideAgenda;
   final VoidCallback? onCreateTask;
+  final ValueChanged<AgendaPanelEvent>? onEventTap;
 
   @override
   Widget build(BuildContext context) {
@@ -446,6 +454,7 @@ class _ExpandedAgenda extends StatelessWidget {
                   : _AgendaTimeline(
                     key: ValueKey('timeline-${_dateKey(date)}-$selectedFilter'),
                     events: filteredTasks,
+                    onEventTap: onEventTap,
                   ),
         ),
         const SizedBox(height: 4),
@@ -696,7 +705,7 @@ class _DayOverview extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SectionTitle(title: 'Today\'s Overview'),
+        const _SectionTitle(title: "Today's Overview"),
         const SizedBox(height: 12),
         Row(
           children: [
@@ -705,6 +714,7 @@ class _DayOverview extends StatelessWidget {
                 value: '$taskCount',
                 label: 'Tasks',
                 color: const Color(0xFF8B5CF6),
+                icon: Icons.assignment_rounded,
               ),
             ),
             const SizedBox(width: 8),
@@ -713,22 +723,25 @@ class _DayOverview extends StatelessWidget {
                 value: '$meetingCount',
                 label: 'Meetings',
                 color: const Color(0xFF06B6D4),
+                icon: Icons.groups_rounded,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _OverviewCard(
                 value: _hoursLabel(focusMinutes),
-                label: 'Focus Time',
+                label: 'Focus',
                 color: const Color(0xFF22C55E),
+                icon: Icons.bolt_rounded,
               ),
             ),
             const SizedBox(width: 8),
             Expanded(
               child: _OverviewCard(
                 value: '$completedCount',
-                label: 'Completed',
+                label: 'Done',
                 color: const Color(0xFFF59E0B),
+                icon: Icons.check_circle_rounded,
               ),
             ),
           ],
@@ -743,43 +756,80 @@ class _OverviewCard extends StatelessWidget {
     required this.value,
     required this.label,
     required this.color,
+    required this.icon,
   });
 
   final String value;
   final String label;
   final Color color;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
-          BoxShadow(color: color.withValues(alpha: .12), blurRadius: 22),
+          BoxShadow(
+            color: color.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
-      child: Column(
+      child: Stack(
+        alignment: Alignment.center,
         children: [
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
+          // Top accent line
+          Positioned(
+            left: 10,
+            right: 10,
+            top: 0,
+            height: 2,
+            child: Container(
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: color,
+                    blurRadius: 4,
+                  )
+                ],
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white60,
-              fontWeight: FontWeight.w800,
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Column(
+              children: [
+                Icon(icon, color: color.withValues(alpha: 0.8), size: 16),
+                const SizedBox(height: 6),
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 9,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -804,53 +854,100 @@ class _AiSummaryCard extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(26),
         boxShadow: [
-          BoxShadow(color: primary.withValues(alpha: .18), blurRadius: 34),
+          BoxShadow(
+            color: primary.withValues(alpha: 0.15),
+            blurRadius: 30,
+            offset: const Offset(0, 10),
+          ),
         ],
       ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF111827).withValues(alpha: .72),
-          borderRadius: BorderRadius.circular(25),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(25),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1222).withValues(alpha: 0.75),
+              borderRadius: BorderRadius.circular(25),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.auto_awesome_rounded, color: primary, size: 18),
-                const SizedBox(width: 8),
-                Text(
-                  'AI Summary',
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: primary.withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(Icons.auto_awesome_rounded, color: primary, size: 16),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text(
+                      'AI Intelligent Summary',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 14,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const _SummaryLine(label: '⚡ You have 3 high-priority tasks today.'),
+                const SizedBox(height: 10),
+                const _SummaryLine(label: '🎯 Best focus window:', value: '2PM - 5PM'),
+                const SizedBox(height: 10),
+                const _SummaryLine(label: '📊 Estimated workload:', value: 'Medium'),
+                const SizedBox(height: 18),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [primary, secondary],
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: FilledButton(
+                          onPressed: () {},
+                          style: FilledButton.styleFrom(
+                            backgroundColor: Colors.transparent,
+                            shadowColor: Colors.transparent,
+                            foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: const Text('Optimize Day', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 13)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {},
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: BorderSide(color: Colors.white.withValues(alpha: 0.15)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Auto Schedule', style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _SummaryLine(label: 'You have 3 high-priority tasks today.'),
-            const SizedBox(height: 10),
-            _SummaryLine(label: 'Best focus window:', value: '2PM - 5PM'),
-            const SizedBox(height: 10),
-            _SummaryLine(label: 'Estimated workload:', value: 'Medium'),
-            const SizedBox(height: 14),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                FilledButton(
-                  onPressed: () {},
-                  child: const Text('Optimize Day'),
-                ),
-                OutlinedButton(
-                  onPressed: () {},
-                  child: const Text('Auto Schedule'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -1535,9 +1632,10 @@ class _StackedAvatars extends StatelessWidget {
 }
 
 class _AgendaTimeline extends StatelessWidget {
-  const _AgendaTimeline({required this.events, super.key});
+  const _AgendaTimeline({required this.events, this.onEventTap, super.key});
 
   final List<AgendaPanelEvent> events;
+  final ValueChanged<AgendaPanelEvent>? onEventTap;
 
   @override
   Widget build(BuildContext context) {
@@ -1548,14 +1646,27 @@ class _AgendaTimeline extends StatelessWidget {
           top: 8,
           bottom: 0,
           child: Container(
-            width: 1,
-            color: Colors.white.withValues(alpha: .12),
+            width: 2,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  Theme.of(context).colorScheme.primary.withValues(alpha: 0.4),
+                  Theme.of(context).colorScheme.secondary.withValues(alpha: 0.1),
+                ],
+              ),
+            ),
           ),
         ),
         Column(
           children: [
             for (var index = 0; index < events.length; index++)
-              _TimelineEntry(event: events[index], active: index == 0),
+              _TimelineEntry(
+                event: events[index],
+                active: index == 0,
+                onTap: onEventTap != null ? () => onEventTap!(events[index]) : null,
+              ),
           ],
         ),
       ],
@@ -1563,18 +1674,25 @@ class _AgendaTimeline extends StatelessWidget {
   }
 }
 
-class _TimelineEntry extends StatelessWidget {
-  const _TimelineEntry({required this.event, required this.active});
+class _TimelineEntry extends StatefulWidget {
+  const _TimelineEntry({required this.event, required this.active, this.onTap});
 
   final AgendaPanelEvent event;
   final bool active;
+  final VoidCallback? onTap;
+
+  @override
+  State<_TimelineEntry> createState() => _TimelineEntryState();
+}
+
+class _TimelineEntryState extends State<_TimelineEntry> {
+  bool _hovered = false;
 
   @override
   Widget build(BuildContext context) {
-    final color =
-        active
-            ? Theme.of(context).colorScheme.primary
-            : event.color ?? Theme.of(context).colorScheme.secondary;
+    final color = widget.active
+        ? Theme.of(context).colorScheme.primary
+        : widget.event.color ?? Theme.of(context).colorScheme.secondary;
 
     return Padding(
       padding: const EdgeInsets.only(left: 40, bottom: 24),
@@ -1584,7 +1702,7 @@ class _TimelineEntry extends StatelessWidget {
           Positioned(
             left: -40,
             top: 6,
-            child: _TimelineDot(color: color, active: active),
+            child: _TimelineDot(color: color, active: widget.active),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1592,9 +1710,9 @@ class _TimelineEntry extends StatelessWidget {
               Row(
                 children: [
                   Text(
-                    _time(event.start),
+                    _time(widget.event.start),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: active ? color : Colors.white60,
+                      color: widget.active ? color : Colors.white60,
                       fontWeight: FontWeight.w900,
                       letterSpacing: .8,
                     ),
@@ -1603,13 +1721,34 @@ class _TimelineEntry extends StatelessWidget {
                   Expanded(
                     child: Container(
                       height: 1,
-                      color: color.withValues(alpha: active ? .24 : .10),
+                      color: color.withValues(alpha: widget.active ? .24 : .10),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
-              _AgendaCard(event: event, color: color, active: active),
+              MouseRegion(
+                onEnter: (_) => setState(() => _hovered = true),
+                onExit: (_) => setState(() => _hovered = false),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  transform: Matrix4.translationValues(0, _hovered ? -4 : 0, 0),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      onTap: widget.onTap,
+                      borderRadius: BorderRadius.circular(18),
+                      child: _AgendaCard(
+                        event: widget.event,
+                        color: color,
+                        active: widget.active,
+                        hovered: _hovered,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ],
@@ -1626,30 +1765,60 @@ class _TimelineDot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (active) {
+      return Container(
+        width: 24,
+        height: 24,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
+          boxShadow: [
+            BoxShadow(
+              color: color.withValues(alpha: 0.35),
+              blurRadius: 10,
+              spreadRadius: 2,
+            ),
+          ],
+        ),
+        child: Container(
+          width: 14,
+          height: 14,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.2),
+            shape: BoxShape.circle,
+            border: Border.all(color: color, width: 1.5),
+          ),
+          child: Container(
+            width: 6,
+            height: 6,
+            decoration: BoxDecoration(
+              color: color,
+              shape: BoxShape.circle,
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       width: 24,
       height: 24,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        color:
-            active
-                ? color.withValues(alpha: .20)
-                : Theme.of(context).colorScheme.surface,
+        color: Colors.white.withValues(alpha: 0.08),
         shape: BoxShape.circle,
-        border: Border.all(color: active ? color : Colors.white24, width: 2),
       ),
-      child:
-          active
-              ? Center(
-                child: Container(
-                  width: 7,
-                  height: 7,
-                  decoration: BoxDecoration(
-                    color: color,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-              )
-              : null,
+      child: Container(
+        width: 10,
+        height: 10,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.08),
+          shape: BoxShape.circle,
+          border: Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
+        ),
+      ),
     );
   }
 }
@@ -1659,50 +1828,58 @@ class _AgendaCard extends StatelessWidget {
     required this.event,
     required this.color,
     required this.active,
+    required this.hovered,
   });
 
   final AgendaPanelEvent event;
   final Color color;
   final bool active;
+  final bool hovered;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            active
-                ? color.withValues(alpha: .06)
-                : Colors.white.withValues(alpha: .035),
+        color: active
+            ? color.withValues(alpha: hovered ? 0.10 : 0.06)
+            : Colors.white.withValues(alpha: hovered ? 0.06 : 0.03),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color:
-              active
-                  ? color.withValues(alpha: .22)
-                  : Colors.white.withValues(alpha: .08),
+          color: active
+              ? color.withValues(alpha: hovered ? 0.45 : 0.25)
+              : Colors.white.withValues(alpha: hovered ? 0.18 : 0.07),
+          width: 1.2,
         ),
-        boxShadow:
-            active
-                ? [
-                  BoxShadow(
-                    color: color.withValues(alpha: .10),
-                    blurRadius: 22,
-                  ),
-                ]
-                : null,
+        boxShadow: hovered || active
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: hovered ? 0.16 : 0.08),
+                  blurRadius: hovered ? 24 : 16,
+                  offset: Offset(0, hovered ? 8 : 4),
+                )
+              ]
+            : null,
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
             width: 4,
-            height: 42,
+            height: 46,
             decoration: BoxDecoration(
               color: color,
               borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.5),
+                  blurRadius: 6,
+                )
+              ],
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1717,14 +1894,15 @@ class _AgendaCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.labelLarge?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w900,
+                          fontSize: 14,
                         ),
                       ),
                     ),
                     if (active)
-                      Icon(Icons.auto_awesome_rounded, color: color, size: 18),
+                      Icon(Icons.auto_awesome_rounded, color: color, size: 16),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 6),
                 Text(
                   event.subtitle ?? '${_time(event.start)} event',
                   maxLines: 2,
@@ -1732,6 +1910,7 @@ class _AgendaCard extends StatelessWidget {
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white60,
                     height: 1.35,
+                    fontSize: 11,
                   ),
                 ),
                 const SizedBox(height: 12),
@@ -1742,17 +1921,17 @@ class _AgendaCard extends StatelessWidget {
                     _AgendaMetaChip(
                       label: event.priority,
                       icon: Icons.flag_rounded,
-                      color: color,
+                      color: _priorityColor(event.priority),
                     ),
                     _AgendaMetaChip(
                       label: event.status,
                       icon: Icons.check_circle_rounded,
-                      color: color,
+                      color: _statusColor(event.status),
                     ),
                     _AgendaMetaChip(
                       label: _duration(event.durationMinutes),
                       icon: Icons.schedule_rounded,
-                      color: Colors.white70,
+                      color: Colors.white60,
                     ),
                   ],
                 ),
@@ -1762,6 +1941,30 @@ class _AgendaCard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Color _priorityColor(String priority) {
+    switch (priority.toLowerCase()) {
+      case 'urgent': return const Color(0xFFEF4444);
+      case 'high': return const Color(0xFFF97316);
+      case 'low': return const Color(0xFF3B82F6);
+      default: return const Color(0xFF8B5CF6);
+    }
+  }
+
+  Color _statusColor(String status) {
+    switch (status.toLowerCase()) {
+      case 'completed':
+      case 'done':
+        return const Color(0xFF22C55E);
+      case 'in_progress':
+      case 'inprogress':
+        return const Color(0xFF8083FF);
+      case 'draft':
+        return const Color(0xFF908FA0);
+      default:
+        return const Color(0xFFADC6FF);
+    }
   }
 }
 
@@ -1779,21 +1982,22 @@ class _AgendaMetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: .18)),
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withValues(alpha: 0.18)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: color),
-          const SizedBox(width: 5),
+          Icon(icon, size: 12, color: color),
+          const SizedBox(width: 4),
           Text(
             label,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-              color: Colors.white70,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 10,
               fontWeight: FontWeight.w800,
             ),
           ),
@@ -1813,61 +2017,95 @@ class _EmptyAgenda extends StatelessWidget {
     final primary = Theme.of(context).colorScheme.primary;
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Colors.white.withValues(alpha: .055),
-            primary.withValues(alpha: .055),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        color: Colors.white.withValues(alpha: 0.02),
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.06)),
         boxShadow: [
-          BoxShadow(color: primary.withValues(alpha: .08), blurRadius: 26),
+          BoxShadow(
+            color: primary.withValues(alpha: 0.03),
+            blurRadius: 30,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 54,
-            height: 54,
+            width: 68,
+            height: 68,
+            alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: primary.withValues(alpha: .12),
+              color: primary.withValues(alpha: 0.08),
               shape: BoxShape.circle,
-              border: Border.all(color: primary.withValues(alpha: .24)),
+              border: Border.all(color: primary.withValues(alpha: 0.2), width: 1.5),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                ),
+              ],
             ),
-            child: Icon(Icons.event_available_rounded, color: primary),
+            child: Icon(Icons.event_available_rounded, color: primary, size: 32),
           ),
-          const SizedBox(height: 14),
-          Text(
+          const SizedBox(height: 20),
+          const Text(
             'No tasks scheduled',
             textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w900,
+              fontSize: 16,
             ),
           ),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           Text(
-            'Enjoy your free day.',
+            'Enjoy your free day or prepare your next goal.',
             textAlign: TextAlign.center,
-            style: Theme.of(
-              context,
-            ).textTheme.bodyMedium?.copyWith(color: Colors.white60),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.5),
+              fontSize: 13,
+            ),
           ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: onCreateTask ?? () {},
-            icon: const Icon(Icons.add_rounded),
-            label: const Text('Create Task'),
-            style: FilledButton.styleFrom(
-              backgroundColor: primary,
-              foregroundColor: Colors.white,
-              elevation: 10,
-              shadowColor: primary.withValues(alpha: .35),
+          const SizedBox(height: 24),
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  primary,
+                  Theme.of(context).colorScheme.secondary,
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: primary.withValues(alpha: 0.2),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                )
+              ],
+            ),
+            child: FilledButton.icon(
+              onPressed: onCreateTask ?? () {},
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.transparent,
+                foregroundColor: Colors.black,
+                shadowColor: Colors.transparent,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
+              icon: const Icon(Icons.add_circle_outline_rounded, size: 16),
+              label: const Text(
+                'Schedule Task',
+                style: TextStyle(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 13,
+                ),
+              ),
             ),
           ),
         ],

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:to_do_app/features/calendar/presentation/widgets/event_card.dart';
 
 class DayCalendarEvent {
   const DayCalendarEvent({
     required this.start,
     required this.end,
     required this.title,
+    this.taskId,
     this.subtitle,
     this.color,
     this.category,
@@ -16,6 +16,7 @@ class DayCalendarEvent {
   final DateTime start;
   final DateTime end;
   final String title;
+  final String? taskId;
   final String? subtitle;
   final Color? color;
   final String? category;
@@ -35,57 +36,58 @@ class DayView extends StatelessWidget {
   final List<DayCalendarEvent> events;
   final ValueChanged<DayCalendarEvent>? onEventTap;
 
-  static const _hourHeight = 72.0;
-  static const _timeWidth = 58.0;
+  static const _hourHeight = 64.0;
+  static const _timeWidth = 52.0;
 
   @override
   Widget build(BuildContext context) {
     final dayEvents =
-        events.where((event) => _sameDay(event.start, date)).toList();
+        events.where((e) => _sameDay(e.start, date)).toList()
+          ..sort((a, b) => a.start.compareTo(b.start));
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final desktop = constraints.maxWidth >= 720;
-        final contentWidth =
-            constraints.maxWidth - _timeWidth - (desktop ? 48 : 24);
+        final hPad = desktop ? 24.0 : 12.0;
+        final contentWidth = constraints.maxWidth - _timeWidth - hPad * 2;
+
+        // Build overlap groups
+        final groups = _buildOverlapGroups(dayEvents);
 
         return Container(
-          padding: EdgeInsets.all(desktop ? 24 : 12),
+          padding: EdgeInsets.all(hPad),
           decoration: _glass(context),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Text(
-                '${_weekday(date)}, ${date.day}/${date.month}/${date.year}',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 18),
+              _DayHeader(date: date),
+              const SizedBox(height: 16),
               Expanded(
                 child: SingleChildScrollView(
                   child: SizedBox(
                     height: 24 * _hourHeight,
                     child: Stack(
                       children: [
-                        const _Grid(
+                        _Grid(
                           hourHeight: _hourHeight,
                           timeWidth: _timeWidth,
                         ),
-                        for (final event in dayEvents)
-                          _EventBlock(
-                            event: event,
-                            hourHeight: _hourHeight,
-                            left: _timeWidth,
-                            width: contentWidth.clamp(180, double.infinity),
-                            onTap:
-                                onEventTap == null
-                                    ? null
-                                    : () => onEventTap!(event),
-                          ),
+                        // Render each overlap group
+                        for (final group in groups)
+                          for (int i = 0; i < group.length; i++)
+                            _EventBlock(
+                              event: group[i],
+                              hourHeight: _hourHeight,
+                              timeWidth: _timeWidth,
+                              colIndex: i,
+                              colCount: group.length,
+                              contentWidth: contentWidth,
+                              onTap: onEventTap == null
+                                  ? null
+                                  : () => onEventTap!(group[i]),
+                            ),
                         if (_sameDay(date, DateTime.now()))
-                          const _NowLine(
+                          _NowLine(
                             hourHeight: _hourHeight,
                             left: _timeWidth,
                           ),
@@ -100,7 +102,95 @@ class DayView extends StatelessWidget {
       },
     );
   }
+
+  /// Groups events that overlap in time so they can be rendered side by side.
+  List<List<DayCalendarEvent>> _buildOverlapGroups(
+    List<DayCalendarEvent> sorted,
+  ) {
+    if (sorted.isEmpty) return [];
+
+    final groups = <List<DayCalendarEvent>>[];
+    List<DayCalendarEvent> current = [sorted.first];
+    DateTime groupEnd = sorted.first.end;
+
+    for (int i = 1; i < sorted.length; i++) {
+      final event = sorted[i];
+      if (event.start.isBefore(groupEnd)) {
+        // Overlaps with current group
+        current.add(event);
+        if (event.end.isAfter(groupEnd)) groupEnd = event.end;
+      } else {
+        groups.add(current);
+        current = [event];
+        groupEnd = event.end;
+      }
+    }
+    groups.add(current);
+    return groups;
+  }
 }
+
+// ── Day header ───────────────────────────────────────────────────────────────
+
+class _DayHeader extends StatelessWidget {
+  const _DayHeader({required this.date});
+  final DateTime date;
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = _sameDay(date, DateTime.now());
+    final primary = Theme.of(context).colorScheme.primary;
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                _weekdayFull(date),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  height: 1.1,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${date.day} ${_monthFull(date)} ${date.year}',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Colors.white.withValues(alpha: .55),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+        if (isToday)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: primary.withValues(alpha: .15),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: primary.withValues(alpha: .35)),
+            ),
+            child: Text(
+              'TODAY',
+              style: TextStyle(
+                color: primary,
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                letterSpacing: 1.2,
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+// ── Hour grid ─────────────────────────────────────────────────────────────────
 
 class _Grid extends StatelessWidget {
   const _Grid({required this.hourHeight, required this.timeWidth});
@@ -120,18 +210,27 @@ class _Grid extends StatelessWidget {
               children: [
                 SizedBox(
                   width: timeWidth,
-                  child: Text(
-                    '${hour.toString().padLeft(2, '0')}:00',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: Colors.white54,
-                      fontWeight: FontWeight.w700,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 2),
+                    child: Text(
+                      '${hour.toString().padLeft(2, '0')}:00',
+                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        color: Colors.white.withValues(alpha: .35),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                      ),
                     ),
                   ),
                 ),
                 Expanded(
-                  child: Divider(
-                    height: 1,
-                    color: Colors.white.withValues(alpha: .08),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.white.withValues(alpha: .07),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -142,62 +241,91 @@ class _Grid extends StatelessWidget {
   }
 }
 
-class _EventBlock extends StatelessWidget {
+// ── Event block (overlap-aware) ───────────────────────────────────────────────
+
+class _EventBlock extends StatefulWidget {
   const _EventBlock({
     required this.event,
     required this.hourHeight,
-    required this.left,
-    required this.width,
+    required this.timeWidth,
+    required this.colIndex,
+    required this.colCount,
+    required this.contentWidth,
     this.onTap,
   });
 
   final DayCalendarEvent event;
   final double hourHeight;
-  final double left;
-  final double width;
+  final double timeWidth;
+  final int colIndex;
+  final int colCount;
+  final double contentWidth;
   final VoidCallback? onTap;
 
   @override
+  State<_EventBlock> createState() => _EventBlockState();
+}
+
+class _EventBlockState extends State<_EventBlock> {
+  bool _hovered = false;
+
+  @override
   Widget build(BuildContext context) {
-    final start = event.start.hour + event.start.minute / 60;
-    final duration =
-        event.end.difference(event.start).inMinutes.clamp(30, 1440) / 60;
-    final color = event.color ?? Theme.of(context).colorScheme.primary;
+    final e = widget.event;
+    final color = e.color ?? Theme.of(context).colorScheme.primary;
+
+    final startFrac = e.start.hour + e.start.minute / 60.0;
+    final durationMin = e.end.difference(e.start).inMinutes.clamp(15, 1440);
+    final durationFrac = durationMin / 60.0;
+    final isShort = durationMin < 35;
+
+    final colW = (widget.contentWidth - (widget.colCount - 1) * 4) / widget.colCount;
+    final left = widget.timeWidth + widget.colIndex * (colW + 4);
+    final top = startFrac * widget.hourHeight;
+    final height = (durationFrac * widget.hourHeight - 3).clamp(28.0, double.infinity);
 
     return Positioned(
-      top: start * hourHeight,
+      top: top,
       left: left,
-      width: width,
-      height: (duration * hourHeight - 6).clamp(132, double.infinity),
-      child: Material(
-        color: color.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(18),
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(18),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: color.withValues(alpha: .55)),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: .16),
-                  blurRadius: 22,
-                  offset: const Offset(0, 10),
+      width: colW,
+      height: height,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        cursor: SystemMouseCursors.click,
+        child: AnimatedScale(
+          scale: _hovered ? 1.012 : 1.0,
+          duration: const Duration(milliseconds: 140),
+          curve: Curves.easeOutCubic,
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 140),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: _hovered ? .16 : .10),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: color.withValues(alpha: .22)),
+                boxShadow: _hovered
+                    ? [BoxShadow(color: color.withValues(alpha: .12), blurRadius: 12, offset: const Offset(0, 4))]
+                    : null,
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(7),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Left accent strip
+                    Container(width: 3, color: color),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(6, isShort ? 4 : 6, 6, isShort ? 4 : 6),
+                        child: isShort
+                            ? _CompactContent(event: e, color: color)
+                            : _FullContent(event: e, color: color),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
-            child: ClipRect(
-              child: CalendarEventCard(
-                title: event.title,
-                startTime: event.start,
-                endTime: event.end,
-                color: color,
-                category: event.category,
-                location: event.location,
-                participants: event.participants,
-                onTap: onTap,
               ),
             ),
           ),
@@ -207,9 +335,97 @@ class _EventBlock extends StatelessWidget {
   }
 }
 
+// ── Compact card (< 35 min) ───────────────────────────────────────────────────
+
+class _CompactContent extends StatelessWidget {
+  const _CompactContent({required this.event, required this.color});
+  final DayCalendarEvent event;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            event.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              height: 1.2,
+            ),
+          ),
+        ),
+        const SizedBox(width: 4),
+        Text(
+          '${_t(event.start)}-${_t(event.end)}',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .55),
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Full card (>= 35 min) ─────────────────────────────────────────────────────
+
+class _FullContent extends StatelessWidget {
+  const _FullContent({required this.event, required this.color});
+  final DayCalendarEvent event;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          event.title,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            height: 1.25,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          '${_t(event.start)} – ${_t(event.end)}',
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: .55),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        if (event.subtitle != null && event.subtitle!.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text(
+            event.subtitle!,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: .40),
+              fontSize: 11,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ── Now line ──────────────────────────────────────────────────────────────────
+
 class _NowLine extends StatelessWidget {
   const _NowLine({required this.hourHeight, required this.left});
-
   final double hourHeight;
   final double left;
 
@@ -217,42 +433,57 @@ class _NowLine extends StatelessWidget {
   Widget build(BuildContext context) {
     final now = DateTime.now();
     final color = Theme.of(context).colorScheme.tertiary;
-
     return Positioned(
-      top: (now.hour + now.minute / 60) * hourHeight,
-      left: left - 7,
+      top: (now.hour + now.minute / 60.0) * hourHeight - 1,
+      left: left - 6,
       right: 0,
       child: Row(
         children: [
           Container(
-            width: 14,
-            height: 14,
+            width: 10,
+            height: 10,
             decoration: BoxDecoration(color: color, shape: BoxShape.circle),
           ),
-          Expanded(child: Container(height: 2, color: color)),
+          Expanded(
+            child: Container(height: 1.5, color: color.withValues(alpha: .7)),
+          ),
         ],
       ),
     );
   }
 }
 
+// ── Glass container ───────────────────────────────────────────────────────────
+
 BoxDecoration _glass(BuildContext context) {
   return BoxDecoration(
     color: Theme.of(context).colorScheme.surface.withValues(alpha: .58),
     borderRadius: BorderRadius.circular(28),
-    border: Border.all(color: Colors.white.withValues(alpha: .10)),
+    border: Border.all(color: Colors.white.withValues(alpha: .08)),
     boxShadow: [
       BoxShadow(
-        color: Colors.black.withValues(alpha: .28),
-        blurRadius: 36,
-        offset: const Offset(0, 18),
+        color: Colors.black.withValues(alpha: .22),
+        blurRadius: 28,
+        offset: const Offset(0, 14),
       ),
     ],
   );
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
 
-String _weekday(DateTime date) =>
-    const ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][date.weekday - 1];
+String _t(DateTime d) =>
+    '${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
+
+String _weekdayFull(DateTime d) => const [
+      'Monday','Tuesday','Wednesday','Thursday',
+      'Friday','Saturday','Sunday',
+    ][d.weekday - 1];
+
+String _monthFull(DateTime d) => const [
+      'January','February','March','April','May','June',
+      'July','August','September','October','November','December',
+    ][d.month - 1];

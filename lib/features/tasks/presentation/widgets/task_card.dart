@@ -10,18 +10,24 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/core/utils/description_utils.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
   const TaskCard({
     required this.task,
     this.mobile = false,
     this.onTap,
+    this.selected = false,
+    this.onSelectedChanged,
     super.key,
   });
 
   final TaskBoardItem task;
   final bool mobile;
   final VoidCallback? onTap;
+  final bool selected;
+  final ValueChanged<bool?>? onSelectedChanged;
 
   @override
   ConsumerState<TaskCard> createState() => _TaskCardState();
@@ -123,9 +129,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       try {
         await ref.read(taskRepositoryProvider).deleteTask(widget.task.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã xóa công việc thành công')),
-          );
+          DeleteSuccessDialog.show(context);
         }
       } catch (e) {
         if (mounted) {
@@ -146,7 +150,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       );
 
       final titleController = TextEditingController(text: nexusTask.title);
-      final descController = TextEditingController(text: nexusTask.description ?? '');
+      final descController = TextEditingController(text: parseDescriptionToPlainText(nexusTask.description));
       final estController = TextEditingController(text: nexusTask.estimatedMinutes?.toString() ?? '');
       String priority = nexusTask.priority.toLowerCase();
       DateTime? dueDate = nexusTask.dueDate;
@@ -273,9 +277,17 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                       final title = titleController.text.trim();
                       if (title.isEmpty) return;
 
+                      final newDescText = descController.text.trim();
+                      final String? finalDescription;
+                      if (newDescText == parseDescriptionToPlainText(nexusTask.description)) {
+                        finalDescription = nexusTask.description;
+                      } else {
+                        finalDescription = newDescText.isEmpty ? null : newDescText;
+                      }
+
                       final updated = nexusTask.copyWith(
                         title: title,
-                        description: descController.text.trim(),
+                        description: finalDescription,
                         priority: priority,
                         estimatedMinutes: int.tryParse(estController.text),
                         dueDate: dueDate,
@@ -419,6 +431,28 @@ class _TaskCardState extends ConsumerState<TaskCard> {
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (widget.onSelectedChanged != null) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2, right: 6),
+                      child: SizedBox(
+                        width: 24,
+                        height: 24,
+                        child: Checkbox(
+                          value: widget.selected,
+                          onChanged: widget.onSelectedChanged,
+                          activeColor: DashboardColors.primary,
+                          checkColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.3),
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                   if (active && !widget.mobile) ...[
                     const _ActiveTaskLine(),
                     const SizedBox(width: 12),
@@ -495,17 +529,16 @@ class _DesktopTaskBody extends StatelessWidget {
             decorationColor: DashboardColors.onSurfaceVariant,
           ),
         ),
-        if (task.description.isNotEmpty) ...[
+        if (task.plainTextDescription.isNotEmpty) ...[
           const SizedBox(height: 6),
-          Text(
+          buildRichTextDescription(
             task.description,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
+            const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               fontSize: 13,
               height: 1.45,
             ),
+            maxLines: 2,
           ),
         ],
         if (task.aiSuggestion != null) ...[

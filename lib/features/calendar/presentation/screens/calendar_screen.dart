@@ -9,8 +9,11 @@ import 'package:to_do_app/features/calendar/presentation/widgets/mobile_layout.d
     as mobile;
 import 'package:to_do_app/features/calendar/presentation/widgets/week_view.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
+import 'package:to_do_app/core/utils/description_utils.dart';
 
 enum CalendarView { month, week, day }
 
@@ -25,8 +28,84 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   CalendarView _view = CalendarView.month;
   DateTime _focusedDate = DateTime.now();
   DateTime? _selectedDate;
-  DayCalendarEvent? _selectedEvent;
   bool _agendaVisible = false;
+  TaskBoardItem? _selectedTask;
+
+  void _selectTask(TaskBoardItem? task) {
+    setState(() {
+      _selectedTask = task;
+    });
+  }
+
+  TaskBoardItem _toTaskBoardItem(NexusTask t) {
+    TaskBoardStatus status;
+    switch ((t.status).toLowerCase()) {
+      case 'in_progress':
+      case 'inprogress':
+        status = TaskBoardStatus.inProgress;
+        break;
+      case 'completed':
+      case 'done':
+        status = TaskBoardStatus.completed;
+        break;
+      case 'draft':
+        status = TaskBoardStatus.draft;
+        break;
+      default:
+        status = TaskBoardStatus.todo;
+    }
+
+    TaskBoardPriority priority;
+    switch ((t.priority).toLowerCase()) {
+      case 'urgent':
+        priority = TaskBoardPriority.urgent;
+        break;
+      case 'high':
+        priority = TaskBoardPriority.high;
+        break;
+      case 'low':
+        priority = TaskBoardPriority.low;
+        break;
+      default:
+        priority = TaskBoardPriority.medium;
+    }
+
+    final estMin = t.estimatedMinutes;
+    final estimate = estMin != null
+        ? estMin >= 60
+            ? '${estMin ~/ 60}h${estMin % 60 > 0 ? ' ${estMin % 60}m' : ''}'
+            : '${estMin}m'
+        : '–';
+
+    return TaskBoardItem(
+      id: t.id,
+      title: t.title,
+      description: t.description ?? '',
+      status: status,
+      priority: priority,
+      estimate: estimate,
+      assignee: '',
+      progress: t.status == 'done' ? 1.0 : (t.status == 'in_progress' ? 0.5 : 0.0),
+      tags: const [],
+      dueDate: t.dueDate,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+      userId: t.userId,
+    );
+  }
+
+  void _onTaskTapped(String taskId, List<NexusTask> allTasks, bool isDesktop) {
+    if (taskId.isEmpty) return;
+    final matching = allTasks.where((t) => t.id == taskId);
+    if (matching.isEmpty) return;
+    
+    final nexusTask = matching.first;
+    if (isDesktop) {
+      _selectTask(_toTaskBoardItem(nexusTask));
+    } else {
+      context.push('/task-detail/$taskId');
+    }
+  }
 
   void _setView(CalendarView view) {
     setState(() => _view = view);
@@ -36,7 +115,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     setState(() {
       _selectedDate = date;
       _focusedDate = date;
-      _selectedEvent = null;
+      _agendaVisible = true;
     });
   }
 
@@ -57,7 +136,6 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     setState(() {
       _focusedDate = nextDate;
       _selectedDate = null;
-      _selectedEvent = null;
     });
   }
 
@@ -80,45 +158,77 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     final selectedTasks = _selectedTasksFor(allTasks);
     final selectedDayEvents = _dayEventsFor(selectedTasks);
     final selectedAgendaEvents = _agendaEventsFor(selectedTasks);
+    final monthTaskEvents = _monthTaskEvents(allTasks);
 
     return LayoutBuilder(
       builder: (context, constraints) {
         if (constraints.maxWidth >= 900) {
-          return CalendarDesktopLayout(
-            title: _title,
-            selectedView: _desktopView,
-            onViewChanged: (view) => _setView(CalendarView.values[view.index]),
-            onToday: _goToToday,
-            onPrevious: _goToPrevious,
-            onNext: _goToNext,
-            calendar: _calendarContent(selectedDayEvents),
-            agendaVisible: _agendaVisible,
-            onToggleAgenda:
-                () => setState(() => _agendaVisible = !_agendaVisible),
-            agenda:
-                _selectedDate == null
-                    ? SelectDateAgendaPrompt(
-                      onHideAgenda:
-                          () => setState(() => _agendaVisible = false),
-                      onCreateTask: () => context.go('/tasks?newTask=1'),
-                    )
-                    : _selectedEvent == null
-                    ? AgendaPanel(
-                      date: _selectedDate!,
-                      events: selectedAgendaEvents,
-                      isLoading: tasksAsync.isLoading,
-                      errorMessage:
-                          tasksAsync.hasError
-                              ? 'Unable to load tasks for this day.'
-                              : null,
-                      onHideAgenda:
-                          () => setState(() => _agendaVisible = false),
-                      onCreateTask: () => context.go('/tasks?newTask=1'),
-                    )
-                    : _EventDetailPanel(
-                      event: _selectedEvent!,
-                      onClose: () => setState(() => _selectedEvent = null),
+          final isPanelOpen = _selectedTask != null;
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: CalendarDesktopLayout(
+                  title: _title,
+                  selectedView: _desktopView,
+                  onViewChanged: (view) => _setView(CalendarView.values[view.index]),
+                  onToday: _goToToday,
+                  onPrevious: _goToPrevious,
+                  onNext: _goToNext,
+                  calendar: _calendarContent(selectedDayEvents, monthTaskEvents, allTasks, true),
+                  agendaVisible: _agendaVisible,
+                  onToggleAgenda:
+                      () => setState(() => _agendaVisible = !_agendaVisible),
+                  agenda:
+                      _selectedDate == null
+                          ? SelectDateAgendaPrompt(
+                            onHideAgenda:
+                                () => setState(() => _agendaVisible = false),
+                            onCreateTask: () => context.go('/tasks?newTask=1'),
+                          )
+                          : AgendaPanel(
+                            date: _selectedDate!,
+                            events: selectedAgendaEvents,
+                            isLoading: tasksAsync.isLoading,
+                            errorMessage:
+                                tasksAsync.hasError
+                                    ? 'Unable to load tasks for this day.'
+                                    : null,
+                            onHideAgenda:
+                                () => setState(() => _agendaVisible = false),
+                            onCreateTask: () => context.go('/tasks?newTask=1'),
+                            onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, true),
+                          ),
+                ),
+              ),
+              if (isPanelOpen)
+                Positioned.fill(
+                  child: GestureDetector(
+                    onTap: () => _selectTask(null),
+                    child: Container(
+                      color: Colors.black.withValues(alpha: 0.35),
                     ),
+                  ),
+                ),
+              AnimatedPositioned(
+                duration: const Duration(milliseconds: 280),
+                curve: Curves.easeOutCubic,
+                top: 0,
+                bottom: 0,
+                right: isPanelOpen ? 0 : -420,
+                width: 420,
+                child: _selectedTask != null
+                    ? TaskDetailPanel(
+                        task: _selectedTask!,
+                        onClose: () => _selectTask(null),
+                        onViewDetails: () {
+                          final taskId = _selectedTask!.id;
+                          _selectTask(null);
+                          context.push('/task-detail/$taskId');
+                        },
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ],
           );
         }
 
@@ -129,6 +239,9 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             onDateSelected: _selectDate,
             onPreviousWeek: _goToPrevious,
             onNextWeek: _goToNext,
+            taskEvents: monthTaskEvents,
+            dayEvents: _dayEventsFor(allTasks),
+            onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
           ),
           timelineAgenda:
               _selectedDate == null
@@ -140,7 +253,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                     date: _selectedDate!,
                     events: selectedDayEvents,
                     onEventTap:
-                        (event) => setState(() => _selectedEvent = event),
+                        (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
                   ),
           bottomNavigation: MobileBottomNavBar(
             bottomInset: MediaQuery.paddingOf(context).bottom,
@@ -151,7 +264,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                   _selectedDate == null
                       ? null
                       : () =>
-                          _openMobileAgenda(selectedAgendaEvents, tasksAsync),
+                          _openMobileAgenda(selectedAgendaEvents, tasksAsync, allTasks),
               icon: const Icon(Icons.view_agenda_rounded),
             ),
           ],
@@ -164,6 +277,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   void _openMobileAgenda(
     List<AgendaPanelEvent> events,
     AsyncValue<List<NexusTask>> tasksAsync,
+    List<NexusTask> allTasks,
   ) {
     final date = _selectedDate;
     if (date == null) return;
@@ -204,6 +318,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
                         ? 'Unable to load tasks for this day.'
                         : null,
                 onCreateTask: () => context.go('/tasks?newTask=1'),
+                onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, false),
               ),
             );
           },
@@ -212,18 +327,27 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     );
   }
 
-  Widget _calendarContent(List<DayCalendarEvent> selectedDayEvents) {
+  Widget _calendarContent(
+    List<DayCalendarEvent> selectedDayEvents,
+    Map<String, List<CalendarMonthEvent>> taskEvents,
+    List<NexusTask> allTasks,
+    bool isDesktop,
+  ) {
     return switch (_view) {
       CalendarView.month => CalendarMonthView(
         focusedDate: _focusedDate,
         selectedDate: _selectedDate,
         onDateSelected: _selectDate,
+        taskEvents: taskEvents,
       ),
       CalendarView.week => WeekView(
         selectedDate: _selectedDate,
         onDateSelected: _selectDate,
         onPreviousWeek: _goToPrevious,
         onNextWeek: _goToNext,
+        taskEvents: taskEvents,
+        dayEvents: _dayEventsFor(allTasks),
+        onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, isDesktop),
       ),
       CalendarView.day =>
         _selectedDate == null
@@ -234,7 +358,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
             : DayView(
               date: _selectedDate!,
               events: selectedDayEvents,
-              onEventTap: (event) => setState(() => _selectedEvent = event),
+              onEventTap: (event) => _onTaskTapped(event.taskId ?? '', allTasks, isDesktop),
             ),
     };
   }
@@ -253,13 +377,23 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 
   List<DayCalendarEvent> _dayEventsFor(List<NexusTask> tasks) {
-    return tasks.map((task) {
-      final start = task.dueDate!;
+    return tasks.where((t) => t.dueDate != null).map((task) {
+      final due = task.dueDate!;
+      final idx = tasks.indexOf(task);
+      final start = (due.hour == 0 && due.minute == 0)
+          ? DateTime(due.year, due.month, due.day, 8 + idx % 10, 0)
+          : due;
+      final durationMinutes = (task.estimatedMinutes != null && task.estimatedMinutes! > 0)
+          ? task.estimatedMinutes!
+          : 60;
+      final end = start.add(Duration(minutes: durationMinutes));
+      final parsedDesc = parseDescriptionToPlainText(task.description);
       return DayCalendarEvent(
         start: start,
-        end: start.add(const Duration(minutes: 45)),
+        end: end,
         title: task.title,
-        subtitle: task.description ?? task.categoryId,
+        taskId: task.id,
+        subtitle: parsedDesc.isEmpty ? task.categoryId : parsedDesc,
         color: _taskColor(task),
         category: task.categoryId,
         participants: const [],
@@ -269,10 +403,12 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
 
   List<AgendaPanelEvent> _agendaEventsFor(List<NexusTask> tasks) {
     return tasks.map((task) {
+      final parsedDesc = parseDescriptionToPlainText(task.description);
       return AgendaPanelEvent(
         start: task.dueDate!,
         title: task.title,
-        subtitle: task.description ?? task.categoryId,
+        taskId: task.id,
+        subtitle: parsedDesc.isEmpty ? task.categoryId : parsedDesc,
         color: _taskColor(task),
         durationMinutes: 45,
         status: task.status,
@@ -282,16 +418,40 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
     }).toList();
   }
 
-  Color _taskColor(NexusTask task) {
-    final priority = task.priority.toLowerCase();
-    final status = task.status.toLowerCase();
-    final category = (task.categoryId ?? '').toLowerCase();
+  Map<String, List<CalendarMonthEvent>> _monthTaskEvents(List<NexusTask> tasks) {
+    final map = <String, List<CalendarMonthEvent>>{};
+    for (final task in tasks) {
+      if (task.dueDate == null) continue;
+      final d = task.dueDate!;
+      final key = '${d.year}-${d.month}-${d.day}';
+      map.putIfAbsent(key, () => []).add(
+        CalendarMonthEvent(
+          color: _taskColor(task),
+          title: task.title,
+          taskId: task.id,
+        ),
+      );
+    }
+    return map;
+  }
 
-    if (status.contains('complete')) return const Color(0xFF22C55E);
-    if (priority.contains('high')) return const Color(0xFFF97316);
-    if (priority.contains('low')) return const Color(0xFF06B6D4);
-    if (category.contains('meeting')) return const Color(0xFF8B5CF6);
-    return const Color(0xFF7C3AED);
+  Color _taskColor(NexusTask task) {
+    const palette = [
+      Color(0xFF7C3AED), // violet
+      Color(0xFFF97316), // orange
+      Color(0xFF06B6D4), // cyan
+      Color(0xFF22C55E), // green
+      Color(0xFFEC4899), // pink
+      Color(0xFF8B5CF6), // purple
+      Color(0xFFEAB308), // yellow
+      Color(0xFFEF4444), // red
+      Color(0xFF14B8A6), // teal
+      Color(0xFF3B82F6), // blue
+      Color(0xFFF59E0B), // amber
+      Color(0xFF84CC16), // lime
+    ];
+    final index = task.id.hashCode.abs() % palette.length;
+    return palette[index];
   }
 
   String _agendaType(NexusTask task) {
@@ -316,165 +476,5 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   }
 }
 
-class _EventDetailPanel extends StatelessWidget {
-  const _EventDetailPanel({required this.event, required this.onClose});
-
-  final DayCalendarEvent event;
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = event.color ?? Theme.of(context).colorScheme.primary;
-
-    return SingleChildScrollView(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Event Detail',
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              IconButton(
-                onPressed: onClose,
-                icon: const Icon(Icons.close_rounded),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          Container(
-            padding: const EdgeInsets.all(18),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: .10),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: color.withValues(alpha: .35)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  event.category ?? 'Event',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  event.title,
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  event.subtitle ?? '',
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: Colors.white70,
-                    height: 1.35,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
-          _DetailRow(
-            icon: Icons.schedule_rounded,
-            label: '${_time(event.start)} - ${_time(event.end)}',
-          ),
-          if (event.location != null)
-            _DetailRow(icon: Icons.location_on_rounded, label: event.location!),
-          if (event.participants.isNotEmpty) ...[
-            const SizedBox(height: 18),
-            Text(
-              'Participants',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 10),
-            for (final name in event.participants) _ParticipantRow(name: name),
-          ],
-          const SizedBox(height: 22),
-          FilledButton.icon(
-            onPressed: () {},
-            icon: const Icon(Icons.edit_rounded),
-            label: const Text('Edit Event'),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _DetailRow extends StatelessWidget {
-  const _DetailRow({required this.icon, required this.label});
-
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: Theme.of(context).colorScheme.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              label,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.white70),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ParticipantRow extends StatelessWidget {
-  const _ParticipantRow({required this.name});
-
-  final String name;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 14,
-            child: Text(name.characters.first.toUpperCase()),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              name,
-              style: Theme.of(
-                context,
-              ).textTheme.bodyMedium?.copyWith(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 bool _sameDay(DateTime a, DateTime b) =>
     a.year == b.year && a.month == b.month && a.day == b.day;
-
-String _time(DateTime date) =>
-    '${date.hour.toString().padLeft(2, '0')}:${date.minute.toString().padLeft(2, '0')}';

@@ -28,7 +28,7 @@ class DesktopTaskDescription extends StatelessWidget {
           const SizedBox(height: 20),
           QuillDescriptionEditor(
             taskId: item.id,
-            initialText: item.plainTextDescription,
+            initialText: item.description,
             minHeight: 100,
             maxHeight: 260,
           ),

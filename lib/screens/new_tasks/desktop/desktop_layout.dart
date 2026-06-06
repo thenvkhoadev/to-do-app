@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:ui';
 
 import 'package:file_picker/file_picker.dart';
@@ -739,12 +740,13 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
         'urgent': 'urgent',
       };
 
+      final plain = _quillController.document.toPlainText().trim();
       final created = await ref.read(taskCreationProvider.notifier).createTask(
             userId: user.id,
             title: title,
-            description: _quillController.document.toPlainText().trim().isEmpty
+            description: plain.isEmpty
                 ? null
-                : _quillController.document.toPlainText().trim(),
+                : jsonEncode(_quillController.document.toDelta().toJson()),
             categoryId: _selectedCategoryId,
             priority: priorityMap[_selectedPriority] ?? 'medium',
             status: isDraft ? 'draft' : 'todo',

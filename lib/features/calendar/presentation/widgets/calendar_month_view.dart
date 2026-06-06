@@ -1,16 +1,26 @@
 import 'package:flutter/material.dart';
 
+class CalendarMonthEvent {
+  const CalendarMonthEvent({required this.color, this.title, this.taskId});
+  final Color color;
+  final String? title;
+  final String? taskId;
+}
+
 class CalendarMonthView extends StatelessWidget {
   const CalendarMonthView({
     required this.focusedDate,
     required this.selectedDate,
     required this.onDateSelected,
+    this.taskEvents = const {},
     super.key,
   });
 
   final DateTime focusedDate;
   final DateTime? selectedDate;
   final ValueChanged<DateTime> onDateSelected;
+  /// Map from date (year-month-day) to list of events for that day
+  final Map<String, List<CalendarMonthEvent>> taskEvents;
 
   @override
   Widget build(BuildContext context) {
@@ -53,26 +63,11 @@ class CalendarMonthView extends StatelessWidget {
   }
 
   List<_MonthEvent> _eventsFor(DateTime date) {
-    final day = date.day;
-    if (day % 11 == 0) {
-      return const [
-        _MonthEvent.ai(),
-        _MonthEvent.meeting(),
-        _MonthEvent.urgent(),
-        _MonthEvent.done(),
-        _MonthEvent.meeting(),
-      ];
-    }
-    if (day % 7 == 0) {
-      return const [
-        _MonthEvent.urgent(title: 'Sprint Review'),
-        _MonthEvent.ai(),
-        _MonthEvent.meeting(),
-      ];
-    }
-    if (day % 5 == 0) return const [_MonthEvent.meeting(), _MonthEvent.done()];
-    if (day % 3 == 0) return const [_MonthEvent.ai()];
-    return const [];
+    final key = '${date.year}-${date.month}-${date.day}';
+    final events = taskEvents[key] ?? [];
+    return events
+        .map((e) => _MonthEvent(color: e.color, title: e.title))
+        .toList();
   }
 }
 
@@ -134,8 +129,6 @@ class _MonthDateCellState extends State<_MonthDateCell> {
             : colorScheme.onSurface.withValues(alpha: .38);
     final visible = widget.events.take(3).toList();
     final overflow = widget.events.length - visible.length;
-    final priority =
-        widget.events.where((event) => event.title != null).firstOrNull;
 
     return MouseRegion(
       onEnter: (_) => setState(() => _hovered = true),
@@ -202,17 +195,25 @@ class _MonthDateCellState extends State<_MonthDateCell> {
                       ),
                     ),
                     const Spacer(),
-                    if (priority != null && widget.isSelected)
-                      _EventPreviewPill(event: priority),
                     if (visible.isNotEmpty) ...[
-                      if (priority != null && widget.isSelected)
-                        const SizedBox(height: 5),
-                      _EventDots(
-                        events: visible,
-                        overflow: overflow,
+                      ...visible.take(2).map((event) => _EventPill(
+                        event: event,
                         selected: widget.isSelected,
-                        hovered: _hovered,
-                      ),
+                      )),
+                      if (overflow > 0)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 2),
+                          child: Text(
+                            '+$overflow more',
+                            style: TextStyle(
+                              color: widget.isSelected
+                                  ? colorScheme.onPrimaryContainer
+                                  : Colors.white60,
+                              fontSize: 8,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
                     ],
                   ],
                 ),
@@ -225,99 +226,54 @@ class _MonthDateCellState extends State<_MonthDateCell> {
   }
 }
 
-class _EventDots extends StatelessWidget {
-  const _EventDots({
-    required this.events,
-    required this.overflow,
-    required this.selected,
-    required this.hovered,
-  });
-
-  final List<_MonthEvent> events;
-  final int overflow;
-  final bool selected;
-  final bool hovered;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        for (final event in events)
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 160),
-            width: hovered ? 6 : 5,
-            height: hovered ? 6 : 5,
-            margin: const EdgeInsets.symmetric(horizontal: 2),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: event.color.withValues(alpha: selected ? .95 : .72),
-              boxShadow: [
-                BoxShadow(
-                  color: event.color.withValues(alpha: selected ? .30 : .18),
-                  blurRadius: selected ? 8 : 5,
-                ),
-              ],
-            ),
-          ),
-        if (overflow > 0)
-          Padding(
-            padding: const EdgeInsets.only(left: 3),
-            child: Text(
-              '+$overflow',
-              style: TextStyle(
-                color:
-                    selected
-                        ? Theme.of(context).colorScheme.onPrimaryContainer
-                        : Colors.white60,
-                fontSize: 9,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _EventPreviewPill extends StatelessWidget {
-  const _EventPreviewPill({required this.event});
-
+class _EventPill extends StatelessWidget {
+  const _EventPill({required this.event, required this.selected});
   final _MonthEvent event;
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(minHeight: 20, maxHeight: 22),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
       decoration: BoxDecoration(
-        color: event.color.withValues(alpha: .14),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: event.color.withValues(alpha: .24)),
+        color: event.color.withValues(alpha: selected ? .28 : .18),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: event.color.withValues(alpha: .35)),
       ),
-      child: Center(
-        child: Text(
-          event.title!,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            color: event.color,
-            fontSize: 9,
-            height: 1.1,
-            fontWeight: FontWeight.w800,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 4,
+            height: 4,
+            margin: const EdgeInsets.only(right: 3),
+            decoration: BoxDecoration(
+              color: event.color,
+              shape: BoxShape.circle,
+            ),
           ),
-        ),
+          Flexible(
+            child: Text(
+              event.title ?? '',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: event.color,
+                fontSize: 8,
+                fontWeight: FontWeight.w800,
+                height: 1.1,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
 class _MonthEvent {
-  const _MonthEvent.ai() : color = const Color(0xFFA78BFA), title = null;
-  const _MonthEvent.meeting() : color = const Color(0xFF60A5FA), title = null;
-  const _MonthEvent.urgent({this.title}) : color = const Color(0xFFFB923C);
-  const _MonthEvent.done() : color = const Color(0xFF34D399), title = null;
-
+  const _MonthEvent({required this.color, this.title});
   final Color color;
   final String? title;
 }
