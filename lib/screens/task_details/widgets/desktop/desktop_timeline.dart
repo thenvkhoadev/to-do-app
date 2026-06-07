@@ -1,16 +1,26 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
-class DesktopTimeline extends StatelessWidget {
+class DesktopTimeline extends ConsumerWidget {
   const DesktopTimeline({required this.item, super.key});
   final TaskBoardItem item;
 
   @override
-  Widget build(BuildContext context) {
-    final createdAgo = item.createdAt != null ? _ago(item.createdAt!) : null;
-    final updatedAgo = item.updatedAt != null ? _ago(item.updatedAt!) : null;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final userProfile = ref.watch(userProfileProvider).valueOrNull;
+    final actorName = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(taskTimelineProvider(item.id).notifier).seedInitialEvents(item, actorName);
+    });
+
+    final timeline = ref.watch(taskTimelineProvider(item.id));
+    final sortedTimeline = List<TaskActivity>.from(timeline)
+      ..sort((a, b) => a.timestamp.compareTo(b.timestamp));
 
     return _GlassPanel(
       child: Column(
@@ -27,33 +37,51 @@ class DesktopTimeline extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 32),
-          _TimelineItem(
-            color: DashboardColors.primary,
-            icon: Icons.add_rounded,
-            title: item.creatorName ?? item.assignee,
-            titleSuffix: ' created this task',
-            subtitle: createdAgo ?? '—',
-            hasBorder: updatedAgo != null,
-          ),
-          if (updatedAgo != null)
-            _TimelineItem(
-              color: DashboardColors.surfaceHighest,
-              icon: Icons.edit_rounded,
-              titleWidget: RichText(
+          if (sortedTimeline.isEmpty)
+            const Text(
+              'No activities recorded.',
+              style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13),
+            )
+          else
+            ...List.generate(sortedTimeline.length, (idx) {
+              final act = sortedTimeline[idx];
+              final agoStr = _ago(act.timestamp);
+              final isLast = idx == sortedTimeline.length - 1;
+
+              final (IconData, Color) iconInfo = switch (act.action) {
+                'create' => (Icons.add_rounded, DashboardColors.primary),
+                'plan' => (Icons.assignment_turned_in_rounded, DashboardColors.secondary),
+                'start' || 'resume' => (Icons.play_arrow_rounded, DashboardColors.primary),
+                'pause' => (Icons.pause_rounded, DashboardColors.outline),
+                'complete' => (Icons.check_circle_outline_rounded, DashboardColors.success),
+                'create_subtask' => (Icons.playlist_add_rounded, DashboardColors.tertiary),
+                'delete_subtask' => (Icons.playlist_remove_rounded, DashboardColors.error),
+                'complete_subtask' => (Icons.check_box_outlined, DashboardColors.success),
+                'incomplete_subtask' => (Icons.check_box_outline_blank_rounded, DashboardColors.outline),
+                _ => (Icons.info_outline_rounded, DashboardColors.primary),
+              };
+
+              final titleWidget = RichText(
                 text: TextSpan(
                   style: const TextStyle(color: DashboardColors.onSurface, fontSize: 14),
                   children: [
-                    const TextSpan(text: 'Task updated · '),
                     TextSpan(
-                      text: item.status.name.toUpperCase(),
-                      style: const TextStyle(fontWeight: FontWeight.w700),
+                      text: act.actorName,
+                      style: const TextStyle(color: DashboardColors.primary, fontWeight: FontWeight.w700),
                     ),
+                    TextSpan(text: ' ${act.detail}'),
                   ],
                 ),
-              ),
-              subtitle: updatedAgo,
-              hasBorder: false,
-            ),
+              );
+
+              return _TimelineItem(
+                color: iconInfo.$2,
+                icon: iconInfo.$1,
+                titleWidget: titleWidget,
+                subtitle: agoStr,
+                hasBorder: !isLast,
+              );
+            }),
         ],
       ),
     );
@@ -61,6 +89,7 @@ class DesktopTimeline extends StatelessWidget {
 
   static String _ago(DateTime dt) {
     final diff = DateTime.now().toUtc().difference(dt.toUtc());
+    if (diff.isNegative) return 'Just now';
     if (diff.inDays > 0) return '${diff.inDays}d ago';
     if (diff.inHours > 0) return '${diff.inHours}h ago';
     if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
@@ -74,18 +103,14 @@ class _TimelineItem extends StatelessWidget {
     required this.icon,
     required this.subtitle,
     required this.hasBorder,
-    this.title,
-    this.titleSuffix,
-    this.titleWidget,
+    required this.titleWidget,
   });
 
   final Color color;
   final IconData icon;
   final String subtitle;
   final bool hasBorder;
-  final String? title;
-  final String? titleSuffix;
-  final Widget? titleWidget;
+  final Widget titleWidget;
 
   @override
   Widget build(BuildContext context) {
@@ -128,22 +153,7 @@ class _TimelineItem extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                titleWidget ??
-                    RichText(
-                      text: TextSpan(
-                        style: const TextStyle(
-                            color: DashboardColors.onSurface, fontSize: 14),
-                        children: [
-                          TextSpan(
-                            text: title ?? '',
-                            style: const TextStyle(
-                                color: DashboardColors.primary,
-                                fontWeight: FontWeight.w700),
-                          ),
-                          TextSpan(text: titleSuffix ?? ''),
-                        ],
-                      ),
-                    ),
+                titleWidget,
                 const SizedBox(height: 4),
                 Text(
                   subtitle,

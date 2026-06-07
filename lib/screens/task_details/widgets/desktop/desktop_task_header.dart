@@ -4,10 +4,30 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class DesktopTaskHeader extends StatelessWidget {
-  const DesktopTaskHeader({required this.item, required this.onBack, super.key});
+  const DesktopTaskHeader({
+    required this.item,
+    required this.onBack,
+    required this.onPlanTask,
+    required this.onStartTask,
+    required this.onPauseTask,
+    required this.onCompleteTask,
+    required this.onEditTask,
+    required this.onDeleteTask,
+    required this.isPaused,
+    required this.isCreator,
+    super.key,
+  });
 
   final TaskBoardItem item;
   final VoidCallback onBack;
+  final VoidCallback onPlanTask;
+  final VoidCallback onStartTask;
+  final VoidCallback onPauseTask;
+  final VoidCallback onCompleteTask;
+  final VoidCallback onEditTask;
+  final VoidCallback onDeleteTask;
+  final bool isPaused;
+  final bool isCreator;
 
   @override
   Widget build(BuildContext context) {
@@ -112,18 +132,81 @@ class DesktopTaskHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 20),
                   // Action buttons
-                  _ActionButton(
-                    label: 'Start Task',
-                    icon: Icons.play_arrow_rounded,
-                    filled: true,
-                    onTap: () {},
+                  if (item.status == TaskBoardStatus.draft) ...[
+                    _ActionButton(
+                      label: 'Plan Task',
+                      icon: Icons.assignment_turned_in_rounded,
+                      filled: true,
+                      onTap: onPlanTask,
+                    ),
+                  ] else if (item.status == TaskBoardStatus.todo) ...[
+                    _ActionButton(
+                      label: isPaused ? 'Resume Task' : 'Start Task',
+                      icon: Icons.play_arrow_rounded,
+                      filled: true,
+                      onTap: onStartTask,
+                    ),
+                  ] else if (item.status == TaskBoardStatus.inProgress) ...[
+                    _ActionButton(
+                      label: 'Pause Task',
+                      icon: Icons.pause_rounded,
+                      filled: false,
+                      onTap: onPauseTask,
+                      textColor: DashboardColors.primary,
+                    ),
+                  ] else if (item.status == TaskBoardStatus.completed) ...[
+                    _ActionButton(
+                      label: 'Completed',
+                      icon: Icons.check_circle_rounded,
+                      filled: true,
+                      onTap: () {},
+                      backgroundColor: DashboardColors.success.withValues(alpha: .2),
+                      textColor: DashboardColors.success,
+                    ),
+                  ],
+                  const SizedBox(width: 8),
+                  _IconActionButton(
+                    icon: Icons.check_circle_outline_rounded,
+                    color: item.status == TaskBoardStatus.completed
+                        ? DashboardColors.success
+                        : DashboardColors.onSurfaceVariant,
+                    onTap: item.status != TaskBoardStatus.completed ? onCompleteTask : null,
                   ),
-                  const SizedBox(width: 8),
-                  _IconActionButton(icon: Icons.check_circle_outline_rounded),
-                  const SizedBox(width: 8),
-                  _IconActionButton(icon: Icons.edit_outlined),
-                  const SizedBox(width: 8),
-                  _IconActionButton(icon: Icons.more_horiz_rounded),
+                  if (isCreator) ...[
+                    const SizedBox(width: 8),
+                    _IconActionButton(
+                      icon: Icons.edit_outlined,
+                      onTap: onEditTask,
+                    ),
+                    const SizedBox(width: 8),
+                    PopupMenuButton<String>(
+                      padding: EdgeInsets.zero,
+                      color: DashboardColors.surfaceLow,
+                      elevation: 8,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        side: const BorderSide(color: Colors.white12),
+                      ),
+                      onSelected: (val) {
+                        if (val == 'delete') {
+                          onDeleteTask();
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem<String>(
+                          value: 'delete',
+                          child: Row(
+                            children: [
+                              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+                              SizedBox(width: 8),
+                              Text('Xóa công việc', style: TextStyle(color: DashboardColors.error)),
+                            ],
+                          ),
+                        ),
+                      ],
+                      child: const _IconActionButton(icon: Icons.more_horiz_rounded),
+                    ),
+                  ],
                 ],
               ),
             ],
@@ -181,11 +264,15 @@ class _ActionButton extends StatelessWidget {
     required this.icon,
     required this.filled,
     required this.onTap,
+    this.backgroundColor,
+    this.textColor,
   });
   final String label;
   final IconData icon;
   final bool filled;
   final VoidCallback onTap;
+  final Color? backgroundColor;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
@@ -193,21 +280,21 @@ class _ActionButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
           decoration: BoxDecoration(
-            color: filled ? DashboardColors.primary : Colors.transparent,
+            color: backgroundColor ?? (filled ? DashboardColors.primary : Colors.transparent),
             borderRadius: BorderRadius.circular(10),
-            border: filled ? null : Border.all(color: Colors.white.withValues(alpha: .08)),
+            border: (filled || backgroundColor != null) ? null : Border.all(color: Colors.white.withValues(alpha: .08)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(icon,
-                  color: filled ? DashboardColors.onPrimary : DashboardColors.onSurface,
+                  color: textColor ?? (filled ? DashboardColors.onPrimary : DashboardColors.onSurface),
                   size: 18),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: TextStyle(
-                  color: filled ? DashboardColors.onPrimary : DashboardColors.onSurface,
+                  color: textColor ?? (filled ? DashboardColors.onPrimary : DashboardColors.onSurface),
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
                   letterSpacing: .01,
@@ -220,22 +307,31 @@ class _ActionButton extends StatelessWidget {
 }
 
 class _IconActionButton extends StatelessWidget {
-  const _IconActionButton({required this.icon});
+  const _IconActionButton({
+    required this.icon,
+    this.onTap,
+    this.color,
+  });
   final IconData icon;
+  final VoidCallback? onTap;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .03),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: .08)),
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(10),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .03),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: Colors.white.withValues(alpha: .08)),
+              ),
+              child: Icon(icon, color: color ?? DashboardColors.onSurfaceVariant, size: 20),
             ),
-            child: Icon(icon, color: DashboardColors.onSurfaceVariant, size: 20),
           ),
         ),
       );

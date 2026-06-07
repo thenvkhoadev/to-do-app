@@ -12,6 +12,8 @@ import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
   const TaskCard({
@@ -43,6 +45,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       Offset.zero & overlay.size,
     );
 
+    final user = ref.read(authControllerProvider).valueOrNull;
+    final isCreator = user != null && widget.task.userId == user.id;
+
     final result = await showMenu<String>(
       context: context,
       position: position,
@@ -63,26 +68,28 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             ],
           ),
         ),
-        const PopupMenuItem<String>(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-              SizedBox(width: 8),
-              Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
-            ],
+        if (isCreator) ...[
+          const PopupMenuItem<String>(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                SizedBox(width: 8),
+                Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-              SizedBox(width: 8),
-              Text('Xóa', style: TextStyle(color: DashboardColors.error)),
-            ],
+          const PopupMenuItem<String>(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+                SizedBox(width: 8),
+                Text('Xóa', style: TextStyle(color: DashboardColors.error)),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
 
@@ -91,11 +98,26 @@ class _TaskCardState extends ConsumerState<TaskCard> {
   }
 
   void _handleMenuAction(String action) {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    final isCreator = user != null && widget.task.userId == user.id;
+
     if (action == 'view') {
       widget.onTap?.call();
     } else if (action == 'edit') {
+      if (!isCreator) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn không có quyền sửa công việc này')),
+        );
+        return;
+      }
       _showEditDialog();
     } else if (action == 'delete') {
+      if (!isCreator) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn không có quyền xóa công việc này')),
+        );
+        return;
+      }
       _confirmDelete();
     }
   }
@@ -293,7 +315,20 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                         dueDate: dueDate,
                       );
 
+                      final descriptionChanged = nexusTask.description != finalDescription;
+
                       await ref.read(taskRepositoryProvider).updateTask(updated);
+                      
+                      if (descriptionChanged) {
+                        final userProfile = ref.read(userProfileProvider).valueOrNull;
+                        final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+                        await ref.read(taskTimelineProvider(widget.task.id).notifier).addActivity(
+                          actorName: actor,
+                          action: 'update_description',
+                          detail: 'updated description',
+                        );
+                      }
+
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -341,6 +376,9 @@ class _TaskCardState extends ConsumerState<TaskCard> {
 
   @override
   Widget build(BuildContext context) {
+    final user = ref.watch(authControllerProvider).valueOrNull;
+    final isCreator = user != null && widget.task.userId == user.id;
+
     final active =
         widget.task.status == TaskBoardStatus.inProgress &&
         widget.task.aiSuggestion != null;
@@ -392,18 +430,22 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     );
     final subtasksAsync = ref.watch(taskSubtasksProvider(widget.task.id));
     double? progressValue;
-    subtasksAsync.when(
-      data: (subtasks) {
-        if (subtasks.isNotEmpty) {
-          final doneCount = subtasks.where((s) => s.isDone).length;
-          progressValue = doneCount / subtasks.length;
-        } else {
-          progressValue = null;
-        }
-      },
-      loading: () => progressValue = null,
-      error: (_, __) => progressValue = null,
-    );
+    if (widget.task.completed || widget.task.status == TaskBoardStatus.completed) {
+      progressValue = 1.0;
+    } else {
+      subtasksAsync.when(
+        data: (subtasks) {
+          if (subtasks.isNotEmpty) {
+            final doneCount = subtasks.where((s) => s.isDone).length;
+            progressValue = doneCount / subtasks.length;
+          } else {
+            progressValue = null;
+          }
+        },
+        loading: () => progressValue = null,
+        error: (_, __) => progressValue = null,
+      );
+    }
     final displayTags = taskTags.isEmpty && tagIdsAsync.isLoading ? widget.task.tags : taskTags;
 
     return MouseRegion(
@@ -466,6 +508,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             getInitials: _getInitials,
                             getUserColor: _getUserColor,
                             tags: displayTags,
+                            isCreator: isCreator,
                           )
                         : _DesktopTaskBody(
                             task: widget.task,
@@ -475,6 +518,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             getUserColor: _getUserColor,
                             tags: displayTags,
                             progress: progressValue,
+                            isCreator: isCreator,
                           ),
                   ),
                 ],
@@ -496,6 +540,7 @@ class _DesktopTaskBody extends StatelessWidget {
     required this.getUserColor,
     required this.tags,
     required this.progress,
+    required this.isCreator,
   });
 
   final TaskBoardItem task;
@@ -505,6 +550,7 @@ class _DesktopTaskBody extends StatelessWidget {
   final Color Function(String) getUserColor;
   final List<String> tags;
   final double? progress;
+  final bool isCreator;
 
   @override
   Widget build(BuildContext context) {
@@ -515,7 +561,7 @@ class _DesktopTaskBody extends StatelessWidget {
           children: [
             TaskPriorityChip(priority: task.priority),
             const Spacer(),
-            _TaskContextMenuButton(onSelected: onMenuSelected),
+            _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator),
           ],
         ),
         const SizedBox(height: 12),
@@ -593,6 +639,7 @@ class _MobileTaskBody extends StatelessWidget {
     required this.getInitials,
     required this.getUserColor,
     required this.tags,
+    required this.isCreator,
   });
 
   final TaskBoardItem task;
@@ -601,6 +648,7 @@ class _MobileTaskBody extends StatelessWidget {
   final String Function(UserProfileModel) getInitials;
   final Color Function(String) getUserColor;
   final List<String> tags;
+  final bool isCreator;
 
   @override
   Widget build(BuildContext context) {
@@ -619,7 +667,7 @@ class _MobileTaskBody extends StatelessWidget {
                   const SizedBox(width: 6),
                   TaskPriorityChip(priority: task.priority, compact: true),
                   const Spacer(),
-                  _TaskContextMenuButton(onSelected: onMenuSelected),
+                  _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator),
                 ],
               ),
               const SizedBox(height: 8),
@@ -742,8 +790,9 @@ Widget _buildAssigneesRow(
 }
 
 class _TaskContextMenuButton extends StatelessWidget {
-  const _TaskContextMenuButton({required this.onSelected});
+  const _TaskContextMenuButton({required this.onSelected, required this.isCreator});
   final ValueChanged<String> onSelected;
+  final bool isCreator;
 
   @override
   Widget build(BuildContext context) {
@@ -773,26 +822,28 @@ class _TaskContextMenuButton extends StatelessWidget {
             ],
           ),
         ),
-        const PopupMenuItem<String>(
-          value: 'edit',
-          child: Row(
-            children: [
-              Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-              SizedBox(width: 8),
-              Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
-            ],
+        if (isCreator) ...[
+          const PopupMenuItem<String>(
+            value: 'edit',
+            child: Row(
+              children: [
+                Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                SizedBox(width: 8),
+                Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
+              ],
+            ),
           ),
-        ),
-        const PopupMenuItem<String>(
-          value: 'delete',
-          child: Row(
-            children: [
-              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-              SizedBox(width: 8),
-              Text('Xóa', style: TextStyle(color: DashboardColors.error)),
-            ],
+          const PopupMenuItem<String>(
+            value: 'delete',
+            child: Row(
+              children: [
+                Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+                SizedBox(width: 8),
+                Text('Xóa', style: TextStyle(color: DashboardColors.error)),
+              ],
+            ),
           ),
-        ),
+        ],
       ],
     );
   }

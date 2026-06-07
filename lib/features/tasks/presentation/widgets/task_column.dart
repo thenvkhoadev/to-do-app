@@ -11,6 +11,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/export_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TaskColumn extends ConsumerStatefulWidget {
@@ -647,6 +648,16 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
 
   Future<void> _handleDeleteSelected(BuildContext context, List<TaskBoardItem> tasks) async {
     if (tasks.isEmpty) return;
+
+    final user = ref.read(authControllerProvider).valueOrNull;
+    final ownedTasks = tasks.where((t) => user != null && t.userId == user.id).toList();
+
+    if (ownedTasks.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền xóa các công việc này (chỉ người tạo mới được xóa)')),
+      );
+      return;
+    }
     
     final confirmed = await showDialog<bool>(
       context: context,
@@ -654,7 +665,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
         backgroundColor: const Color(0xFF0F131E),
         title: const Text('Xác nhận xóa đã chọn', style: TextStyle(color: DashboardColors.onSurface)),
         content: Text(
-          'Bạn có chắc chắn muốn xóa ${tasks.length} công việc đã chọn trong cột "${widget.column.title}" không? Hành động này không thể hoàn tác.',
+          'Bạn có chắc chắn muốn xóa ${ownedTasks.length} công việc đã chọn (do bạn tạo) trong cột "${widget.column.title}" không? Hành động này không thể hoàn tác.',
           style: const TextStyle(color: DashboardColors.onSurfaceVariant),
         ),
         actions: [
@@ -673,8 +684,8 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
 
     if (confirmed == true && context.mounted) {
       try {
-        final count = tasks.length;
-        final idsToDelete = tasks.map((t) => t.id).toList();
+        final count = ownedTasks.length;
+        final idsToDelete = ownedTasks.map((t) => t.id).toList();
         
         setState(() {
           _selectedTaskIds.removeAll(idsToDelete);

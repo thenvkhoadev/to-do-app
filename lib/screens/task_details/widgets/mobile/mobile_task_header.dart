@@ -4,9 +4,30 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class MobileTaskHeader extends StatelessWidget {
-  const MobileTaskHeader({required this.item, required this.onBack, super.key});
+  const MobileTaskHeader({
+    required this.item,
+    required this.onBack,
+    required this.onPlanTask,
+    required this.onStartTask,
+    required this.onPauseTask,
+    required this.onCompleteTask,
+    required this.onEditTask,
+    required this.onDeleteTask,
+    required this.isPaused,
+    required this.isCreator,
+    super.key,
+  });
+
   final TaskBoardItem item;
   final VoidCallback onBack;
+  final VoidCallback onPlanTask;
+  final VoidCallback onStartTask;
+  final VoidCallback onPauseTask;
+  final VoidCallback onCompleteTask;
+  final VoidCallback onEditTask;
+  final VoidCallback onDeleteTask;
+  final bool isPaused;
+  final bool isCreator;
 
   @override
   Widget build(BuildContext context) {
@@ -72,13 +93,82 @@ class MobileTaskHeader extends StatelessWidget {
                       children: [
                         Expanded(
                           child: _HeroButton(
-                            label: 'Start Task',
-                            icon: Icons.play_arrow_rounded,
-                            onTap: () {},
+                            label: item.status == TaskBoardStatus.inProgress
+                                ? 'Pause Task'
+                                : (item.status == TaskBoardStatus.completed
+                                    ? 'Completed'
+                                    : (item.status == TaskBoardStatus.draft
+                                        ? 'Plan Task'
+                                        : (isPaused ? 'Resume Task' : 'Start Task'))),
+                            icon: item.status == TaskBoardStatus.inProgress
+                                ? Icons.pause_rounded
+                                : (item.status == TaskBoardStatus.completed
+                                    ? Icons.check_circle_rounded
+                                    : (item.status == TaskBoardStatus.draft
+                                        ? Icons.assignment_turned_in_rounded
+                                        : Icons.play_arrow_rounded)),
+                            color: item.status == TaskBoardStatus.completed
+                                ? DashboardColors.success.withValues(alpha: .2)
+                                : (item.status == TaskBoardStatus.inProgress
+                                    ? DashboardColors.surfaceContainer
+                                    : DashboardColors.primaryContainer),
+                            textColor: item.status == TaskBoardStatus.completed
+                                ? DashboardColors.success
+                                : (item.status == TaskBoardStatus.inProgress
+                                    ? DashboardColors.primary
+                                    : DashboardColors.onPrimary),
+                            onTap: item.status == TaskBoardStatus.inProgress
+                                ? onPauseTask
+                                : (item.status == TaskBoardStatus.completed
+                                    ? () {}
+                                    : (item.status == TaskBoardStatus.draft ? onPlanTask : onStartTask)),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        _GlassIconBtn(icon: Icons.edit_outlined),
+                        const SizedBox(width: 8),
+                        _GlassIconBtn(
+                          icon: Icons.check_circle_outline_rounded,
+                          color: item.status == TaskBoardStatus.completed
+                              ? DashboardColors.success
+                              : DashboardColors.onSurface,
+                          onTap: item.status != TaskBoardStatus.completed
+                              ? onCompleteTask
+                              : null,
+                        ),
+                        if (isCreator) ...[
+                          const SizedBox(width: 8),
+                          _GlassIconBtn(
+                            icon: Icons.edit_outlined,
+                            onTap: onEditTask,
+                          ),
+                          const SizedBox(width: 8),
+                          PopupMenuButton<String>(
+                            padding: EdgeInsets.zero,
+                            color: DashboardColors.surfaceLow,
+                            elevation: 8,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              side: const BorderSide(color: Colors.white12),
+                            ),
+                            onSelected: (val) {
+                              if (val == 'delete') {
+                                onDeleteTask();
+                              }
+                            },
+                            itemBuilder: (context) => [
+                              const PopupMenuItem<String>(
+                                value: 'delete',
+                                child: Row(
+                                  children: [
+                                    Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
+                                    SizedBox(width: 8),
+                                    Text('Xóa công việc', style: TextStyle(color: DashboardColors.error)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                            child: const _GlassIconBtn(icon: Icons.more_horiz_rounded),
+                          ),
+                        ],
                       ],
                     ),
                   ],
@@ -123,10 +213,18 @@ class _Pill extends StatelessWidget {
 }
 
 class _HeroButton extends StatelessWidget {
-  const _HeroButton({required this.label, required this.icon, required this.onTap});
+  const _HeroButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+    this.color,
+    this.textColor,
+  });
   final String label;
   final IconData icon;
   final VoidCallback onTap;
+  final Color? color;
+  final Color? textColor;
 
   @override
   Widget build(BuildContext context) => GestureDetector(
@@ -134,18 +232,18 @@ class _HeroButton extends StatelessWidget {
         child: Container(
           height: 56,
           decoration: BoxDecoration(
-            color: DashboardColors.primaryContainer,
+            color: color ?? DashboardColors.primaryContainer,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, color: DashboardColors.onPrimary, size: 22),
+              Icon(icon, color: textColor ?? DashboardColors.onPrimary, size: 22),
               const SizedBox(width: 8),
               Text(
                 label,
-                style: const TextStyle(
-                  color: DashboardColors.onPrimary,
+                style: TextStyle(
+                  color: textColor ?? DashboardColors.onPrimary,
                   fontSize: 15,
                   fontWeight: FontWeight.w600,
                 ),
@@ -157,26 +255,35 @@ class _HeroButton extends StatelessWidget {
 }
 
 class _GlassIconBtn extends StatelessWidget {
-  const _GlassIconBtn({required this.icon});
+  const _GlassIconBtn({
+    required this.icon,
+    this.onTap,
+    this.color,
+  });
   final IconData icon;
+  final VoidCallback? onTap;
+  final Color? color;
 
   @override
-  Widget build(BuildContext context) => ClipRRect(
-        borderRadius: BorderRadius.circular(14),
-        child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-          child: Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: .03),
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: .12),
-                width: .5,
+  Widget build(BuildContext context) => GestureDetector(
+        onTap: onTap,
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+            child: Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: .03),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .12),
+                  width: .5,
+                ),
               ),
+              child: Icon(icon, color: color ?? DashboardColors.onSurface, size: 22),
             ),
-            child: Icon(icon, color: DashboardColors.onSurface, size: 22),
           ),
         ),
       );

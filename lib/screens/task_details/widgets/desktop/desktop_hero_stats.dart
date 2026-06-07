@@ -32,18 +32,22 @@ class DesktopHeroStats extends ConsumerWidget {
 
     final subtasksAsync = ref.watch(taskSubtasksProvider(item.id));
     double? progressValue;
-    subtasksAsync.when(
-      data: (subtasks) {
-        if (subtasks.isNotEmpty) {
-          final doneCount = subtasks.where((s) => s.isDone).length;
-          progressValue = doneCount / subtasks.length;
-        } else {
-          progressValue = null;
-        }
-      },
-      loading: () => progressValue = null,
-      error: (_, __) => progressValue = null,
-    );
+    if (item.completed || item.status == TaskBoardStatus.completed) {
+      progressValue = 1.0;
+    } else {
+      subtasksAsync.when(
+        data: (subtasks) {
+          if (subtasks.isNotEmpty) {
+            final doneCount = subtasks.where((s) => s.isDone).length;
+            progressValue = doneCount / subtasks.length;
+          } else {
+            progressValue = null;
+          }
+        },
+        loading: () => progressValue = null,
+        error: (_, __) => progressValue = null,
+      );
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(16),

@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class MobileSubtasks extends ConsumerStatefulWidget {
@@ -30,6 +32,13 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
             TaskSubtaskModel(id: '', taskId: widget.taskId, title: title.trim(), isDone: false),
           );
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: 'create_subtask',
+            detail: 'Added subtask: "${title.trim()}"',
+          );
       _ctrl.clear();
       setState(() => _isAdding = false);
     } catch (e) {
@@ -42,6 +51,13 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
     try {
       await ref.read(subtaskDataSourceProvider).updateSubtask(s.id, {'is_done': val});
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: val ? 'complete_subtask' : 'incomplete_subtask',
+            detail: val ? 'Subtask "${s.title}" completed' : 'Subtask "${s.title}" marked incomplete',
+          );
     } catch (_) {}
   }
 
@@ -50,6 +66,13 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
       final datasource = ref.read(subtaskDataSourceProvider);
       await Future.wait(subtasks.map((s) => datasource.updateSubtask(s.id, {'is_done': checkAll})));
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: checkAll ? 'complete_subtask' : 'incomplete_subtask',
+            detail: checkAll ? 'All subtasks marked completed' : 'All subtasks marked incomplete',
+          );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed: $e')));

@@ -10,7 +10,6 @@ class TaskRemoteDataSource {
     return _client
         .from('tasks')
         .stream(primaryKey: ['id'])
-        .eq('user_id', userId)
         .order('sort_order')
         .map((rows) => rows
             .where((r) => r['deleted_at'] == null)

@@ -4,10 +4,13 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 
 /// A reusable rich-text description editor backed by flutter_quill.
 /// Saves to Supabase `tasks` table on focus-lost.
-class QuillDescriptionEditor extends StatefulWidget {
+class QuillDescriptionEditor extends ConsumerStatefulWidget {
   const QuillDescriptionEditor({
     required this.taskId,
     required this.initialText,
@@ -24,11 +27,11 @@ class QuillDescriptionEditor extends StatefulWidget {
   final bool showLabel;
 
   @override
-  State<QuillDescriptionEditor> createState() =>
+  ConsumerState<QuillDescriptionEditor> createState() =>
       _QuillDescriptionEditorState();
 }
 
-class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
+class _QuillDescriptionEditorState extends ConsumerState<QuillDescriptionEditor> {
   late final quill.QuillController _ctrl;
   final FocusNode _focusNode = FocusNode();
   bool _saving = false;
@@ -143,6 +146,15 @@ class _QuillDescriptionEditorState extends State<QuillDescriptionEditor> {
           .from('tasks')
           .update({'description': descriptionToSave})
           .eq('id', widget.taskId);
+
+      // Log activity to timeline
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+        actorName: actor,
+        action: 'update_description',
+        detail: 'updated description',
+      );
     } catch (e) {
       if (_lastSavedText == descriptionToSave) {
         _lastSavedText = currentLastSaved;

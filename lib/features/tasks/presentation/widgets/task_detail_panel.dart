@@ -6,12 +6,14 @@ import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/glass_container.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/screens/task_details/widgets/attachment_preview_dialog.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 
 class TaskDetailPanel extends ConsumerStatefulWidget {
   const TaskDetailPanel({
@@ -61,6 +63,13 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
   }
 
   Future<void> _showEditDialog() async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null || widget.task.userId != user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền sửa công việc này')),
+      );
+      return;
+    }
     try {
       final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
       final nexusTask = tasks.firstWhere(
@@ -212,7 +221,20 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                         dueDate: dueDate,
                       );
 
+                      final descriptionChanged = nexusTask.description != finalDescription;
+
                       await ref.read(taskRepositoryProvider).updateTask(updated);
+
+                      if (descriptionChanged) {
+                        final userProfile = ref.read(userProfileProvider).valueOrNull;
+                        final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+                        await ref.read(taskTimelineProvider(widget.task.id).notifier).addActivity(
+                          actorName: actor,
+                          action: 'update_description',
+                          detail: 'updated description',
+                        );
+                      }
+
                       if (context.mounted) {
                         Navigator.pop(context);
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -1075,14 +1097,21 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
 
     final subtasksAsync = ref.watch(taskSubtasksProvider(widget.task.id));
     double progressValue = task.progress;
-    subtasksAsync.whenOrNull(
-      data: (subtasks) {
-        if (subtasks.isNotEmpty) {
-          final doneCount = subtasks.where((s) => s.isDone).length;
-          progressValue = doneCount / subtasks.length;
-        }
-      },
-    );
+    if (task.completed || task.status == TaskBoardStatus.completed) {
+      progressValue = 1.0;
+    } else {
+      subtasksAsync.whenOrNull(
+        data: (subtasks) {
+          if (subtasks.isNotEmpty) {
+            final doneCount = subtasks.where((s) => s.isDone).length;
+            progressValue = doneCount / subtasks.length;
+          }
+        },
+      );
+    }
+
+    final currentUser = ref.watch(authControllerProvider).valueOrNull;
+    final isCreator = currentUser != null && task.userId == currentUser.id;
 
     return Container(
       margin: const EdgeInsets.only(top: 16, bottom: 16, right: 16),
@@ -1221,29 +1250,31 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                         const SizedBox(height: 10),
                         Row(
                           children: [
-                            Expanded(
-                              child: OutlinedButton.icon(
-                                onPressed: _showEditDialog,
-                                style: OutlinedButton.styleFrom(
-                                  foregroundColor: Colors.white,
-                                  side: BorderSide(
-                                      color: Colors.white.withValues(alpha: 0.15)),
-                                  padding: const EdgeInsets.symmetric(vertical: 14),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(14),
+                            if (isCreator) ...[
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: _showEditDialog,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: BorderSide(
+                                        color: Colors.white.withValues(alpha: 0.15)),
+                                    padding: const EdgeInsets.symmetric(vertical: 14),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
                                   ),
-                                ),
-                                icon: const Icon(Icons.edit_rounded, size: 16),
-                                label: const Text(
-                                  'Sửa',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 13,
+                                  icon: const Icon(Icons.edit_rounded, size: 16),
+                                  label: const Text(
+                                    'Sửa',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 13,
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 10),
+                              const SizedBox(width: 10),
+                            ],
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: _completeTask,
@@ -1474,6 +1505,13 @@ class _SubtaskSectionState extends ConsumerState<_SubtaskSection> {
       );
       await ref.read(subtaskDataSourceProvider).createSubtask(subtask);
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: 'create_subtask',
+            detail: 'Added subtask: "${title.trim()}"',
+          );
       _textController.clear();
       setState(() {
         _isAdding = false;
@@ -1492,6 +1530,13 @@ class _SubtaskSectionState extends ConsumerState<_SubtaskSection> {
           .read(subtaskDataSourceProvider)
           .updateSubtask(subtask.id, {'is_done': value});
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: value ? 'complete_subtask' : 'incomplete_subtask',
+            detail: value ? 'Subtask "${subtask.title}" completed' : 'Subtask "${subtask.title}" marked incomplete',
+          );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1502,8 +1547,17 @@ class _SubtaskSectionState extends ConsumerState<_SubtaskSection> {
 
   Future<void> _deleteSubtask(String id) async {
     try {
+      final subtasks = ref.read(taskSubtasksProvider(widget.taskId)).valueOrNull ?? [];
+      final s = subtasks.firstWhere((e) => e.id == id, orElse: () => TaskSubtaskModel(id: '', taskId: '', title: 'Subtask', isDone: false));
       await ref.read(subtaskDataSourceProvider).deleteSubtask(id);
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: 'delete_subtask',
+            detail: 'Deleted subtask: "${s.title}"',
+          );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -1517,6 +1571,13 @@ class _SubtaskSectionState extends ConsumerState<_SubtaskSection> {
       final datasource = ref.read(subtaskDataSourceProvider);
       await Future.wait(subtasks.map((s) => datasource.updateSubtask(s.id, {'is_done': checkAll})));
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      final userProfile = ref.read(userProfileProvider).valueOrNull;
+      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
+      await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
+            actorName: actor,
+            action: checkAll ? 'complete_subtask' : 'incomplete_subtask',
+            detail: checkAll ? 'All subtasks marked completed' : 'All subtasks marked incomplete',
+          );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
