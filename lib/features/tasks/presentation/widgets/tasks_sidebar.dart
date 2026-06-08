@@ -89,6 +89,12 @@ class TasksSidebar extends StatelessWidget {
                 onTap: () => onSelected(3),
               ),
               _Item(
+                icon: Icons.archive_rounded,
+                label: 'Archived',
+                active: selectedIndex == 7,
+                onTap: () => onSelected(7),
+              ),
+              _Item(
                 icon: Icons.query_stats_rounded,
                 label: 'Analytics',
                 active: selectedIndex == 4,

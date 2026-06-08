@@ -6,6 +6,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/tasks_topbar.dart'
 import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
+import 'package:to_do_app/screens/archived/archived_screen.dart';
 import 'package:to_do_app/screens/task_details/task_details_desktop_content.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
@@ -84,6 +85,10 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
                             ? const SupportScreen(
                               key: ValueKey('tasks-support'),
                               embeddedInDashboard: true,
+                            )
+                            : _selectedIndex == 7
+                            ? const ArchivedScreen(
+                              key: ValueKey('tasks-archived'),
                             )
                             : _selectedIndex == 8
                             ? NewTasksDesktopLayout(

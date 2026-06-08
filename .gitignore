@@ -14,6 +14,8 @@ migrate_working_dir/
 
 supabase_schema.sql
 
+supabase/
+
 # IntelliJ related
 *.iml
 *.ipr

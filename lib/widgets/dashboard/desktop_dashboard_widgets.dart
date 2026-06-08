@@ -8,6 +8,7 @@ import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/screens/analytics/analytics_screen.dart';
+import 'package:to_do_app/screens/archived/archived_screen.dart';
 import 'package:to_do_app/screens/new_tasks/desktop/desktop_layout.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/profile/user_profile_screen.dart';
@@ -108,6 +109,9 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                         8 => NewTasksDesktopLayout(
                           key: const ValueKey('new-task'),
                           onClose: () => setState(() => _selectedIndex = 0),
+                        ),
+                        9 => const ArchivedScreen(
+                          key: ValueKey('archived'),
                         ),
                         _ => _DashboardSectionPlaceholder(
                           index: _selectedIndex,
@@ -482,7 +486,11 @@ class DesktopSidebar extends StatelessWidget {
               ),
             ],
           ),
-          child: Column(
+          child: CustomScrollView(
+            slivers: [
+              SliverFillRemaining(
+                hasScrollBody: false,
+                child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               ShaderMask(
@@ -537,6 +545,12 @@ class DesktopSidebar extends StatelessWidget {
                 onTap: () => onSelected(3),
               ),
               _SidebarItem(
+                icon: Icons.archive_rounded,
+                label: 'Archived',
+                active: selectedIndex == 9,
+                onTap: () => onSelected(9),
+              ),
+              _SidebarItem(
                 icon: Icons.query_stats_rounded,
                 label: 'Analytics',
                 active: selectedIndex == 4,
@@ -564,6 +578,9 @@ class DesktopSidebar extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               _SignOutButton(onTap: () => signOutDashboard(context)),
+            ],
+          ),
+              ),
             ],
           ),
         ),

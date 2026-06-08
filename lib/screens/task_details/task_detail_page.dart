@@ -8,6 +8,7 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/data/models/task_model.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
@@ -449,6 +450,130 @@ class TaskDetailPage extends ConsumerWidget {
     }
   }
 
+  Future<void> _duplicateTask(BuildContext context, WidgetRef ref, TaskBoardItem item) async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null || item.userId != user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền nhân bản công việc này')),
+      );
+      return;
+    }
+    try {
+      final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
+      final nexusTask = tasks.firstWhere(
+        (t) => t.id == item.id,
+        orElse: () => throw Exception('Không tìm thấy task'),
+      );
+      final duplicate = nexusTask.copyWith(
+        id: '',
+        title: 'Copy of ${nexusTask.title}',
+        status: 'todo',
+        completedAt: null,
+        createdAt: DateTime.now().toUtc(),
+        updatedAt: DateTime.now().toUtc(),
+      );
+      await ref.read(taskRepositoryProvider).createTask(duplicate);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã nhân bản công việc'),
+            backgroundColor: DashboardColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi nhân bản: $e'), backgroundColor: DashboardColors.error),
+        );
+      }
+    }
+  }
+
+  Future<void> _archiveTask(BuildContext context, WidgetRef ref, TaskBoardItem item) async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null || item.userId != user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền lưu trữ công việc này')),
+      );
+      return;
+    }
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: DashboardColors.surfaceLow,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.white12),
+        ),
+        title: const Text('Lưu trữ công việc', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Công việc "${item.title}" sẽ được lưu trữ và không hiển thị trong bảng chính.',
+          style: const TextStyle(color: DashboardColors.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Lưu trữ', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && context.mounted) {
+      try {
+        final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
+        final nexusTask = tasks.firstWhere(
+          (t) => t.id == item.id,
+          orElse: () => throw Exception('Không tìm thấy task'),
+        );
+        final taskModel = TaskModel(
+          id: nexusTask.id,
+          userId: nexusTask.userId,
+          title: nexusTask.title,
+          description: nexusTask.description,
+          categoryId: nexusTask.categoryId,
+          priority: nexusTask.priority,
+          status: nexusTask.status,
+          aiGenerated: nexusTask.aiGenerated,
+          dueDate: nexusTask.dueDate,
+          reminderAt: nexusTask.reminderAt,
+          completedAt: nexusTask.completedAt,
+          parentTaskId: nexusTask.parentTaskId,
+          sortOrder: nexusTask.sortOrder,
+          estimatedMinutes: nexusTask.estimatedMinutes,
+          createdAt: nexusTask.createdAt,
+          updatedAt: nexusTask.updatedAt,
+          deletedAt: nexusTask.deletedAt,
+          tagIds: nexusTask.tagIds,
+          assigneeIds: nexusTask.assigneeIds,
+        );
+        await ref.read(archivedTaskDataSourceProvider).archiveTask(taskModel);
+        await ref.read(taskRepositoryProvider).deleteTask(item.id);
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Đã lưu trữ công việc'),
+              backgroundColor: DashboardColors.success,
+            ),
+          );
+          onBack();
+        }
+      } catch (e) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Lỗi khi lưu trữ: $e'), backgroundColor: DashboardColors.error),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _confirmDelete(BuildContext context, WidgetRef ref, TaskBoardItem item) async {
     final user = ref.read(authControllerProvider).valueOrNull;
     if (user == null || item.userId != user.id) {
@@ -536,6 +661,8 @@ class TaskDetailPage extends ConsumerWidget {
             onCompleteTask: () => _updateStatus(context, ref, taskItem, TaskBoardStatus.completed),
             onEditTask: () => _showEditDialog(context, ref, taskItem),
             onDeleteTask: () => _confirmDelete(context, ref, taskItem),
+            onDuplicateTask: () => _duplicateTask(context, ref, taskItem),
+            onArchiveTask: () => _archiveTask(context, ref, taskItem),
             isPaused: isPaused,
             isCreator: isCreator,
           );
@@ -549,6 +676,8 @@ class TaskDetailPage extends ConsumerWidget {
           onCompleteTask: () => _updateStatus(context, ref, taskItem, TaskBoardStatus.completed),
           onEditTask: () => _showEditDialog(context, ref, taskItem),
           onDeleteTask: () => _confirmDelete(context, ref, taskItem),
+          onDuplicateTask: () => _duplicateTask(context, ref, taskItem),
+          onArchiveTask: () => _archiveTask(context, ref, taskItem),
           isPaused: isPaused,
           isCreator: isCreator,
         );
@@ -569,6 +698,8 @@ class _DesktopLayout extends StatelessWidget {
     required this.onCompleteTask,
     required this.onEditTask,
     required this.onDeleteTask,
+    required this.onDuplicateTask,
+    required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
   });
@@ -581,6 +712,8 @@ class _DesktopLayout extends StatelessWidget {
   final VoidCallback onCompleteTask;
   final VoidCallback onEditTask;
   final VoidCallback onDeleteTask;
+  final VoidCallback onDuplicateTask;
+  final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
 
@@ -599,6 +732,8 @@ class _DesktopLayout extends StatelessWidget {
             onCompleteTask: onCompleteTask,
             onEditTask: onEditTask,
             onDeleteTask: onDeleteTask,
+            onDuplicateTask: onDuplicateTask,
+            onArchiveTask: onArchiveTask,
             isPaused: isPaused,
             isCreator: isCreator,
           ),
@@ -699,6 +834,8 @@ class _MobileLayout extends StatelessWidget {
     required this.onCompleteTask,
     required this.onEditTask,
     required this.onDeleteTask,
+    required this.onDuplicateTask,
+    required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
   });
@@ -711,6 +848,8 @@ class _MobileLayout extends StatelessWidget {
   final VoidCallback onCompleteTask;
   final VoidCallback onEditTask;
   final VoidCallback onDeleteTask;
+  final VoidCallback onDuplicateTask;
+  final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
 
@@ -760,9 +899,34 @@ class _MobileLayout extends StatelessWidget {
                       onSelected: (val) {
                         if (val == 'delete') {
                           onDeleteTask();
+                        } else if (val == 'duplicate') {
+                          onDuplicateTask();
+                        } else if (val == 'archive') {
+                          onArchiveTask();
                         }
                       },
                       itemBuilder: (context) => [
+                        const PopupMenuItem<String>(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                              SizedBox(width: 8),
+                              Text('Nhân bản', style: TextStyle(color: DashboardColors.onSurface)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'archive',
+                          child: Row(
+                            children: [
+                              Icon(Icons.archive_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                              SizedBox(width: 8),
+                              Text('Lưu trữ', style: TextStyle(color: DashboardColors.onSurface)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
                         const PopupMenuItem<String>(
                           value: 'delete',
                           child: Row(
@@ -788,6 +952,8 @@ class _MobileLayout extends StatelessWidget {
                   onCompleteTask: onCompleteTask,
                   onEditTask: onEditTask,
                   onDeleteTask: onDeleteTask,
+                  onDuplicateTask: onDuplicateTask,
+                  onArchiveTask: onArchiveTask,
                   isPaused: isPaused,
                   isCreator: isCreator,
                 ),

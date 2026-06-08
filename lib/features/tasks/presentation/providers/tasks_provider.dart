@@ -13,6 +13,7 @@ import 'package:to_do_app/features/tasks/domain/repository/task_repository.dart'
 import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart';
 import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/data/datasource/subtask_datasource.dart';
+import 'package:to_do_app/features/tasks/data/datasource/archived_task_datasource.dart';
 
 // ── datasource providers ──────────────────────────────────────────────────
 
@@ -35,6 +36,10 @@ final attachmentDataSourceProvider =
 
 final subtaskDataSourceProvider = Provider<SubtaskRemoteDataSource>((ref) {
   return SubtaskRemoteDataSource(ref.watch(supabaseClientProvider));
+});
+
+final archivedTaskDataSourceProvider = Provider<ArchivedTaskDataSource>((ref) {
+  return ArchivedTaskDataSource(ref.watch(supabaseClientProvider));
 });
 
 // ── repository provider ───────────────────────────────────────────────────

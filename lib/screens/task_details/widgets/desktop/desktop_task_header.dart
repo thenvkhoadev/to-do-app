@@ -13,6 +13,8 @@ class DesktopTaskHeader extends StatelessWidget {
     required this.onCompleteTask,
     required this.onEditTask,
     required this.onDeleteTask,
+    required this.onDuplicateTask,
+    required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
     super.key,
@@ -26,6 +28,8 @@ class DesktopTaskHeader extends StatelessWidget {
   final VoidCallback onCompleteTask;
   final VoidCallback onEditTask;
   final VoidCallback onDeleteTask;
+  final VoidCallback onDuplicateTask;
+  final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
 
@@ -190,9 +194,34 @@ class DesktopTaskHeader extends StatelessWidget {
                       onSelected: (val) {
                         if (val == 'delete') {
                           onDeleteTask();
+                        } else if (val == 'duplicate') {
+                          onDuplicateTask();
+                        } else if (val == 'archive') {
+                          onArchiveTask();
                         }
                       },
                       itemBuilder: (context) => [
+                        const PopupMenuItem<String>(
+                          value: 'duplicate',
+                          child: Row(
+                            children: [
+                              Icon(Icons.copy_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                              SizedBox(width: 8),
+                              Text('Nhân bản', style: TextStyle(color: DashboardColors.onSurface)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuItem<String>(
+                          value: 'archive',
+                          child: Row(
+                            children: [
+                              Icon(Icons.archive_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
+                              SizedBox(width: 8),
+                              Text('Lưu trữ', style: TextStyle(color: DashboardColors.onSurface)),
+                            ],
+                          ),
+                        ),
+                        const PopupMenuDivider(),
                         const PopupMenuItem<String>(
                           value: 'delete',
                           child: Row(

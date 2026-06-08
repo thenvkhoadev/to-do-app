@@ -6,6 +6,7 @@ import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
+import 'package:to_do_app/screens/archived/archived_screen.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart'
     hide GlassCard, GlowOrb, GradientButton, SectionTitle;
 
@@ -160,6 +161,7 @@ class _TabContent extends StatelessWidget {
       2 => const TasksScreen(),
       3 => const AiScreen(),
       4 => const ProfileScreen(),
+      5 => const ArchivedScreen(),
       _ => const _HomeDashboardContent(),
     };
   }
@@ -1112,6 +1114,13 @@ class _DesktopSidebar extends StatelessWidget {
                   active: selectedIndex == 4,
                   collapsed: collapsed,
                   onTap: () => onTabSelected(4),
+                ),
+                _DesktopDrawerItem(
+                  icon: Icons.archive_rounded,
+                  label: 'Archived',
+                  active: selectedIndex == 5,
+                  collapsed: collapsed,
+                  onTap: () => onTabSelected(5),
                 ),
                 const Spacer(),
                 _DesktopDrawerItem(
