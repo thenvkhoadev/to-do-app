@@ -1,9 +1,18 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/data/models/category_model.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart'
+    hide GlassCard, GlowOrb, GradientButton, SectionTitle;
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart'
+    show XPLevelCard;
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/screens/archived/providers/restore_activity_provider.dart';
+import 'package:to_do_app/screens/archived/widgets/restore_success_dialog.dart';
 import 'package:to_do_app/screens/archived/models/archived_task_model.dart';
 import 'package:to_do_app/screens/archived/providers/archived_tasks_provider.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_shared_widgets.dart';
@@ -11,6 +20,7 @@ import 'package:to_do_app/screens/archived/widgets/archive_detail_drawer.dart';
 import 'package:to_do_app/screens/archived/widgets/modern_filter_dropdown.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_export_service.dart';
 import 'package:to_do_app/screens/archived/widgets/assignee_avatar_group.dart';
+import 'package:to_do_app/screens/archived/widgets/archive_command_center.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class DesktopArchivedView extends ConsumerStatefulWidget {
@@ -29,9 +39,15 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
   String _filterArchivedDate = 'all';
   ArchivedTask? _selected;
   final Set<String> _checkedIds = {};
+  // Optimistic UI: tasks being restored are immediately hidden from UI
+  // even before the database stream catches up.
+  final Set<String> _pendingRestoreIds = {};
 
   List<ArchivedTask> _filtered(List<ArchivedTask> tasks) {
     return tasks.where((t) {
+      // Optimistic UI: hide tasks that have been restored locally
+      // even if the stream hasn't caught up yet.
+      if (_pendingRestoreIds.contains(t.id)) return false;
       final q = _search.toLowerCase();
       final matchSearch = q.isEmpty ||
           t.title.toLowerCase().contains(q) ||
@@ -85,20 +101,50 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
 
   Future<void> _restore(ArchivedTask task) async {
     final messenger = ScaffoldMessenger.of(context);
+    // Step 1: Close the detail panel immediately
+    setState(() {
+      _selected = null;
+      _checkedIds.remove(task.id);
+    });
     try {
       await ref.read(archivedTasksRepositoryProvider).restore(task);
+
+      // Step 2: Show success dialog BEFORE hiding task from list
       if (!mounted) return;
-      setState(() { _selected = null; _checkedIds.remove(task.id); });
-      messenger.showSnackBar(const SnackBar(
-        content: Text('Task restored successfully'),
-        backgroundColor: DashboardColors.success,
-      ));
+      RestoreSuccessDialog.show(context);
+
+      // Step 3: Hide task from list AFTER dialog appears (short delay for visual effect)
+      await Future.delayed(const Duration(milliseconds: 300));
+      if (mounted) {
+        setState(() => _pendingRestoreIds.add(task.id));
+      }
+
+      // Step 4: Log timeline activity
+      final user = ref.read(authControllerProvider).valueOrNull;
+      final userName = user?.fullName ??
+          user?.username ??
+          user?.email ?? 'Unknown User';
+
+      await ref.read(taskTimelineProvider(task.id).notifier).addActivity(
+        actorName: userName,
+        action: 'resume',
+        detail: 'restored this task from archive',
+      );
+
+      // Step 5: Log to restore activity feed
+      await ref.read(restoreActivityProvider.notifier).log(
+        taskId: task.id,
+        taskTitle: task.title,
+        userName: userName,
+      );
     } catch (e) {
-      if (!mounted) return;
-      messenger.showSnackBar(SnackBar(
-        content: Text('Error: $e'),
-        backgroundColor: DashboardColors.error,
-      ));
+      if (mounted) {
+        setState(() => _pendingRestoreIds.remove(task.id));
+        messenger.showSnackBar(SnackBar(
+          content: Text('Error: $e'),
+          backgroundColor: DashboardColors.error,
+        ));
+      }
     }
   }
 
@@ -146,9 +192,12 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
   Widget build(BuildContext context) {
     final async = ref.watch(archivedTasksProvider);
     final tasks = async.valueOrNull ?? [];
+    // Exclude optimistically restored tasks from all stats/KPIs
+    final visibleTasks = tasks.where((t) => !_pendingRestoreIds.contains(t.id)).toList();
     final filtered = _filtered(tasks);
     final categories = ref.watch(userCategoriesProvider).valueOrNull ?? [];
     final users = ref.watch(allUsersProvider).valueOrNull ?? [];
+    final tags = ref.watch(userTagsProvider).valueOrNull ?? [];
 
     const double panelWidth = 460;
     final isPanelOpen = _selected != null;
@@ -184,13 +233,13 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _PageHeader(total: tasks.length),
+                      _PageHeader(total: visibleTasks.length),
                       const SizedBox(height: 24),
-                      _KpiRow(tasks: tasks),
+                      _KpiRow(tasks: visibleTasks),
                       const SizedBox(height: 24),
                       _MainGrid(
                         tasks: filtered,
-                        allTasks: tasks,
+                        allTasks: visibleTasks,
                         categories: categories,
                         users: users,
                         filterStatus: _filterStatus,
@@ -212,6 +261,13 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
                         onRestore: _restore,
                         onDelete: _delete,
                         isLoading: async.isLoading,
+                      ),
+                      const SizedBox(height: 40),
+                      ArchiveCommandCenter(
+                        tasks: visibleTasks,
+                        categories: categories,
+                        users: users,
+                        tags: tags,
                       ),
                     ],
                   ),
@@ -270,44 +326,99 @@ class _Topbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      height: 64,
-      padding: const EdgeInsets.symmetric(horizontal: 40),
-      decoration: BoxDecoration(
-        color: DashboardColors.surface.withValues(alpha: .5),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: .12)),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 384,
-            height: 38,
-            decoration: BoxDecoration(
-              color: DashboardColors.surfaceLow.withValues(alpha: .8),
-              borderRadius: BorderRadius.circular(8),
-              border:
-                  Border.all(color: Colors.white.withValues(alpha: .15)),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 48, sigmaY: 48),
+        child: Container(
+          height: 66,
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          decoration: BoxDecoration(
+            color: DashboardColors.surface.withValues(alpha: .50),
+            border: Border(
+              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
             ),
-            child: TextField(
-              onChanged: onSearch,
-              style: const TextStyle(
-                  color: DashboardColors.onSurface, fontSize: 14),
-              cursorColor: DashboardColors.primary,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search_rounded,
-                    color: DashboardColors.onSurfaceVariant, size: 18),
-                hintText: 'Search archived tasks...',
-                hintStyle: TextStyle(
-                    color: DashboardColors.onSurfaceVariant, fontSize: 14),
-                border: InputBorder.none,
-                isDense: true,
-                contentPadding: EdgeInsets.symmetric(vertical: 10),
-              ),
-            ),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: .16), blurRadius: 18),
+            ],
           ),
-        ],
+          child: Row(
+            children: [
+              // Search field
+              Container(
+                width: 320, height: 38,
+                decoration: BoxDecoration(
+                  color: DashboardColors.surfaceLow.withValues(alpha: .8),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: Colors.white.withValues(alpha: .12)),
+                ),
+                child: TextField(
+                  onChanged: onSearch,
+                  style: const TextStyle(color: DashboardColors.onSurface, fontSize: 14),
+                  cursorColor: DashboardColors.primary,
+                  decoration: const InputDecoration(
+                    prefixIcon: Icon(Icons.search_rounded, color: DashboardColors.onSurfaceVariant, size: 18),
+                    hintText: 'Search archived tasks...',
+                    hintStyle: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 14),
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 20),
+              // Archive chip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: DashboardColors.primary.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: DashboardColors.primary.withValues(alpha: .2)),
+                ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.archive_rounded, size: 13, color: DashboardColors.primary),
+                    SizedBox(width: 6),
+                    Text('Archive', style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.w700)),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              // Notification icon — matches TasksTopbar
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {},
+                  child: const SizedBox(
+                    width: 42, height: 42,
+                    child: Icon(Icons.notifications_none_rounded, color: DashboardColors.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              // Bolt icon — matches TasksTopbar
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {},
+                  child: const SizedBox(
+                    width: 42, height: 42,
+                    child: Icon(Icons.bolt_rounded, color: DashboardColors.primary),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              // Profile avatar — exactly as TasksTopbar
+              const XPLevelCard(),
+              const SizedBox(width: 14),
+              const ProfileAvatar(radius: 20),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1159,37 +1270,177 @@ class _RowIconBtn extends StatelessWidget {
 
 // ── Empty state ───────────────────────────────────────────────────────────────
 
-class _EmptyState extends StatelessWidget {
+class _EmptyState extends StatefulWidget {
+  @override
+  State<_EmptyState> createState() => _EmptyStateState();
+}
+
+class _EmptyStateState extends State<_EmptyState>
+    with TickerProviderStateMixin {
+  late final AnimationController _floatCtrl;
+  late final AnimationController _fadeCtrl;
+  late final Animation<double> _floatAnim;
+  late final Animation<double> _fadeAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _floatCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat(reverse: true);
+    _fadeCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 800),
+    )..forward();
+    _floatAnim = Tween<double>(begin: -8, end: 8).animate(
+      CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut),
+    );
+    _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _fadeCtrl, curve: Curves.easeOutCubic),
+    );
+  }
+
+  @override
+  void dispose() {
+    _floatCtrl.dispose();
+    _fadeCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
-    return ArchiveGlassCard(
-      padding: const EdgeInsets.all(48),
-      radius: 20,
-      child: Column(
-        children: [
-          Container(
-            width: 64, height: 64,
-            decoration: BoxDecoration(
-              color: DashboardColors.primary.withValues(alpha: .08),
-              shape: BoxShape.circle,
+    return AnimatedBuilder(
+      animation: _fadeAnim,
+      builder: (context, child) => Opacity(
+        opacity: _fadeAnim.value,
+        child: Transform.translate(
+          offset: Offset(0, 16 * (1 - _fadeAnim.value)),
+          child: child,
+        ),
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        child: ArchiveGlassCard(
+          padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 80),
+          radius: 20,
+          glowColor: DashboardColors.primary,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+            // Floating archive illustration
+            AnimatedBuilder(
+              animation: _floatAnim,
+              builder: (context, child) => Transform.translate(
+                offset: Offset(0, _floatAnim.value),
+                child: child,
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 120, height: 120,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(colors: [
+                        DashboardColors.primary.withValues(alpha: .25),
+                        DashboardColors.primary.withValues(alpha: 0),
+                      ]),
+                    ),
+                  ),
+                  Container(
+                    width: 88, height: 88,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          DashboardColors.primary,
+                          Color(0xFF6366F1),
+                        ],
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: DashboardColors.primary.withValues(alpha: .4),
+                          blurRadius: 30,
+                          offset: const Offset(0, 12),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.inventory_2_rounded, color: Colors.white, size: 38),
+                  ),
+                ],
+              ),
             ),
-            child: const Icon(Icons.archive_outlined,
-                color: DashboardColors.primary, size: 28),
-          ),
-          const SizedBox(height: 16),
-          const Text('Archive Empty',
+            const SizedBox(height: 28),
+            const Text(
+              'Archive is Empty',
               style: TextStyle(
-                  color: DashboardColors.onSurface,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800)),
-          const SizedBox(height: 8),
-          const Text(
-            'Archived tasks will appear here when removed from active workspaces.',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-                color: DashboardColors.onSurfaceVariant, fontSize: 13),
-          ),
-        ],
+                color: DashboardColors.onSurface,
+                fontSize: 24,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Nothing Archived Yet',
+              style: TextStyle(
+                color: DashboardColors.primary.withValues(alpha: .9),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+                letterSpacing: .3,
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              'Your archive is currently empty. Archived tasks and projects\nwill appear here when archived for future recovery.\nAll your current items are active in their workspaces.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: DashboardColors.onSurfaceVariant.withValues(alpha: .85),
+                fontSize: 13,
+                height: 1.65,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            const SizedBox(height: 28),
+            // Feature list
+            Wrap(
+              alignment: WrapAlignment.center,
+              spacing: 10,
+              runSpacing: 10,
+              children: const [
+                _EmptyChip(icon: Icons.task_alt_rounded, label: 'Archived Tasks'),
+                _EmptyChip(icon: Icons.folder_special_rounded, label: 'Archived Projects'),
+                _EmptyChip(icon: Icons.history_rounded, label: 'Restore History'),
+                _EmptyChip(icon: Icons.timeline_rounded, label: 'Archive Activities'),
+              ],
+            ),
+            const SizedBox(height: 28),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _EmptyActionBtn(
+                  label: 'Browse Tasks',
+                  icon: Icons.view_kanban_rounded,
+                  filled: true,
+                  onTap: () {},
+                ),
+                const SizedBox(width: 12),
+                _EmptyActionBtn(
+                  label: 'View Projects',
+                  icon: Icons.folder_open_rounded,
+                  filled: false,
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
       ),
     );
   }
@@ -1620,6 +1871,120 @@ class _StorageCard extends StatelessWidget {
               style: TextStyle(
                   color: DashboardColors.onSurfaceVariant, fontSize: 11)),
         ],
+      ),
+    );
+  }
+}
+
+class _EmptyChip extends StatelessWidget {
+  const _EmptyChip({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .04),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: DashboardColors.primary.withValues(alpha: .9)),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: const TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _EmptyActionBtn extends StatefulWidget {
+  const _EmptyActionBtn({
+    required this.label,
+    required this.icon,
+    required this.filled,
+    required this.onTap,
+  });
+  final String label;
+  final IconData icon;
+  final bool filled;
+  final VoidCallback onTap;
+
+  @override
+  State<_EmptyActionBtn> createState() => _EmptyActionBtnState();
+}
+
+class _EmptyActionBtnState extends State<_EmptyActionBtn> {
+  bool _hover = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = true),
+      onExit: (_) => setState(() => _hover = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+          decoration: BoxDecoration(
+            gradient: widget.filled
+                ? LinearGradient(colors: [
+                    DashboardColors.primary.withValues(alpha: _hover ? 1 : .9),
+                    const Color(0xFF6366F1).withValues(alpha: _hover ? 1 : .9),
+                  ])
+                : null,
+            color: widget.filled
+                ? null
+                : Colors.white.withValues(alpha: _hover ? .08 : .04),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: widget.filled
+                  ? Colors.transparent
+                  : Colors.white.withValues(alpha: .15),
+            ),
+            boxShadow: widget.filled
+                ? [
+                    BoxShadow(
+                      color: DashboardColors.primary.withValues(alpha: _hover ? .35 : .2),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                widget.icon,
+                size: 14,
+                color: widget.filled ? Colors.white : DashboardColors.onSurface,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                widget.label,
+                style: TextStyle(
+                  color: widget.filled ? Colors.white : DashboardColors.onSurface,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

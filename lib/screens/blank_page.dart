@@ -1082,14 +1082,14 @@ class _DesktopSidebar extends StatelessWidget {
                 const SizedBox(height: 28),
                 _DesktopDrawerItem(
                   icon: Icons.dashboard_rounded,
-                  label: 'Dashboard',
+                  label: 'NEXUS AI',
                   active: selectedIndex == 0,
                   collapsed: collapsed,
                   onTap: () => onTabSelected(0),
                 ),
                 _DesktopDrawerItem(
                   icon: Icons.folder_open_rounded,
-                  label: 'Projects',
+                  label: 'Tasks',
                   active: selectedIndex == 1,
                   collapsed: collapsed,
                   onTap: () => onTabSelected(1),

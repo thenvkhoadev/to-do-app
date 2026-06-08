@@ -61,26 +61,49 @@ class ArchivedTasksRepository {
   }
 
   Future<void> restore(ArchivedTask task) async {
-    await _client.from('tasks').insert({
+    // Step 1: Upsert full task back with all original fields
+    await _client.from('tasks').upsert({
       'id': task.id,
       'user_id': task.userId,
       'title': task.title,
       'description': task.description,
       'category_id': task.categoryId,
       'priority': task.priority,
-      'status': 'todo',
+      'status': task.status, // Restore original status exactly as archived
       'ai_generated': task.aiGenerated,
       'due_date': task.dueDate?.toUtc().toIso8601String(),
       'reminder_at': task.reminderAt?.toUtc().toIso8601String(),
+      'completed_at': task.completedAt?.toUtc().toIso8601String(),
       'parent_task_id': task.parentTaskId,
       'sort_order': task.sortOrder,
       'estimated_minutes': task.estimatedMinutes,
-    });
+      'created_at': task.createdAt?.toUtc().toIso8601String(),
+      'deleted_at': null,
+    }, onConflict: 'id');
+
+    // Step 2: Explicit update to guarantee deleted_at is cleared
+    await _client
+        .from('tasks')
+        .update({'deleted_at': null})
+        .eq('id', task.id);
+
+    // Step 3: Restore tags
+    if (task.tagIds.isNotEmpty) {
+      await _client.from('task_tags').delete().eq('task_id', task.id);
+      await _client.from('task_tags').insert(
+        task.tagIds.map((tagId) => {'task_id': task.id, 'tag_id': tagId}).toList(),
+      );
+    }
+
+    // Step 4: Restore assignees
     if (task.assigneeIds.isNotEmpty) {
+      await _client.from('task_assignees').delete().eq('task_id', task.id);
       await _client.from('task_assignees').insert(
         task.assigneeIds.map((uid) => {'task_id': task.id, 'user_id': uid}).toList(),
       );
     }
+
+    // Step 5: Remove from archived_tasks
     await _client.from('archived_tasks').delete().eq('id', task.id);
   }
 

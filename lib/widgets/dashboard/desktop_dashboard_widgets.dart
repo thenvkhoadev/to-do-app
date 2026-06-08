@@ -241,7 +241,7 @@ class _DashboardSectionPlaceholder extends StatelessWidget {
   final int index;
 
   String get _title => switch (index) {
-    1 => 'Projects',
+    1 => 'Tasks',
     2 => 'Intelligence',
     3 => 'Calendar',
     4 => 'Analytics',
@@ -522,13 +522,13 @@ class DesktopSidebar extends StatelessWidget {
               const SizedBox(height: 40),
               _SidebarItem(
                 icon: Icons.dashboard_rounded,
-                label: 'Dashboard',
+                label: 'NEXUS AI',
                 active: selectedIndex == 0,
                 onTap: () => onSelected(0),
               ),
               _SidebarItem(
                 icon: Icons.account_tree_rounded,
-                label: 'Projects',
+                label: 'Tasks',
                 active: selectedIndex == 1,
                 onTap: () => onSelected(1),
               ),

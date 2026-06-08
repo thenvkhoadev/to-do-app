@@ -142,7 +142,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
     final selectedTasks = sortedTasks.where((t) => _selectedTaskIds.contains(t.id)).toList();
 
     return SizedBox(
-      width: 330,
+      width: double.infinity,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -150,35 +150,43 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
             padding: const EdgeInsets.fromLTRB(4, 0, 4, 14),
             child: Row(
               children: [
-                Text(
-                  widget.column.title.toUpperCase(),
-                  style: TextStyle(
-                    color: active ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 1.2,
+                Container(
+                  width: 30, height: 30,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    color: widget.column.status.displayColor.withValues(alpha: .15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: widget.column.status.displayColor.withValues(alpha: .3)),
+                  ),
+                  child: Icon(
+                    widget.column.status.displayIcon,
+                    size: 16,
+                    color: widget.column.status.displayColor,
                   ),
                 ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? DashboardColors.primary.withValues(alpha: .16)
-                        : DashboardColors.surfaceHighest,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '${widget.column.tasks.length}',
-                    style: TextStyle(
-                      color: active ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      widget.column.status.displayLabel.toUpperCase(),
+                      style: TextStyle(
+                        color: widget.column.status.displayColor,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.2,
+                      ),
                     ),
-                  ),
+                    Text(
+                      '${widget.column.tasks.length} task${widget.column.tasks.length == 1 ? "" : "s"}',
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant.withValues(alpha: .8),
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(width: 8),
                 if (originalTasks.isNotEmpty)

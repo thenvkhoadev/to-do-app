@@ -341,60 +341,64 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
         final inProgressTasks = boardItems.where((t) => t.status == TaskBoardStatus.inProgress).toList();
         final doneTasks = boardItems.where((t) => t.status == TaskBoardStatus.completed).toList();
 
-        return SizedBox(
-          height: 600,
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                TaskColumn(
-                  column: TaskColumnData(
-                    title: 'Draft',
-                    status: TaskBoardStatus.draft,
-                    tasks: draftTasks,
-                  ),
-                  onTaskTap: widget.onTaskTap,
-                  onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.draft),
-                  onNewTask: widget.onNewTask,
-                ),
-                const SizedBox(width: 20),
-                TaskColumn(
-                  column: TaskColumnData(
-                    title: 'To Do',
-                    status: TaskBoardStatus.todo,
-                    tasks: todoTasks,
-                  ),
-                  onTaskTap: widget.onTaskTap,
-                  onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.todo),
-                  onNewTask: widget.onNewTask,
-                ),
-                const SizedBox(width: 20),
-                TaskColumn(
-                  column: TaskColumnData(
-                    title: 'In Progress',
-                    status: TaskBoardStatus.inProgress,
-                    tasks: inProgressTasks,
-                  ),
-                  onTaskTap: widget.onTaskTap,
-                  onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.inProgress),
-                  onNewTask: widget.onNewTask,
-                ),
-                const SizedBox(width: 20),
-                TaskColumn(
-                  column: TaskColumnData(
-                    title: 'Completed',
-                    status: TaskBoardStatus.completed,
-                    tasks: doneTasks,
-                  ),
-                  onTaskTap: widget.onTaskTap,
-                  onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.completed),
-                  onNewTask: widget.onNewTask,
-                ),
-              ],
+        return LayoutBuilder(builder: (context, constraints) {
+          // Fit 4 columns + 3 gaps within visible width. Min 240, max 320.
+          final colWidth = ((constraints.maxWidth - 60) / 4).clamp(240.0, 320.0);
+          return SizedBox(
+            height: 600,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(width: colWidth, child: TaskColumn(
+                    column: TaskColumnData(
+                      title: 'Draft',
+                      status: TaskBoardStatus.draft,
+                      tasks: draftTasks,
+                    ),
+                    onTaskTap: widget.onTaskTap,
+                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.draft),
+                    onNewTask: widget.onNewTask,
+                  )),
+                  const SizedBox(width: 16),
+                  SizedBox(width: colWidth, child: TaskColumn(
+                    column: TaskColumnData(
+                      title: 'To-Do',
+                      status: TaskBoardStatus.todo,
+                      tasks: todoTasks,
+                    ),
+                    onTaskTap: widget.onTaskTap,
+                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.todo),
+                    onNewTask: widget.onNewTask,
+                  )),
+                  const SizedBox(width: 16),
+                  SizedBox(width: colWidth, child: TaskColumn(
+                    column: TaskColumnData(
+                      title: 'In Propress',
+                      status: TaskBoardStatus.inProgress,
+                      tasks: inProgressTasks,
+                    ),
+                    onTaskTap: widget.onTaskTap,
+                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.inProgress),
+                    onNewTask: widget.onNewTask,
+                  )),
+                  const SizedBox(width: 16),
+                  SizedBox(width: colWidth, child: TaskColumn(
+                    column: TaskColumnData(
+                      title: 'Completed',
+                      status: TaskBoardStatus.completed,
+                      tasks: doneTasks,
+                    ),
+                    onTaskTap: widget.onTaskTap,
+                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.completed),
+                    onNewTask: widget.onNewTask,
+                  )),
+                ],
+              ),
             ),
-          ),
-        );
+          );
+        });
       },
     );
   }

@@ -24,8 +24,8 @@ class ArchiveDetailDrawer extends ConsumerWidget {
 
   final ArchivedTask task;
   final VoidCallback onClose;
-  final VoidCallback onRestore;
-  final VoidCallback onDelete;
+  final Future<void> Function() onRestore;
+  final Future<void> Function() onDelete;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -827,15 +827,43 @@ class _MetaRowState extends State<_MetaRow> {
 
 // ── Actions ───────────────────────────────────────────────────────────────────
 
-class _ActionsSection extends StatelessWidget {
+class _ActionsSection extends StatefulWidget {
   const _ActionsSection({
     required this.task,
     required this.onRestore,
     required this.onDelete,
   });
   final ArchivedTask task;
-  final VoidCallback onRestore;
-  final VoidCallback onDelete;
+  final Future<void> Function() onRestore;
+  final Future<void> Function() onDelete;
+
+  @override
+  State<_ActionsSection> createState() => _ActionsSectionState();
+}
+
+class _ActionsSectionState extends State<_ActionsSection> {
+  bool _isRestoring = false;
+  bool _isDeleting = false;
+
+  Future<void> _handleRestore() async {
+    if (_isRestoring || _isDeleting) return;
+    setState(() => _isRestoring = true);
+    try {
+      await widget.onRestore();
+    } finally {
+      if (mounted) setState(() => _isRestoring = false);
+    }
+  }
+
+  Future<void> _handleDelete() async {
+    if (_isRestoring || _isDeleting) return;
+    setState(() => _isDeleting = true);
+    try {
+      await widget.onDelete();
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -843,19 +871,23 @@ class _ActionsSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _ActionBtn(
-          label: 'Restore Task',
+          label: _isRestoring ? 'Restoring...' : 'Restore Task',
           icon: Icons.restore_rounded,
           color: DashboardColors.primary,
           filled: true,
-          onTap: onRestore,
+          loading: _isRestoring,
+          disabled: _isRestoring || _isDeleting,
+          onTap: _handleRestore,
         ),
         const SizedBox(height: 8),
         _ActionBtn(
-          label: 'Delete Permanently',
+          label: _isDeleting ? 'Deleting...' : 'Delete Permanently',
           icon: Icons.delete_forever_rounded,
           color: DashboardColors.error,
           filled: false,
-          onTap: onDelete,
+          loading: _isDeleting,
+          disabled: _isRestoring || _isDeleting,
+          onTap: _handleDelete,
         ),
       ],
     );
@@ -869,12 +901,16 @@ class _ActionBtn extends StatefulWidget {
     required this.color,
     required this.filled,
     required this.onTap,
+    this.loading = false,
+    this.disabled = false,
   });
   final String label;
   final IconData icon;
   final Color color;
   final bool filled;
   final VoidCallback onTap;
+  final bool loading;
+  final bool disabled;
 
   @override
   State<_ActionBtn> createState() => _ActionBtnState();
@@ -885,37 +921,53 @@ class _ActionBtnState extends State<_ActionBtn> {
 
   @override
   Widget build(BuildContext context) {
+    final dim = widget.disabled ? .5 : 1.0;
     return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
+      cursor: widget.disabled ? SystemMouseCursors.forbidden : SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hover = !widget.disabled),
       onExit: (_) => setState(() => _hover = false),
       child: GestureDetector(
-        onTap: widget.onTap,
-        child: AnimatedContainer(
+        onTap: widget.disabled ? null : widget.onTap,
+        child: AnimatedOpacity(
           duration: const Duration(milliseconds: 150),
-          height: 44,
-          decoration: BoxDecoration(
-            color: widget.filled
-                ? widget.color.withValues(alpha: _hover ? .22 : .14)
-                : widget.color.withValues(alpha: _hover ? .08 : .04),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: widget.color.withValues(alpha: widget.filled ? .4 : .25),
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(widget.icon, color: widget.color, size: 16),
-              const SizedBox(width: 8),
-              Text(
-                widget.label,
-                style: TextStyle(
-                  color: widget.color,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w700,
-                ),
+          opacity: dim,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            height: 44,
+            decoration: BoxDecoration(
+              color: widget.filled
+                  ? widget.color.withValues(alpha: _hover ? .22 : .14)
+                  : widget.color.withValues(alpha: _hover ? .08 : .04),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: widget.color.withValues(alpha: widget.filled ? .4 : .25),
               ),
-            ],
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.loading)
+                  SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation(widget.color),
+                    ),
+                  )
+                else
+                  Icon(widget.icon, color: widget.color, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  widget.label,
+                  style: TextStyle(
+                    color: widget.color,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
