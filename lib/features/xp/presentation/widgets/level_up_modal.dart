@@ -1,19 +1,52 @@
+import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
-import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart'
-    show xpLevelTitle;
+import 'package:to_do_app/features/xp/data/models/xp_log_model.dart';
 
-// ── Colors ────────────────────────────────────────────────────────────────
-const _kPrimary = Color(0xFFB794F6);
-const _kSecondary = Color(0xFF7B6CF6);
-const _kCyan = Color(0xFF67E8F9);
-const _kMuted = Color(0xFFA8B2D1);
+// ── Models & Classes for Particles ─────────────────────────────────────────
+
+class ExplosionParticle {
+  final double angle;
+  final double speed;
+  final Color color;
+  final double size;
+
+  ExplosionParticle({
+    required this.angle,
+    required this.speed,
+    required this.color,
+    required this.size,
+  });
+}
+
+class FloatingParticle {
+  final double baseX;
+  final double baseY;
+  final double speed;
+  final double wobbleFreq;
+  final double size;
+  final Color color;
+  final double opacity;
+
+  FloatingParticle({
+    required this.baseX,
+    required this.baseY,
+    required this.speed,
+    required this.wobbleFreq,
+    required this.size,
+    required this.color,
+    required this.opacity,
+  });
+}
 
 // ── Level Up Modal ────────────────────────────────────────────────────────
+
 class LevelUpModal extends ConsumerStatefulWidget {
   const LevelUpModal({super.key, required this.newLevel});
   final int newLevel;
@@ -25,33 +58,130 @@ class LevelUpModal extends ConsumerStatefulWidget {
 class _LevelUpModalState extends ConsumerState<LevelUpModal>
     with TickerProviderStateMixin {
   late AnimationController _entryCtrl;
+  late AnimationController _pulseCtrl;
   late AnimationController _floatCtrl;
-  late Animation<double> _scaleAnim;
-  late Animation<double> _opacityAnim;
-  late Animation<double> _floatAnim;
+
+  // Staggered Animations
+  late Animation<double> _backdropAnim;
+  late Animation<double> _glowScaleAnim;
+  late Animation<double> _glowOpacityAnim;
+  late Animation<double> _cardSlideAnim;
+  late Animation<double> _cardScaleAnim;
+  late Animation<double> _particlesAnim;
+  late Animation<double> _punchAnim;
+  late Animation<double> _counterAnim;
+
+  final List<ExplosionParticle> _explosionParticles = [];
+  final List<FloatingParticle> _floatingParticles = [];
+
   bool _exiting = false;
+  bool _soundPlayed = false;
 
   @override
   void initState() {
     super.initState();
+
+    // Controllers
     _entryCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 500),
+      duration: const Duration(milliseconds: 700),
     );
+    _pulseCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 2),
+    )..repeat(reverse: true);
     _floatCtrl = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 6),
-    )..repeat(reverse: true);
+      duration: const Duration(seconds: 15),
+    )..repeat();
 
-    _scaleAnim = Tween<double>(
-      begin: 0.8,
-      end: 1.0,
-    ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
-    _opacityAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
-    _floatAnim = Tween<double>(
-      begin: 0,
-      end: -20,
-    ).animate(CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
+    // Curves & Staggered Animations
+    _backdropAnim = CurvedAnimation(
+      parent: _entryCtrl,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeOut),
+    );
+
+    _glowScaleAnim = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.2, 0.7, curve: Curves.easeOutBack),
+      ),
+    );
+    _glowOpacityAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.2, 0.5, curve: Curves.easeOut),
+      ),
+    );
+
+    _cardSlideAnim = Tween<double>(begin: 40.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+    _cardScaleAnim = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryCtrl,
+        curve: const Interval(0.3, 0.8, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _particlesAnim = CurvedAnimation(
+      parent: _entryCtrl,
+      curve: const Interval(0.5, 0.9, curve: Curves.easeOut),
+    );
+
+    _punchAnim = CurvedAnimation(
+      parent: _entryCtrl,
+      curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
+    );
+
+    _counterAnim = CurvedAnimation(
+      parent: _entryCtrl,
+      curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
+    );
+
+    // Particles Initialization
+    final random = math.Random();
+    final colors = [
+      const Color(0xFFC084FC), // Purple
+      const Color(0xFF6366F1), // Blue
+      const Color(0xFFFFD700), // Gold
+    ];
+
+    for (int i = 0; i < 25; i++) {
+      _explosionParticles.add(
+        ExplosionParticle(
+          angle: random.nextDouble() * 2 * math.pi,
+          speed: 80.0 + random.nextDouble() * 100.0,
+          color: colors[random.nextInt(colors.length)],
+          size: 3.0 + random.nextDouble() * 3.0,
+        ),
+      );
+    }
+
+    for (int i = 0; i < 20; i++) {
+      _floatingParticles.add(
+        FloatingParticle(
+          baseX: random.nextDouble(),
+          baseY: random.nextDouble(),
+          speed: 0.05 + random.nextDouble() * 0.05,
+          wobbleFreq: 0.5 + random.nextDouble() * 1.5,
+          size: 2.0 + random.nextDouble() * 3.0,
+          color: colors[random.nextInt(colors.length)],
+          opacity: 0.1 + random.nextDouble() * 0.2,
+        ),
+      );
+    }
+
+    // Sound hook listener
+    _entryCtrl.addListener(() {
+      if (_entryCtrl.value >= 0.7 && !_soundPlayed) {
+        _soundPlayed = true;
+        playLevelUpSound();
+      }
+    });
 
     _entryCtrl.forward();
   }
@@ -59,8 +189,13 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
   @override
   void dispose() {
     _entryCtrl.dispose();
+    _pulseCtrl.dispose();
     _floatCtrl.dispose();
     super.dispose();
+  }
+
+  void playLevelUpSound() {
+    // Hook for future sound logic: playLevelUpSound();
   }
 
   Future<void> _dismiss() async {
@@ -68,435 +203,513 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
     setState(() => _exiting = true);
     _entryCtrl.duration = const Duration(milliseconds: 300);
     await _entryCtrl.reverse();
-    if (mounted) ref.read(levelUpProvider.notifier).dismiss();
+    if (mounted) {
+      ref.read(levelUpProvider.notifier).dismiss();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
     final isMobile = width < 720;
-    final cardWidth = isMobile ? width - 32 : 720.0;
+    final cardWidth = isMobile ? width * 0.9 : 520.0;
+
+    // Load logs to extract the reward summary
+    final logsAsync = ref.watch(xpLogsProvider);
+    final logs = logsAsync.valueOrNull ?? [];
+    final latestLog = logs.firstOrNull;
+
+    // Load profile to calculate the old level
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+
+    int oldLevel = widget.newLevel - 1;
+    if (profile != null && latestLog != null) {
+      final previousTotalXp = (profile.totalXp - latestLog.xpGained).clamp(0, 1 << 30);
+      oldLevel = leveling.xpLevelFromTotalXp(previousTotalXp);
+      // Ensure we don't display oldLevel >= newLevel
+      if (oldLevel >= widget.newLevel) {
+        oldLevel = widget.newLevel - 1;
+      }
+    }
 
     return Material(
       type: MaterialType.transparency,
       child: GestureDetector(
         onTap: _dismiss,
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(color: Colors.black.withValues(alpha: 0.6)),
-              ),
-            ),
-            const Positioned(
-              left: -200,
-              top: -200,
-              child: _AmbientGlow(
-                size: 800,
-                opacity: 0.30,
-                color: _kPrimary,
-                blur: 120,
-              ),
-            ),
-            const Positioned(
-              right: -150,
-              bottom: -150,
-              child: _AmbientGlow(
-                size: 600,
-                opacity: 0.10,
-                color: _kCyan,
-                blur: 100,
-              ),
-            ),
-            Center(
-              child: GestureDetector(
-                onTap: () {},
-                child: ScaleTransition(
-                  scale: _scaleAnim,
-                  child: FadeTransition(
-                    opacity: _opacityAnim,
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxWidth: cardWidth,
-                        maxHeight: MediaQuery.sizeOf(context).height * 0.85,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedBuilder(
+          animation: _backdropAnim,
+          builder: (context, child) {
+            final blurVal = _backdropAnim.value * 16.0;
+            final opacityVal = _backdropAnim.value * 0.75;
+            return Stack(
+              children: [
+                // 1. Backdrop Blur & Dim
+                if (blurVal > 0)
+                  Positioned.fill(
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: blurVal, sigmaY: blurVal),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: opacityVal),
                       ),
-                      child: _AchievementCard(
-                        newLevel: widget.newLevel,
-                        isMobile: isMobile,
-                        floatAnim: _floatAnim,
-                        onContinue: _dismiss,
+                    ),
+                  ),
+
+                // 2. Slow drifting floating background particles
+                Positioned.fill(
+                  child: AnimatedBuilder(
+                    animation: _floatCtrl,
+                    builder: (context, _) {
+                      return CustomPaint(
+                        painter: FloatingParticlesPainter(
+                          particles: _floatingParticles,
+                          progress: _floatCtrl.value,
+                        ),
+                      );
+                    },
+                  ),
+                ),
+
+                // 3. Ambient Glow Pulse behind the card
+                Center(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_glowScaleAnim, _glowOpacityAnim, _pulseCtrl]),
+                    builder: (context, child) {
+                      final pulseScale = 1.0 + 0.08 * math.sin(_pulseCtrl.value * 2 * math.pi);
+                      final pulseOpacity = 0.5 + 0.15 * math.cos(_pulseCtrl.value * 2 * math.pi);
+                      
+                      final scale = _glowScaleAnim.value * pulseScale;
+                      final opacity = _glowOpacityAnim.value * pulseOpacity;
+
+                      return Transform.scale(
+                        scale: scale,
+                        child: Opacity(
+                          opacity: opacity.clamp(0.0, 1.0),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: Container(
+                      width: cardWidth * 0.8,
+                      height: cardWidth * 0.8,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: RadialGradient(
+                          colors: [
+                            const Color(0xFF8B5CF6).withValues(alpha: 0.4), // Purple
+                            const Color(0xFF6366F1).withValues(alpha: 0.4), // Blue
+                            Colors.transparent,
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
-              ),
-            ),
-          ],
+
+                // 4. Glassmorphic Card (Slides & Scales)
+                Center(
+                  child: AnimatedBuilder(
+                    animation: Listenable.merge([_cardSlideAnim, _cardScaleAnim]),
+                    builder: (context, child) {
+                      return Transform.translate(
+                        offset: Offset(0, _cardSlideAnim.value),
+                        child: Transform.scale(
+                          scale: _cardScaleAnim.value,
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: SizedBox(
+                      width: cardWidth,
+                      child: ShineSweepWidget(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0B1020).withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(32),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.08),
+                              width: 1.5,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.5),
+                                blurRadius: 40,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 32,
+                            vertical: 40,
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            clipBehavior: Clip.none,
+                            children: [
+                              // Main content
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  // Header: Trophy Icon
+                                  const _TrophyHeader(),
+                                  const SizedBox(height: 24),
+
+                                  // Centered Title: LEVEL UP!
+                                  const _GradientTitle(),
+                                  const SizedBox(height: 16),
+
+                                  // Level Section: LEVEL 7 (large)
+                                  _LevelSection(
+                                    oldLevel: oldLevel,
+                                    newLevel: widget.newLevel,
+                                    counterAnim: _counterAnim,
+                                    punchAnim: _punchAnim,
+                                  ),
+                                  const SizedBox(height: 20),
+
+                                  // Rank Badge: e.g. Specialist Gold II
+                                  _RankBadge(level: widget.newLevel),
+                                  const SizedBox(height: 24),
+
+                                  // Level Progress Summary: Level 6 -> Level 7
+                                  _LevelSummary(
+                                    oldLevel: oldLevel,
+                                    newLevel: widget.newLevel,
+                                  ),
+                                  const SizedBox(height: 28),
+
+                                  // XP Reward Summary
+                                  _XpRewardSummary(latestLog: latestLog),
+                                ],
+                              ),
+
+                              // XP explosion particles overlay (centered in card)
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: AnimatedBuilder(
+                                    animation: _particlesAnim,
+                                    builder: (context, _) {
+                                      return CustomPaint(
+                                        painter: ParticleExplosionPainter(
+                                          particles: _explosionParticles,
+                                          progress: _particlesAnim.value,
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
   }
 }
 
-// ── Ambient glow ──────────────────────────────────────────────────────────
-class _AmbientGlow extends StatelessWidget {
-  const _AmbientGlow({
-    required this.size,
-    required this.opacity,
-    required this.color,
-    required this.blur,
-  });
+// ── Floating Background Background Particles Painter ────────────────────────
 
-  final double size;
-  final double opacity;
-  final Color color;
-  final double blur;
+class FloatingParticlesPainter extends CustomPainter {
+  final List<FloatingParticle> particles;
+  final double progress;
+
+  FloatingParticlesPainter({required this.particles, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    for (final p in particles) {
+      double y = (p.baseY - progress * p.speed) % 1.0;
+      double x = (p.baseX + 0.05 * math.sin(progress * 2 * math.pi * p.wobbleFreq)) % 1.0;
+
+      final offset = Offset(x * size.width, y * size.height);
+      paint.color = p.color.withValues(alpha: p.opacity);
+      canvas.drawCircle(offset, p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant FloatingParticlesPainter oldDelegate) {
+    return true;
+  }
+}
+
+// ── Particle Explosion Painter ─────────────────────────────────────────────
+
+class ParticleExplosionPainter extends CustomPainter {
+  final List<ExplosionParticle> particles;
+  final double progress;
+
+  ParticleExplosionPainter({required this.particles, required this.progress});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (progress <= 0 || progress >= 1.0) return;
+    final center = Offset(size.width / 2, size.height / 2);
+    final paint = Paint()..style = PaintingStyle.fill;
+
+    for (final p in particles) {
+      final distance = p.speed * Curves.easeOutCubic.transform(progress);
+      final dx = distance * math.cos(p.angle);
+      final dy = distance * math.sin(p.angle);
+      final offset = center + Offset(dx, dy);
+
+      final opacity = (1.0 - progress).clamp(0.0, 1.0);
+      paint.color = p.color.withValues(alpha: opacity);
+
+      canvas.drawCircle(offset, p.size, paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant ParticleExplosionPainter oldDelegate) {
+    return oldDelegate.progress != progress;
+  }
+}
+
+// ── Shine Sweep Widget ──────────────────────────────────────────────────────
+
+class ShineSweepWidget extends StatefulWidget {
+  const ShineSweepWidget({super.key, required this.child});
+  final Widget child;
+
+  @override
+  State<ShineSweepWidget> createState() => _ShineSweepWidgetState();
+}
+
+class _ShineSweepWidgetState extends State<ShineSweepWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _shineCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _shineCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+
+    // Repeat sweep every 3 seconds
+    Timer.periodic(const Duration(seconds: 3), (timer) {
+      if (mounted) {
+        _shineCtrl.forward(from: 0.0);
+      } else {
+        timer.cancel();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _shineCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Container(
-        width: size,
-        height: size,
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: opacity),
-              blurRadius: blur,
-              spreadRadius: blur / 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Achievement card ──────────────────────────────────────────────────────
-class _AchievementCard extends ConsumerWidget {
-  const _AchievementCard({
-    required this.newLevel,
-    required this.isMobile,
-    required this.floatAnim,
-    required this.onContinue,
-  });
-
-  final int newLevel;
-  final bool isMobile;
-  final Animation<double> floatAnim;
-  final VoidCallback onContinue;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profile = ref.watch(userProfileProvider).valueOrNull;
-    final totalXp = profile?.totalXp ?? 0;
-    final nextLevelStart = leveling.xpRequiredForLevel(newLevel + 1);
-    final remainingToNext = (nextLevelStart - totalXp).clamp(0, 1 << 30);
-
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(32),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          padding: EdgeInsets.symmetric(
-            horizontal: isMobile ? 24 : 48,
-            vertical: isMobile ? 32 : 48,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 40,
-                spreadRadius: 2,
-              ),
-            ],
-          ),
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              Positioned(
-                top: -8,
-                right: -8,
-                child: Icon(
-                  Icons.auto_awesome,
-                  size: isMobile ? 32 : 40,
-                  color: _kPrimary.withValues(alpha: 0.7),
-                ),
-              ),
-              Positioned(
-                bottom: -8,
-                left: -8,
-                child: Icon(
-                  Icons.star,
-                  size: isMobile ? 18 : 22,
-                  color: _kCyan.withValues(alpha: 0.6),
-                ),
-              ),
-              SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _LevelBadge(
-                      newLevel: newLevel,
-                      isMobile: isMobile,
-                      floatAnim: floatAnim,
-                    ),
-                    SizedBox(height: isMobile ? 24 : 32),
-                    _TitleSection(newLevel: newLevel, isMobile: isMobile),
-                    SizedBox(height: isMobile ? 16 : 20),
-                    _DescriptionText(newLevel: newLevel, isMobile: isMobile),
-                    SizedBox(height: isMobile ? 20 : 24),
-                    const _UnlockChips(),
-                    SizedBox(height: isMobile ? 24 : 32),
-                    _ActionButtons(isMobile: isMobile, onContinue: onContinue),
-                    SizedBox(height: isMobile ? 16 : 20),
-                    _ProgressSection(
-                      newLevel: newLevel,
-                      totalXp: totalXp,
-                      remaining: remainingToNext,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Stubs (replaced by subsequent Edit operations) ────────────────────────
-class _LevelBadge extends StatelessWidget {
-  const _LevelBadge({
-    required this.newLevel,
-    required this.isMobile,
-    required this.floatAnim,
-  });
-  final int newLevel;
-  final bool isMobile;
-  final Animation<double> floatAnim;
-
-  @override
-  Widget build(BuildContext context) {
-    final size = isMobile ? 160.0 : 192.0;
     return AnimatedBuilder(
-      animation: floatAnim,
-      builder:
-          (_, child) => Transform.translate(
-            offset: Offset(0, floatAnim.value),
-            child: child,
-          ),
-      child: SizedBox(
-        width: size + 80,
-        height: size + 80,
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            Container(
-              width: size * 1.5,
-              height: size * 1.5,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: _kPrimary.withValues(alpha: 0.20),
-                boxShadow: [
-                  BoxShadow(
-                    color: _kPrimary.withValues(alpha: 0.20),
-                    blurRadius: 100,
-                    spreadRadius: 40,
-                  ),
-                ],
-              ),
-            ),
-            Transform.rotate(
-              angle: 12 * 3.1415926 / 180,
-              child: Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(28),
-                  gradient: const LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [_kPrimary, _kSecondary, _kCyan],
-                  ),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.25),
-                    width: 2,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: _kSecondary.withValues(alpha: 0.4),
-                      blurRadius: 30,
-                      offset: const Offset(0, 12),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Text(
-                      'LEVEL',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '$newLevel',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isMobile ? 64 : 80,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
+      animation: _shineCtrl,
+      builder: (context, child) {
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) {
+            final double slideValue = lerpDouble(-1.5, 1.5, _shineCtrl.value)!;
+            return LinearGradient(
+              begin: Alignment(slideValue - 0.3, -1),
+              end: Alignment(slideValue + 0.3, 1),
+              colors: [
+                Colors.transparent,
+                Colors.white.withValues(alpha: 0.0),
+                Colors.white.withValues(alpha: 0.25),
+                Colors.white.withValues(alpha: 0.0),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
+            ).createShader(bounds);
+          },
+          child: widget.child,
+        );
+      },
+      child: widget.child,
     );
   }
 }
 
-class _TitleSection extends StatelessWidget {
-  const _TitleSection({required this.newLevel, required this.isMobile});
-  final int newLevel;
-  final bool isMobile;
+// ── Component Widgets ──────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-          decoration: BoxDecoration(
-            color: _kPrimary.withValues(alpha: 0.15),
-            borderRadius: BorderRadius.circular(999),
-            border: Border.all(color: _kPrimary.withValues(alpha: 0.4)),
-          ),
-          child: const Text(
-            'LEVEL UP',
-            style: TextStyle(
-              color: _kPrimary,
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 3,
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        ShaderMask(
-          shaderCallback:
-              (b) => const LinearGradient(
-                colors: [_kPrimary, _kSecondary, _kCyan],
-              ).createShader(b),
-          child: Text(
-            'Level $newLevel Reached',
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: isMobile ? 32 : 44,
-              fontWeight: FontWeight.w900,
-              height: 1.1,
-              letterSpacing: -0.5,
-            ),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          xpLevelTitle(newLevel),
-          style: TextStyle(
-            color: _kCyan,
-            fontSize: isMobile ? 18 : 22,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.5,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _DescriptionText extends StatelessWidget {
-  const _DescriptionText({required this.newLevel, required this.isMobile});
-  final int newLevel;
-  final bool isMobile;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isMobile ? 0 : 24),
-      child: Text(
-        'Amazing progress.\nYou have reached Level $newLevel and unlocked new productivity milestones.',
-        textAlign: TextAlign.center,
-        style: TextStyle(
-          color: _kMuted,
-          fontSize: isMobile ? 14 : 16,
-          height: 1.5,
-          fontWeight: FontWeight.w500,
-        ),
-      ),
-    );
-  }
-}
-
-class _UnlockChips extends StatelessWidget {
-  const _UnlockChips();
-
-  @override
-  Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 10,
-      runSpacing: 10,
-      children: const [
-        _UnlockChip(
-          icon: Icons.psychology_rounded,
-          label: 'Neural Task Sorting',
-        ),
-        _UnlockChip(icon: Icons.bolt_rounded, label: 'Turbo Workflows'),
-      ],
-    );
-  }
-}
-
-class _UnlockChip extends StatelessWidget {
-  const _UnlockChip({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
+class _TrophyHeader extends StatelessWidget {
+  const _TrophyHeader();
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      width: 110,
+      height: 110,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.06),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+        shape: BoxShape.circle,
+        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
+            blurRadius: 32,
+            spreadRadius: 4,
+          ),
+        ],
       ),
-      child: Row(
+      child: const Center(
+        child: Icon(
+          Icons.emoji_events_rounded,
+          size: 72,
+          color: Color(0xFFFFD700), // Gold trophy
+        ),
+      ),
+    );
+  }
+}
+
+class _GradientTitle extends StatelessWidget {
+  const _GradientTitle();
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      shaderCallback: (bounds) => const LinearGradient(
+        colors: [Color(0xFFC084FC), Color(0xFF8B5CF6), Color(0xFF6366F1)],
+      ).createShader(bounds),
+      child: Text(
+        'LEVEL UP!',
+        textAlign: TextAlign.center,
+        style: GoogleFonts.interTight(
+          fontSize: 36,
+          fontWeight: FontWeight.w800,
+          letterSpacing: 1.5,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+}
+
+class _LevelSection extends StatelessWidget {
+  const _LevelSection({
+    required this.oldLevel,
+    required this.newLevel,
+    required this.counterAnim,
+    required this.punchAnim,
+  });
+
+  final int oldLevel;
+  final int newLevel;
+  final Animation<double> counterAnim;
+  final Animation<double> punchAnim;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: Listenable.merge([counterAnim, punchAnim]),
+      builder: (context, child) {
+        final currentVal = lerpDouble(oldLevel.toDouble(), newLevel.toDouble(), counterAnim.value)!;
+        final int levelToDisplay = currentVal.round();
+        
+        final double punchVal = punchAnim.value;
+        final double scale = 1.0 + 0.15 * math.sin(punchVal * math.pi);
+
+        return Transform.scale(
+          scale: scale,
+          child: Text(
+            'LEVEL $levelToDisplay',
+            style: GoogleFonts.interTight(
+              fontSize: 72,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              height: 1.1,
+              letterSpacing: -1.0,
+              shadows: [
+                Shadow(
+                  color: const Color(0xFF6366F1).withValues(alpha: 0.6),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RankBadge extends StatelessWidget {
+  const _RankBadge({required this.level});
+  final int level;
+
+  Color _getRankColor(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase.contains('rookie') || lowercase.contains('bronze')) {
+      return const Color(0xFFCD7F32); // Bronze
+    } else if (lowercase.contains('apprentice') || lowercase.contains('explorer') || lowercase.contains('silver')) {
+      return const Color(0xFFD1D5DB); // Silver
+    } else if (lowercase.contains('challenger') || lowercase.contains('gold')) {
+      return const Color(0xFFFFD700); // Gold
+    } else if (lowercase.contains('elite') || lowercase.contains('platinum')) {
+      return const Color(0xFF38BDF8); // Platinum
+    } else {
+      return const Color(0xFFC084FC); // Diamond / Master / Legend
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final rank = leveling.xpRankForLevel(level);
+    final rankName = rank.name;
+    final rankDivision = rank.division;
+    final rankColor = _getRankColor(rankName);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B).withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: rankColor.withValues(alpha: 0.25),
+          width: 1.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: rankColor.withValues(alpha: 0.08),
+            blurRadius: 12,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: _kPrimary, size: 16),
-          const SizedBox(width: 8),
           Text(
-            label,
-            style: const TextStyle(
+            rankName.toUpperCase(),
+            style: GoogleFonts.inter(
+              color: rankColor,
+              fontSize: 13,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 2.0,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'DIVISION $rankDivision',
+            style: GoogleFonts.inter(
               color: Colors.white,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.5,
             ),
           ),
         ],
@@ -505,165 +718,185 @@ class _UnlockChip extends StatelessWidget {
   }
 }
 
-class _ActionButtons extends StatelessWidget {
-  const _ActionButtons({required this.isMobile, required this.onContinue});
-  final bool isMobile;
-  final VoidCallback onContinue;
+class _LevelSummary extends StatelessWidget {
+  const _LevelSummary({required this.oldLevel, required this.newLevel});
+  final int oldLevel;
+  final int newLevel;
 
   @override
   Widget build(BuildContext context) {
-    final children = <Widget>[
-      _PrimaryButton(label: 'Continue', onTap: onContinue),
-      const SizedBox(width: 12, height: 12),
-      _GlassButton(
-        label: 'Share Achievement',
-        icon: Icons.share_rounded,
-        onTap: () {},
-      ),
-    ];
-    return isMobile
-        ? Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: children,
-        )
-        : Row(mainAxisAlignment: MainAxisAlignment.center, children: children);
-  }
-}
-
-class _PrimaryButton extends StatelessWidget {
-  const _PrimaryButton({required this.label, required this.onTap});
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [_kPrimary, _kSecondary]),
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-              color: _kSecondary.withValues(alpha: 0.45),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-          ],
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Text(
+          'Level $oldLevel',
+          style: GoogleFonts.inter(
+            color: Colors.white.withValues(alpha: 0.4),
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _GlassButton extends StatelessWidget {
-  const _GlassButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
-  final String label;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.06),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, color: Colors.white, size: 16),
-            const SizedBox(width: 8),
-            Text(
-              label,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ProgressSection extends StatelessWidget {
-  const _ProgressSection({
-    required this.newLevel,
-    required this.totalXp,
-    required this.remaining,
-  });
-  final int newLevel;
-  final int totalXp;
-  final int remaining;
-
-  @override
-  Widget build(BuildContext context) {
-    final levelStart = leveling.xpRequiredForLevel(newLevel);
-    final levelEnd = leveling.xpRequiredForLevel(newLevel + 1);
-    final span = (levelEnd - levelStart).clamp(1, 1 << 30);
-    final progressInto = (totalXp - levelStart).clamp(0, span);
-    final progress = (progressInto / span).clamp(0.0, 1.0);
-
-    return Column(
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Progress',
-              style: TextStyle(
-                color: Colors.white.withValues(alpha: 0.6),
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
-            ),
-            Text(
-              'Level ${newLevel + 1} in $remaining XP',
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(999),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 8,
-            backgroundColor: Colors.white.withValues(alpha: 0.08),
-            valueColor: const AlwaysStoppedAnimation(_kPrimary),
+        const SizedBox(width: 16),
+        const _SlidingArrow(),
+        const SizedBox(width: 16),
+        Text(
+          'Level $newLevel',
+          style: GoogleFonts.inter(
+            color: const Color(0xFF67E8F9),
+            fontSize: 18,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],
+    );
+  }
+}
+
+class _SlidingArrow extends StatefulWidget {
+  const _SlidingArrow();
+
+  @override
+  State<_SlidingArrow> createState() => _SlidingArrowState();
+}
+
+class _SlidingArrowState extends State<_SlidingArrow>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _slide;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1000),
+    )..repeat();
+    _slide = Tween<double>(begin: -4.0, end: 4.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _slide,
+      builder: (context, child) {
+        return Transform.translate(
+          offset: Offset(_slide.value, 0),
+          child: const Icon(
+            Icons.arrow_forward_rounded,
+            color: Color(0xFF8B5CF6),
+            size: 20,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _XpRewardSummary extends StatelessWidget {
+  const _XpRewardSummary({required this.latestLog});
+  final XpLogModel? latestLog;
+
+  @override
+  Widget build(BuildContext context) {
+    if (latestLog == null) {
+      return const SizedBox.shrink();
+    }
+
+    final hasLucky = latestLog!.hasLuckyBonus;
+    const tierValues = [100, 50, 20, 10];
+    int baseXp = 10;
+    for (final t in tierValues) {
+      if (latestLog!.xpGained >= t) {
+        baseXp = t;
+        break;
+      }
+    }
+    final bonusXp = hasLucky ? (latestLog!.xpGained - baseXp).clamp(0, 15) : 0;
+    final baseGained = latestLog!.xpGained - bonusXp;
+
+    final rawReason = latestLog!.reason;
+    final baseReason = rawReason.replaceAll(RegExp(r'\(?Lucky.*', caseSensitive: false), '').trim();
+    final displayReason = baseReason.isNotEmpty ? baseReason : 'Task Completed';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF070B19),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.04),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'XP REWARDS',
+            style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.5,
+            ),
+          ),
+          const SizedBox(height: 12),
+          // Base reward row
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                displayReason,
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 14,
+                ),
+              ),
+              Text(
+                '+$baseGained XP',
+                style: GoogleFonts.jetBrainsMono(
+                  color: const Color(0xFF67E8F9),
+                  fontWeight: FontWeight.w800,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+          if (bonusXp > 0) ...[
+            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Lucky Bonus',
+                  style: GoogleFonts.inter(
+                    color: const Color(0xFFFFD700),
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+                Text(
+                  '+$bonusXp XP',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: const Color(0xFFFFD700),
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }
