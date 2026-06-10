@@ -8,6 +8,7 @@ class TasksProjectsHeader extends StatelessWidget {
     this.onNewTask,
     this.filters = TasksFilterState.empty,
     this.onFiltersChanged,
+    this.onOpenFilters,
     super.key,
   });
 
@@ -15,16 +16,10 @@ class TasksProjectsHeader extends StatelessWidget {
   final VoidCallback? onNewTask;
   final TasksFilterState filters;
   final ValueChanged<TasksFilterState>? onFiltersChanged;
+  final VoidCallback? onOpenFilters;
 
-  void _openFilters(BuildContext context, Offset offset) {
-    final cb = onFiltersChanged;
-    if (cb == null) return;
-    showTasksFilterMenu(
-      context: context,
-      offset: offset,
-      state: filters,
-      onChanged: cb,
-    );
+  void _openFilters() {
+    onOpenFilters?.call();
   }
 
   @override
@@ -60,9 +55,12 @@ class TasksProjectsHeader extends StatelessWidget {
             children: [
               Expanded(
                 child: _HeaderButton(
-                  label: filters.count > 0 ? 'Filter (${filters.count})' : 'Filter',
+                  label:
+                      filters.count > 0
+                          ? 'Filter (${filters.count})'
+                          : 'Filter',
                   icon: Icons.filter_list_rounded,
-                  onTapDown: (offset) => _openFilters(context, offset),
+                  onTap: _openFilters,
                 ),
               ),
               const SizedBox(width: 8),
@@ -94,7 +92,7 @@ class TasksProjectsHeader extends StatelessWidget {
         _HeaderButton(
           label: filters.count > 0 ? 'Filter (${filters.count})' : 'Filter',
           icon: Icons.filter_list_rounded,
-          onTapDown: (offset) => _openFilters(context, offset),
+          onTap: _openFilters,
         ),
         const SizedBox(width: 12),
         _HeaderButton(
@@ -114,14 +112,12 @@ class _HeaderButton extends StatelessWidget {
     required this.icon,
     this.gradient = false,
     this.onTap,
-    this.onTapDown,
   });
 
   final String label;
   final IconData icon;
   final bool gradient;
   final VoidCallback? onTap;
-  final ValueChanged<Offset>? onTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -158,7 +154,6 @@ class _HeaderButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
           onTap: onTap,
-          onTapDown: onTapDown == null ? null : (details) => onTapDown!(details.globalPosition),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
             child: Row(

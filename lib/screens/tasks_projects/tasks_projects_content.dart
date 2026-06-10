@@ -6,7 +6,10 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
+import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/desktop_filter_panel.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/mobile_filter_sheet.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
@@ -95,7 +98,8 @@ TaskBoardItem _mapTaskToBoardItem(
   }
 
   // 5. Get estimate
-  final estimate = task.estimatedMinutes != null ? '${task.estimatedMinutes}m' : '';
+  final estimate =
+      task.estimatedMinutes != null ? '${task.estimatedMinutes}m' : '';
 
   // 6. Get progress
   double progress = 0.0;
@@ -130,7 +134,10 @@ TaskBoardItem _mapTaskToBoardItem(
     progress: progress,
     tags: taskTags,
     completed: task.status == 'done',
-    dueLabel: task.dueDate != null ? '${task.dueDate!.day}/${task.dueDate!.month}' : null,
+    dueLabel:
+        task.dueDate != null
+            ? '${task.dueDate!.day}/${task.dueDate!.month}'
+            : null,
     dueDate: task.dueDate,
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
@@ -139,7 +146,11 @@ TaskBoardItem _mapTaskToBoardItem(
   );
 }
 
-Future<void> _updateTaskStatus(WidgetRef ref, String taskId, TaskBoardStatus newStatus) async {
+Future<void> _updateTaskStatus(
+  WidgetRef ref,
+  String taskId,
+  TaskBoardStatus newStatus,
+) async {
   final tasksAsync = ref.read(userTasksProvider);
   final taskList = tasksAsync.valueOrNull ?? [];
   final taskIndex = taskList.indexWhere((t) => t.id == taskId);
@@ -164,7 +175,8 @@ Future<void> _updateTaskStatus(WidgetRef ref, String taskId, TaskBoardStatus new
 
   final updated = task.copyWith(
     status: statusStr,
-    completedAt: newStatus == TaskBoardStatus.completed ? DateTime.now().toUtc() : null,
+    completedAt:
+        newStatus == TaskBoardStatus.completed ? DateTime.now().toUtc() : null,
   );
   await ref.read(taskRepositoryProvider).updateTask(updated);
 }
@@ -191,6 +203,8 @@ class _TasksProjectsDesktopContentState
   TaskBoardItem? _selectedTask;
   TaskBoardItem? _activeTask;
   TasksFilterState _filters = TasksFilterState.empty;
+  FilterState _overlayFilterState = const FilterState();
+  bool _showFilterPanel = false;
 
   void _selectTask(TaskBoardItem? task) {
     setState(() {
@@ -199,6 +213,65 @@ class _TasksProjectsDesktopContentState
         _activeTask = task;
       }
     });
+  }
+
+  void _openFilters() {
+    setState(() => _showFilterPanel = true);
+  }
+
+  void _applyOverlayFilters(FilterState state) {
+    setState(() {
+      _overlayFilterState = state;
+      _filters = _toTasksFilterState(state);
+      _showFilterPanel = false;
+    });
+  }
+
+  TasksFilterState _toTasksFilterState(FilterState state) {
+    final statuses = <TaskBoardStatus>{};
+    if (!state.selectedStatuses.contains(TaskStatus.all)) {
+      for (final status in state.selectedStatuses) {
+        switch (status) {
+          case TaskStatus.all:
+            break;
+          case TaskStatus.todo:
+            statuses.add(TaskBoardStatus.todo);
+          case TaskStatus.inProgress:
+            statuses.add(TaskBoardStatus.inProgress);
+          case TaskStatus.review:
+            statuses.add(TaskBoardStatus.todo);
+          case TaskStatus.completed:
+            statuses.add(TaskBoardStatus.completed);
+        }
+      }
+    }
+
+    final priorities =
+        state.selectedPriorities.map((priority) {
+          return switch (priority) {
+            TaskPriority.urgent => TaskBoardPriority.urgent,
+            TaskPriority.high => TaskBoardPriority.high,
+            TaskPriority.medium => TaskBoardPriority.medium,
+            TaskPriority.low => TaskBoardPriority.low,
+          };
+        }).toSet();
+
+    return TasksFilterState(
+      statuses: statuses,
+      priorities: priorities,
+      categoryIds: state.selectedCategoryIds,
+      duePreset: _duePresetFromOverlay(state),
+    );
+  }
+
+  String? _duePresetFromOverlay(FilterState state) {
+    if (state.startDate != null || state.endDate != null) return null;
+    return switch (state.datePreset) {
+      DateRangePreset.today => 'today',
+      DateRangePreset.thisWeek => 'week',
+      DateRangePreset.month => null,
+      DateRangePreset.custom => null,
+    };
   }
 
   @override
@@ -218,7 +291,9 @@ class _TasksProjectsDesktopContentState
                     TasksProjectsHeader(
                       onNewTask: widget.onNewTask,
                       filters: _filters,
-                      onFiltersChanged: (filters) => setState(() => _filters = filters),
+                      onFiltersChanged:
+                          (filters) => setState(() => _filters = filters),
+                      onOpenFilters: _openFilters,
                     ),
                     const SizedBox(height: 18),
                     const TasksProjectsSmartInsightBanner(),
@@ -232,14 +307,13 @@ class _TasksProjectsDesktopContentState
                     _DesktopKanbanBoard(
                       searchQuery: widget.searchQuery,
                       filters: _filters,
+                      overlayFilterState: _overlayFilterState,
                       onTaskTap: _selectTask,
                       onNewTask: widget.onNewTask,
                       onViewDetails: widget.onViewDetails,
                     ),
                     const SizedBox(height: 32),
-                    _ProjectsBottomRail(
-                      onNewTask: widget.onNewTask,
-                    ),
+                    _ProjectsBottomRail(onNewTask: widget.onNewTask),
                   ],
                 ),
               ),
@@ -265,9 +339,10 @@ class _TasksProjectsDesktopContentState
                   ),
                 ),
               (() {
-                final panelWidth = constraints.maxWidth >= 1600
-                    ? 520.0
-                    : (constraints.maxWidth >= 1200 ? 480.0 : 420.0);
+                final panelWidth =
+                    constraints.maxWidth >= 1600
+                        ? 520.0
+                        : (constraints.maxWidth >= 1200 ? 480.0 : 420.0);
                 return AnimatedPositioned(
                   duration: const Duration(milliseconds: 250),
                   curve: Curves.easeOutCubic,
@@ -275,19 +350,32 @@ class _TasksProjectsDesktopContentState
                   bottom: 0,
                   right: isPanelOpen ? 0 : -panelWidth,
                   width: panelWidth,
-                  child: _activeTask != null
-                      ? TaskDetailPanel(
-                          task: _activeTask!,
-                          onClose: () => _selectTask(null),
-                          onViewDetails: () {
-                            final task = _activeTask!;
-                            _selectTask(null);
-                            widget.onViewDetails?.call(task);
-                          },
-                        )
-                      : const SizedBox.shrink(),
+                  child:
+                      _activeTask != null
+                          ? TaskDetailPanel(
+                            task: _activeTask!,
+                            onClose: () => _selectTask(null),
+                            onViewDetails: () {
+                              final task = _activeTask!;
+                              _selectTask(null);
+                              widget.onViewDetails?.call(task);
+                            },
+                          )
+                          : const SizedBox.shrink(),
                 );
               }()),
+              if (_showFilterPanel)
+                Positioned(
+                  top: 0,
+                  right: 0,
+                  bottom: 0,
+                  width: 400,
+                  child: DesktopFilterPanel(
+                    initialState: _overlayFilterState,
+                    onApply: _applyOverlayFilters,
+                    onClose: () => setState(() => _showFilterPanel = false),
+                  ),
+                ),
             ],
           );
         },
@@ -300,6 +388,7 @@ class _DesktopKanbanBoard extends ConsumerStatefulWidget {
   const _DesktopKanbanBoard({
     required this.searchQuery,
     required this.filters,
+    required this.overlayFilterState,
     this.onTaskTap,
     this.onNewTask,
     this.onViewDetails,
@@ -307,30 +396,51 @@ class _DesktopKanbanBoard extends ConsumerStatefulWidget {
 
   final String? searchQuery;
   final TasksFilterState filters;
+  final FilterState overlayFilterState;
   final ValueChanged<TaskBoardItem>? onTaskTap;
   final VoidCallback? onNewTask;
   final ValueChanged<TaskBoardItem>? onViewDetails;
 
   @override
-  ConsumerState<_DesktopKanbanBoard> createState() => _DesktopKanbanBoardState();
+  ConsumerState<_DesktopKanbanBoard> createState() =>
+      _DesktopKanbanBoardState();
 }
 
 class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
   bool _matchesFilters(TaskBoardItem item) {
     final f = widget.filters;
-    if (f.statuses.isNotEmpty && !f.statuses.contains(item.status)) return false;
-    if (f.priorities.isNotEmpty && !f.priorities.contains(item.priority)) return false;
+    if (f.statuses.isNotEmpty && !f.statuses.contains(item.status)) {
+      return false;
+    }
+    if (f.priorities.isNotEmpty && !f.priorities.contains(item.priority)) {
+      return false;
+    }
     if (!_matchesDuePreset(item, f.duePreset)) return false;
+    final due = item.dueDate;
+    final start = widget.overlayFilterState.startDate;
+    final end = widget.overlayFilterState.endDate;
+    if (start != null &&
+        (due == null ||
+            due.isBefore(DateTime(start.year, start.month, start.day)))) {
+      return false;
+    }
+    if (end != null &&
+        (due == null ||
+            due.isAfter(DateTime(end.year, end.month, end.day, 23, 59, 59)))) {
+      return false;
+    }
     final now = DateTime.now();
     switch (f.quickPreset) {
       case 'today':
         return item.dueDate != null && _sameDay(item.dueDate!, now);
       case 'overdue':
-        return item.dueDate != null && item.dueDate!.isBefore(DateTime(now.year, now.month, now.day));
+        return item.dueDate != null &&
+            item.dueDate!.isBefore(DateTime(now.year, now.month, now.day));
       case 'completed':
         return item.status == TaskBoardStatus.completed;
       case 'high':
-        return item.priority == TaskBoardPriority.high || item.priority == TaskBoardPriority.urgent;
+        return item.priority == TaskBoardPriority.high ||
+            item.priority == TaskBoardPriority.urgent;
       case 'mine':
       case 'all':
       default:
@@ -348,9 +458,12 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
       case 'tomorrow':
         return due != null && _sameDay(due, now.add(const Duration(days: 1)));
       case 'week':
-        return due != null && due.isBefore(now.add(const Duration(days: 7))) && !due.isBefore(DateTime(now.year, now.month, now.day));
+        return due != null &&
+            due.isBefore(now.add(const Duration(days: 7))) &&
+            !due.isBefore(DateTime(now.year, now.month, now.day));
       case 'overdue':
-        return due != null && due.isBefore(DateTime(now.year, now.month, now.day));
+        return due != null &&
+            due.isBefore(DateTime(now.year, now.month, now.day));
       case 'none':
         return due == null;
       default:
@@ -368,118 +481,283 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
     final tagsAsync = ref.watch(userTagsProvider);
 
     return tasksAsync.when(
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 64),
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (err, stack) => Center(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 64),
-          child: Text('Error loading tasks: $err', style: const TextStyle(color: DashboardColors.error)),
-        ),
-      ),
+      loading:
+          () => const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 64),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+      error:
+          (err, stack) => Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 64),
+              child: Text(
+                'Error loading tasks: $err',
+                style: const TextStyle(color: DashboardColors.error),
+              ),
+            ),
+          ),
       data: (tasks) {
         final users = usersAsync.valueOrNull ?? [];
         final tags = tagsAsync.valueOrNull ?? [];
 
         final query = (widget.searchQuery ?? '').trim().toLowerCase();
-        final boardItems = tasks
-            .map((t) => _mapTaskToBoardItem(t, users, tags))
-            .where((item) =>
-                query.isEmpty ||
-                item.title.toLowerCase().contains(query) ||
-                item.description.toLowerCase().contains(query))
-            .where(_matchesFilters)
-            .toList();
+        final boardItems =
+            tasks
+                .map((t) => _mapTaskToBoardItem(t, users, tags))
+                .where(
+                  (item) =>
+                      query.isEmpty ||
+                      item.title.toLowerCase().contains(query) ||
+                      item.description.toLowerCase().contains(query),
+                )
+                .where(_matchesFilters)
+                .toList();
 
-        final draftTasks = boardItems.where((t) => t.status == TaskBoardStatus.draft).toList();
-        final todoTasks = boardItems.where((t) => t.status == TaskBoardStatus.todo).toList();
-        final inProgressTasks = boardItems.where((t) => t.status == TaskBoardStatus.inProgress).toList();
-        final doneTasks = boardItems.where((t) => t.status == TaskBoardStatus.completed).toList();
+        final draftTasks =
+            boardItems.where((t) => t.status == TaskBoardStatus.draft).toList();
+        final todoTasks =
+            boardItems.where((t) => t.status == TaskBoardStatus.todo).toList();
+        final inProgressTasks =
+            boardItems
+                .where((t) => t.status == TaskBoardStatus.inProgress)
+                .toList();
+        final doneTasks =
+            boardItems
+                .where((t) => t.status == TaskBoardStatus.completed)
+                .toList();
 
-        return LayoutBuilder(builder: (context, constraints) {
-          // Fit 4 columns + 3 gaps within visible width. Min 240, max 320.
-          final colWidth = ((constraints.maxWidth - 60) / 4).clamp(240.0, 320.0);
-          return SizedBox(
-            height: 600,
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  SizedBox(width: colWidth, child: TaskColumn(
-                    column: TaskColumnData(
-                      title: 'Draft',
-                      status: TaskBoardStatus.draft,
-                      tasks: draftTasks,
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            // Fit 4 columns + 3 gaps within visible width. Min 240, max 320.
+            final colWidth = ((constraints.maxWidth - 60) / 4).clamp(
+              240.0,
+              320.0,
+            );
+            return SizedBox(
+              height: 600,
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: colWidth,
+                      child: TaskColumn(
+                        column: TaskColumnData(
+                          title: 'Draft',
+                          status: TaskBoardStatus.draft,
+                          tasks: draftTasks,
+                        ),
+                        onTaskTap: widget.onTaskTap,
+                        onViewDetails: widget.onViewDetails,
+                        onTaskDropped:
+                            (item) => _updateTaskStatus(
+                              ref,
+                              item.id,
+                              TaskBoardStatus.draft,
+                            ),
+                        onNewTask: widget.onNewTask,
+                      ),
                     ),
-                    onTaskTap: widget.onTaskTap,
-                    onViewDetails: widget.onViewDetails,
-                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.draft),
-                    onNewTask: widget.onNewTask,
-                  )),
-                  const SizedBox(width: 16),
-                  SizedBox(width: colWidth, child: TaskColumn(
-                    column: TaskColumnData(
-                      title: 'To-Do',
-                      status: TaskBoardStatus.todo,
-                      tasks: todoTasks,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: colWidth,
+                      child: TaskColumn(
+                        column: TaskColumnData(
+                          title: 'To-Do',
+                          status: TaskBoardStatus.todo,
+                          tasks: todoTasks,
+                        ),
+                        onTaskTap: widget.onTaskTap,
+                        onViewDetails: widget.onViewDetails,
+                        onTaskDropped:
+                            (item) => _updateTaskStatus(
+                              ref,
+                              item.id,
+                              TaskBoardStatus.todo,
+                            ),
+                        onNewTask: widget.onNewTask,
+                      ),
                     ),
-                    onTaskTap: widget.onTaskTap,
-                    onViewDetails: widget.onViewDetails,
-                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.todo),
-                    onNewTask: widget.onNewTask,
-                  )),
-                  const SizedBox(width: 16),
-                  SizedBox(width: colWidth, child: TaskColumn(
-                    column: TaskColumnData(
-                      title: 'In Propress',
-                      status: TaskBoardStatus.inProgress,
-                      tasks: inProgressTasks,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: colWidth,
+                      child: TaskColumn(
+                        column: TaskColumnData(
+                          title: 'In Propress',
+                          status: TaskBoardStatus.inProgress,
+                          tasks: inProgressTasks,
+                        ),
+                        onTaskTap: widget.onTaskTap,
+                        onViewDetails: widget.onViewDetails,
+                        onTaskDropped:
+                            (item) => _updateTaskStatus(
+                              ref,
+                              item.id,
+                              TaskBoardStatus.inProgress,
+                            ),
+                        onNewTask: widget.onNewTask,
+                      ),
                     ),
-                    onTaskTap: widget.onTaskTap,
-                    onViewDetails: widget.onViewDetails,
-                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.inProgress),
-                    onNewTask: widget.onNewTask,
-                  )),
-                  const SizedBox(width: 16),
-                  SizedBox(width: colWidth, child: TaskColumn(
-                    column: TaskColumnData(
-                      title: 'Completed',
-                      status: TaskBoardStatus.completed,
-                      tasks: doneTasks,
+                    const SizedBox(width: 16),
+                    SizedBox(
+                      width: colWidth,
+                      child: TaskColumn(
+                        column: TaskColumnData(
+                          title: 'Completed',
+                          status: TaskBoardStatus.completed,
+                          tasks: doneTasks,
+                        ),
+                        onTaskTap: widget.onTaskTap,
+                        onViewDetails: widget.onViewDetails,
+                        onTaskDropped:
+                            (item) => _updateTaskStatus(
+                              ref,
+                              item.id,
+                              TaskBoardStatus.completed,
+                            ),
+                        onNewTask: widget.onNewTask,
+                      ),
                     ),
-                    onTaskTap: widget.onTaskTap,
-                    onViewDetails: widget.onViewDetails,
-                    onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.completed),
-                    onNewTask: widget.onNewTask,
-                  )),
-                ],
+                  ],
+                ),
               ),
-            ),
-          );
-        });
+            );
+          },
+        );
       },
     );
   }
 }
 
-class TasksProjectsMobileSliverBody extends ConsumerWidget {
+class TasksProjectsMobileSliverBody extends ConsumerStatefulWidget {
   const TasksProjectsMobileSliverBody({this.compact = false, super.key});
 
   final bool compact;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TasksProjectsMobileSliverBody> createState() =>
+      _TasksProjectsMobileSliverBodyState();
+}
+
+class _TasksProjectsMobileSliverBodyState
+    extends ConsumerState<TasksProjectsMobileSliverBody> {
+  FilterState _overlayFilterState = const FilterState();
+  TasksFilterState _filters = TasksFilterState.empty;
+
+  Future<void> _openFilters() async {
+    final result = await MobileFilterSheet.show(
+      context,
+      initialState: _overlayFilterState,
+    );
+    if (result == null) return;
+    setState(() {
+      _overlayFilterState = result;
+      _filters = _toTasksFilterState(result);
+    });
+  }
+
+  TasksFilterState _toTasksFilterState(FilterState state) {
+    final statuses = <TaskBoardStatus>{};
+    if (!state.selectedStatuses.contains(TaskStatus.all)) {
+      for (final status in state.selectedStatuses) {
+        switch (status) {
+          case TaskStatus.all:
+            break;
+          case TaskStatus.todo:
+            statuses.add(TaskBoardStatus.todo);
+          case TaskStatus.inProgress:
+            statuses.add(TaskBoardStatus.inProgress);
+          case TaskStatus.review:
+            statuses.add(TaskBoardStatus.todo);
+          case TaskStatus.completed:
+            statuses.add(TaskBoardStatus.completed);
+        }
+      }
+    }
+
+    return TasksFilterState(
+      statuses: statuses,
+      priorities:
+          state.selectedPriorities.map((priority) {
+            return switch (priority) {
+              TaskPriority.urgent => TaskBoardPriority.urgent,
+              TaskPriority.high => TaskBoardPriority.high,
+              TaskPriority.medium => TaskBoardPriority.medium,
+              TaskPriority.low => TaskBoardPriority.low,
+            };
+          }).toSet(),
+      categoryIds: state.selectedCategoryIds,
+      duePreset: _duePresetFromOverlay(state),
+    );
+  }
+
+  String? _duePresetFromOverlay(FilterState state) {
+    if (state.startDate != null || state.endDate != null) return null;
+    return switch (state.datePreset) {
+      DateRangePreset.today => 'today',
+      DateRangePreset.thisWeek => 'week',
+      DateRangePreset.month => null,
+      DateRangePreset.custom => null,
+    };
+  }
+
+  bool _matchesFilters(TaskBoardItem item) {
+    if (_filters.statuses.isNotEmpty &&
+        !_filters.statuses.contains(item.status)) {
+      return false;
+    }
+    if (_filters.priorities.isNotEmpty &&
+        !_filters.priorities.contains(item.priority)) {
+      return false;
+    }
+    if (!_matchesDuePreset(item, _filters.duePreset)) return false;
+    final due = item.dueDate;
+    final start = _overlayFilterState.startDate;
+    final end = _overlayFilterState.endDate;
+    if (start != null &&
+        (due == null ||
+            due.isBefore(DateTime(start.year, start.month, start.day)))) {
+      return false;
+    }
+    if (end != null &&
+        (due == null ||
+            due.isAfter(DateTime(end.year, end.month, end.day, 23, 59, 59)))) {
+      return false;
+    }
+    return true;
+  }
+
+  bool _matchesDuePreset(TaskBoardItem item, String? preset) {
+    if (preset == null) return true;
+    final now = DateTime.now();
+    final due = item.dueDate;
+    switch (preset) {
+      case 'today':
+        return due != null && _sameDay(due, now);
+      case 'week':
+        return due != null &&
+            due.isBefore(now.add(const Duration(days: 7))) &&
+            !due.isBefore(DateTime(now.year, now.month, now.day));
+      default:
+        return true;
+    }
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
+  @override
+  Widget build(BuildContext context) {
     final tasksAsync = ref.watch(userTasksProvider);
     final usersAsync = ref.watch(allUsersProvider);
     final tagsAsync = ref.watch(userTagsProvider);
 
     return SliverPadding(
       padding:
-          compact
+          widget.compact
               ? EdgeInsets.zero
               : const EdgeInsets.fromLTRB(16, 96, 16, 128),
       sliver: SliverToBoxAdapter(
@@ -489,7 +767,11 @@ class TasksProjectsMobileSliverBody extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const TasksProjectsHeader(mobile: true),
+                TasksProjectsHeader(
+                  mobile: true,
+                  filters: _filters,
+                  onOpenFilters: _openFilters,
+                ),
                 const SizedBox(height: 18),
                 const TasksProjectsSmartInsightBanner(compact: true),
                 const SizedBox(height: 14),
@@ -498,22 +780,38 @@ class TasksProjectsMobileSliverBody extends ConsumerWidget {
                 const TasksProjectsAnalyticsStrip(compact: true),
                 const SizedBox(height: 22),
                 tasksAsync.when(
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 32),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (err, stack) => Center(child: Text('Error: $err', style: const TextStyle(color: DashboardColors.error))),
+                  loading:
+                      () => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          child: CircularProgressIndicator(),
+                        ),
+                      ),
+                  error:
+                      (err, stack) => Center(
+                        child: Text(
+                          'Error: $err',
+                          style: const TextStyle(color: DashboardColors.error),
+                        ),
+                      ),
                   data: (tasks) {
                     final users = usersAsync.valueOrNull ?? [];
                     final tags = tagsAsync.valueOrNull ?? [];
-                    final boardItems = tasks.map((t) => _mapTaskToBoardItem(t, users, tags)).toList();
+                    final boardItems =
+                        tasks
+                            .map((t) => _mapTaskToBoardItem(t, users, tags))
+                            .where(_matchesFilters)
+                            .toList();
                     if (boardItems.isEmpty) {
                       return const Center(
                         child: Padding(
                           padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Text('No tasks found', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+                          child: Text(
+                            'No tasks found',
+                            style: TextStyle(
+                              color: DashboardColors.onSurfaceVariant,
+                            ),
+                          ),
                         ),
                       );
                     }
@@ -524,13 +822,37 @@ class TasksProjectsMobileSliverBody extends ConsumerWidget {
                         child: Row(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            _buildMobileColumn(context, ref, 'Draft', TaskBoardStatus.draft, boardItems),
+                            _buildMobileColumn(
+                              context,
+                              ref,
+                              'Draft',
+                              TaskBoardStatus.draft,
+                              boardItems,
+                            ),
                             const SizedBox(width: 16),
-                            _buildMobileColumn(context, ref, 'To Do', TaskBoardStatus.todo, boardItems),
+                            _buildMobileColumn(
+                              context,
+                              ref,
+                              'To Do',
+                              TaskBoardStatus.todo,
+                              boardItems,
+                            ),
                             const SizedBox(width: 16),
-                            _buildMobileColumn(context, ref, 'In Progress', TaskBoardStatus.inProgress, boardItems),
+                            _buildMobileColumn(
+                              context,
+                              ref,
+                              'In Progress',
+                              TaskBoardStatus.inProgress,
+                              boardItems,
+                            ),
                             const SizedBox(width: 16),
-                            _buildMobileColumn(context, ref, 'Completed', TaskBoardStatus.completed, boardItems),
+                            _buildMobileColumn(
+                              context,
+                              ref,
+                              'Completed',
+                              TaskBoardStatus.completed,
+                              boardItems,
+                            ),
                           ],
                         ),
                       ),
@@ -603,9 +925,7 @@ class _ProjectsBottomRail extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: TasksProjectsAiAssistantPanel(),
-                  ),
+                  const Expanded(child: TasksProjectsAiAssistantPanel()),
                   const SizedBox(width: 16),
                   const SizedBox(
                     width: 320,
@@ -617,17 +937,16 @@ class _ProjectsBottomRail extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Expanded(
-                    child: TasksProjectsHeatmap(),
-                  ),
+                  const Expanded(child: TasksProjectsHeatmap()),
                   const SizedBox(width: 16),
-                  const Expanded(
-                    child: TasksProjectsActivityTimeline(),
-                  ),
+                  const Expanded(child: TasksProjectsActivityTimeline()),
                 ],
               ),
               const SizedBox(height: 16),
-              TasksProjectsQuickActionDock(compact: false, onNewTask: onNewTask),
+              TasksProjectsQuickActionDock(
+                compact: false,
+                onNewTask: onNewTask,
+              ),
             ],
           );
         } else {
