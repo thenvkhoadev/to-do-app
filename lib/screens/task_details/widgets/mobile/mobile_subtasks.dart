@@ -6,6 +6,7 @@ import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.d
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
 class MobileSubtasks extends ConsumerStatefulWidget {
   const MobileSubtasks({required this.taskId, super.key});
@@ -32,6 +33,7 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
             TaskSubtaskModel(id: '', taskId: widget.taskId, title: title.trim(), isDone: false),
           );
       ref.invalidate(taskSubtasksProvider(widget.taskId));
+      await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Subtask Created');
       final userProfile = ref.read(userProfileProvider).valueOrNull;
       final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
       await ref.read(taskTimelineProvider(widget.taskId).notifier).addActivity(
@@ -49,7 +51,11 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
 
   Future<void> _toggle(TaskSubtaskModel s, bool val) async {
     try {
+      final completedNow = val && !s.isDone;
       await ref.read(subtaskDataSourceProvider).updateSubtask(s.id, {'is_done': val});
+      if (completedNow) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Subtask Completed');
+      }
       ref.invalidate(taskSubtasksProvider(widget.taskId));
       final userProfile = ref.read(userProfileProvider).valueOrNull;
       final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
@@ -64,8 +70,12 @@ class _MobileSubtasksState extends ConsumerState<MobileSubtasks> {
 
   Future<void> _toggleAll(List<TaskSubtaskModel> subtasks, bool checkAll) async {
     try {
+      final completesAny = checkAll && subtasks.any((s) => !s.isDone);
       final datasource = ref.read(subtaskDataSourceProvider);
       await Future.wait(subtasks.map((s) => datasource.updateSubtask(s.id, {'is_done': checkAll})));
+      if (completesAny) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Subtask Completed');
+      }
       ref.invalidate(taskSubtasksProvider(widget.taskId));
       final userProfile = ref.read(userProfileProvider).valueOrNull;
       final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';

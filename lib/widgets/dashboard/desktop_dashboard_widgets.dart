@@ -21,6 +21,7 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
+import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
 
 class DesktopDashboardLayout extends StatefulWidget {
   const DesktopDashboardLayout({super.key, this.initialIndex = 0});
@@ -770,7 +771,7 @@ class DesktopTopbar extends StatelessWidget {
                             badge: true,
                           ),
                           const SizedBox(width: 12),
-                          const _TopIcon(icon: Icons.bolt_rounded),
+                          const StreakTopbarButton(),
                           const SizedBox(width: 12),
                           const XPLevelCard(),
                           const SizedBox(width: 12),

@@ -6,6 +6,7 @@ import 'package:to_do_app/screens/archived/widgets/archive_shared_widgets.dart';
 import 'package:to_do_app/screens/archived/widgets/archived_task_card.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_detail_drawer.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
 class MobileArchivedView extends ConsumerStatefulWidget {
   const MobileArchivedView({super.key});
@@ -40,6 +41,7 @@ class _MobileArchivedViewState extends ConsumerState<MobileArchivedView> {
   Future<void> _restore(ArchivedTask task) async {
     try {
       await ref.read(archivedTasksRepositoryProvider).restore(task);
+      await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Restored');
       if (mounted) {
         setState(() => _selected = null);
         ScaffoldMessenger.of(context).showSnackBar(

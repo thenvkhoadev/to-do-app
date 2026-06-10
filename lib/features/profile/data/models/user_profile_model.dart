@@ -11,6 +11,9 @@ class UserProfileModel {
     this.role = 'user',
     this.focusScore = 82,
     this.streakDays = 7,
+    this.streakCount = 0,
+    this.longestStreak = 0,
+    this.lastActivityDate,
     this.totalTasks = 32,
     this.completedTasks = 18,
     this.focusHours = 24,
@@ -45,6 +48,9 @@ class UserProfileModel {
   final String role;
   final int focusScore;
   final int streakDays;
+  final int streakCount;
+  final int longestStreak;
+  final DateTime? lastActivityDate;
   final int totalTasks;
   final int completedTasks;
   final int focusHours;
@@ -79,7 +85,13 @@ class UserProfileModel {
       tier: json['tier']?.toString() ?? 'free',
       role: json['role']?.toString() ?? 'user',
       focusScore: json['focus_score'] as int? ?? 82,
-      streakDays: json['streak_days'] as int? ?? 7,
+      streakDays: json['streak_days'] as int? ?? json['streak_count'] as int? ?? 7,
+      streakCount: json['streak_count'] as int? ?? json['streak_days'] as int? ?? 0,
+      longestStreak: json['longest_streak'] as int? ?? 0,
+      lastActivityDate:
+          json['last_activity_date'] == null
+              ? null
+              : DateTime.tryParse(json['last_activity_date'].toString()),
       totalTasks: json['total_tasks'] as int? ?? 32,
       completedTasks: json['completed_tasks'] as int? ?? 18,
       focusHours: json['focus_hours'] as int? ?? 24,

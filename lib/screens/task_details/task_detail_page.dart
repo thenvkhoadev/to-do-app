@@ -13,6 +13,7 @@ import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_pr
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'widgets/desktop/desktop_task_header.dart';
 import 'widgets/desktop/desktop_hero_stats.dart';
 import 'widgets/desktop/desktop_task_description.dart';
@@ -191,12 +192,16 @@ class TaskDetailPage extends ConsumerWidget {
           break;
       }
 
+      final completedNow = nexusTask.status != 'done' && newStatus == TaskBoardStatus.completed;
       final updated = nexusTask.copyWith(
         status: statusStr,
         completedAt: newStatus == TaskBoardStatus.completed ? DateTime.now().toUtc() : null,
       );
 
       await ref.read(taskRepositoryProvider).updateTask(updated);
+      if (completedNow) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+      }
 
       // Handle paused tasks set
       if (newStatus == TaskBoardStatus.todo && item.status == TaskBoardStatus.inProgress) {

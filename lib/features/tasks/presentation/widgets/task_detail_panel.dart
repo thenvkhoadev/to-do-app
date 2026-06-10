@@ -14,6 +14,7 @@ import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
 class TaskDetailPanel extends ConsumerStatefulWidget {
   const TaskDetailPanel({
@@ -266,11 +267,15 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
         (t) => t.id == widget.task.id,
         orElse: () => throw Exception('Không tìm thấy task trong database'),
       );
+      final completedNow = nexusTask.status != 'done';
       final updated = nexusTask.copyWith(
         status: 'done',
         completedAt: DateTime.now().toUtc(),
       );
       await ref.read(taskRepositoryProvider).updateTask(updated);
+      if (completedNow) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

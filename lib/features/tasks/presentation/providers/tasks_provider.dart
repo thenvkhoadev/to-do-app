@@ -14,6 +14,8 @@ import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart'
 import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/data/datasource/subtask_datasource.dart';
 import 'package:to_do_app/features/tasks/data/datasource/archived_task_datasource.dart';
+import 'package:to_do_app/features/streak/data/datasource/streak_remote_datasource.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
 // ── datasource providers ──────────────────────────────────────────────────
 
@@ -82,14 +84,21 @@ class TaskCreationState {
 }
 
 class TaskCreationNotifier extends StateNotifier<TaskCreationState> {
-  TaskCreationNotifier(this._repo, this._categoryDs, this._tagDs, this._attachmentDs, this._subtaskDs)
-      : super(const TaskCreationState());
+  TaskCreationNotifier(
+    this._repo,
+    this._categoryDs,
+    this._tagDs,
+    this._attachmentDs,
+    this._subtaskDs,
+    this._streakDs,
+  ) : super(const TaskCreationState());
 
   final TaskRepository _repo;
   final CategoryRemoteDataSource _categoryDs;
   final TagRemoteDataSource _tagDs;
   final AttachmentRemoteDataSource _attachmentDs;
   final SubtaskRemoteDataSource _subtaskDs;
+  final StreakRemoteDataSource _streakDs;
 
   Future<NexusTask?> createTask({
     required String userId,
@@ -123,6 +132,7 @@ class TaskCreationNotifier extends StateNotifier<TaskCreationState> {
         estimatedMinutes: estimatedMinutes,
       );
       final created = await _repo.createTask(task);
+      await _streakDs.updateUserStreak('Task Created');
       if (tagIds.isNotEmpty) {
         await _tagDs.setTaskTags(created.id, tagIds);
       }
@@ -188,6 +198,7 @@ final taskCreationProvider =
     ref.watch(tagDataSourceProvider),
     ref.watch(attachmentDataSourceProvider),
     ref.watch(subtaskDataSourceProvider),
+    ref.watch(streakRemoteDataSourceProvider),
   );
 });
 

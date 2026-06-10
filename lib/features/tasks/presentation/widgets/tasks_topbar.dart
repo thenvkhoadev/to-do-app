@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_search_field.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
 
 class TasksTopbar extends StatelessWidget {
   const TasksTopbar({super.key});
@@ -38,7 +39,7 @@ class TasksTopbar extends StatelessWidget {
               Spacer(),
               _TopIcon(icon: Icons.notifications_none_rounded),
               SizedBox(width: 10),
-              _TopIcon(icon: Icons.bolt_rounded, active: true),
+              StreakTopbarButton(),
               SizedBox(width: 14),
               ProfileAvatar(radius: 20),
             ],
@@ -73,9 +74,8 @@ class _TopTab extends StatelessWidget {
 }
 
 class _TopIcon extends StatelessWidget {
-  const _TopIcon({required this.icon, this.active = false});
+  const _TopIcon({required this.icon});
   final IconData icon;
-  final bool active;
   @override
   Widget build(BuildContext context) => Material(
     color: Colors.transparent,
@@ -88,10 +88,7 @@ class _TopIcon extends StatelessWidget {
         height: 42,
         child: Icon(
           icon,
-          color:
-              active
-                  ? DashboardColors.primary
-                  : DashboardColors.onSurfaceVariant,
+          color: DashboardColors.onSurfaceVariant,
         ),
       ),
     ),

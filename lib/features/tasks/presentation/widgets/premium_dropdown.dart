@@ -6,6 +6,7 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
 // ── Shared glass container ────────────────────────────────────────────────────
 
@@ -651,8 +652,15 @@ class TaskCardPremiumMenu extends ConsumerWidget {
       final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
       final nexus = tasks.firstWhere((t) => t.id == task.id,
           orElse: () => throw Exception('Task not found'));
+      final completedNow = nexus.status != 'done' && status == 'done';
+      final draftToActive = nexus.status == 'draft' && (status == 'todo' || status == 'in_progress');
       final updated = nexus.copyWith(status: status);
       await ref.read(taskRepositoryProvider).updateTask(updated);
+      if (completedNow) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+      } else if (draftToActive) {
+        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Activated');
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

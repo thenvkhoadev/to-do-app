@@ -21,6 +21,7 @@ import 'package:to_do_app/screens/archived/widgets/modern_filter_dropdown.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_export_service.dart';
 import 'package:to_do_app/screens/archived/widgets/assignee_avatar_group.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_command_center.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class DesktopArchivedView extends ConsumerStatefulWidget {
@@ -108,6 +109,7 @@ class _DesktopArchivedViewState extends ConsumerState<DesktopArchivedView> {
     });
     try {
       await ref.read(archivedTasksRepositoryProvider).restore(task);
+      await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Restored');
 
       // Step 2: Show success dialog BEFORE hiding task from list
       if (!mounted) return;

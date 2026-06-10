@@ -7,7 +7,11 @@ import 'package:to_do_app/features/xp/presentation/widgets/level_down_modal.dart
 import 'package:to_do_app/features/xp/presentation/widgets/level_up_modal.dart';
 import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart' show xpLevelFromTotalXp;
 import 'package:to_do_app/features/xp/presentation/widgets/xp_notification_overlay.dart';
+import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
+import 'package:to_do_app/features/streak/presentation/widgets/streak_celebration_modal.dart';
+import 'package:to_do_app/features/streak/presentation/widgets/streak_fire_bar.dart';
 
 /// Wraps authenticated content. Listens to [xpLogsProvider] for new inserts,
 /// queues XP toast notifications, and shows the level-up modal when the user's
@@ -25,6 +29,7 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
   // Track the IDs we have already processed so we don't fire twice on rebuild.
   final Set<String> _seen = {};
   int? _lastKnownLevel;
+  int? _lastKnownStreak;
   Timer? _levelUpTimer;
 
   @override
@@ -127,6 +132,51 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
     }
   }
 
+  Future<void> _handleStreakChange(int newStreak) async {
+    if (_lastKnownStreak == null) {
+      _lastKnownStreak = newStreak;
+      // Trigger immediately after successful login if streak was updated today
+      final profile = ref.read(userProfileProvider).valueOrNull;
+      if (profile != null && profile.lastActivityDate != null) {
+        final now = DateTime.now();
+        final today = DateTime(now.year, now.month, now.day);
+        final localActivity = profile.lastActivityDate!.toLocal();
+        final active = DateTime(
+          localActivity.year,
+          localActivity.month,
+          localActivity.day,
+        );
+        if (active.isAtSameMomentAs(today) && newStreak > 0) {
+          final storage = ref.read(secureStorageServiceProvider);
+          final todayStr = '${today.year}-${today.month}-${today.day}';
+          final lastShown = await storage.read('last_shown_streak_date');
+          if (lastShown != todayStr) {
+            await storage.write('last_shown_streak_date', todayStr);
+            ref.read(pendingStreakProvider.notifier).show(
+                  previousCount: newStreak - 1,
+                  currentCount: newStreak,
+                );
+          }
+        }
+      }
+      return;
+    }
+    if (newStreak > _lastKnownStreak!) {
+      final previous = _lastKnownStreak!;
+      _lastKnownStreak = newStreak;
+      final now = DateTime.now();
+      final todayStr = '${now.year}-${now.month}-${now.day}';
+      final storage = ref.read(secureStorageServiceProvider);
+      await storage.write('last_shown_streak_date', todayStr);
+      ref.read(pendingStreakProvider.notifier).show(
+            previousCount: previous,
+            currentCount: newStreak,
+          );
+    } else {
+      _lastKnownStreak = newStreak;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Listen to new xp_logs
@@ -134,29 +184,68 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
       next.whenData(_handleNewLogs);
     });
 
-    // Listen to profile level changes
+    // Listen to profile level and streak changes
     ref.listen(userProfileProvider, (prev, next) {
-      final level = next.valueOrNull?.level;
+      final profile = next.valueOrNull;
+      final level = profile?.level;
       if (level != null) _handleLevelChange(level);
+      if (profile != null) {
+        _handleStreakChange(
+          displayStreakCount(profile.streakCount, profile.lastActivityDate),
+        );
+      }
     });
 
     final pendingLevelUp = ref.watch(levelUpProvider);
     final pendingLevelDown = ref.watch(levelDownProvider);
+    final pendingStreak = ref.watch(pendingStreakProvider);
+    final showStreak = ref.watch(showStreakOverlayProvider);
 
-    return XpNotificationOverlay(
-      child: Stack(
-        children: [
-          widget.child,
-          if (pendingLevelDown != null)
-            Positioned.fill(
-              child: LevelDownModal(newLevel: pendingLevelDown),
-            ),
-          if (pendingLevelUp != null)
-            Positioned.fill(
-              child: LevelUpModal(newLevel: pendingLevelUp),
-            ),
-        ],
-      ),
+    return Stack(
+      children: [
+        XpNotificationOverlay(
+          child: Stack(
+            children: [
+              widget.child,
+              if (showStreak)
+                Positioned(
+                  top: MediaQuery.of(context).padding.top + 78,
+                  left: 0,
+                  right: 0,
+                  child: TapRegion(
+                    groupId: 'streak_popup',
+                    onTapOutside: (_) {
+                      ref.read(showStreakOverlayProvider.notifier).state = false;
+                    },
+                    child: Row(
+                      children: [
+                        if (MediaQuery.sizeOf(context).width >= 1100)
+                          const SizedBox(width: 256),
+                        const Expanded(
+                          child: Center(
+                            child: StreakFireBar(),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        if (pendingStreak != null)
+          Positioned.fill(
+            child: StreakAchievementModal(celebration: pendingStreak),
+          ),
+        if (pendingLevelDown != null)
+          Positioned.fill(
+            child: LevelDownModal(newLevel: pendingLevelDown),
+          ),
+        if (pendingLevelUp != null)
+          Positioned.fill(
+            child: LevelUpModal(newLevel: pendingLevelUp),
+          ),
+      ],
     );
   }
 }
