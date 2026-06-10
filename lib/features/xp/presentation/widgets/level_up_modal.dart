@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart'
     show xpLevelTitle;
@@ -11,13 +12,6 @@ const _kPrimary = Color(0xFFB794F6);
 const _kSecondary = Color(0xFF7B6CF6);
 const _kCyan = Color(0xFF67E8F9);
 const _kMuted = Color(0xFFA8B2D1);
-
-// XP required to start a given level (matches DB formula).
-int _xpForLevel(int level) {
-  if (level <= 1) return 0;
-  final l = level - 1;
-  return l * l * 100;
-}
 
 // ── Level Up Modal ────────────────────────────────────────────────────────
 class LevelUpModal extends ConsumerStatefulWidget {
@@ -49,13 +43,15 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
       duration: const Duration(seconds: 6),
     )..repeat(reverse: true);
 
-    _scaleAnim = Tween<double>(begin: 0.8, end: 1.0).animate(
-      CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic),
-    );
+    _scaleAnim = Tween<double>(
+      begin: 0.8,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOutCubic));
     _opacityAnim = CurvedAnimation(parent: _entryCtrl, curve: Curves.easeOut);
-    _floatAnim = Tween<double>(begin: 0, end: -20).animate(
-      CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut),
-    );
+    _floatAnim = Tween<double>(
+      begin: 0,
+      end: -20,
+    ).animate(CurvedAnimation(parent: _floatCtrl, curve: Curves.easeInOut));
 
     _entryCtrl.forward();
   }
@@ -90,9 +86,7 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
             Positioned.fill(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  color: Colors.black.withValues(alpha: 0.6),
-                ),
+                child: Container(color: Colors.black.withValues(alpha: 0.6)),
               ),
             ),
             const Positioned(
@@ -198,7 +192,7 @@ class _AchievementCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(userProfileProvider).valueOrNull;
     final totalXp = profile?.totalXp ?? 0;
-    final nextLevelStart = _xpForLevel(newLevel + 1);
+    final nextLevelStart = leveling.xpRequiredForLevel(newLevel + 1);
     final remainingToNext = (nextLevelStart - totalXp).clamp(0, 1 << 30);
 
     return ClipRRect(
@@ -245,29 +239,29 @@ class _AchievementCard extends ConsumerWidget {
               ),
               SingleChildScrollView(
                 child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _LevelBadge(
-                    newLevel: newLevel,
-                    isMobile: isMobile,
-                    floatAnim: floatAnim,
-                  ),
-                  SizedBox(height: isMobile ? 24 : 32),
-                  _TitleSection(newLevel: newLevel, isMobile: isMobile),
-                  SizedBox(height: isMobile ? 16 : 20),
-                  _DescriptionText(newLevel: newLevel, isMobile: isMobile),
-                  SizedBox(height: isMobile ? 20 : 24),
-                  const _UnlockChips(),
-                  SizedBox(height: isMobile ? 24 : 32),
-                  _ActionButtons(isMobile: isMobile, onContinue: onContinue),
-                  SizedBox(height: isMobile ? 16 : 20),
-                  _ProgressSection(
-                    newLevel: newLevel,
-                    totalXp: totalXp,
-                    remaining: remainingToNext,
-                  ),
-                ],
-              ),
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _LevelBadge(
+                      newLevel: newLevel,
+                      isMobile: isMobile,
+                      floatAnim: floatAnim,
+                    ),
+                    SizedBox(height: isMobile ? 24 : 32),
+                    _TitleSection(newLevel: newLevel, isMobile: isMobile),
+                    SizedBox(height: isMobile ? 16 : 20),
+                    _DescriptionText(newLevel: newLevel, isMobile: isMobile),
+                    SizedBox(height: isMobile ? 20 : 24),
+                    const _UnlockChips(),
+                    SizedBox(height: isMobile ? 24 : 32),
+                    _ActionButtons(isMobile: isMobile, onContinue: onContinue),
+                    SizedBox(height: isMobile ? 16 : 20),
+                    _ProgressSection(
+                      newLevel: newLevel,
+                      totalXp: totalXp,
+                      remaining: remainingToNext,
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -293,10 +287,11 @@ class _LevelBadge extends StatelessWidget {
     final size = isMobile ? 160.0 : 192.0;
     return AnimatedBuilder(
       animation: floatAnim,
-      builder: (_, child) => Transform.translate(
-        offset: Offset(0, floatAnim.value),
-        child: child,
-      ),
+      builder:
+          (_, child) => Transform.translate(
+            offset: Offset(0, floatAnim.value),
+            child: child,
+          ),
       child: SizedBox(
         width: size + 80,
         height: size + 80,
@@ -403,9 +398,10 @@ class _TitleSection extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         ShaderMask(
-          shaderCallback: (b) => const LinearGradient(
-            colors: [_kPrimary, _kSecondary, _kCyan],
-          ).createShader(b),
+          shaderCallback:
+              (b) => const LinearGradient(
+                colors: [_kPrimary, _kSecondary, _kCyan],
+              ).createShader(b),
           child: Text(
             'Level $newLevel Reached',
             textAlign: TextAlign.center,
@@ -466,7 +462,10 @@ class _UnlockChips extends StatelessWidget {
       spacing: 10,
       runSpacing: 10,
       children: const [
-        _UnlockChip(icon: Icons.psychology_rounded, label: 'Neural Task Sorting'),
+        _UnlockChip(
+          icon: Icons.psychology_rounded,
+          label: 'Neural Task Sorting',
+        ),
         _UnlockChip(icon: Icons.bolt_rounded, label: 'Turbo Workflows'),
       ],
     );
@@ -524,9 +523,9 @@ class _ActionButtons extends StatelessWidget {
     ];
     return isMobile
         ? Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: children,
-          )
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
+        )
         : Row(mainAxisAlignment: MainAxisAlignment.center, children: children);
   }
 }
@@ -544,9 +543,7 @@ class _PrimaryButton extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [_kPrimary, _kSecondary],
-          ),
+          gradient: const LinearGradient(colors: [_kPrimary, _kSecondary]),
           borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
@@ -626,8 +623,8 @@ class _ProgressSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final levelStart = _xpForLevel(newLevel);
-    final levelEnd = _xpForLevel(newLevel + 1);
+    final levelStart = leveling.xpRequiredForLevel(newLevel);
+    final levelEnd = leveling.xpRequiredForLevel(newLevel + 1);
     final span = (levelEnd - levelStart).clamp(1, 1 << 30);
     final progressInto = (totalXp - levelStart).clamp(0, span);
     final progress = (progressInto / span).clamp(0.0, 1.0);

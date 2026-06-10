@@ -28,6 +28,10 @@ class UserProfileModel {
     this.level = 1,
     this.currentXp = 0,
     this.totalXp = 0,
+    this.nextLevelXp = 50,
+    this.rankName = 'Rookie',
+    this.rankDivision = 'V',
+    this.rankTitle = 'Rookie V',
   });
 
   final String id;
@@ -58,6 +62,10 @@ class UserProfileModel {
   final int level;
   final int currentXp;
   final int totalXp;
+  final int nextLevelXp;
+  final String rankName;
+  final String rankDivision;
+  final String rankTitle;
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     return UserProfileModel(
@@ -83,7 +91,8 @@ class UserProfileModel {
       privacyMode: json['privacy_mode'] as bool? ?? false,
       coreTech: List<String>.from(json['core_tech'] ?? []),
       locationNode: json['user_preferences']?['location_node']?.toString(),
-      preferredTimezone: json['user_preferences']?['preferred_timezone']?.toString(),
+      preferredTimezone:
+          json['user_preferences']?['preferred_timezone']?.toString(),
       createdAt:
           json['created_at'] == null
               ? null
@@ -95,6 +104,10 @@ class UserProfileModel {
       level: (json['level'] as int? ?? json['llevel'] as int? ?? 1),
       currentXp: json['current_xp'] as int? ?? 0,
       totalXp: json['total_xp'] as int? ?? 0,
+      nextLevelXp: json['next_level_xp'] as int? ?? 50,
+      rankName: json['rank_name']?.toString() ?? 'Rookie',
+      rankDivision: json['rank_division']?.toString() ?? 'V',
+      rankTitle: json['rank_title']?.toString() ?? 'Rookie V',
     );
   }
 

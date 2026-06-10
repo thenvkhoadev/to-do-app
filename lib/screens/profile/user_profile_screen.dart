@@ -12,7 +12,9 @@ import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
-import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart' as xp_card;
+import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
+import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart'
+    as xp_card;
 import 'package:to_do_app/features/xp/presentation/widgets/xp_log_timeline.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -56,21 +58,24 @@ class UserProfileScreen extends ConsumerWidget {
     }
 
     final vm = _ProfileVM.from(ref.watch(userProfileProvider).valueOrNull);
-    return DecoratedBox(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF060B18), Color(0xFF081120), Color(0xFF0B1730)],
+    return Material(
+      type: MaterialType.transparency,
+      child: DecoratedBox(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF060B18), Color(0xFF081120), Color(0xFF0B1730)],
+          ),
         ),
-      ),
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isDesktop = constraints.maxWidth >= 1024;
-          return isDesktop
-              ? _DesktopProfileScreen(vm: vm)
-              : _MobileProfileScreen(vm: vm);
-        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final isDesktop = constraints.maxWidth >= 1024;
+            return isDesktop
+                ? _DesktopProfileScreen(vm: vm)
+                : _MobileProfileScreen(vm: vm);
+          },
+        ),
       ),
     );
   }
@@ -436,63 +441,37 @@ class _ProfileVM {
   String get peakDay => mostProductiveDay;
   String get bestFocusWindow => '08:30 → 11:15';
 
-  /// Total XP derived from real metrics: completed tasks, focus hours and
-  /// streak. Deterministic — no random or hardcoded values.
-  int get totalXp => completedTasks * 50 + focusHours * 10 + streakDays * 20;
-
-  /// XP needed to clear level [l] (1-based). Grows ~linearly per level.
-  int _xpForLevel(int l) => l * 500;
-
-  /// Current level: how many 500-XP bands the user has filled, min 1.
-  int get level {
-    var lvl = 1;
-    var remaining = totalXp;
-    while (remaining >= _xpForLevel(lvl)) {
-      remaining -= _xpForLevel(lvl);
-      lvl++;
-    }
-    return lvl;
+  /// Total XP from the database, falling back to real metric-derived XP.
+  int get totalXp {
+    final dbTotalXp = model?.totalXp ?? 0;
+    if (dbTotalXp > 0) return dbTotalXp;
+    return completedTasks * 50 + focusHours * 10 + streakDays * 20;
   }
 
-  /// XP accumulated within the current level band.
-  int get xpIntoLevel {
-    var lvl = 1;
-    var remaining = totalXp;
-    while (remaining >= _xpForLevel(lvl)) {
-      remaining -= _xpForLevel(lvl);
-      lvl++;
-    }
-    return remaining;
+  int get currentXp {
+    final dbCurrentXp = model?.currentXp ?? 0;
+    if (dbCurrentXp > 0) return dbCurrentXp;
+    return xpIntoLevel;
   }
 
-  /// XP required to advance from the current level to the next.
-  int get xpForNextLevel => _xpForLevel(level);
+  leveling.XpLevelProgress get xpLevelState =>
+      leveling.xpProgressFromTotalXp(totalXp);
 
-  /// Progress (0-1) through the current level band.
-  double get xpProgress {
-    final span = xpForNextLevel;
-    return span == 0 ? 0 : (xpIntoLevel / span).clamp(0, 1).toDouble();
-  }
+  int get level => xpLevelState.level;
 
-  /// XP remaining until the next level.
+  int get xpIntoLevel => xpLevelState.xpIntoLevel;
+
+  int get xpForNextLevel => xpLevelState.xpForNextLevel;
+
+  double get xpProgress => xpLevelState.progress;
+
   int get xpToNextLevel => (xpForNextLevel - xpIntoLevel).clamp(0, 1 << 30);
 
-  /// Ordered rank ladder. Current rank derived from [level].
-  static const List<String> rankLadder = [
-    'Explorer',
-    'Builder',
-    'Executor',
-    'Strategist',
-    'Architect',
-  ];
+  leveling.XpRank get rankState => leveling.xpRankForLevel(level);
 
-  /// Current rank title — one band every 3 levels, capped at the top rank.
-  String get rankName {
-    final idx = ((level - 1) ~/ 3).clamp(0, rankLadder.length - 1);
-    return rankLadder[idx];
-  }
+  String get rankName => rankState.title;
 
-  int get rankIndex => ((level - 1) ~/ 3).clamp(0, rankLadder.length - 1);
+  int get rankIndex => (level - 1).clamp(0, 1 << 30);
 
   /// Section 12 — insights derived from focus_score, streak_days, focus_hours,
   /// deep_work_percent and learning_percent.
@@ -1348,6 +1327,11 @@ class _HeroInfo extends StatelessWidget {
             fontSize: 14,
           ),
         ),
+        const SizedBox(height: 8),
+        _HeroMeta(
+          icon: Icons.military_tech_rounded,
+          label: 'LEVEL ${profile.level} · ${profile.rankName}',
+        ),
         if (profile.bio.isNotEmpty) ...[
           const SizedBox(height: 16),
           Text(
@@ -1368,11 +1352,16 @@ class _HeroInfo extends StatelessWidget {
             alignment: wrapAlign,
             spacing: 8,
             runSpacing: 8,
-            children: profile.coreTech.map((tech) => _HeroBadge(
-              label: tech,
-              color: NexusColors.primary,
-              bg: NexusColors.primary.withValues(alpha: 0.05),
-            )).toList(),
+            children:
+                profile.coreTech
+                    .map(
+                      (tech) => _HeroBadge(
+                        label: tech,
+                        color: NexusColors.primary,
+                        bg: NexusColors.primary.withValues(alpha: 0.05),
+                      ),
+                    )
+                    .toList(),
           ),
         ],
         const SizedBox(height: 20),
@@ -1386,12 +1375,14 @@ class _HeroInfo extends StatelessWidget {
                 icon: Icons.work_outline,
                 label: profile.occupation!.toUpperCase(),
               ),
-            if (profile.locationNode != null && profile.locationNode!.isNotEmpty)
+            if (profile.locationNode != null &&
+                profile.locationNode!.isNotEmpty)
               _HeroMeta(
                 icon: Icons.location_on_outlined,
                 label: profile.locationNode!.toUpperCase(),
               ),
-            if (profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty)
+            if (profile.preferredTimezone != null &&
+                profile.preferredTimezone!.isNotEmpty)
               _HeroMeta(
                 icon: Icons.schedule,
                 label: profile.preferredTimezone!.split(' ').first,
@@ -1424,7 +1415,10 @@ class _HeroActions extends ConsumerWidget {
         const SizedBox(height: 12),
         InkWell(
           onTap: () async {
-            final username = profile.username.isNotEmpty ? profile.username : profile.accountId;
+            final username =
+                profile.username.isNotEmpty
+                    ? profile.username
+                    : profile.accountId;
             final shareUrl = 'https://nexusai.com/$username';
             await Clipboard.setData(ClipboardData(text: shareUrl));
             if (context.mounted) {
@@ -1498,10 +1492,7 @@ class _HeroBadge extends StatelessWidget {
 
 /// Hero — small icon + caps label (member since / online).
 class _HeroMeta extends StatelessWidget {
-  const _HeroMeta({
-    required this.icon,
-    required this.label,
-  });
+  const _HeroMeta({required this.icon, required this.label});
   final IconData icon;
   final String label;
 
@@ -1655,7 +1646,7 @@ class _StatusIndicatorState extends ConsumerState<_StatusIndicator> {
                       color: details.color,
                       blurRadius: 6,
                       spreadRadius: 1,
-                    )
+                    ),
                   ],
                 ),
                 child: const SizedBox(width: 8, height: 8),
@@ -1698,19 +1689,40 @@ class _StatusSelectorDialog extends ConsumerStatefulWidget {
   const _StatusSelectorDialog();
 
   @override
-  ConsumerState<_StatusSelectorDialog> createState() => _StatusSelectorDialogState();
+  ConsumerState<_StatusSelectorDialog> createState() =>
+      _StatusSelectorDialogState();
 }
 
 class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
   String? _selectedStatus; // For mobile
-  String? _hoveredStatus;  // For desktop hover
-  String? _focusedStatus;  // For desktop lock-on
+  String? _hoveredStatus; // For desktop hover
+  String? _focusedStatus; // For desktop lock-on
 
   final List<(String, String, String, Color)> _statuses = [
-    ('online', 'Trực Tuyến', 'Hiển thị người dùng đang hoạt động', Color(0xFF22C55E)),
-    ('idle', 'Chờ', 'Hiển thị người dùng đang tạm thời không hoạt động', Color(0xFFF59E0B)),
-    ('dnd', 'Vui Lòng Không Làm Phiền', 'Hạn chế hiển thị thông báo', Color(0xFFEF4444)),
-    ('invisible', 'Vô Hình', 'Người dùng xuất hiện dưới dạng ngoại tuyến', Color(0xFF94A3B8)),
+    (
+      'online',
+      'Trực Tuyến',
+      'Hiển thị người dùng đang hoạt động',
+      Color(0xFF22C55E),
+    ),
+    (
+      'idle',
+      'Chờ',
+      'Hiển thị người dùng đang tạm thời không hoạt động',
+      Color(0xFFF59E0B),
+    ),
+    (
+      'dnd',
+      'Vui Lòng Không Làm Phiền',
+      'Hạn chế hiển thị thông báo',
+      Color(0xFFEF4444),
+    ),
+    (
+      'invisible',
+      'Vô Hình',
+      'Người dùng xuất hiện dưới dạng ngoại tuyến',
+      Color(0xFF94A3B8),
+    ),
   ];
 
   final List<(String, String)> _durations = [
@@ -1727,7 +1739,8 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
   @override
   Widget build(BuildContext context) {
     final currentStatus = ref.watch(userStatusProvider);
-    final targetStatus = _hoveredStatus ?? _focusedStatus ?? currentStatus.status;
+    final targetStatus =
+        _hoveredStatus ?? _focusedStatus ?? currentStatus.status;
     final showRightPanel = targetStatus != 'online';
 
     return Dialog(
@@ -1738,9 +1751,8 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
           final screenWidth = MediaQuery.of(context).size.width;
           final maxDialogWidth = screenWidth - 48;
           final isWide = screenWidth >= 740;
-          final spacerWidth = isWide 
-              ? min(292.0, max(0.0, (maxDialogWidth - 400) / 2))
-              : 0.0;
+          final spacerWidth =
+              isWide ? min(292.0, max(0.0, (maxDialogWidth - 400) / 2)) : 0.0;
           final stackWidth = 400.0 + 2 * spacerWidth;
 
           return ConstrainedBox(
@@ -1752,74 +1764,91 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                   _focusedStatus = null;
                 });
               },
-              child: isWide
-                  ? SizedBox(
-                      width: stackWidth,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        mainAxisSize: MainAxisSize.min,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          SizedBox(width: spacerWidth),
-                          // Left Column: Status list wrapped in its own _GlassPanel
-                          SizedBox(
-                            width: 400,
-                            child: _GlassPanel(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: _buildSideBySideLayoutLeft(currentStatus.status, targetStatus, showRightPanel),
+              child:
+                  isWide
+                      ? SizedBox(
+                        width: stackWidth,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            SizedBox(width: spacerWidth),
+                            // Left Column: Status list wrapped in its own _GlassPanel
+                            SizedBox(
+                              width: 400,
+                              child: _GlassPanel(
+                                child: Padding(
+                                  padding: const EdgeInsets.all(24),
+                                  child: _buildSideBySideLayoutLeft(
+                                    currentStatus.status,
+                                    targetStatus,
+                                    showRightPanel,
+                                  ),
+                                ),
                               ),
                             ),
-                          ),
-                          // Right Column: Spacer and duration panel using OverflowBox to prevent squishing
-                          SizedBox(
-                            width: spacerWidth,
-                            child: Align(
-                              alignment: Alignment.centerLeft,
-                              child: OverflowBox(
+                            // Right Column: Spacer and duration panel using OverflowBox to prevent squishing
+                            SizedBox(
+                              width: spacerWidth,
+                              child: Align(
                                 alignment: Alignment.centerLeft,
-                                maxWidth: 292,
-                                minWidth: 292,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const SizedBox(width: 12),
-                                    SizedBox(
-                                      width: 280,
-                                      child: IgnorePointer(
-                                        ignoring: !showRightPanel,
-                                        child: AnimatedOpacity(
-                                          opacity: showRightPanel ? 1.0 : 0.0,
-                                          duration: const Duration(milliseconds: 200),
-                                          curve: Curves.easeInOut,
-                                          child: AnimatedSlide(
-                                            offset: Offset(showRightPanel ? 0.0 : -0.1, 0.0),
-                                            duration: const Duration(milliseconds: 200),
-                                            curve: Curves.easeOutCubic,
-                                            child: _GlassPanel(
-                                              child: Padding(
-                                                padding: const EdgeInsets.all(24),
-                                                child: _buildSideBySideLayoutRight(targetStatus),
+                                child: OverflowBox(
+                                  alignment: Alignment.centerLeft,
+                                  maxWidth: 292,
+                                  minWidth: 292,
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const SizedBox(width: 12),
+                                      SizedBox(
+                                        width: 280,
+                                        child: IgnorePointer(
+                                          ignoring: !showRightPanel,
+                                          child: AnimatedOpacity(
+                                            opacity: showRightPanel ? 1.0 : 0.0,
+                                            duration: const Duration(
+                                              milliseconds: 200,
+                                            ),
+                                            curve: Curves.easeInOut,
+                                            child: AnimatedSlide(
+                                              offset: Offset(
+                                                showRightPanel ? 0.0 : -0.1,
+                                                0.0,
+                                              ),
+                                              duration: const Duration(
+                                                milliseconds: 200,
+                                              ),
+                                              curve: Curves.easeOutCubic,
+                                              child: _GlassPanel(
+                                                child: Padding(
+                                                  padding: const EdgeInsets.all(
+                                                    24,
+                                                  ),
+                                                  child:
+                                                      _buildSideBySideLayoutRight(
+                                                        targetStatus,
+                                                      ),
+                                                ),
                                               ),
                                             ),
                                           ),
                                         ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
+                      )
+                      : _GlassPanel(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: _buildMobileLayout(currentStatus.status),
+                        ),
                       ),
-                    )
-                  : _GlassPanel(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: _buildMobileLayout(currentStatus.status),
-                      ),
-                    ),
             ),
           );
         },
@@ -1827,7 +1856,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
     );
   }
 
-  Widget _buildSideBySideLayoutLeft(String activeStatus, String targetStatus, bool showRightPanel) {
+  Widget _buildSideBySideLayoutLeft(
+    String activeStatus,
+    String targetStatus,
+    bool showRightPanel,
+  ) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1852,7 +1885,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               maintainAnimation: true,
               maintainState: true,
               child: IconButton(
-                icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+                icon: const Icon(
+                  Icons.close,
+                  color: NexusColors.onSurfaceVariant,
+                  size: 20,
+                ),
                 onPressed: () => Navigator.of(context).pop(),
               ),
             ),
@@ -1874,7 +1911,9 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               child: InkWell(
                 onTap: () {
                   if (item.$1 == 'online') {
-                    ref.read(userStatusProvider.notifier).setStatus('online', 'permanent');
+                    ref
+                        .read(userStatusProvider.notifier)
+                        .setStatus('online', 'permanent');
                     Navigator.of(context).pop();
                   } else {
                     setState(() {
@@ -1885,16 +1924,21 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                 borderRadius: BorderRadius.circular(12),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
+                  ),
                   decoration: BoxDecoration(
-                    color: isCurrentTarget
-                        ? item.$4.withValues(alpha: 0.08)
-                        : Colors.white.withValues(alpha: 0.03),
+                    color:
+                        isCurrentTarget
+                            ? item.$4.withValues(alpha: 0.08)
+                            : Colors.white.withValues(alpha: 0.03),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isCurrentTarget
-                          ? item.$4.withValues(alpha: 0.4)
-                          : Colors.white.withValues(alpha: 0.05),
+                      color:
+                          isCurrentTarget
+                              ? item.$4.withValues(alpha: 0.4)
+                              : Colors.white.withValues(alpha: 0.05),
                     ),
                   ),
                   child: Row(
@@ -1909,7 +1953,7 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                             BoxShadow(
                               color: item.$4,
                               blurRadius: isCurrentTarget ? 6 : 2,
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -1922,7 +1966,10 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                               item.$2,
                               style: TextStyle(
                                 color: NexusColors.onSurface,
-                                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                fontWeight:
+                                    isSelected
+                                        ? FontWeight.w700
+                                        : FontWeight.w500,
                                 fontSize: 14,
                               ),
                             ),
@@ -1938,7 +1985,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                         ),
                       ),
                       if (isSelected)
-                        Icon(Icons.check_circle_rounded, color: item.$4, size: 18),
+                        Icon(
+                          Icons.check_circle_rounded,
+                          color: item.$4,
+                          size: 18,
+                        ),
                     ],
                   ),
                 ),
@@ -1974,7 +2025,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+              icon: const Icon(
+                Icons.close,
+                color: NexusColors.onSurfaceVariant,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
@@ -1985,12 +2040,17 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
             padding: const EdgeInsets.only(bottom: 8),
             child: InkWell(
               onTap: () {
-                ref.read(userStatusProvider.notifier).setStatus(targetStatus, d.$1);
+                ref
+                    .read(userStatusProvider.notifier)
+                    .setStatus(targetStatus, d.$1);
                 Navigator.of(context).pop();
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
@@ -2027,9 +2087,10 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
   Widget _buildMobileLayout(String activeStatus) {
     return AnimatedSwitcher(
       duration: const Duration(milliseconds: 250),
-      child: _selectedStatus == null
-          ? _buildMobileStatusList(activeStatus)
-          : _buildMobileDurationList(_selectedStatus!),
+      child:
+          _selectedStatus == null
+              ? _buildMobileStatusList(activeStatus)
+              : _buildMobileDurationList(_selectedStatus!),
     );
   }
 
@@ -2054,7 +2115,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               ),
             ),
             IconButton(
-              icon: const Icon(Icons.close, color: NexusColors.onSurfaceVariant, size: 20),
+              icon: const Icon(
+                Icons.close,
+                color: NexusColors.onSurfaceVariant,
+                size: 20,
+              ),
               onPressed: () => Navigator.of(context).pop(),
             ),
           ],
@@ -2067,7 +2132,9 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
             child: InkWell(
               onTap: () {
                 if (item.$1 == 'online') {
-                  ref.read(userStatusProvider.notifier).setStatus('online', 'permanent');
+                  ref
+                      .read(userStatusProvider.notifier)
+                      .setStatus('online', 'permanent');
                   Navigator.of(context).pop();
                 } else {
                   setState(() {
@@ -2077,16 +2144,21 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
-                  color: isSelected
-                      ? item.$4.withValues(alpha: 0.08)
-                      : Colors.white.withValues(alpha: 0.03),
+                  color:
+                      isSelected
+                          ? item.$4.withValues(alpha: 0.08)
+                          : Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: isSelected
-                        ? item.$4.withValues(alpha: 0.3)
-                        : Colors.white.withValues(alpha: 0.05),
+                    color:
+                        isSelected
+                            ? item.$4.withValues(alpha: 0.3)
+                            : Colors.white.withValues(alpha: 0.05),
                   ),
                 ),
                 child: Row(
@@ -2097,12 +2169,7 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                       decoration: BoxDecoration(
                         color: item.$4,
                         shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: item.$4,
-                            blurRadius: 4,
-                          )
-                        ],
+                        boxShadow: [BoxShadow(color: item.$4, blurRadius: 4)],
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -2114,7 +2181,10 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                             item.$2,
                             style: TextStyle(
                               color: NexusColors.onSurface,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                              fontWeight:
+                                  isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                               fontSize: 14,
                             ),
                           ),
@@ -2130,7 +2200,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
                       ),
                     ),
                     if (isSelected)
-                      Icon(Icons.check_circle_rounded, color: item.$4, size: 18),
+                      Icon(
+                        Icons.check_circle_rounded,
+                        color: item.$4,
+                        size: 18,
+                      ),
                   ],
                 ),
               ),
@@ -2151,7 +2225,11 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
         Row(
           children: [
             IconButton(
-              icon: const Icon(Icons.arrow_back_ios_new_rounded, color: NexusColors.onSurfaceVariant, size: 16),
+              icon: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                color: NexusColors.onSurfaceVariant,
+                size: 16,
+              ),
               onPressed: () {
                 setState(() {
                   _selectedStatus = null;
@@ -2185,7 +2263,10 @@ class _StatusSelectorDialogState extends ConsumerState<_StatusSelectorDialog> {
               },
               borderRadius: BorderRadius.circular(12),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 14,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.03),
                   borderRadius: BorderRadius.circular(12),
@@ -2993,7 +3074,8 @@ class _ProductivityBarChart extends StatelessWidget {
             for (var i = 0; i < series.length; i++)
               Expanded(
                 child: Column(
-                  mainAxisSize: MainAxisSize.min, // Changed from MainAxisAlignment.end
+                  mainAxisSize:
+                      MainAxisSize.min, // Changed from MainAxisAlignment.end
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Text(
@@ -4190,26 +4272,30 @@ class _CategoryButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color:
-              active
-                  ? NexusColors.primary.withValues(alpha: 0.1)
-                  : Colors.transparent,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: active ? NexusColors.primary : NexusColors.onSurfaceVariant,
-            fontSize: 11,
-            letterSpacing: 0.5,
-            fontFamily: 'JetBrains Mono',
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: Container(
+          margin: const EdgeInsets.only(bottom: 4),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color:
+                active
+                    ? NexusColors.primary.withValues(alpha: 0.1)
+                    : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            label,
+            style: TextStyle(
+              color:
+                  active ? NexusColors.primary : NexusColors.onSurfaceVariant,
+              fontSize: 11,
+              letterSpacing: 0.5,
+              fontFamily: 'JetBrains Mono',
+            ),
           ),
         ),
       ),
@@ -5017,7 +5103,10 @@ class _MobileProfileScreen extends ConsumerWidget {
                       decoration: BoxDecoration(
                         color: details.color,
                         shape: BoxShape.circle,
-                        border: Border.all(color: NexusColors.surface, width: 3),
+                        border: Border.all(
+                          color: NexusColors.surface,
+                          width: 3,
+                        ),
                       ),
                     ),
                   ),
@@ -5125,27 +5214,33 @@ class _MobileProfileScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 10),
-              if (profile.occupation != null && profile.occupation!.isNotEmpty ||
-                  profile.locationNode != null && profile.locationNode!.isNotEmpty ||
-                  profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty) ...[
+              if (profile.occupation != null &&
+                      profile.occupation!.isNotEmpty ||
+                  profile.locationNode != null &&
+                      profile.locationNode!.isNotEmpty ||
+                  profile.preferredTimezone != null &&
+                      profile.preferredTimezone!.isNotEmpty) ...[
                 Wrap(
                   alignment: WrapAlignment.center,
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    if (profile.occupation != null && profile.occupation!.isNotEmpty)
+                    if (profile.occupation != null &&
+                        profile.occupation!.isNotEmpty)
                       _MiniChip(
                         icon: Icons.work_outline,
                         label: profile.occupation!,
                         color: NexusColors.onSurfaceVariant,
                       ),
-                    if (profile.locationNode != null && profile.locationNode!.isNotEmpty)
+                    if (profile.locationNode != null &&
+                        profile.locationNode!.isNotEmpty)
                       _MiniChip(
                         icon: Icons.location_on_outlined,
                         label: profile.locationNode!,
                         color: NexusColors.onSurfaceVariant,
                       ),
-                    if (profile.preferredTimezone != null && profile.preferredTimezone!.isNotEmpty)
+                    if (profile.preferredTimezone != null &&
+                        profile.preferredTimezone!.isNotEmpty)
                       _MiniChip(
                         icon: Icons.schedule,
                         label: profile.preferredTimezone!.split(' ').first,
@@ -6749,47 +6844,50 @@ class _QuickActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        decoration: BoxDecoration(
-          gradient:
-              filled
-                  ? const LinearGradient(
-                    colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-                  )
-                  : null,
-          color: filled ? null : NexusColors.primary.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color:
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: BoxDecoration(
+            gradient:
                 filled
-                    ? Colors.transparent
-                    : NexusColors.primary.withValues(alpha: 0.2),
+                    ? const LinearGradient(
+                      colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
+                    )
+                    : null,
+            color: filled ? null : NexusColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color:
+                  filled
+                      ? Colors.transparent
+                      : NexusColors.primary.withValues(alpha: 0.2),
+            ),
           ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              icon,
-              size: 16,
-              color: filled ? Colors.white : NexusColors.primary,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                size: 16,
                 color: filled ? Colors.white : NexusColors.primary,
-                fontSize: 11,
-                letterSpacing: 1,
-                fontFamily: 'JetBrains Mono',
-                fontWeight: FontWeight.w600,
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              Text(
+                label.toUpperCase(),
+                style: TextStyle(
+                  color: filled ? Colors.white : NexusColors.primary,
+                  fontSize: 11,
+                  letterSpacing: 1,
+                  fontFamily: 'JetBrains Mono',
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -9645,7 +9743,9 @@ class _ProfileSavedDialogState extends State<ProfileSavedDialog> {
                 child: Container(
                   padding: const EdgeInsets.all(40),
                   decoration: BoxDecoration(
-                    color: NexusColors.surfaceContainerLow.withValues(alpha: 0.4),
+                    color: NexusColors.surfaceContainerLow.withValues(
+                      alpha: 0.4,
+                    ),
                     borderRadius: BorderRadius.circular(24),
                     border: Border.all(
                       color: Colors.white.withValues(alpha: 0.08),
@@ -9691,7 +9791,9 @@ class _ProfileSavedDialogState extends State<ProfileSavedDialog> {
                               color: NexusColors.primary.withValues(alpha: 0.1),
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: NexusColors.primary.withValues(alpha: 0.2),
+                                color: NexusColors.primary.withValues(
+                                  alpha: 0.2,
+                                ),
                               ),
                             ),
                             alignment: Alignment.center,
@@ -9701,7 +9803,9 @@ class _ProfileSavedDialogState extends State<ProfileSavedDialog> {
                               size: 56,
                               shadows: [
                                 Shadow(
-                                  color: const Color(0xFFC0C1FF).withValues(alpha: 0.6),
+                                  color: const Color(
+                                    0xFFC0C1FF,
+                                  ).withValues(alpha: 0.6),
                                   blurRadius: 15,
                                 ),
                               ],
@@ -9734,7 +9838,9 @@ class _ProfileSavedDialogState extends State<ProfileSavedDialog> {
                       ),
                       const SizedBox(height: 32),
                       Divider(
-                        color: NexusColors.outlineVariant.withValues(alpha: 0.3),
+                        color: NexusColors.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
                         height: 1,
                       ),
                       const SizedBox(height: 24),
@@ -9759,7 +9865,8 @@ class _PulseRing extends StatefulWidget {
   State<_PulseRing> createState() => _PulseRingState();
 }
 
-class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMixin {
+class _PulseRingState extends State<_PulseRing>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -9797,7 +9904,9 @@ class _PulseRingState extends State<_PulseRing> with SingleTickerProviderStateMi
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: NexusColors.primary.withValues(alpha: (1.0 - _controller.value) * 0.4),
+                      color: NexusColors.primary.withValues(
+                        alpha: (1.0 - _controller.value) * 0.4,
+                      ),
                       width: 1.5,
                     ),
                   ),
@@ -9820,7 +9929,8 @@ class _PulseText extends StatefulWidget {
   State<_PulseText> createState() => _PulseTextState();
 }
 
-class _PulseTextState extends State<_PulseText> with SingleTickerProviderStateMixin {
+class _PulseTextState extends State<_PulseText>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 
   @override
@@ -9843,10 +9953,7 @@ class _PulseTextState extends State<_PulseText> with SingleTickerProviderStateMi
     return AnimatedBuilder(
       animation: _controller,
       builder: (context, child) {
-        return Opacity(
-          opacity: 0.3 + _controller.value * 0.5,
-          child: child,
-        );
+        return Opacity(opacity: 0.3 + _controller.value * 0.5, child: child);
       },
       child: Text(
         widget.text,

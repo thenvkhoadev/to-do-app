@@ -6,7 +6,9 @@ import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
 
 class DashboardScreen extends StatelessWidget {
-  const DashboardScreen({super.key});
+  const DashboardScreen({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +21,7 @@ class DashboardScreen extends StatelessWidget {
             MediaQuery.sizeOf(context);
 
             if (width >= DashboardBreakpoints.desktop) {
-              return const DesktopDashboardLayout();
+              return DesktopDashboardLayout(initialIndex: initialIndex);
             }
 
             return const MobileDashboardLayout();

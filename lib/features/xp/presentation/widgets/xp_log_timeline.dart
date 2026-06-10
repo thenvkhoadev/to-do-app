@@ -80,7 +80,7 @@ class _LogTile extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: const Color(0xFF18223A).withOpacity(0.5),
+        color: const Color(0xFF18223A).withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: _kBorder, width: 0.5),
       ),
@@ -169,7 +169,7 @@ class _Shell extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            color: _kSurface.withOpacity(0.85),
+            color: _kSurface.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: _kBorder),
           ),

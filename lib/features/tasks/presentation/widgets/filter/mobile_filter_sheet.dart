@@ -2,10 +2,18 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_ai_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_assigned_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_attachments_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_categories_grid.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_date_range_mobile.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_priority_tabs.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_smart_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_status_chips.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_subtasks_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_tags_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_time_section.dart';
+import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class MobileFilterSheet extends StatefulWidget {
   const MobileFilterSheet({
@@ -139,6 +147,13 @@ class _MobileFilterSheetState extends State<MobileFilterSheet> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            FilterSmartSection(
+                              selected: _state.selectedSmartFilters,
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(selectedSmartFilters: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
                             FilterStatusChips(
                               selected: _state.selectedStatuses,
                               onChanged:
@@ -172,6 +187,36 @@ class _MobileFilterSheetState extends State<MobileFilterSheet> {
                                   ),
                             ),
                             const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.label_outline_rounded, label: 'TAGS'),
+                            const SizedBox(height: 12),
+                            FilterTagsSection(
+                              selected: _state.selectedTagIds,
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(selectedTagIds: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.person_outline_rounded, label: 'ASSIGNEES'),
+                            const SizedBox(height: 12),
+                            FilterAssignedSection(
+                              selectedUserId: _state.assignedUserId,
+                              unassignedOnly: _state.unassignedOnly,
+                              selectedAssigneeIds: _state.selectedAssigneeIds,
+                              specialFilters: _state.assigneeSpecialFilters,
+                              onUserChanged: (v) => setState(
+                                () => _state = _state.copyWith(assignedUserId: v),
+                              ),
+                              onUnassignedChanged: (v) => setState(
+                                () => _state = _state.copyWith(unassignedOnly: v),
+                              ),
+                              onAssigneeIdsChanged: (v) => setState(
+                                () => _state = _state.copyWith(selectedAssigneeIds: v),
+                              ),
+                              onSpecialFiltersChanged: (v) => setState(
+                                () => _state = _state.copyWith(assigneeSpecialFilters: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
                             FilterDateRangeMobile(
                               preset: _state.datePreset,
                               startDate: _state.startDate,
@@ -193,6 +238,46 @@ class _MobileFilterSheetState extends State<MobileFilterSheet> {
                                         ),
                                   ),
                             ),
+                            const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.schedule_rounded, label: 'TIME FILTERS'),
+                            const SizedBox(height: 12),
+                            FilterTimeSection(
+                              selected: _state.selectedTimeFilters,
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(selectedTimeFilters: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.auto_awesome_outlined, label: 'AI TASKS'),
+                            const SizedBox(height: 12),
+                            FilterAiSection(
+                              value: _state.aiTaskFilter,
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(aiTaskFilter: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.attach_file_rounded, label: 'ATTACHMENTS'),
+                            const SizedBox(height: 12),
+                            FilterAttachmentsSection(
+                              value: _state.attachmentFilter,
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(attachmentFilter: v),
+                              ),
+                            ),
+                            const SizedBox(height: 32),
+                            _MobileSectionHeader(icon: Icons.list_alt_rounded, label: 'SUBTASKS'),
+                            const SizedBox(height: 12),
+                            FilterSubtasksSection(
+                              selected: _state.selectedSubtaskFilters,
+                              searchQuery: _state.subtaskSearch,
+                              onSearchChanged: (v) => setState(
+                                () => _state = _state.copyWith(subtaskSearch: v),
+                              ),
+                              onChanged: (v) => setState(
+                                () => _state = _state.copyWith(selectedSubtaskFilters: v),
+                              ),
+                            ),
                             SizedBox(height: mq.viewInsets.bottom + 16),
                           ],
                         ),
@@ -201,6 +286,7 @@ class _MobileFilterSheetState extends State<MobileFilterSheet> {
                     _Footer(
                       onApply: () => widget.onApply(_state),
                       onReset: () => setState(() => _state = _state.reset()),
+                      activeCount: _state.activeCount,
                     ),
                   ],
                 ),
@@ -212,9 +298,10 @@ class _MobileFilterSheetState extends State<MobileFilterSheet> {
 }
 
 class _Footer extends StatelessWidget {
-  const _Footer({required this.onApply, required this.onReset});
+  const _Footer({required this.onApply, required this.onReset, this.activeCount = 0});
   final VoidCallback onApply;
   final VoidCallback onReset;
+  final int activeCount;
 
   @override
   Widget build(BuildContext context) => Container(
@@ -245,13 +332,13 @@ class _Footer extends StatelessWidget {
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
               onTap: onApply,
-              child: const SizedBox(
+              child: SizedBox(
                 width: double.infinity,
                 child: Padding(
-                  padding: EdgeInsets.symmetric(vertical: 16),
+                  padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Center(
                     child: Text(
-                      'Apply Filters',
+                    'Apply Filters${activeCount > 0 ? ' ($activeCount)' : ''}',
                       style: TextStyle(
                         color: Color(0xFF131449),
                         fontSize: 18,
@@ -267,9 +354,9 @@ class _Footer extends StatelessWidget {
         const SizedBox(height: 12),
         TextButton(
           onPressed: onReset,
-          child: const Text(
-            'Reset All',
-            style: TextStyle(
+          child: Text(
+            activeCount > 0 ? 'Reset All ($activeCount)' : 'Reset All',
+            style: const TextStyle(
               color: Color(0xFFC7C5D0),
               fontSize: 14,
               fontWeight: FontWeight.w700,
@@ -278,5 +365,28 @@ class _Footer extends StatelessWidget {
         ),
       ],
     ),
+  );
+}
+
+class _MobileSectionHeader extends StatelessWidget {
+  const _MobileSectionHeader({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) => Row(
+    children: [
+      Icon(icon, color: DashboardColors.onSurfaceVariant, size: 14),
+      const SizedBox(width: 8),
+      Text(
+        label,
+        style: const TextStyle(
+          color: DashboardColors.onSurfaceVariant,
+          fontSize: 11,
+          fontWeight: FontWeight.w900,
+          letterSpacing: .96,
+        ),
+      ),
+    ],
   );
 }

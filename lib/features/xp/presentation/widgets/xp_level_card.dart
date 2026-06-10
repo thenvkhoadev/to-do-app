@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
 
 // ── Level title ladder ────────────────────────────────────────────────────────
 
@@ -23,27 +24,17 @@ String xpLevelTitle(int level) {
   return titles[level] ?? 'Legend';
 }
 
-// XP required to START a given level (same formula as DB).
-int _xpForLevel(int level) {
-  if (level <= 1) return 0;
-  final l = level - 1;
-  return l * l * 100;
-}
+int xpLevelFromTotalXp(int totalXp) => leveling.xpLevelFromTotalXp(totalXp);
 
-// XP required to START the NEXT level.
-int _xpForNextLevel(int level) => _xpForLevel(level + 1);
-
-// Progress 0..1 within the current level band.
 double xpProgress(int totalXp, int level) {
-  final start = _xpForLevel(level);
-  final end = _xpForNextLevel(level);
+  final start = leveling.xpRequiredForLevel(level);
+  final end = leveling.xpRequiredForLevel(level + 1);
   if (end <= start) return 1.0;
   return ((totalXp - start) / (end - start)).clamp(0.0, 1.0);
 }
 
-// XP accumulated inside current level band.
 int xpIntoLevel(int totalXp, int level) {
-  return (totalXp - _xpForLevel(level)).clamp(0, 1 << 30);
+  return (totalXp - leveling.xpRequiredForLevel(level)).clamp(0, 1 << 30);
 }
 
 // ── Colour constants ──────────────────────────────────────────────────────────
@@ -112,9 +103,10 @@ class _XpLevelCardState extends ConsumerState<XpLevelCard>
         ..forward();
     }
     if (xpChanged) {
-      _xpAnim = IntTween(begin: _lastTotalXp, end: totalXp).animate(
-        CurvedAnimation(parent: _xpCtrl, curve: Curves.easeOutCubic),
-      );
+      _xpAnim = IntTween(
+        begin: _lastTotalXp,
+        end: totalXp,
+      ).animate(CurvedAnimation(parent: _xpCtrl, curve: Curves.easeOutCubic));
       _xpCtrl
         ..reset()
         ..forward();
@@ -130,13 +122,14 @@ class _XpLevelCardState extends ConsumerState<XpLevelCard>
       loading: () => const _CardShell(child: _LoadingBody()),
       error: (_, __) => const _CardShell(child: _ErrorBody()),
       data: (profile) {
-        final level = profile?.level ?? 1;
         final totalXp = profile?.totalXp ?? 0;
+        final levelState = leveling.xpProgressFromTotalXp(totalXp);
+        final level = levelState.level;
+        final rank = leveling.xpRankForLevel(level);
         final completedTasks = profile?.completedTasks ?? 0;
-        final progress = xpProgress(totalXp, level);
-        final xpStart = _xpForLevel(level);
-        final xpEnd = _xpForNextLevel(level);
-        final xpInto = xpIntoLevel(totalXp, level);
+        final progress = levelState.progress;
+        final xpInto = levelState.xpIntoLevel;
+        final xpForNext = levelState.xpForNextLevel;
 
         _animateTo(progress, totalXp);
 
@@ -144,14 +137,13 @@ class _XpLevelCardState extends ConsumerState<XpLevelCard>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _LevelHeader(level: level),
+              _LevelHeader(level: level, rankTitle: rank.title),
               const SizedBox(height: 24),
               _XpProgressSection(
                 barAnim: _barAnim,
                 xpCountAnim: _xpAnim,
                 xpInto: xpInto,
-                xpStart: xpStart,
-                xpEnd: xpEnd,
+                xpForNext: xpForNext,
                 totalXp: totalXp,
               ),
               const SizedBox(height: 28),
@@ -182,15 +174,15 @@ class _CardShell extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
         child: Container(
           decoration: BoxDecoration(
-            color: _kSurface.withOpacity(0.85),
+            color: _kSurface.withValues(alpha: 0.85),
             borderRadius: BorderRadius.circular(20),
             border: Border.all(color: _kBorder, width: 1),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
               colors: [
-                _kSurface.withOpacity(0.9),
-                _kBg.withOpacity(0.7),
+                _kSurface.withValues(alpha: 0.9),
+                _kBg.withValues(alpha: 0.7),
               ],
             ),
           ),
@@ -208,28 +200,25 @@ class _LoadingBody extends StatelessWidget {
   const _LoadingBody();
   @override
   Widget build(BuildContext context) => const SizedBox(
-        height: 160,
-        child: Center(
-          child: CircularProgressIndicator(
-            color: _kPrimary,
-            strokeWidth: 2,
-          ),
-        ),
-      );
+    height: 160,
+    child: Center(
+      child: CircularProgressIndicator(color: _kPrimary, strokeWidth: 2),
+    ),
+  );
 }
 
 class _ErrorBody extends StatelessWidget {
   const _ErrorBody();
   @override
   Widget build(BuildContext context) => const SizedBox(
-        height: 80,
-        child: Center(
-          child: Text(
-            'Could not load XP data',
-            style: TextStyle(color: _kMuted, fontSize: 13),
-          ),
-        ),
-      );
+    height: 80,
+    child: Center(
+      child: Text(
+        'Could not load XP data',
+        style: TextStyle(color: _kMuted, fontSize: 13),
+      ),
+    ),
+  );
 }
 
 // ── XP progress section ───────────────────────────────────────────────────────
@@ -239,16 +228,14 @@ class _XpProgressSection extends StatelessWidget {
     required this.barAnim,
     required this.xpCountAnim,
     required this.xpInto,
-    required this.xpStart,
-    required this.xpEnd,
+    required this.xpForNext,
     required this.totalXp,
   });
 
   final Animation<double> barAnim;
   final Animation<int> xpCountAnim;
   final int xpInto;
-  final int xpStart;
-  final int xpEnd;
+  final int xpForNext;
   final int totalXp;
 
   @override
@@ -261,17 +248,18 @@ class _XpProgressSection extends StatelessWidget {
           children: [
             AnimatedBuilder(
               animation: xpCountAnim,
-              builder: (_, __) => Text(
-                '${xpCountAnim.value} XP',
-                style: const TextStyle(
-                  color: _kOnSurface,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
+              builder:
+                  (_, __) => Text(
+                    '${xpCountAnim.value} XP',
+                    style: const TextStyle(
+                      color: _kOnSurface,
+                      fontSize: 22,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
             ),
             Text(
-              '$xpInto / $xpEnd XP',
+              '$xpInto / $xpForNext XP',
               style: const TextStyle(color: _kMuted, fontSize: 13),
             ),
           ],
@@ -318,7 +306,7 @@ class _GradientProgressBar extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: _kPrimary.withOpacity(0.4),
+                    color: _kPrimary.withValues(alpha: 0.4),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -351,10 +339,7 @@ class _StatsRow extends StatelessWidget {
       children: [
         _StatCell(label: 'Completed Tasks', value: '$completedTasks'),
         _Divider(),
-        _StatCell(
-          label: 'Total XP Earned',
-          value: _fmt(totalXp),
-        ),
+        _StatCell(label: 'Total XP Earned', value: _fmt(totalXp)),
         _Divider(),
         _StatCell(label: 'Current Level', value: '$level'),
         _Divider(),
@@ -420,8 +405,9 @@ class _Divider extends StatelessWidget {
 // ── Level header ─────────────────────────────────────────────────────────────
 
 class _LevelHeader extends StatelessWidget {
-  const _LevelHeader({required this.level});
+  const _LevelHeader({required this.level, required this.rankTitle});
   final int level;
+  final String rankTitle;
 
   @override
   Widget build(BuildContext context) {
@@ -430,11 +416,12 @@ class _LevelHeader extends StatelessWidget {
       children: [
         // Large level number
         ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [_kPrimary, _kSecondary, _kCyan],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
+          shaderCallback:
+              (bounds) => const LinearGradient(
+                colors: [_kPrimary, _kSecondary, _kCyan],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ).createShader(bounds),
           child: Text(
             '$level',
             style: const TextStyle(
@@ -462,7 +449,7 @@ class _LevelHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                xpLevelTitle(level),
+                rankTitle,
                 style: const TextStyle(
                   color: _kPrimary,
                   fontSize: 18,

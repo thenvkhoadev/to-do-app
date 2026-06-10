@@ -5,7 +5,6 @@ import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/auth/presentation/screens/splash_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
-import 'package:to_do_app/features/profile/presentation/screens/profile_screen.dart';
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:to_do_app/screens/analytics/analytics_screen.dart';
 import 'package:to_do_app/screens/dashboard/dashboard_screen.dart';
@@ -45,24 +44,27 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/home', builder: (_, __) => const DashboardScreen()),
       GoRoute(
         path: '/tasks',
-        builder: (_, state) => TasksScreen(
-          openNewTask: state.uri.queryParameters['newTask'] == '1',
-          searchQuery: state.uri.queryParameters['search'],
-        ),
+        builder:
+            (_, state) => TasksScreen(
+              openNewTask: state.uri.queryParameters['newTask'] == '1',
+              searchQuery: state.uri.queryParameters['search'],
+            ),
       ),
       GoRoute(path: '/ai', builder: (_, __) => const AiScreen()),
       GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
       GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
       GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
       GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
-      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
+      GoRoute(
+        path: '/profile',
+        builder: (_, __) => const DashboardScreen(initialIndex: 7),
+      ),
       GoRoute(
         path: '/task-detail/:id',
-        builder: (_, state) => TaskDetailFromIdScreen(
-          taskId: state.pathParameters['id']!,
-        ),
+        builder:
+            (_, state) =>
+                TaskDetailFromIdScreen(taskId: state.pathParameters['id']!),
       ),
     ],
   );
 });
-

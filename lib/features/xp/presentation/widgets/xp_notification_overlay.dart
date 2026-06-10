@@ -7,25 +7,24 @@ import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const _kToastWidth = 320.0;
-const _kToastSpacing = 14.0;  // gap between stacked toasts
-const _kToastHeight = 112.0;        // normal toast rendered height
-const _kToastHeightBonus = 134.0;   // toast with lucky bonus row
-const _kNavbarHeight = 64.0;  // top navbar height
-const _kTopPad = 16.0;        // padding below navbar
+const _kToastSpacing = 14.0; // gap between stacked toasts
+const _kToastHeight = 112.0; // normal toast rendered height
+const _kToastHeightBonus = 134.0; // toast with lucky bonus row
+const _kNavbarHeight = 64.0; // top navbar height
+const _kTopPad = 16.0; // padding below navbar
 
 // ── Single XP toast tile ──────────────────────────────────────────────────────
 
 class _XpToastTile extends StatefulWidget {
   const _XpToastTile({
-    super.key,
     required this.notification,
-    required this.lifetimeSeconds,
+    required this.expiresAt,
     required this.onDone,
   });
 
   final XpNotification notification;
-  final int lifetimeSeconds;
-  final VoidCallback onDone;
+  final DateTime expiresAt;
+  final ValueChanged<bool> onDone;
 
   @override
   State<_XpToastTile> createState() => _XpToastTileState();
@@ -41,31 +40,54 @@ class _XpToastTileState extends State<_XpToastTile>
   @override
   void initState() {
     super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 250));
+    _ctrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 250),
+    );
     _opacity = CurvedAnimation(parent: _ctrl, curve: Curves.easeOut);
     _slide = Tween<Offset>(
       begin: const Offset(1.0, 0.0),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeOutCubic));
 
-    // Start enter animation, then schedule auto-dismiss after 5s from NOW.
     _ctrl.forward();
-    _stayTimer = Timer(
-      Duration(seconds: widget.lifetimeSeconds),
-      _exit,
-    );
+    _scheduleAutoDismiss();
+  }
+
+  @override
+  void didUpdateWidget(covariant _XpToastTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.expiresAt != widget.expiresAt) {
+      _scheduleAutoDismiss();
+    }
+  }
+
+  void _scheduleAutoDismiss() {
+    _stayTimer?.cancel();
+    final remaining = widget.expiresAt.difference(DateTime.now());
+    if (remaining <= Duration.zero) {
+      _exit();
+      return;
+    }
+    _stayTimer = Timer(remaining, _exit);
   }
 
   void _exit() {
     if (!mounted) return;
+    _stayTimer?.cancel();
     _ctrl.duration = const Duration(milliseconds: 200);
     _slide = Tween<Offset>(
       begin: Offset.zero,
-      end: const Offset(0.0, -1.0), // slide upward on exit
+      end: const Offset(0.0, -1.0),
     ).animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeIn));
     _ctrl.reverse().then((_) {
-      if (mounted) widget.onDone();
+      if (mounted) widget.onDone(false);
     });
+  }
+
+  void _dismissBySwipe() {
+    _stayTimer?.cancel();
+    widget.onDone(true);
   }
 
   @override
@@ -81,9 +103,15 @@ class _XpToastTileState extends State<_XpToastTile>
       position: _slide,
       child: FadeTransition(
         opacity: _opacity,
-        child: Material(
-          type: MaterialType.transparency,
-          child: _ToastBody(notification: widget.notification),
+        child: Dismissible(
+          key: ValueKey('dismiss-${widget.notification.id}'),
+          direction: DismissDirection.startToEnd,
+          resizeDuration: null,
+          onDismissed: (_) => _dismissBySwipe(),
+          child: Material(
+            type: MaterialType.transparency,
+            child: _ToastBody(notification: widget.notification),
+          ),
         ),
       ),
     );
@@ -101,17 +129,23 @@ class XpNotificationOverlay extends ConsumerStatefulWidget {
       _XpNotificationOverlayState();
 }
 
-class _XpNotificationOverlayState
-    extends ConsumerState<XpNotificationOverlay> {
+class _XpNotificationOverlayState extends ConsumerState<XpNotificationOverlay> {
   // Active toasts currently visible on screen (max 5).
-  // Each entry stores its own lifetime in seconds (5s × position-on-arrival).
   final List<_ActiveToast> _active = [];
 
-  void _onToastDone(String id) {
+  void _onToastDone(String id, bool swiped) {
     ref.read(xpNotificationQueueProvider.notifier).remove(id);
-    if (mounted) {
-      setState(() => _active.removeWhere((t) => t.notification.id == id));
-    }
+    if (!mounted) return;
+    setState(() {
+      final removedIndex = _active.indexWhere((t) => t.notification.id == id);
+      if (removedIndex == -1) return;
+      _active.removeAt(removedIndex);
+      if (swiped) {
+        for (var i = removedIndex; i < _active.length; i++) {
+          _active[i] = _active[i].shortenedBy(const Duration(seconds: 5));
+        }
+      }
+    });
   }
 
   @override
@@ -128,10 +162,12 @@ class _XpNotificationOverlayState
       for (final n in queue) {
         if (!activeIds.contains(n.id)) {
           final position = _active.length + 1;
-          _active.add(_ActiveToast(
-            notification: n,
-            lifetimeSeconds: 5 * position,
-          ));
+          _active.add(
+            _ActiveToast(
+              notification: n,
+              expiresAt: DateTime.now().add(Duration(seconds: 5 * position)),
+            ),
+          );
           changed = true;
         }
       }
@@ -142,9 +178,8 @@ class _XpNotificationOverlayState
       if (changed && mounted) setState(() {});
     });
 
-    final topBase = MediaQuery.of(context).padding.top +
-        _kNavbarHeight +
-        _kTopPad;
+    final topBase =
+        MediaQuery.of(context).padding.top + _kNavbarHeight + _kTopPad;
 
     return Stack(
       children: [
@@ -156,9 +191,9 @@ class _XpNotificationOverlayState
             return _PositionedToast(
               key: ValueKey(t.notification.id),
               notification: t.notification,
-              lifetimeSeconds: t.lifetimeSeconds,
+              expiresAt: t.expiresAt,
               topOffset: _computeTop(i, topBase),
-              onDone: () => _onToastDone(t.notification.id),
+              onDone: (swiped) => _onToastDone(t.notification.id, swiped),
             );
           }(),
       ],
@@ -179,9 +214,17 @@ class _XpNotificationOverlayState
 }
 
 class _ActiveToast {
-  const _ActiveToast({required this.notification, required this.lifetimeSeconds});
+  const _ActiveToast({required this.notification, required this.expiresAt});
+
   final XpNotification notification;
-  final int lifetimeSeconds;
+  final DateTime expiresAt;
+
+  _ActiveToast shortenedBy(Duration duration) {
+    return _ActiveToast(
+      notification: notification,
+      expiresAt: expiresAt.subtract(duration),
+    );
+  }
 }
 
 // ── Positioned toast wrapper ──────────────────────────────────────────────────
@@ -190,15 +233,15 @@ class _PositionedToast extends StatelessWidget {
   const _PositionedToast({
     super.key,
     required this.notification,
-    required this.lifetimeSeconds,
+    required this.expiresAt,
     required this.topOffset,
     required this.onDone,
   });
 
   final XpNotification notification;
-  final int lifetimeSeconds;
+  final DateTime expiresAt;
   final double topOffset;
-  final VoidCallback onDone;
+  final ValueChanged<bool> onDone;
 
   @override
   Widget build(BuildContext context) {
@@ -210,7 +253,7 @@ class _PositionedToast extends StatelessWidget {
       width: _kToastWidth,
       child: _XpToastTile(
         notification: notification,
-        lifetimeSeconds: lifetimeSeconds,
+        expiresAt: expiresAt,
         onDone: onDone,
       ),
     );
@@ -239,9 +282,10 @@ class _ToastBodyState extends State<_ToastBody>
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _countAnim = IntTween(begin: 0, end: widget.notification.xpGained).animate(
-      CurvedAnimation(parent: _countCtrl, curve: Curves.easeOutCubic),
-    );
+    _countAnim = IntTween(
+      begin: 0,
+      end: widget.notification.xpGained,
+    ).animate(CurvedAnimation(parent: _countCtrl, curve: Curves.easeOutCubic));
     _countCtrl.forward();
   }
 
@@ -262,10 +306,16 @@ class _ToastBodyState extends State<_ToastBody>
       return (icon: Icons.task_alt_rounded, color: const Color(0xFF67E8F9));
     }
     if (n.priority == 'urgent') {
-      return (icon: Icons.workspace_premium_rounded, color: const Color(0xFFFFD166));
+      return (
+        icon: Icons.workspace_premium_rounded,
+        color: const Color(0xFFFFD166),
+      );
     }
     if (n.priority == 'high') {
-      return (icon: Icons.local_fire_department_rounded, color: const Color(0xFFFF8A5C));
+      return (
+        icon: Icons.local_fire_department_rounded,
+        color: const Color(0xFFFF8A5C),
+      );
     }
     if (n.priority == 'medium') {
       return (icon: Icons.flash_on_rounded, color: const Color(0xFFB794F6));
@@ -321,24 +371,26 @@ class _ToastBodyState extends State<_ToastBody>
                   const SizedBox(width: 10),
                   AnimatedBuilder(
                     animation: _countAnim,
-                    builder: (_, __) => ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [
-                          Color(0xFFB794F6),
-                          Color(0xFF7B6CF6),
-                          Color(0xFF67E8F9),
-                        ],
-                      ).createShader(bounds),
-                      child: Text(
-                        '+${_countAnim.value} XP',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
+                    builder:
+                        (_, __) => ShaderMask(
+                          shaderCallback:
+                              (bounds) => const LinearGradient(
+                                colors: [
+                                  Color(0xFFB794F6),
+                                  Color(0xFF7B6CF6),
+                                  Color(0xFF67E8F9),
+                                ],
+                              ).createShader(bounds),
+                          child: Text(
+                            '+${_countAnim.value} XP',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
                         ),
-                      ),
-                    ),
                   ),
                 ],
               ),

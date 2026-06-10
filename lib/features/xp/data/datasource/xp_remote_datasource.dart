@@ -1,5 +1,6 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/xp/data/models/xp_log_model.dart';
+import 'package:to_do_app/features/xp/domain/xp_leveling.dart';
 
 class XpRemoteDataSource {
   XpRemoteDataSource(this._client);
@@ -13,9 +14,7 @@ class XpRemoteDataSource {
         .stream(primaryKey: ['id'])
         .eq('user_id', userId)
         .order('created_at', ascending: false)
-        .map(
-          (rows) => rows.map((r) => XpLogModel.fromJson(r)).toList(),
-        );
+        .map((rows) => rows.map((r) => XpLogModel.fromJson(r)).toList());
   }
 
   /// One-shot fetch of the most recent [limit] xp_logs for [userId].
@@ -43,7 +42,10 @@ class XpRemoteDataSource {
         .select('xp_gained')
         .eq('user_id', userId)
         .gte('created_at', start.toIso8601String());
-    return (data as List).fold<int>(0, (sum, r) => sum + (r['xp_gained'] as int? ?? 0));
+    return (data as List).fold<int>(
+      0,
+      (sum, r) => sum + (r['xp_gained'] as int? ?? 0),
+    );
   }
 
   /// XP earned this week (last 7 days) for [userId].
@@ -54,7 +56,10 @@ class XpRemoteDataSource {
         .select('xp_gained')
         .eq('user_id', userId)
         .gte('created_at', start.toIso8601String());
-    return (data as List).fold<int>(0, (sum, r) => sum + (r['xp_gained'] as int? ?? 0));
+    return (data as List).fold<int>(
+      0,
+      (sum, r) => sum + (r['xp_gained'] as int? ?? 0),
+    );
   }
 
   /// XP earned this month (last 30 days) for [userId].
@@ -65,7 +70,10 @@ class XpRemoteDataSource {
         .select('xp_gained')
         .eq('user_id', userId)
         .gte('created_at', start.toIso8601String());
-    return (data as List).fold<int>(0, (sum, r) => sum + (r['xp_gained'] as int? ?? 0));
+    return (data as List).fold<int>(
+      0,
+      (sum, r) => sum + (r['xp_gained'] as int? ?? 0),
+    );
   }
 
   /// Insert an XP log entry and update users.total_xp + current_xp directly.
@@ -84,18 +92,28 @@ class XpRemoteDataSource {
       'reason': reason,
     });
     // Fetch current XP then increment (no trigger covers total_xp for these actions)
-    final row = await _client
-        .from('users')
-        .select('total_xp, current_xp')
-        .eq('id', userId)
-        .single();
+    final row =
+        await _client
+            .from('users')
+            .select('total_xp')
+            .eq('id', userId)
+            .single();
     final newTotal = (row['total_xp'] as int? ?? 0) + xpGained;
-    final newCurrent = (row['current_xp'] as int? ?? 0) + xpGained;
-    await _client.from('users').update({
-      'total_xp': newTotal,
-      'current_xp': newCurrent,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', userId);
+    final levelState = xpProgressFromTotalXp(newTotal);
+    final rankState = xpRankForLevel(levelState.level);
+    await _client
+        .from('users')
+        .update({
+          'total_xp': newTotal,
+          'current_xp': levelState.xpIntoLevel,
+          'level': levelState.level,
+          'next_level_xp': levelState.nextLevelXp,
+          'rank_name': rankState.name,
+          'rank_division': rankState.division,
+          'rank_title': rankState.title,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', userId);
   }
 
   /// Deduct XP when a subtask is unchecked. Deletes the matching xp_log,
@@ -120,27 +138,32 @@ class XpRemoteDataSource {
       await _client.from('xp_logs').delete().eq('id', logs.first['id']);
     }
     // Fetch current values
-    final row = await _client
-        .from('users')
-        .select('total_xp, current_xp, level')
-        .eq('id', userId)
-        .single();
+    final row =
+        await _client
+            .from('users')
+            .select('total_xp, current_xp, level')
+            .eq('id', userId)
+            .single();
     final oldLevel = row['level'] as int? ?? row['llevel'] as int? ?? 1;
-    final newTotal = ((row['total_xp'] as int? ?? 0) - xpToDeduct).clamp(0, 999999);
-    final newCurrent = ((row['current_xp'] as int? ?? 0) - xpToDeduct).clamp(0, 999999);
-    // DB formula: GREATEST(1, FLOOR(SQRT(total_xp/100)) + 1)
-    final newLevel = newTotal <= 0
-        ? 1
-        : (1 + (newTotal / 100.0).clamp(0, double.maxFinite).toDouble()
-                .floorToDouble()
-                .toInt())
-            .clamp(1, 999);
-    await _client.from('users').update({
-      'total_xp': newTotal,
-      'current_xp': newCurrent,
-      'level': newLevel,
-      'updated_at': DateTime.now().toUtc().toIso8601String(),
-    }).eq('id', userId);
+    final newTotal = ((row['total_xp'] as int? ?? 0) - xpToDeduct).clamp(
+      0,
+      999999,
+    );
+    final levelState = xpProgressFromTotalXp(newTotal);
+    final rankState = xpRankForLevel(levelState.level);
+    await _client
+        .from('users')
+        .update({
+          'total_xp': newTotal,
+          'current_xp': levelState.xpIntoLevel,
+          'level': levelState.level,
+          'next_level_xp': levelState.nextLevelXp,
+          'rank_name': rankState.name,
+          'rank_division': rankState.division,
+          'rank_title': rankState.title,
+          'updated_at': DateTime.now().toUtc().toIso8601String(),
+        })
+        .eq('id', userId);
     return oldLevel;
   }
 }

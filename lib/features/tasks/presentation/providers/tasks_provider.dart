@@ -212,4 +212,34 @@ final taskTagIdsProvider = FutureProvider.family<List<String>, String>((ref, tas
   return ref.read(tagDataSourceProvider).getTaskTagIds(taskId);
 });
 
+final userAttachmentTaskIdsProvider = FutureProvider<Set<String>>((ref) async {
+  final tasks = ref.watch(userTasksProvider).valueOrNull ?? const <NexusTask>[];
+  if (tasks.isEmpty) return const <String>{};
+  final taskIds = tasks.map((task) => task.id).toList();
+  final supabase = ref.watch(supabaseClientProvider);
+  final data = await supabase
+      .from('task_attachments')
+      .select('task_id')
+      .inFilter('task_id', taskIds);
+  return (data as List).map((row) => row['task_id'].toString()).toSet();
+});
+
+final userSubtasksByTaskProvider = FutureProvider<Map<String, List<TaskSubtaskModel>>>((ref) async {
+  final tasks = ref.watch(userTasksProvider).valueOrNull ?? const <NexusTask>[];
+  if (tasks.isEmpty) return const <String, List<TaskSubtaskModel>>{};
+  final taskIds = tasks.map((task) => task.id).toList();
+  final supabase = ref.watch(supabaseClientProvider);
+  final data = await supabase
+      .from('task_subtasks')
+      .select()
+      .inFilter('task_id', taskIds)
+      .order('created_at', ascending: true);
+  final grouped = <String, List<TaskSubtaskModel>>{};
+  for (final row in data as List) {
+    final subtask = TaskSubtaskModel.fromJson(row as Map<String, dynamic>);
+    grouped.putIfAbsent(subtask.taskId, () => []).add(subtask);
+  }
+  return grouped;
+});
+
 

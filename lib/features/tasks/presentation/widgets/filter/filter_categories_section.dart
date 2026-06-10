@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/tasks/data/models/category_model.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_data_helpers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
-class _CategoryOption {
-  const _CategoryOption(
-    this.id,
-    this.name,
-    this.subtitle,
-    this.dot,
-    this.count,
-  );
-
-  final String id;
-  final String name;
-  final String subtitle;
-  final Color dot;
-  final int count;
-}
-
-class FilterCategoriesSection extends StatefulWidget {
+class FilterCategoriesSection extends ConsumerStatefulWidget {
   const FilterCategoriesSection({
     required this.selected,
     required this.onChanged,
@@ -28,53 +16,27 @@ class FilterCategoriesSection extends StatefulWidget {
   final ValueChanged<Set<String>> onChanged;
 
   @override
-  State<FilterCategoriesSection> createState() =>
+  ConsumerState<FilterCategoriesSection> createState() =>
       _FilterCategoriesSectionState();
 }
 
-class _FilterCategoriesSectionState extends State<FilterCategoriesSection> {
+class _FilterCategoriesSectionState
+    extends ConsumerState<FilterCategoriesSection> {
   String _search = '';
-
-  static const _categories = [
-    _CategoryOption(
-      'neural',
-      'Neural Engine',
-      'Core AI Infrastructure',
-      Color(0xFF818CF8),
-      4,
-    ),
-    _CategoryOption(
-      'ui',
-      'UI Systems',
-      'Interface & Experience',
-      Color(0xFF60A5FA),
-      3,
-    ),
-    _CategoryOption(
-      'pipeline',
-      'Data Pipeline',
-      'Data & Analytics',
-      Color(0xFF34D399),
-      2,
-    ),
-    _CategoryOption(
-      'integrations',
-      'Integrations',
-      'Third-party Services',
-      Color(0xFFFBBF24),
-      1,
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
-    final filtered =
-        _categories
-            .where(
-              (category) =>
-                  category.name.toLowerCase().contains(_search.toLowerCase()),
-            )
-            .toList();
+    final categories = ref.watch(userCategoriesProvider).valueOrNull ?? const <CategoryModel>[];
+    final tasks = ref.watch(userTasksProvider).valueOrNull ?? const [];
+    final counts = <String, int>{};
+    for (final task in tasks) {
+      final categoryId = task.categoryId;
+      if (categoryId == null) continue;
+      counts[categoryId] = (counts[categoryId] ?? 0) + 1;
+    }
+    final filtered = categories
+        .where((category) => category.name.toLowerCase().contains(_search.toLowerCase()))
+        .toList();
 
     return Column(
       children: [
@@ -120,18 +82,22 @@ class _FilterCategoriesSectionState extends State<FilterCategoriesSection> {
           ),
         ),
         const SizedBox(height: 10),
-        for (final category in filtered)
-          _CategoryRow(
-            category: category,
-            checked: widget.selected.contains(category.id),
-            onTap: () {
-              final next = Set<String>.from(widget.selected);
-              widget.selected.contains(category.id)
-                  ? next.remove(category.id)
-                  : next.add(category.id);
-              widget.onChanged(next);
-            },
-          ),
+        if (filtered.isEmpty)
+          const _EmptyFilterMessage('No categories found')
+        else
+          for (final category in filtered)
+            _CategoryRow(
+              category: category,
+              count: counts[category.id] ?? 0,
+              checked: widget.selected.contains(category.id),
+              onTap: () {
+                final next = Set<String>.from(widget.selected);
+                widget.selected.contains(category.id)
+                    ? next.remove(category.id)
+                    : next.add(category.id);
+                widget.onChanged(next);
+              },
+            ),
       ],
     );
   }
@@ -140,105 +106,98 @@ class _FilterCategoriesSectionState extends State<FilterCategoriesSection> {
 class _CategoryRow extends StatelessWidget {
   const _CategoryRow({
     required this.category,
+    required this.count,
     required this.checked,
     required this.onTap,
   });
 
-  final _CategoryOption category;
+  final CategoryModel category;
+  final int count;
   final bool checked;
   final VoidCallback onTap;
 
   @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color:
-            checked ? Colors.white.withValues(alpha: .03) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color:
-              checked
-                  ? Colors.white.withValues(alpha: .15)
-                  : Colors.transparent,
+  Widget build(BuildContext context) {
+    final color = parseFilterColor(category.color);
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: checked ? Colors.white.withValues(alpha: .03) : Colors.transparent,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: checked ? Colors.white.withValues(alpha: .15) : Colors.transparent,
+          ),
         ),
-      ),
-      child: Row(
-        children: [
-          Checkbox(
-            value: checked,
-            onChanged: (_) => onTap(),
-            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            visualDensity: VisualDensity.compact,
-            fillColor: WidgetStateProperty.resolveWith(
-              (states) =>
-                  states.contains(WidgetState.selected)
-                      ? DashboardColors.secondary
-                      : Colors.transparent,
+        child: Row(
+          children: [
+            Checkbox(
+              value: checked,
+              onChanged: (_) => onTap(),
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+              fillColor: WidgetStateProperty.resolveWith(
+                (states) => states.contains(WidgetState.selected)
+                    ? DashboardColors.secondary
+                    : Colors.transparent,
+              ),
+              checkColor: DashboardColors.onPrimary,
+              side: const BorderSide(
+                color: DashboardColors.outlineVariant,
+                width: 1.5,
+              ),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
             ),
-            checkColor: DashboardColors.onPrimary,
-            side: const BorderSide(
-              color: DashboardColors.outlineVariant,
-              width: 1.5,
+            const SizedBox(width: 8),
+            Icon(filterIconFromName(category.icon), color: color, size: 16),
+            const SizedBox(width: 8),
+            Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(shape: BoxShape.circle, color: color),
             ),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(4),
-            ),
-          ),
-          const SizedBox(width: 8),
-          Container(
-            width: 10,
-            height: 10,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: category.dot,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  category.name,
-                  style: const TextStyle(
-                    color: DashboardColors.onSurface,
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  category.subtitle,
-                  style: const TextStyle(
-                    color: DashboardColors.onSurfaceVariant,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: DashboardColors.surfaceHigh,
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: Center(
+            const SizedBox(width: 10),
+            Expanded(
               child: Text(
-                '${category.count}',
+                category.name,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: DashboardColors.onSurface,
-                  fontSize: 11,
+                  fontSize: 13,
                   fontWeight: FontWeight.w700,
                 ),
               ),
             ),
-          ),
-        ],
+            Text(
+              '($count)',
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 12,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _EmptyFilterMessage extends StatelessWidget {
+  const _EmptyFilterMessage(this.text);
+  final String text;
+
+  @override
+  Widget build(BuildContext context) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 12),
+    child: Text(
+      text,
+      style: const TextStyle(
+        color: DashboardColors.onSurfaceVariant,
+        fontSize: 13,
+        fontWeight: FontWeight.w600,
       ),
     ),
   );

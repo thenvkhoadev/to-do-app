@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 
 class DashboardBackground extends StatelessWidget {
   const DashboardBackground({required this.child, super.key});
@@ -262,6 +263,7 @@ class DashboardHeader extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final greeting = dashboardGreeting(DateTime.now());
     final username = dashboardUsername(ref);
+    final stats = ref.watch(dashboardStatsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -278,9 +280,9 @@ class DashboardHeader extends ConsumerWidget {
                     style: Theme.of(context).textTheme.displayLarge,
                   ),
                   const SizedBox(height: 10),
-                  const Text(
-                    'Your productivity cycle is in its peak phase. You have completed 4 focus blocks today.',
-                    style: TextStyle(
+                  Text(
+                    stats.headerSummary,
+                    style: const TextStyle(
                       color: DashboardColors.onSurfaceVariant,
                       fontSize: 18,
                       height: 1.55,
@@ -616,21 +618,30 @@ class CircularScore extends StatelessWidget {
 class AnalyticsBars extends StatelessWidget {
   const AnalyticsBars({
     this.values = const [.4, .65, .85, .5, .9, .2, .15],
+    this.counts,
     this.labels = const ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'],
     super.key,
   });
 
   final List<double> values;
+  final List<int>? counts;
   final List<String> labels;
 
   @override
   Widget build(BuildContext context) {
+    final sourceValues = counts == null
+        ? values
+        : counts!.map((count) {
+            final maxCount = counts!.fold<int>(0, (max, c) => c > max ? c : max);
+            if (maxCount == 0) return .08;
+            return (count / maxCount).clamp(.08, 1).toDouble();
+          }).toList();
     return SizedBox(
       height: 170,
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          for (var i = 0; i < values.length; i++)
+          for (var i = 0; i < sourceValues.length; i++)
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 5),
@@ -641,7 +652,7 @@ class AnalyticsBars extends StatelessWidget {
                       child: Align(
                         alignment: Alignment.bottomCenter,
                         child: TweenAnimationBuilder<double>(
-                          tween: Tween(begin: 0, end: values[i]),
+                          tween: Tween(begin: 0, end: sourceValues[i]),
                           duration: Duration(milliseconds: 600 + i * 70),
                           curve: Curves.easeOutCubic,
                           builder:

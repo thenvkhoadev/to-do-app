@@ -8,6 +8,7 @@ import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 
 class MobileDashboardLayout extends StatelessWidget {
   const MobileDashboardLayout({super.key});
@@ -174,6 +175,7 @@ class MobileHeroSection extends ConsumerWidget {
     final isTight = MediaQuery.sizeOf(context).width < 380;
     final greeting = dashboardGreeting(DateTime.now());
     final username = dashboardUsername(ref);
+    final stats = ref.watch(dashboardStatsProvider);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -202,9 +204,9 @@ class MobileHeroSection extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const Text(
-          'Your productivity cycle is peaking. It is the perfect time for deep work.',
-          style: TextStyle(
+        Text(
+          stats.headerSummary,
+          style: const TextStyle(
             color: DashboardColors.onSurfaceVariant,
             fontSize: 17,
             height: 1.5,
@@ -217,11 +219,12 @@ class MobileHeroSection extends ConsumerWidget {
   }
 }
 
-class AIRecommendationMobileCard extends StatelessWidget {
+class AIRecommendationMobileCard extends ConsumerWidget {
   const AIRecommendationMobileCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final task = ref.watch(dashboardStatsProvider).nextBestTask;
     return GlassCard(
       glowColor: DashboardColors.primary,
       padding: const EdgeInsets.all(20),
@@ -246,11 +249,11 @@ class AIRecommendationMobileCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 14),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
+                    const Text(
                       'AI RECOMMENDATION',
                       style: TextStyle(
                         color: DashboardColors.outline,
@@ -259,10 +262,10 @@ class AIRecommendationMobileCard extends StatelessWidget {
                         letterSpacing: 1.2,
                       ),
                     ),
-                    SizedBox(height: 6),
+                    const SizedBox(height: 6),
                     Text(
-                      'Next best task: Review Q3 Plan',
-                      style: TextStyle(
+                      task == null ? 'No active task recommendation' : 'Next best task: ${task.title}',
+                      style: const TextStyle(
                         color: DashboardColors.onSurface,
                         fontSize: 20,
                         height: 1.2,
@@ -325,21 +328,22 @@ class _ShimmerBand extends StatelessWidget {
   }
 }
 
-class FocusProgressCard extends StatelessWidget {
+class FocusProgressCard extends ConsumerWidget {
   const FocusProgressCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const GlassCard(
-      padding: EdgeInsets.all(28),
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    return GlassCard(
+      padding: const EdgeInsets.all(28),
       child: Column(
         children: [
-          CircularScore(value: .85, label: 'FOCUSED', size: 190),
-          SizedBox(height: 22),
+          CircularScore(value: stats.focusProgress, label: 'FOCUSED', size: 190),
+          const SizedBox(height: 22),
           Text(
-            'You are 15% ahead of your weekly average. Keep the momentum.',
+            stats.focusSummary,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               height: 1.5,
             ),
@@ -411,16 +415,17 @@ class PulsingGradientButton extends StatelessWidget {
   }
 }
 
-class AnalyticsCard extends StatelessWidget {
+class AnalyticsCard extends ConsumerWidget {
   const AnalyticsCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const GlassCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    return GlassCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          const Row(
             children: [
               Text(
                 'Analytics',
@@ -434,10 +439,10 @@ class AnalyticsCard extends StatelessWidget {
               Icon(Icons.trending_up_rounded, color: DashboardColors.outline),
             ],
           ),
-          SizedBox(height: 18),
+          const SizedBox(height: 18),
           AnalyticsBars(
-            values: [.6, .45, .8, .55, .9, .75, .2],
-            labels: ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
+            counts: stats.weeklyCompletedCounts,
+            labels: const ['M', 'T', 'W', 'T', 'F', 'S', 'S'],
           ),
         ],
       ),

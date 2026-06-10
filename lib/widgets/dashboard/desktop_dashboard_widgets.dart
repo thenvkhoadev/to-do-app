@@ -1,6 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
@@ -19,16 +20,19 @@ import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 
 class DesktopDashboardLayout extends StatefulWidget {
-  const DesktopDashboardLayout({super.key});
+  const DesktopDashboardLayout({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   State<DesktopDashboardLayout> createState() => _DesktopDashboardLayoutState();
 }
 
 class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
-  int _selectedIndex = 0;
+  late int _selectedIndex = widget.initialIndex;
   TaskBoardItem? _detailsItem;
 
   void _openTaskDetails(TaskBoardItem item) =>
@@ -87,7 +91,8 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                         3 => CalendarScreen(
                           key: const ValueKey('calendar'),
                           onViewDetails: _openTaskDetails,
-                          onCreateTask: () => setState(() => _selectedIndex = 8),
+                          onCreateTask:
+                              () => setState(() => _selectedIndex = 8),
                         ),
                         4 => const AnalyticsScreen(
                           key: ValueKey('analytics'),
@@ -110,9 +115,7 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
                           key: const ValueKey('new-task'),
                           onClose: () => setState(() => _selectedIndex = 0),
                         ),
-                        9 => const ArchivedScreen(
-                          key: ValueKey('archived'),
-                        ),
+                        9 => const ArchivedScreen(key: ValueKey('archived')),
                         _ => _DashboardSectionPlaceholder(
                           index: _selectedIndex,
                         ),
@@ -491,95 +494,95 @@ class DesktopSidebar extends StatelessWidget {
               SliverFillRemaining(
                 hasScrollBody: false,
                 child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ShaderMask(
-                shaderCallback:
-                    (rect) => const LinearGradient(
-                      colors: [
-                        DashboardColors.primary,
-                        DashboardColors.secondary,
-                      ],
-                    ).createShader(rect),
-                child: const Text(
-                  'NEXUS AI',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 29,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -.8,
-                  ),
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ShaderMask(
+                      shaderCallback:
+                          (rect) => const LinearGradient(
+                            colors: [
+                              DashboardColors.primary,
+                              DashboardColors.secondary,
+                            ],
+                          ).createShader(rect),
+                      child: const Text(
+                        'NEXUS AI',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 29,
+                          fontWeight: FontWeight.w900,
+                          letterSpacing: -.8,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Deep Work Mode',
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                        fontSize: 12,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    _SidebarItem(
+                      icon: Icons.dashboard_rounded,
+                      label: 'NEXUS AI',
+                      active: selectedIndex == 0,
+                      onTap: () => onSelected(0),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.account_tree_rounded,
+                      label: 'Tasks',
+                      active: selectedIndex == 1,
+                      onTap: () => onSelected(1),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.psychology_rounded,
+                      label: 'Intelligence',
+                      active: selectedIndex == 2,
+                      onTap: () => onSelected(2),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.calendar_month_rounded,
+                      label: 'Calendar',
+                      active: selectedIndex == 3,
+                      onTap: () => onSelected(3),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.archive_rounded,
+                      label: 'Archived',
+                      active: selectedIndex == 9,
+                      onTap: () => onSelected(9),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.query_stats_rounded,
+                      label: 'Analytics',
+                      active: selectedIndex == 4,
+                      onTap: () => onSelected(4),
+                    ),
+                    const Spacer(),
+                    GradientButton(
+                      label: 'New Task',
+                      icon: Icons.add_rounded,
+                      expanded: true,
+                      onPressed: () => onSelected(8),
+                    ),
+                    const SizedBox(height: 12),
+                    _SidebarItem(
+                      icon: Icons.settings_rounded,
+                      label: 'Settings',
+                      active: selectedIndex == 5,
+                      onTap: () => onSelected(5),
+                    ),
+                    _SidebarItem(
+                      icon: Icons.help_outline_rounded,
+                      label: 'Support',
+                      active: selectedIndex == 6,
+                      onTap: () => onSelected(6),
+                    ),
+                    const SizedBox(height: 4),
+                    _SignOutButton(onTap: () => signOutDashboard(context)),
+                  ],
                 ),
-              ),
-              const SizedBox(height: 4),
-              const Text(
-                'Deep Work Mode',
-                style: TextStyle(
-                  color: DashboardColors.onSurfaceVariant,
-                  fontSize: 12,
-                ),
-              ),
-              const SizedBox(height: 40),
-              _SidebarItem(
-                icon: Icons.dashboard_rounded,
-                label: 'NEXUS AI',
-                active: selectedIndex == 0,
-                onTap: () => onSelected(0),
-              ),
-              _SidebarItem(
-                icon: Icons.account_tree_rounded,
-                label: 'Tasks',
-                active: selectedIndex == 1,
-                onTap: () => onSelected(1),
-              ),
-              _SidebarItem(
-                icon: Icons.psychology_rounded,
-                label: 'Intelligence',
-                active: selectedIndex == 2,
-                onTap: () => onSelected(2),
-              ),
-              _SidebarItem(
-                icon: Icons.calendar_month_rounded,
-                label: 'Calendar',
-                active: selectedIndex == 3,
-                onTap: () => onSelected(3),
-              ),
-              _SidebarItem(
-                icon: Icons.archive_rounded,
-                label: 'Archived',
-                active: selectedIndex == 9,
-                onTap: () => onSelected(9),
-              ),
-              _SidebarItem(
-                icon: Icons.query_stats_rounded,
-                label: 'Analytics',
-                active: selectedIndex == 4,
-                onTap: () => onSelected(4),
-              ),
-              const Spacer(),
-              GradientButton(
-                label: 'New Task',
-                icon: Icons.add_rounded,
-                expanded: true,
-                onPressed: () => onSelected(8),
-              ),
-              const SizedBox(height: 12),
-              _SidebarItem(
-                icon: Icons.settings_rounded,
-                label: 'Settings',
-                active: selectedIndex == 5,
-                onTap: () => onSelected(5),
-              ),
-              _SidebarItem(
-                icon: Icons.help_outline_rounded,
-                label: 'Support',
-                active: selectedIndex == 6,
-                onTap: () => onSelected(6),
-              ),
-              const SizedBox(height: 4),
-              _SignOutButton(onTap: () => signOutDashboard(context)),
-            ],
-          ),
               ),
             ],
           ),
@@ -771,7 +774,10 @@ class DesktopTopbar extends StatelessWidget {
                           const SizedBox(width: 12),
                           const XPLevelCard(),
                           const SizedBox(width: 12),
-                          ProfileAvatar(onTap: onProfileTap, showUsername: true),
+                          ProfileAvatar(
+                            onTap: onProfileTap,
+                            showUsername: true,
+                          ),
                         ],
                       ),
                     ],
@@ -1040,23 +1046,28 @@ class _TopIcon extends StatelessWidget {
   }
 }
 
-class FocusScoreCard extends StatelessWidget {
+class FocusScoreCard extends ConsumerWidget {
   const FocusScoreCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const AnimatedHoverCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    return AnimatedHoverCard(
       glowColor: DashboardColors.primary,
       child: Column(
         children: [
-          SectionTitle(label: "Today’s Focus Score"),
-          SizedBox(height: 22),
-          CircularScore(value: .85, label: 'Flow State', size: 190),
-          SizedBox(height: 18),
+          const SectionTitle(label: "Today’s Focus Score"),
+          const SizedBox(height: 22),
+          CircularScore(
+            value: stats.focusProgress,
+            label: 'Focused',
+            size: 190,
+          ),
+          const SizedBox(height: 18),
           Text(
-            'You are 12% more focused than last Monday.',
+            stats.focusSummary,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               height: 1.45,
             ),
@@ -1067,11 +1078,12 @@ class FocusScoreCard extends StatelessWidget {
   }
 }
 
-class AIRecommendationCard extends StatelessWidget {
+class AIRecommendationCard extends ConsumerWidget {
   const AIRecommendationCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final task = ref.watch(dashboardStatsProvider).nextBestTask;
     return AnimatedHoverCard(
       glowColor: DashboardColors.secondary,
       child: Stack(
@@ -1087,35 +1099,44 @@ class AIRecommendationCard extends StatelessWidget {
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              SectionTitle(
+            children: [
+              const SectionTitle(
                 label: 'AI Recommendation',
                 icon: Icons.psychology_rounded,
                 color: DashboardColors.secondary,
               ),
-              SizedBox(height: 18),
+              const SizedBox(height: 18),
               Text(
-                'Finalize Brand Guidelines for Project Helios',
-                style: TextStyle(
+                task?.title ?? 'No active task recommendation',
+                style: const TextStyle(
                   color: DashboardColors.onSurface,
                   fontSize: 24,
                   height: 1.18,
                   fontWeight: FontWeight.w800,
                 ),
               ),
-              SizedBox(height: 16),
+              const SizedBox(height: 16),
               Row(
                 children: [
-                  _Meta(icon: Icons.schedule_rounded, label: '45 min'),
-                  SizedBox(width: 18),
+                  _Meta(
+                    icon: Icons.schedule_rounded,
+                    label:
+                        task?.estimatedMinutes == null
+                            ? 'No estimate'
+                            : '${task!.estimatedMinutes} min',
+                  ),
+                  const SizedBox(width: 18),
                   _Meta(
                     icon: Icons.priority_high_rounded,
-                    label: 'High Priority',
+                    label:
+                        task == null
+                            ? 'No priority'
+                            : '${task.priority} priority',
                   ),
                 ],
               ),
-              SizedBox(height: 34),
-              GradientButton(
+              const SizedBox(height: 34),
+              const GradientButton(
                 label: 'Start Now',
                 icon: Icons.arrow_forward_rounded,
                 expanded: true,
@@ -1148,16 +1169,17 @@ class _Meta extends StatelessWidget {
   );
 }
 
-class ProductivityChartCard extends StatelessWidget {
+class ProductivityChartCard extends ConsumerWidget {
   const ProductivityChartCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const AnimatedHoverCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    return AnimatedHoverCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
+          const Row(
             children: [
               SectionTitle(label: 'Weekly Productivity'),
               Spacer(),
@@ -1171,24 +1193,25 @@ class ProductivityChartCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16),
-          AnalyticsBars(),
+          const SizedBox(height: 16),
+          AnalyticsBars(counts: stats.weeklyCompletedCounts),
         ],
       ),
     );
   }
 }
 
-class UpcomingScheduleCard extends StatelessWidget {
+class UpcomingScheduleCard extends ConsumerWidget {
   const UpcomingScheduleCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final upcoming = ref.watch(dashboardStatsProvider).upcomingTasks;
     return AnimatedHoverCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Row(
+        children: [
+          const Row(
             children: [
               Text(
                 'Upcoming',
@@ -1209,32 +1232,37 @@ class UpcomingScheduleCard extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 16),
-          _ScheduleRow(
-            time: '10',
-            meridiem: 'AM',
-            title: 'Stakeholder Sync',
-            subtitle: 'Google Meet • 45 min',
-            color: DashboardColors.primary,
-          ),
-          _ScheduleRow(
-            time: '02',
-            meridiem: 'PM',
-            title: 'Design Critique',
-            subtitle: 'Conference Room B • 1h',
-            color: DashboardColors.secondary,
-          ),
-          _ScheduleRow(
-            time: '04',
-            meridiem: 'PM',
-            title: 'Weekly Retro',
-            subtitle: 'Slack • 30 min',
-            color: DashboardColors.onSurfaceVariant,
-          ),
+          const SizedBox(height: 16),
+          if (upcoming.isEmpty)
+            const Text(
+              'No upcoming due tasks.',
+              style: TextStyle(color: DashboardColors.onSurfaceVariant),
+            )
+          else
+            for (final task in upcoming)
+              _ScheduleRow(
+                time: _dueHour(task.dueDate!),
+                meridiem: _dueMeridiem(task.dueDate!),
+                title: task.title,
+                subtitle: task.priority.toUpperCase(),
+                color: DashboardColors.primary,
+              ),
         ],
       ),
     );
   }
+
+  String _dueHour(DateTime value) {
+    final hour =
+        value.hour == 0
+            ? 12
+            : value.hour > 12
+            ? value.hour - 12
+            : value.hour;
+    return hour.toString().padLeft(2, '0');
+  }
+
+  String _dueMeridiem(DateTime value) => value.hour >= 12 ? 'PM' : 'AM';
 }
 
 class _ScheduleRow extends StatelessWidget {
@@ -1314,16 +1342,17 @@ class _ScheduleRow extends StatelessWidget {
   }
 }
 
-class ActivityTimelineCard extends StatelessWidget {
+class ActivityTimelineCard extends ConsumerWidget {
   const ActivityTimelineCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final recent = ref.watch(dashboardStatsProvider).recentTasks;
     return AnimatedHoverCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
-          Text(
+        children: [
+          const Text(
             'Recent Activity',
             style: TextStyle(
               color: DashboardColors.onSurface,
@@ -1331,28 +1360,41 @@ class ActivityTimelineCard extends StatelessWidget {
               fontWeight: FontWeight.w800,
             ),
           ),
-          SizedBox(height: 18),
-          _TimelineEvent(
-            icon: Icons.check_rounded,
-            color: DashboardColors.primary,
-            text: 'Completed Mobile App v2.4 design sprint',
-            time: '2 hours ago',
-          ),
-          _TimelineEvent(
-            icon: Icons.edit_rounded,
-            color: DashboardColors.secondary,
-            text: 'Updated Project Helios documentation',
-            time: '4 hours ago',
-          ),
-          _TimelineEvent(
-            icon: Icons.chat_bubble_rounded,
-            color: DashboardColors.tertiary,
-            text: 'Sarah commented on User Flow UX',
-            time: 'Yesterday',
-          ),
+          const SizedBox(height: 18),
+          if (recent.isEmpty)
+            const Text(
+              'No recent task activity.',
+              style: TextStyle(color: DashboardColors.onSurfaceVariant),
+            )
+          else
+            for (final task in recent)
+              _TimelineEvent(
+                icon:
+                    task.status == 'done'
+                        ? Icons.check_rounded
+                        : Icons.edit_rounded,
+                color:
+                    task.status == 'done'
+                        ? DashboardColors.primary
+                        : DashboardColors.secondary,
+                text:
+                    task.status == 'done'
+                        ? 'Completed ${task.title}'
+                        : 'Updated ${task.title}',
+                time: _relativeTime(task.updatedAt ?? task.createdAt),
+              ),
         ],
       ),
     );
+  }
+
+  String _relativeTime(DateTime? value) {
+    if (value == null) return 'Recently';
+    final diff = DateTime.now().difference(value);
+    if (diff.inDays > 0) return '${diff.inDays}d ago';
+    if (diff.inHours > 0) return '${diff.inHours}h ago';
+    if (diff.inMinutes > 0) return '${diff.inMinutes}m ago';
+    return 'Just now';
   }
 }
 

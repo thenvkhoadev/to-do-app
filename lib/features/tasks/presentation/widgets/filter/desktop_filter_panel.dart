@@ -1,16 +1,24 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_ai_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_assigned_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_attachments_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_categories_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_date_range_desktop.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_other_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_priority_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_smart_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_status_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_subtasks_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_tags_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_time_section.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
-class DesktopFilterPanel extends StatefulWidget {
+class DesktopFilterPanel extends ConsumerStatefulWidget {
   const DesktopFilterPanel({
     required this.initialState,
     required this.onApply,
@@ -23,10 +31,10 @@ class DesktopFilterPanel extends StatefulWidget {
   final VoidCallback onClose;
 
   @override
-  State<DesktopFilterPanel> createState() => _DesktopFilterPanelState();
+  ConsumerState<DesktopFilterPanel> createState() => _DesktopFilterPanelState();
 }
 
-class _DesktopFilterPanelState extends State<DesktopFilterPanel>
+class _DesktopFilterPanelState extends ConsumerState<DesktopFilterPanel>
     with SingleTickerProviderStateMixin {
   late FilterState _state;
   late AnimationController _controller;
@@ -66,24 +74,7 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
     widget.onClose();
   }
 
-  int get _activeCount {
-    var count = 0;
-    if (_state.selectedPriorities.isNotEmpty) count++;
-    if (_state.selectedCategoryIds.isNotEmpty) count++;
-    if (!_state.selectedStatuses.contains(TaskStatus.all) ||
-        _state.selectedStatuses.length > 1) {
-      count++;
-    }
-    if (_state.startDate != null || _state.endDate != null) count++;
-    if (_state.unassignedOnly || _state.assignedUserId != null) count++;
-    if (_state.hasSubtasks ||
-        _state.missingSubtasks ||
-        _state.overdue ||
-        _state.blocked) {
-      count++;
-    }
-    return count;
-  }
+  int get _activeCount => _state.activeCount;
 
   @override
   Widget build(BuildContext context) {
@@ -134,6 +125,7 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
   }
 
   Widget _buildHeader() {
+    final tasks = ref.watch(userTasksProvider).valueOrNull ?? const [];
     return Padding(
       padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
       child: Row(
@@ -153,10 +145,10 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
             ),
           ),
           const SizedBox(width: 16),
-          const Column(
+          Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
+              const Text(
                 'Filter Tasks',
                 style: TextStyle(
                   color: DashboardColors.onSurface,
@@ -165,10 +157,10 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
                   height: 1.2,
                 ),
               ),
-              SizedBox(height: 2),
+              const SizedBox(height: 2),
               Text(
-                'Refine your view to find exactly what you need',
-                style: TextStyle(
+                'Showing ${tasks.length} tasks',
+                style: const TextStyle(
                   color: DashboardColors.onSurfaceVariant,
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -179,17 +171,17 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
           const Spacer(),
           GestureDetector(
             onTap: () => setState(() => _state = _state.reset()),
-            child: const Row(
+            child: Row(
               children: [
-                Icon(
+                const Icon(
                   Icons.refresh_rounded,
                   color: DashboardColors.onSurfaceVariant,
                   size: 16,
                 ),
-                SizedBox(width: 6),
+                const SizedBox(width: 6),
                 Text(
-                  'Clear all',
-                  style: TextStyle(
+                  _activeCount > 0 ? 'Clear all ($_activeCount)' : 'Clear all',
+                  style: const TextStyle(
                     color: DashboardColors.onSurfaceVariant,
                     fontSize: 14,
                     fontWeight: FontWeight.w700,
@@ -224,7 +216,18 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _SectionCard(
+            icon: Icons.auto_awesome_rounded,
+            label: 'QUICK SMART FILTERS',
+            child: FilterSmartSection(
+              selected: _state.selectedSmartFilters,
+              onChanged: (value) =>
+                  setState(() => _state = _state.copyWith(selectedSmartFilters: value)),
+            ),
+          ),
+          const SizedBox(height: 12),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -335,6 +338,8 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
                   child: FilterAssignedSection(
                     selectedUserId: _state.assignedUserId,
                     unassignedOnly: _state.unassignedOnly,
+                    selectedAssigneeIds: _state.selectedAssigneeIds,
+                    specialFilters: _state.assigneeSpecialFilters,
                     onUserChanged:
                         (value) => setState(
                           () => _state = _state.copyWith(assignedUserId: value),
@@ -343,6 +348,12 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
                         (value) => setState(
                           () => _state = _state.copyWith(unassignedOnly: value),
                         ),
+                    onAssigneeIdsChanged: (value) => setState(
+                      () => _state = _state.copyWith(selectedAssigneeIds: value),
+                    ),
+                    onSpecialFiltersChanged: (value) => setState(
+                      () => _state = _state.copyWith(assigneeSpecialFilters: value),
+                    ),
                   ),
                 ),
               ),
@@ -355,6 +366,77 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
             child: FilterOtherSection(
               state: _state,
               onChanged: (value) => setState(() => _state = value),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.label_outline_rounded,
+                  label: 'TAGS',
+                  child: FilterTagsSection(
+                    selected: _state.selectedTagIds,
+                    onChanged: (value) =>
+                        setState(() => _state = _state.copyWith(selectedTagIds: value)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.schedule_rounded,
+                  label: 'TIME FILTERS',
+                  child: FilterTimeSection(
+                    selected: _state.selectedTimeFilters,
+                    onChanged: (value) =>
+                        setState(() => _state = _state.copyWith(selectedTimeFilters: value)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.auto_awesome_outlined,
+                  label: 'AI TASKS',
+                  child: FilterAiSection(
+                    value: _state.aiTaskFilter,
+                    onChanged: (value) =>
+                        setState(() => _state = _state.copyWith(aiTaskFilter: value)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.attach_file_rounded,
+                  label: 'ATTACHMENTS',
+                  child: FilterAttachmentsSection(
+                    value: _state.attachmentFilter,
+                    onChanged: (value) =>
+                        setState(() => _state = _state.copyWith(attachmentFilter: value)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            icon: Icons.list_alt_rounded,
+            label: 'SUBTASKS',
+            child: FilterSubtasksSection(
+              selected: _state.selectedSubtaskFilters,
+              searchQuery: _state.subtaskSearch,
+              onSearchChanged: (v) =>
+                  setState(() => _state = _state.copyWith(subtaskSearch: v)),
+              onChanged: (value) =>
+                  setState(() => _state = _state.copyWith(selectedSubtaskFilters: value)),
             ),
           ),
         ],
@@ -434,16 +516,16 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.check_circle_outline_rounded,
                     color: DashboardColors.secondary,
                     size: 18,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text(
-                    'Apply Filters',
+                    _activeCount > 0 ? 'Apply Filters ($_activeCount)' : 'Apply Filters',
                     style: TextStyle(
                       color: DashboardColors.onSurface,
                       fontSize: 14,

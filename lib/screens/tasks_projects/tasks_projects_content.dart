@@ -3,10 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_data_helpers.dart';
+import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/desktop_filter_panel.dart';
@@ -631,19 +634,127 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
       data: (tasks) {
         final users = usersAsync.valueOrNull ?? [];
         final tags = tagsAsync.valueOrNull ?? [];
+        final attachmentTaskIds =
+            ref.watch(userAttachmentTaskIdsProvider).valueOrNull ?? const <String>{};
+        final subtasksByTask =
+            ref.watch(userSubtasksByTaskProvider).valueOrNull ??
+                const <String, List<TaskSubtaskModel>>{};
+        final currentUserId =
+            ref.watch(authControllerProvider).valueOrNull?.id;
 
+        final ofs = widget.overlayFilterState;
         final query = (widget.searchQuery ?? '').trim().toLowerCase();
-        final boardItems =
-            tasks
-                .map((t) => _mapTaskToBoardItem(t, users, tags))
-                .where(
-                  (item) =>
-                      query.isEmpty ||
-                      item.title.toLowerCase().contains(query) ||
-                      item.description.toLowerCase().contains(query),
-                )
-                .where(_matchesFilters)
-                .toList();
+
+        final filteredTasks = tasks.where((task) {
+          // category
+          if (ofs.selectedCategoryIds.isNotEmpty &&
+              !ofs.selectedCategoryIds.contains(task.categoryId ?? '')) {
+            return false;
+          }
+          // tags
+          if (ofs.selectedTagIds.isNotEmpty &&
+              !task.tagIds.any((id) => ofs.selectedTagIds.contains(id))) {
+            return false;
+          }
+          // assignees
+          if (ofs.selectedAssigneeIds.isNotEmpty &&
+              !task.assigneeIds
+                  .any((id) => ofs.selectedAssigneeIds.contains(id))) {
+            return false;
+          }
+          // special assignee filters
+          if (ofs.assigneeSpecialFilters
+              .contains(AssigneeSpecialFilter.unassigned) &&
+              task.assigneeIds.isNotEmpty) return false;
+          if (ofs.assigneeSpecialFilters
+              .contains(AssigneeSpecialFilter.assignedToMe) &&
+              currentUserId != null &&
+              !task.assigneeIds.contains(currentUserId)) return false;
+          if (ofs.assigneeSpecialFilters
+              .contains(AssigneeSpecialFilter.createdByMe) &&
+              currentUserId != null &&
+              task.userId != currentUserId) return false;
+          if (ofs.unassignedOnly && task.assigneeIds.isNotEmpty) return false;
+          // AI filter
+          if (ofs.aiTaskFilter == AiTaskFilter.generated && !task.aiGenerated) {
+            return false;
+          }
+          if (ofs.aiTaskFilter == AiTaskFilter.manual && task.aiGenerated) {
+            return false;
+          }
+          // attachment filter
+          if (ofs.attachmentFilter == AttachmentFilter.hasAttachments &&
+              !attachmentTaskIds.contains(task.id)) return false;
+          if (ofs.attachmentFilter == AttachmentFilter.noAttachments &&
+              attachmentTaskIds.contains(task.id)) return false;
+          // subtask filters
+          final subtasks = subtasksByTask[task.id] ?? const [];
+          for (final sf in ofs.selectedSubtaskFilters) {
+            if (sf == SubtaskFilter.hasSubtasks && subtasks.isEmpty) {
+              return false;
+            }
+            if (sf == SubtaskFilter.noSubtasks && subtasks.isNotEmpty) {
+              return false;
+            }
+            if (sf == SubtaskFilter.completedSubtasks &&
+                (subtasks.isEmpty || subtasks.any((s) => !s.isDone))) {
+              return false;
+            }
+            if (sf == SubtaskFilter.incompleteSubtasks &&
+                subtasks.every((s) => s.isDone)) return false;
+          }
+          // subtask search
+          if (ofs.subtaskSearch.trim().isNotEmpty) {
+            final q = ofs.subtaskSearch.trim().toLowerCase();
+            final taskSubtasks = subtasksByTask[task.id] ?? const [];
+            if (!taskSubtasks.any((s) => s.title.toLowerCase().contains(q))) {
+              return false;
+            }
+          }
+          // time filters
+          for (final tf in ofs.selectedTimeFilters) {
+            if (!matchesTimeFilter(task, tf)) return false;
+          }
+          // smart filters (any match)
+          if (ofs.selectedSmartFilters.isNotEmpty) {
+            final now = DateTime.now();
+            final today = startOfFilterDay(now);
+            final recent = now.subtract(const Duration(days: 3));
+            final matches = ofs.selectedSmartFilters.any((sf) => switch (sf) {
+              SmartFilter.myTasks => currentUserId != null &&
+                  (task.assigneeIds.contains(currentUserId) ||
+                      task.userId == currentUserId),
+              SmartFilter.dueToday =>
+                task.dueDate != null && isSameFilterDay(task.dueDate!, today),
+              SmartFilter.overdue =>
+                task.dueDate != null &&
+                    task.dueDate!.isBefore(today) &&
+                    task.status != 'done',
+              SmartFilter.highPriority =>
+                task.priority == 'high' || task.priority == 'urgent',
+              SmartFilter.completed => task.status == 'done',
+              SmartFilter.recentlyAdded =>
+                task.createdAt != null && task.createdAt!.isAfter(recent),
+              SmartFilter.aiGenerated => task.aiGenerated,
+              SmartFilter.hasAttachments => attachmentTaskIds.contains(task.id),
+              SmartFilter.unassigned => task.assigneeIds.isEmpty,
+              SmartFilter.archived => task.deletedAt != null,
+            });
+            if (!matches) return false;
+          }
+          return true;
+        }).toList();
+
+        final boardItems = filteredTasks
+            .map((t) => _mapTaskToBoardItem(t, users, tags))
+            .where(
+              (item) =>
+                  query.isEmpty ||
+                  item.title.toLowerCase().contains(query) ||
+                  item.description.toLowerCase().contains(query),
+            )
+            .where(_matchesFilters)
+            .toList();
 
         final draftTasks =
             boardItems.where((t) => t.status == TaskBoardStatus.draft).toList();
@@ -927,11 +1038,87 @@ class _TasksProjectsMobileSliverBodyState
                   data: (tasks) {
                     final users = usersAsync.valueOrNull ?? [];
                     final tags = tagsAsync.valueOrNull ?? [];
-                    final boardItems =
-                        tasks
-                            .map((t) => _mapTaskToBoardItem(t, users, tags))
-                            .where(_matchesFilters)
-                            .toList();
+                    final attachmentTaskIds =
+                        ref.watch(userAttachmentTaskIdsProvider).valueOrNull ??
+                            const <String>{};
+                    final subtasksByTask =
+                        ref.watch(userSubtasksByTaskProvider).valueOrNull ??
+                            const <String, List<TaskSubtaskModel>>{};
+                    final currentUserId =
+                        ref.watch(authControllerProvider).valueOrNull?.id;
+                    final ofs = _overlayFilterState;
+
+                    final filteredTasks = tasks.where((task) {
+                      if (ofs.selectedCategoryIds.isNotEmpty &&
+                          !ofs.selectedCategoryIds
+                              .contains(task.categoryId ?? '')) return false;
+                      if (ofs.selectedTagIds.isNotEmpty &&
+                          !task.tagIds
+                              .any((id) => ofs.selectedTagIds.contains(id))) {
+                        return false;
+                      }
+                      if (ofs.selectedAssigneeIds.isNotEmpty &&
+                          !task.assigneeIds.any(
+                              (id) => ofs.selectedAssigneeIds.contains(id))) {
+                        return false;
+                      }
+                      if (ofs.assigneeSpecialFilters
+                              .contains(AssigneeSpecialFilter.unassigned) &&
+                          task.assigneeIds.isNotEmpty) return false;
+                      if (ofs.assigneeSpecialFilters
+                              .contains(AssigneeSpecialFilter.assignedToMe) &&
+                          currentUserId != null &&
+                          !task.assigneeIds.contains(currentUserId)) {
+                        return false;
+                      }
+                      if (ofs.assigneeSpecialFilters
+                              .contains(AssigneeSpecialFilter.createdByMe) &&
+                          currentUserId != null &&
+                          task.userId != currentUserId) return false;
+                      if (ofs.unassignedOnly && task.assigneeIds.isNotEmpty) {
+                        return false;
+                      }
+                      if (ofs.aiTaskFilter == AiTaskFilter.generated &&
+                          !task.aiGenerated) return false;
+                      if (ofs.aiTaskFilter == AiTaskFilter.manual &&
+                          task.aiGenerated) return false;
+                      if (ofs.attachmentFilter ==
+                              AttachmentFilter.hasAttachments &&
+                          !attachmentTaskIds.contains(task.id)) return false;
+                      if (ofs.attachmentFilter ==
+                              AttachmentFilter.noAttachments &&
+                          attachmentTaskIds.contains(task.id)) return false;
+                      final subtasks = subtasksByTask[task.id] ?? const [];
+                      for (final sf in ofs.selectedSubtaskFilters) {
+                        if (sf == SubtaskFilter.hasSubtasks &&
+                            subtasks.isEmpty) return false;
+                        if (sf == SubtaskFilter.noSubtasks &&
+                            subtasks.isNotEmpty) return false;
+                        if (sf == SubtaskFilter.completedSubtasks &&
+                            (subtasks.isEmpty ||
+                                subtasks.any((s) => !s.isDone))) return false;
+                        if (sf == SubtaskFilter.incompleteSubtasks &&
+                            subtasks.every((s) => s.isDone)) return false;
+                      }
+                      if (ofs.subtaskSearch.trim().isNotEmpty) {
+                        final q = ofs.subtaskSearch.trim().toLowerCase();
+                        final taskSubtasks =
+                            subtasksByTask[task.id] ?? const [];
+                        if (!taskSubtasks
+                            .any((s) => s.title.toLowerCase().contains(q))) {
+                          return false;
+                        }
+                      }
+                      for (final tf in ofs.selectedTimeFilters) {
+                        if (!matchesTimeFilter(task, tf)) return false;
+                      }
+                      return true;
+                    }).toList();
+
+                    final boardItems = filteredTasks
+                        .map((t) => _mapTaskToBoardItem(t, users, tags))
+                        .where(_matchesFilters)
+                        .toList();
                     if (boardItems.isEmpty) {
                       return const Center(
                         child: Padding(

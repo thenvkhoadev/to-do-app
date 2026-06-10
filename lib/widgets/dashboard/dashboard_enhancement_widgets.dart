@@ -1,11 +1,11 @@
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
-import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart' show xpLevelTitle, xpProgress;
+import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 
 class DashboardCard extends StatelessWidget {
   const DashboardCard({
@@ -471,52 +471,53 @@ class _AssistantChip extends StatelessWidget {
   }
 }
 
-class AIInsightsPanel extends StatelessWidget {
+class AIInsightsPanel extends ConsumerWidget {
   const AIInsightsPanel({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
     return DashboardCard(
       title: 'AI Insights',
       icon: Icons.insights_rounded,
       color: DashboardColors.secondary,
       child: Column(
         children: [
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: MetricTile(
                   icon: Icons.trending_up_rounded,
-                  label: 'Productivity Trend',
-                  value: '↑ 18%',
+                  label: 'Completed Tasks',
+                  value: '${stats.completedTasks}',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: MetricTile(
                   icon: Icons.track_changes_rounded,
-                  label: 'Focus Consistency',
-                  value: '92%',
+                  label: 'Focus Score',
+                  value: '${stats.focusScore}%',
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: MetricTile(
                   icon: Icons.work_history_rounded,
-                  label: 'Deep Work Hours',
-                  value: '14.5h',
+                  label: 'Focus Hours',
+                  value: '${stats.focusHours}h',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: MetricTile(
                   icon: Icons.local_fire_department_rounded,
-                  label: 'Burnout Risk',
-                  value: 'Low',
+                  label: 'Current Streak',
+                  value: '${stats.streakDays}d',
                 ),
               ),
             ],
@@ -539,11 +540,13 @@ class AIInsightsPanel extends StatelessWidget {
   }
 }
 
-class CurrentFocusSessionCard extends StatelessWidget {
+class CurrentFocusSessionCard extends ConsumerWidget {
   const CurrentFocusSessionCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final task = stats.nextBestTask;
     return DashboardCard(
       title: 'Current Focus Session',
       icon: Icons.timer_rounded,
@@ -551,7 +554,7 @@ class CurrentFocusSessionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            'Pomodoro Timer',
+            'Recommended Focus',
             style: TextStyle(color: DashboardColors.onSurfaceVariant),
           ),
           const SizedBox(height: 8),
@@ -560,9 +563,11 @@ class CurrentFocusSessionCard extends StatelessWidget {
                 (rect) => const LinearGradient(
                   colors: [DashboardColors.primary, DashboardColors.secondary],
                 ).createShader(rect),
-            child: const Text(
-              '42:15',
-              style: TextStyle(
+            child: Text(
+              task?.estimatedMinutes == null
+                  ? '-- min'
+                  : '${task!.estimatedMinutes} min',
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 46,
                 fontWeight: FontWeight.w900,
@@ -575,35 +580,35 @@ class CurrentFocusSessionCard extends StatelessWidget {
             'Task:',
             style: TextStyle(color: DashboardColors.onSurfaceVariant),
           ),
-          const Text(
-            'Refactoring Flutter Dashboard',
-            style: TextStyle(
+          Text(
+            task?.title ?? 'No active task available',
+            style: const TextStyle(
               color: DashboardColors.onSurface,
               fontSize: 18,
               fontWeight: FontWeight.w800,
             ),
           ),
           const SizedBox(height: 14),
-          const _StatusBadge(
-            label: 'Deep Work Active',
+          _StatusBadge(
+            label: task?.status.toUpperCase() ?? 'NO TASK',
             color: DashboardColors.primary,
           ),
           const SizedBox(height: 20),
-          const Row(
+          Row(
             children: [
               Expanded(
                 child: MetricTile(
-                  icon: Icons.block_rounded,
-                  label: 'Distraction Count',
-                  value: '1',
+                  icon: Icons.priority_high_rounded,
+                  label: 'High Priority',
+                  value: '${stats.highPriorityTasks}',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: MetricTile(
                   icon: Icons.speed_rounded,
                   label: 'Focus Score',
-                  value: '93%',
+                  value: '${stats.focusScore}%',
                 ),
               ),
             ],
@@ -626,28 +631,37 @@ class CurrentFocusSessionCard extends StatelessWidget {
   }
 }
 
-class QuarterGoalsCard extends StatelessWidget {
+class QuarterGoalsCard extends ConsumerWidget {
   const QuarterGoalsCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const DashboardCard(
-      title: 'Quarter Goals',
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final total = stats.totalTasks == 0 ? 1 : stats.totalTasks;
+    return DashboardCard(
+      title: 'Task Goals',
       icon: Icons.flag_rounded,
       child: Column(
         children: [
-          ProgressWidget(label: 'Launch Nexus AI', value: .75),
           ProgressWidget(
-            label: 'Flutter Mastery',
-            value: .60,
+            label: 'Task Completion',
+            value: stats.completedTasks / total,
+          ),
+          ProgressWidget(
+            label: 'Due Today',
+            value: stats.dueTodayTasks / total,
             color: DashboardColors.secondary,
           ),
           ProgressWidget(
-            label: 'System Analysis Course',
-            value: .85,
+            label: 'High Priority',
+            value: stats.highPriorityTasks / total,
             color: DashboardColors.tertiary,
           ),
-          ProgressWidget(label: 'Portfolio Projects', value: .45),
+          ProgressWidget(
+            label: 'Overdue',
+            value: stats.overdueTasks / total,
+            color: DashboardColors.error,
+          ),
         ],
       ),
     );
@@ -836,33 +850,43 @@ class _HeatmapCell extends StatelessWidget {
   }
 }
 
-class ProjectHealthOverviewCard extends StatelessWidget {
+class ProjectHealthOverviewCard extends ConsumerWidget {
   const ProjectHealthOverviewCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const DashboardCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    return DashboardCard(
       title: 'Project Health',
       icon: Icons.health_and_safety_rounded,
       child: Column(
         children: [
           ProjectHealthCard(
-            name: 'Helios',
-            progress: .85,
-            status: 'On Track',
+            name: 'Task Completion',
+            progress: stats.completionPercent / 100,
+            status: '${stats.completionPercent}%',
             color: DashboardColors.primary,
           ),
           ProjectHealthCard(
-            name: 'Mobile App',
-            progress: .72,
-            status: 'At Risk',
-            color: DashboardColors.error,
+            name: 'Overdue Tasks',
+            progress:
+                stats.totalTasks == 0
+                    ? 0
+                    : stats.overdueTasks / stats.totalTasks,
+            status: '${stats.overdueTasks}',
+            color:
+                stats.overdueTasks > 0
+                    ? DashboardColors.error
+                    : DashboardColors.tertiary,
           ),
           ProjectHealthCard(
-            name: 'Dashboard Redesign',
-            progress: .95,
-            status: 'Excellent',
-            color: DashboardColors.tertiary,
+            name: 'High Priority',
+            progress:
+                stats.totalTasks == 0
+                    ? 0
+                    : stats.highPriorityTasks / stats.totalTasks,
+            status: '${stats.highPriorityTasks}',
+            color: DashboardColors.secondary,
           ),
         ],
       ),
@@ -870,54 +894,68 @@ class ProjectHealthOverviewCard extends StatelessWidget {
   }
 }
 
-class AchievementsCard extends StatelessWidget {
+class AchievementsCard extends ConsumerWidget {
   const AchievementsCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    return const DashboardCard(
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final badges = <String>[
+      if (stats.streakDays >= 7) '${stats.streakDays}-Day Focus Streak',
+      if (stats.completedTasks >= 10) '${stats.completedTasks} Tasks Completed',
+      if (stats.focusHours > 0) '${stats.focusHours} Focus Hours',
+      if (stats.level > 1) 'Level ${stats.level}',
+    ];
+    return DashboardCard(
       title: 'Achievements',
       icon: Icons.emoji_events_rounded,
       color: DashboardColors.secondary,
       child: Wrap(
         spacing: 12,
         runSpacing: 12,
-        children: [
-          AchievementBadge(label: '🔥 7-Day Focus Streak'),
-          AchievementBadge(label: '⚡ Deep Work Master'),
-          AchievementBadge(label: '🎯 Goal Crusher'),
-          AchievementBadge(label: '🚀 Productivity Elite'),
-        ],
+        children:
+            badges.isEmpty
+                ? const [AchievementBadge(label: 'No achievements yet')]
+                : badges
+                    .map((label) => AchievementBadge(label: label))
+                    .toList(),
       ),
     );
   }
 }
 
-class DailyChallengeCard extends StatelessWidget {
+class DailyChallengeCard extends ConsumerWidget {
   const DailyChallengeCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final challenge =
+        stats.overdueTasks > 0
+            ? 'Clear ${stats.overdueTasks} overdue task${stats.overdueTasks == 1 ? '' : 's'}'
+            : stats.dueTodayTasks > 0
+            ? 'Complete ${stats.dueTodayTasks} task${stats.dueTodayTasks == 1 ? '' : 's'} due today'
+            : 'Create or complete one task today';
     return DashboardCard(
       title: "Today's Challenge",
       icon: Icons.military_tech_rounded,
       color: DashboardColors.tertiary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
-            'Complete 3 uninterrupted focus sessions',
-            style: TextStyle(
+            challenge,
+            style: const TextStyle(
               color: DashboardColors.onSurface,
               fontSize: 20,
               fontWeight: FontWeight.w900,
               height: 1.25,
             ),
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Text(
-            '+250 XP',
-            style: TextStyle(
+            'Current XP: ${stats.currentXp}',
+            style: const TextStyle(
               color: DashboardColors.primary,
               fontSize: 18,
               fontWeight: FontWeight.w900,
@@ -997,9 +1035,6 @@ class _KnowledgeRow extends StatelessWidget {
   }
 }
 
-int _dashboardXpLevel(int totalXp) =>
-    max(1, sqrt(totalXp / 100.0).floor() + 1);
-
 class XPLevelCard extends ConsumerWidget {
   const XPLevelCard({super.key});
 
@@ -1007,12 +1042,12 @@ class XPLevelCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final profile = ref.watch(userProfileProvider).valueOrNull;
     final totalXp = profile?.totalXp ?? 0;
-    final level = _dashboardXpLevel(totalXp);
-    final xpEnd = (level * level * 100);
-    final xpStart = ((level - 1) * (level - 1) * 100);
-    final xpInto = (totalXp - xpStart).clamp(0, xpEnd - xpStart);
-    final progress = xpProgress(totalXp, level);
-    final title = xpLevelTitle(level);
+    final levelState = leveling.xpProgressFromTotalXp(totalXp);
+    final level = levelState.level;
+    final progress = levelState.progress;
+    final xpInto = levelState.xpIntoLevel;
+    final xpForNext = levelState.xpForNextLevel;
+    final title = leveling.xpRankForLevel(level).title;
 
     return GlassCard(
       radius: DashboardRadii.full,
@@ -1037,7 +1072,7 @@ class XPLevelCard extends ConsumerWidget {
           ),
           SizedBox(width: 120, child: _MiniProgress(value: progress)),
           Text(
-            '$xpInto / ${xpEnd - xpStart} XP',
+            '$xpInto / $xpForNext XP',
             style: const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               fontSize: 12,
@@ -1237,51 +1272,53 @@ class QuickActionsGrid extends StatelessWidget {
   }
 }
 
-class WeeklySummaryCard extends StatelessWidget {
+class WeeklySummaryCard extends ConsumerWidget {
   const WeeklySummaryCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final weekTotal = stats.weeklyCompletedCounts.fold<int>(0, (a, b) => a + b);
     return DashboardCard(
       title: 'This Week Summary',
       icon: Icons.summarize_rounded,
       child: Column(
-        children: const [
+        children: [
           Row(
             children: [
               Expanded(
                 child: MetricTile(
                   icon: Icons.task_alt_rounded,
                   label: 'Tasks Completed',
-                  value: '42',
+                  value: '$weekTotal',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: MetricTile(
                   icon: Icons.timer_rounded,
-                  label: 'Focus Sessions',
-                  value: '14',
+                  label: 'Due Today',
+                  value: '${stats.dueTodayTasks}',
                 ),
               ),
             ],
           ),
-          SizedBox(height: 12),
+          const SizedBox(height: 12),
           Row(
             children: [
               Expanded(
                 child: MetricTile(
                   icon: Icons.work_history_rounded,
-                  label: 'Hours Deep Work',
-                  value: '28',
+                  label: 'Focus Hours',
+                  value: '${stats.focusHours}',
                 ),
               ),
-              SizedBox(width: 12),
+              const SizedBox(width: 12),
               Expanded(
                 child: MetricTile(
                   icon: Icons.trending_up_rounded,
-                  label: 'Productivity',
-                  value: '+17%',
+                  label: 'Completion',
+                  value: '${stats.completionPercent}%',
                 ),
               ),
             ],
@@ -1298,30 +1335,36 @@ class WeeklySummaryCard extends StatelessWidget {
   }
 }
 
-class TeamActivityCard extends StatelessWidget {
+class TeamActivityCard extends ConsumerWidget {
   const TeamActivityCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final stats = ref.watch(dashboardStatsProvider);
+    final recent = stats.recentTasks;
     return DashboardCard(
       title: 'Team Activity',
       icon: Icons.groups_rounded,
       color: DashboardColors.tertiary,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Text(
-            'Members Online: 8',
-            style: TextStyle(
+            'Active tasks: ${stats.activeTasks}',
+            style: const TextStyle(
               color: DashboardColors.primary,
               fontSize: 18,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: 16),
-          _TeamRow('Sarah updated UX Flow'),
-          _TeamRow('Alex completed API integration'),
-          _TeamRow('Emma commented on Project Helios'),
+          const SizedBox(height: 16),
+          if (recent.isEmpty)
+            const _TeamRow('No recent task updates')
+          else
+            for (final task in recent)
+              _TeamRow(
+                '${task.status == 'done' ? 'Completed' : 'Updated'} ${task.title}',
+              ),
           SizedBox(height: 18),
           GradientButton(
             label: 'Open Workspace',

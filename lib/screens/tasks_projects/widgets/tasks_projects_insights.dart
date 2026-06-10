@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_models.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_glass.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
@@ -107,19 +109,59 @@ class TasksProjectsSmartInsightBanner extends StatelessWidget {
   }
 }
 
-class TasksProjectsMiniStatsRow extends StatelessWidget {
+class TasksProjectsMiniStatsRow extends ConsumerWidget {
   const TasksProjectsMiniStatsRow({this.compact = false, super.key});
 
   final bool compact;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasks = ref.watch(userTasksProvider).valueOrNull ?? const [];
+    final completed = tasks.where((task) => task.status == 'done').length;
+    final aiTasks = tasks.where((task) => task.aiGenerated).length;
+    final active = tasks.where((task) => task.status != 'done').length;
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final overdue = tasks.where((task) {
+      final due = task.dueDate;
+      return due != null && due.isBefore(today) && task.status != 'done';
+    }).length;
+    final stats = [
+      TasksProjectStat(
+        label: 'Tasks Completed',
+        value: '$completed',
+        delta: '${tasks.length} total',
+        icon: Icons.task_alt_rounded,
+        accent: DashboardColors.primary,
+      ),
+      TasksProjectStat(
+        label: 'Active Tasks',
+        value: '$active',
+        delta: overdue > 0 ? '$overdue overdue' : 'on track',
+        icon: Icons.bolt_rounded,
+        accent: DashboardColors.secondary,
+      ),
+      TasksProjectStat(
+        label: 'AI Assisted Tasks',
+        value: '$aiTasks',
+        delta: tasks.isEmpty ? '0%' : '${((aiTasks / tasks.length) * 100).round()}%',
+        icon: Icons.psychology_rounded,
+        accent: DashboardColors.tertiary,
+      ),
+      TasksProjectStat(
+        label: 'High Priority',
+        value: '${tasks.where((task) => task.priority == 'high' || task.priority == 'urgent').length}',
+        delta: 'live',
+        icon: Icons.account_tree_rounded,
+        accent: DashboardColors.tertiaryContainer,
+      ),
+    ];
     if (compact) {
       return SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: Row(
           children:
-              tasksProjectStats
+              stats
                   .map(
                     (stat) => Padding(
                       padding: const EdgeInsets.only(right: 12),
@@ -144,7 +186,7 @@ class TasksProjectsMiniStatsRow extends StatelessWidget {
           spacing: 14,
           runSpacing: 14,
           children:
-              tasksProjectStats
+              stats
                   .map(
                     (stat) => SizedBox(
                       width:
