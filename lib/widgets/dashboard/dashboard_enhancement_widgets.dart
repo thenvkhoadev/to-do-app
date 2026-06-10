@@ -1,5 +1,9 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart' show xpLevelTitle, xpProgress;
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -993,11 +997,23 @@ class _KnowledgeRow extends StatelessWidget {
   }
 }
 
-class XPLevelCard extends StatelessWidget {
+int _dashboardXpLevel(int totalXp) =>
+    max(1, sqrt(totalXp / 100.0).floor() + 1);
+
+class XPLevelCard extends ConsumerWidget {
   const XPLevelCard({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final profile = ref.watch(userProfileProvider).valueOrNull;
+    final totalXp = profile?.totalXp ?? 0;
+    final level = _dashboardXpLevel(totalXp);
+    final xpEnd = (level * level * 100);
+    final xpStart = ((level - 1) * (level - 1) * 100);
+    final xpInto = (totalXp - xpStart).clamp(0, xpEnd - xpStart);
+    final progress = xpProgress(totalXp, level);
+    final title = xpLevelTitle(level);
+
     return GlassCard(
       radius: DashboardRadii.full,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -1006,31 +1022,31 @@ class XPLevelCard extends StatelessWidget {
         spacing: 10,
         runSpacing: 8,
         crossAxisAlignment: WrapCrossAlignment.center,
-        children: const [
-          Icon(
+        children: [
+          const Icon(
             Icons.emoji_events_rounded,
             color: DashboardColors.primary,
             size: 20,
           ),
           Text(
-            'Level 18',
-            style: TextStyle(
+            'Level $level',
+            style: const TextStyle(
               color: DashboardColors.onSurface,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(width: 120, child: _MiniProgress(value: .85)),
+          SizedBox(width: 120, child: _MiniProgress(value: progress)),
           Text(
-            '4,250 / 5,000',
-            style: TextStyle(
+            '$xpInto / ${xpEnd - xpStart} XP',
+            style: const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               fontSize: 12,
               fontWeight: FontWeight.w700,
             ),
           ),
           Text(
-            'AI Productivity Expert',
-            style: TextStyle(
+            title,
+            style: const TextStyle(
               color: DashboardColors.primary,
               fontSize: 12,
               fontWeight: FontWeight.w900,

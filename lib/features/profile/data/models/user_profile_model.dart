@@ -25,6 +25,9 @@ class UserProfileModel {
     this.preferredTimezone,
     this.createdAt,
     this.updatedAt,
+    this.level = 1,
+    this.currentXp = 0,
+    this.totalXp = 0,
   });
 
   final String id;
@@ -52,6 +55,9 @@ class UserProfileModel {
   final String? preferredTimezone;
   final DateTime? createdAt;
   final DateTime? updatedAt;
+  final int level;
+  final int currentXp;
+  final int totalXp;
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     return UserProfileModel(
@@ -86,6 +92,9 @@ class UserProfileModel {
           json['updated_at'] == null
               ? null
               : DateTime.tryParse(json['updated_at'].toString()),
+      level: (json['level'] as int? ?? json['llevel'] as int? ?? 1),
+      currentXp: json['current_xp'] as int? ?? 0,
+      totalXp: json['total_xp'] as int? ?? 0,
     );
   }
 

@@ -23,6 +23,10 @@ class SecureStorageService {
     } catch (e) {
       debugPrint('SecureStorage write error: $e');
       await _handleCorruption();
+      // Retry once after clearing
+      try {
+        await _storage.write(key: key, value: value);
+      } catch (_) {}
     }
   }
 

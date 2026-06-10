@@ -12,6 +12,8 @@ import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart' as xp_card;
+import 'package:to_do_app/features/xp/presentation/widgets/xp_log_timeline.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 // ─────────────────────────────────────────────
@@ -2444,117 +2446,22 @@ class _DesktopMetricsRow extends StatelessWidget {
   }
 }
 
-/// Section 3 — Productivity Level System. Level, XP and rank are all derived
-/// from real metrics (see _ProfileVM.totalXp); nothing is hardcoded.
+/// Section 3 — Productivity Level System. Now backed by the real
+/// users.level / users.total_xp / users.current_xp DB columns and reacts to
+/// xp_logs realtime updates.
 class _DesktopLevelCard extends StatelessWidget {
   const _DesktopLevelCard({required this.vm});
   final _ProfileVM vm;
 
   @override
   Widget build(BuildContext context) {
-    return _GlassPanel(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-                    ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF9B78FF).withValues(alpha: 0.3),
-                        blurRadius: 20,
-                      ),
-                    ],
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${vm.level}',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        fontFamily: 'Geist',
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Level ${vm.level}',
-                      style: const TextStyle(
-                        color: NexusColors.onSurfaceVariant,
-                        fontSize: 12,
-                        letterSpacing: 1,
-                        fontFamily: 'JetBrains Mono',
-                      ),
-                    ),
-                    Text(
-                      vm.rankName,
-                      style: const TextStyle(
-                        color: NexusColors.onSurface,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w600,
-                        fontFamily: 'Geist',
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Text(
-                  '${vm.totalXp} XP',
-                  style: const TextStyle(
-                    color: NexusColors.primary,
-                    fontSize: 14,
-                    fontFamily: 'JetBrains Mono',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(999),
-              child: LinearProgressIndicator(
-                value: vm.xpProgress,
-                minHeight: 10,
-                backgroundColor: Colors.white.withValues(alpha: 0.06),
-                valueColor: const AlwaysStoppedAnimation(NexusColors.primary),
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${vm.xpToNextLevel} XP until Level ${vm.level + 1}',
-              style: const TextStyle(
-                color: NexusColors.onSurfaceVariant,
-                fontSize: 12,
-              ),
-            ),
-            const SizedBox(height: 24),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var i = 0; i < _ProfileVM.rankLadder.length; i++)
-                  _RankBadge(
-                    label: _ProfileVM.rankLadder[i],
-                    active: i == vm.rankIndex,
-                  ),
-              ],
-            ),
-          ],
-        ),
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: const [
+        xp_card.XpLevelCard(),
+        SizedBox(height: 16),
+        XpLogTimeline(maxItems: 6),
+      ],
     );
   }
 }
@@ -5418,6 +5325,12 @@ class _MobileProfileScreen extends ConsumerWidget {
           _FocusScheduleCard(vm: profile),
           const SizedBox(height: 16),
           _SmartRecommendationsCard(vm: profile),
+          const SizedBox(height: 16),
+
+          // Productivity Level System (real DB values)
+          const xp_card.XpLevelCard(),
+          const SizedBox(height: 16),
+          const XpLogTimeline(maxItems: 5),
           const SizedBox(height: 16),
 
           // Profile Completion

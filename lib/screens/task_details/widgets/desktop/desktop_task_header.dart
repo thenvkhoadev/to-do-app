@@ -1,7 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 
 class DesktopTaskHeader extends StatelessWidget {
   const DesktopTaskHeader({
@@ -35,6 +38,63 @@ class DesktopTaskHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        ProfileNavigationScope(
+          onProfileSelected: () => context.go('/profile'),
+          child: const DesktopTopbar(),
+        ),
+        _HeaderBody(
+          item: item,
+          onBack: onBack,
+          onPlanTask: onPlanTask,
+          onStartTask: onStartTask,
+          onPauseTask: onPauseTask,
+          onCompleteTask: onCompleteTask,
+          onEditTask: onEditTask,
+          onDeleteTask: onDeleteTask,
+          onDuplicateTask: onDuplicateTask,
+          onArchiveTask: onArchiveTask,
+          isPaused: isPaused,
+          isCreator: isCreator,
+        ),
+      ],
+    );
+  }
+}
+
+class _HeaderBody extends StatelessWidget {
+  const _HeaderBody({
+    required this.item,
+    required this.onBack,
+    required this.onPlanTask,
+    required this.onStartTask,
+    required this.onPauseTask,
+    required this.onCompleteTask,
+    required this.onEditTask,
+    required this.onDeleteTask,
+    required this.onDuplicateTask,
+    required this.onArchiveTask,
+    required this.isPaused,
+    required this.isCreator,
+  });
+
+  final TaskBoardItem item;
+  final VoidCallback onBack;
+  final VoidCallback onPlanTask;
+  final VoidCallback onStartTask;
+  final VoidCallback onPauseTask;
+  final VoidCallback onCompleteTask;
+  final VoidCallback onEditTask;
+  final VoidCallback onDeleteTask;
+  final VoidCallback onDuplicateTask;
+  final VoidCallback onArchiveTask;
+  final bool isPaused;
+  final bool isCreator;
+
+  @override
+  Widget build(BuildContext context) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
@@ -49,50 +109,6 @@ class DesktopTaskHeader extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Breadcrumb
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: onBack,
-                    child: const Text(
-                      'Projects',
-                      style: TextStyle(
-                        color: DashboardColors.onSurfaceVariant,
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: .05,
-                      ),
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.chevron_right_rounded,
-                        size: 14, color: DashboardColors.onSurfaceVariant),
-                  ),
-                  const Text(
-                    'UI Systems',
-                    style: TextStyle(
-                      color: DashboardColors.onSurfaceVariant,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 6),
-                    child: Icon(Icons.chevron_right_rounded,
-                        size: 14, color: DashboardColors.onSurfaceVariant),
-                  ),
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      color: DashboardColors.primary,
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
               // Title row
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,

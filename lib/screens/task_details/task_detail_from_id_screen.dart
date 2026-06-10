@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/layouts/tasks_desktop_layout.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/screens/task_details/task_detail_page.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
@@ -33,9 +34,19 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
             }
             final allUsers = ref.watch(allUsersProvider).valueOrNull ?? [];
             final item = _toTaskBoardItem(nexusTask, allUsers);
-            return TaskDetailPage(
-              item: item,
-              onBack: () => context.pop(),
+            return LayoutBuilder(
+              builder: (context, constraints) {
+                if (constraints.maxWidth >= 1100) {
+                  return TasksDesktopLayout(
+                    initialDetailItem: item,
+                    onDetailBack: () => context.pop(),
+                  );
+                }
+                return TaskDetailPage(
+                  item: item,
+                  onBack: () => context.pop(),
+                );
+              },
             );
           },
         ),

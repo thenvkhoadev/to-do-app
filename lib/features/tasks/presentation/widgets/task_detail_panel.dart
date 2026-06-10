@@ -271,6 +271,7 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
         completedAt: DateTime.now().toUtc(),
       );
       await ref.read(taskRepositoryProvider).updateTask(updated);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Đã hoàn thành công việc!')),
@@ -676,7 +677,7 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                   color: Color(0xff10B981), size: 18),
               SizedBox(width: 8),
               Text(
-                'Productivity Reward',
+                'Reward Preview',
                 style: TextStyle(
                   color: Colors.white70,
                   fontSize: 12,
@@ -685,20 +686,50 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
               ),
             ],
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xff10B981).withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Text(
-              '+150 XP',
-              style: TextStyle(
-                color: Color(0xff10B981),
-                fontSize: 11,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          Builder(
+            builder: (context) {
+              final priority = widget.task.priority.toString().toLowerCase();
+              final xp = switch (priority) {
+                'urgent' => 100,
+                'high' => 50,
+                'medium' => 20,
+                _ => 10,
+              };
+              final label = switch (priority) {
+                'urgent' => 'Urgent',
+                'high' => 'High',
+                'medium' => 'Medium',
+                _ => 'Low',
+              };
+              return Row(
+                children: [
+                  Text(
+                    '$label Priority',
+                    style: const TextStyle(
+                      color: Colors.white38,
+                      fontSize: 11,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xff10B981).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      '+$xp XP',
+                      style: const TextStyle(
+                        color: Color(0xff10B981),
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ],
       ),

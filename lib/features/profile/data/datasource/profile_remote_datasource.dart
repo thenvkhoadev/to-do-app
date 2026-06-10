@@ -14,19 +14,19 @@ class ProfileRemoteDataSource {
         .eq('id', userId)
         .asyncMap((rows) async {
       if (rows.isEmpty) return null;
-
-      final userData = rows.first;
-
+      final userData = Map<String, dynamic>.from(rows.first);
+      // Normalise llevel → level in case DB has the typo column name
+      if (!userData.containsKey('level')) {
+        userData['level'] = userData['llevel'] ?? 1;
+      }
       try {
         final prefsRes = await _client
             .from('user_preferences')
             .select()
             .eq('user_id', userId)
             .maybeSingle();
-
         userData['user_preferences'] = prefsRes;
       } catch (_) {}
-
       return UserProfileModel.fromJson(userData);
     });
   }

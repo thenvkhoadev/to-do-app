@@ -1,11 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_app/screens/tasks_projects/widgets/tasks_premium_filters.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class TasksProjectsHeader extends StatelessWidget {
-  const TasksProjectsHeader({this.mobile = false, this.onNewTask, super.key});
+  const TasksProjectsHeader({
+    this.mobile = false,
+    this.onNewTask,
+    this.filters = TasksFilterState.empty,
+    this.onFiltersChanged,
+    super.key,
+  });
 
   final bool mobile;
   final VoidCallback? onNewTask;
+  final TasksFilterState filters;
+  final ValueChanged<TasksFilterState>? onFiltersChanged;
+
+  void _openFilters(BuildContext context, Offset offset) {
+    final cb = onFiltersChanged;
+    if (cb == null) return;
+    showTasksFilterMenu(
+      context: context,
+      offset: offset,
+      state: filters,
+      onChanged: cb,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -38,10 +58,11 @@ class TasksProjectsHeader extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              const Expanded(
+              Expanded(
                 child: _HeaderButton(
-                  label: 'Filter',
+                  label: filters.count > 0 ? 'Filter (${filters.count})' : 'Filter',
                   icon: Icons.filter_list_rounded,
+                  onTapDown: (offset) => _openFilters(context, offset),
                 ),
               ),
               const SizedBox(width: 8),
@@ -70,7 +91,11 @@ class TasksProjectsHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(width: 24),
-        const _HeaderButton(label: 'Filter', icon: Icons.filter_list_rounded),
+        _HeaderButton(
+          label: filters.count > 0 ? 'Filter (${filters.count})' : 'Filter',
+          icon: Icons.filter_list_rounded,
+          onTapDown: (offset) => _openFilters(context, offset),
+        ),
         const SizedBox(width: 12),
         _HeaderButton(
           label: 'New Task',
@@ -89,12 +114,14 @@ class _HeaderButton extends StatelessWidget {
     required this.icon,
     this.gradient = false,
     this.onTap,
+    this.onTapDown,
   });
 
   final String label;
   final IconData icon;
   final bool gradient;
   final VoidCallback? onTap;
+  final ValueChanged<Offset>? onTapDown;
 
   @override
   Widget build(BuildContext context) {
@@ -131,6 +158,7 @@ class _HeaderButton extends StatelessWidget {
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
           onTap: onTap,
+          onTapDown: onTapDown == null ? null : (details) => onTapDown!(details.globalPosition),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
             child: Row(

@@ -8,6 +8,7 @@ import 'package:to_do_app/screens/settings/desktop/appearance_panel.dart';
 import 'package:to_do_app/screens/settings/desktop/connected_apps_section.dart';
 import 'package:to_do_app/screens/settings/desktop/help_support_panel.dart';
 import 'package:to_do_app/screens/settings/desktop/notifications_section.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/screens/settings/widgets/settings_shared_widgets.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
@@ -61,8 +62,8 @@ class _SettingsDesktopTopbar extends StatelessWidget {
               bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
             ),
           ),
-          child: const Row(
-            children: [
+          child: Row(
+            children: const [
               Text(
                 'Settings',
                 style: TextStyle(
@@ -83,6 +84,8 @@ class _SettingsDesktopTopbar extends StatelessWidget {
               _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
               SizedBox(width: 12),
               _TopIcon(icon: Icons.bolt_rounded),
+              SizedBox(width: 12),
+              XPLevelCard(),
               SizedBox(width: 12),
               ProfileAvatar(),
             ],

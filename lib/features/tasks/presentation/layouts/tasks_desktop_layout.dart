@@ -15,11 +15,15 @@ class TasksDesktopLayout extends StatefulWidget {
   const TasksDesktopLayout({
     this.openNewTask = false,
     this.searchQuery,
+    this.initialDetailItem,
+    this.onDetailBack,
     super.key,
   });
 
   final bool openNewTask;
   final String? searchQuery;
+  final TaskBoardItem? initialDetailItem;
+  final VoidCallback? onDetailBack;
 
   @override
   State<TasksDesktopLayout> createState() => _TasksDesktopLayoutState();
@@ -33,12 +37,20 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
   void initState() {
     super.initState();
     _selectedIndex = widget.openNewTask ? 8 : 1;
+    _detailsItem = widget.initialDetailItem;
   }
 
   void _openTaskDetails(TaskBoardItem item) =>
       setState(() => _detailsItem = item);
 
-  void _closeTaskDetails() => setState(() => _detailsItem = null);
+  void _closeTaskDetails() {
+    final cb = widget.onDetailBack;
+    if (cb != null) {
+      cb();
+    } else {
+      setState(() => _detailsItem = null);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

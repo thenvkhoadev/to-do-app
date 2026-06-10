@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
@@ -101,9 +102,9 @@ class AiAssistantHeader extends StatelessWidget {
           bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(Icons.chat_bubble_rounded, color: DashboardColors.primary),
+          const Icon(Icons.chat_bubble_rounded, color: DashboardColors.primary),
           SizedBox(width: 12),
           Text(
             'AI Assistant',
@@ -113,10 +114,12 @@ class AiAssistantHeader extends StatelessWidget {
               fontWeight: FontWeight.w900,
             ),
           ),
-          Spacer(),
-          _HeaderIcon(icon: Icons.notifications_none_rounded),
-          SizedBox(width: 12),
-          ProfileAvatar(),
+          const Spacer(),
+          const _HeaderIcon(icon: Icons.notifications_none_rounded),
+          const SizedBox(width: 12),
+          const XPLevelCard(),
+          const SizedBox(width: 12),
+          const ProfileAvatar(),
         ],
       ),
     );

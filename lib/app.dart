@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/core/constants/app_constants.dart';
 import 'package:to_do_app/core/router/app_router.dart';
 import 'package:to_do_app/core/theme/nexus_theme.dart';
+import 'package:to_do_app/features/xp/presentation/widgets/xp_overlay_shell.dart';
 
 class NexusApp extends ConsumerWidget {
   const NexusApp({super.key});
@@ -14,6 +15,8 @@ class NexusApp extends ConsumerWidget {
       title: AppConstants.appName,
       theme: NexusTheme.dark(),
       routerConfig: ref.watch(appRouterProvider),
+      builder: (context, child) =>
+          XpOverlayShell(child: child ?? const SizedBox.shrink()),
     );
   }
 }

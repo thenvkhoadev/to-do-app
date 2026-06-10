@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class CalendarDesktopLayout extends StatelessWidget {
@@ -99,18 +100,20 @@ class CalendarDesktopTopNav extends StatelessWidget {
               bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
             ),
           ),
-          child: const Row(
+          child: Row(
             children: [
-              _CalendarSearchBar(),
-              Spacer(),
-              _CalendarTopIcon(
+              const _CalendarSearchBar(),
+              const Spacer(),
+              const _CalendarTopIcon(
                 icon: Icons.notifications_none_rounded,
                 badge: true,
               ),
-              SizedBox(width: 12),
-              _CalendarTopIcon(icon: Icons.bolt_rounded),
-              SizedBox(width: 12),
-              ProfileAvatar(),
+              const SizedBox(width: 12),
+              const _CalendarTopIcon(icon: Icons.bolt_rounded),
+              const SizedBox(width: 12),
+              const XPLevelCard(),
+              const SizedBox(width: 12),
+              const ProfileAvatar(),
             ],
           ),
         ),

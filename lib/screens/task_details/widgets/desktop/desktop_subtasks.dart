@@ -58,6 +58,7 @@ class _DesktopSubtasksState extends ConsumerState<DesktopSubtasks> {
             action: val ? 'complete_subtask' : 'incomplete_subtask',
             detail: val ? 'Subtask "${s.title}" completed' : 'Subtask "${s.title}" marked incomplete',
           );
+      // XP award/deduct is handled by DB trigger trg_handle_subtask_xp.
     } catch (_) {}
   }
 

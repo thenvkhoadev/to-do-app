@@ -12,7 +12,10 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/tasks/data/datasource/attachment_datasource.dart';
 import 'package:to_do_app/features/tasks/data/models/category_model.dart';
 import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
+import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/xp/data/datasource/xp_remote_datasource.dart';
+import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class SubtaskItem {
@@ -762,6 +765,18 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
 
       if (created != null) {
         ref.invalidate(taskAttachmentsProvider(created.id));
+        // Award 2 XP for task creation (get_task_creation_xp() = 2)
+        try {
+          await XpRemoteDataSource(
+            ref.read(supabaseClientProvider),
+          ).awardXp(
+            userId: user.id,
+            taskId: created.id,
+            xpGained: 2,
+            reason: 'Task Created',
+          );
+          ref.invalidate(xpLogsProvider);
+        } catch (_) {}
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(

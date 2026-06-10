@@ -13,6 +13,7 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
@@ -20,6 +21,7 @@ class TaskCard extends ConsumerStatefulWidget {
     required this.task,
     this.mobile = false,
     this.onTap,
+    this.onViewDetails,
     this.selected = false,
     this.onSelectedChanged,
     super.key,
@@ -28,6 +30,7 @@ class TaskCard extends ConsumerStatefulWidget {
   final TaskBoardItem task;
   final bool mobile;
   final VoidCallback? onTap;
+  final VoidCallback? onViewDetails;
   final bool selected;
   final ValueChanged<bool?>? onSelectedChanged;
 
@@ -38,88 +41,32 @@ class TaskCard extends ConsumerStatefulWidget {
 class _TaskCardState extends ConsumerState<TaskCard> {
   bool _hovered = false;
 
-  void _showContextMenu(BuildContext context, Offset globalPosition) async {
-    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
-    final RelativeRect position = RelativeRect.fromRect(
-      Rect.fromLTWH(globalPosition.dx, globalPosition.dy, 0, 0),
-      Offset.zero & overlay.size,
-    );
-
+  void _showContextMenu(BuildContext context, Offset globalPosition) {
     final user = ref.read(authControllerProvider).valueOrNull;
     final isCreator = user != null && widget.task.userId == user.id;
-
-    final result = await showMenu<String>(
+    showTaskCardMenu(
       context: context,
-      position: position,
-      color: DashboardColors.surfaceLow,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.white12),
-      ),
-      items: [
-        const PopupMenuItem<String>(
-          value: 'view',
-          child: Row(
-            children: [
-              Icon(Icons.open_in_new_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-              SizedBox(width: 8),
-              Text('Xem chi tiết', style: TextStyle(color: DashboardColors.onSurface)),
-            ],
-          ),
-        ),
-        if (isCreator) ...[
-          const PopupMenuItem<String>(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                SizedBox(width: 8),
-                Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
-              ],
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-                SizedBox(width: 8),
-                Text('Xóa', style: TextStyle(color: DashboardColors.error)),
-              ],
-            ),
-          ),
-        ],
-      ],
+      offset: globalPosition,
+      task: widget.task,
+      isCreator: isCreator,
+      onEdit: _showEditDialog,
+      onDelete: _confirmDelete,
+      onDuplicate: _duplicateTask,
+      onOpenPage: widget.onViewDetails ?? widget.onTap,
     );
-
-    if (result == null) return;
-    _handleMenuAction(result);
   }
 
   void _handleMenuAction(String action) {
-    final user = ref.read(authControllerProvider).valueOrNull;
-    final isCreator = user != null && widget.task.userId == user.id;
-
-    if (action == 'view') {
-      widget.onTap?.call();
-    } else if (action == 'edit') {
-      if (!isCreator) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn không có quyền sửa công việc này')),
-        );
-        return;
+    if (action.startsWith('__open_menu__:')) {
+      final parts = action.substring('__open_menu__:'.length).split(',');
+      if (parts.length == 2) {
+        final dx = double.tryParse(parts[0]) ?? 0;
+        final dy = double.tryParse(parts[1]) ?? 0;
+        _showContextMenu(context, Offset(dx, dy));
       }
-      _showEditDialog();
-    } else if (action == 'delete') {
-      if (!isCreator) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Bạn không có quyền xóa công việc này')),
-        );
-        return;
-      }
-      _confirmDelete();
+      return;
     }
+    if (action == 'view') widget.onTap?.call();
   }
 
   Future<void> _confirmDelete() async {
@@ -159,6 +106,47 @@ class _TaskCardState extends ConsumerState<TaskCard> {
             SnackBar(content: Text('Lỗi khi xóa: $e')),
           );
         }
+      }
+    }
+  }
+
+  Future<void> _duplicateTask() async {
+    final user = ref.read(authControllerProvider).valueOrNull;
+    if (user == null || widget.task.userId != user.id) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Bạn không có quyền nhân bản công việc này')),
+      );
+      return;
+    }
+    try {
+      final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
+      final nexusTask = tasks.firstWhere(
+        (t) => t.id == widget.task.id,
+        orElse: () => throw Exception('Không tìm thấy task'),
+      );
+      final now = DateTime.now().toUtc();
+      final duplicate = nexusTask.copyWith(
+        id: '',
+        title: 'Copy of ${nexusTask.title}',
+        status: 'todo',
+        completedAt: null,
+        createdAt: now,
+        updatedAt: now,
+      );
+      await ref.read(taskRepositoryProvider).createTask(duplicate);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Đã nhân bản công việc'),
+            backgroundColor: DashboardColors.success,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Lỗi khi nhân bản: $e')),
+        );
       }
     }
   }
@@ -796,55 +784,16 @@ class _TaskContextMenuButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return PopupMenuButton<String>(
-      icon: const Icon(
-        Icons.more_horiz_rounded,
-        size: 18,
-        color: DashboardColors.onSurfaceVariant,
-      ),
-      padding: EdgeInsets.zero,
-      constraints: const BoxConstraints(),
-      color: DashboardColors.surfaceLow,
-      elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.white12),
-      ),
-      onSelected: onSelected,
-      itemBuilder: (context) => [
-        const PopupMenuItem<String>(
-          value: 'view',
-          child: Row(
-            children: [
-              Icon(Icons.open_in_new_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-              SizedBox(width: 8),
-              Text('Xem chi tiết', style: TextStyle(color: DashboardColors.onSurface)),
-            ],
-          ),
+    return GestureDetector(
+      onTapDown: (details) => onSelected('__open_menu__:${details.globalPosition.dx},${details.globalPosition.dy}'),
+      child: const Padding(
+        padding: EdgeInsets.all(4),
+        child: Icon(
+          Icons.more_horiz_rounded,
+          size: 18,
+          color: DashboardColors.onSurfaceVariant,
         ),
-        if (isCreator) ...[
-          const PopupMenuItem<String>(
-            value: 'edit',
-            child: Row(
-              children: [
-                Icon(Icons.edit_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                SizedBox(width: 8),
-                Text('Sửa', style: TextStyle(color: DashboardColors.onSurface)),
-              ],
-            ),
-          ),
-          const PopupMenuItem<String>(
-            value: 'delete',
-            child: Row(
-              children: [
-                Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-                SizedBox(width: 8),
-                Text('Xóa', style: TextStyle(color: DashboardColors.error)),
-              ],
-            ),
-          ),
-        ],
-      ],
+      ),
     );
   }
 }

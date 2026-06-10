@@ -11,6 +11,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/export_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
@@ -20,6 +21,7 @@ class TaskColumn extends ConsumerStatefulWidget {
     this.onTaskTap,
     this.onTaskDropped,
     this.onNewTask,
+    this.onViewDetails,
     super.key,
   });
 
@@ -27,6 +29,7 @@ class TaskColumn extends ConsumerStatefulWidget {
   final ValueChanged<TaskBoardItem>? onTaskTap;
   final ValueChanged<TaskBoardItem>? onTaskDropped;
   final VoidCallback? onNewTask;
+  final ValueChanged<TaskBoardItem>? onViewDetails;
 
   @override
   ConsumerState<TaskColumn> createState() => _TaskColumnState();
@@ -217,96 +220,23 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
                     ),
                   ),
                 const Spacer(),
-                PopupMenuButton<String>(
-                  icon: const Icon(
+                GestureDetector(
+                  onTapDown: (details) {
+                    showColumnMenu(
+                      context: context,
+                      offset: details.globalPosition,
+                      column: widget.column,
+                      sortType: _sortType,
+                      onSortChanged: (v) => setState(() => _sortType = v),
+                      onCollapse: () => setState(() => _isCollapsed = true),
+                      onNewTask: () => widget.onNewTask?.call(),
+                    );
+                  },
+                  child: const Icon(
                     Icons.more_horiz_rounded,
                     color: DashboardColors.onSurfaceVariant,
+                    size: 20,
                   ),
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                  color: DashboardColors.surfaceLow,
-                  elevation: 8,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: const BorderSide(color: Colors.white12),
-                  ),
-                  onSelected: (value) {
-                    if (value == 'add') {
-                      widget.onNewTask?.call();
-                    } else if (value == 'sort_priority') {
-                      setState(() {
-                        _sortType = _sortType == 'priority' ? 'none' : 'priority';
-                      });
-                    } else if (value == 'sort_due') {
-                      setState(() {
-                        _sortType = _sortType == 'dueDate' ? 'none' : 'dueDate';
-                      });
-                    } else if (value == 'collapse') {
-                      setState(() {
-                        _isCollapsed = true;
-                      });
-                    }
-                  },
-                  itemBuilder: (context) => [
-                    const PopupMenuItem<String>(
-                      value: 'add',
-                      child: Row(
-                        children: [
-                          Icon(Icons.add_circle_outline_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                          SizedBox(width: 8),
-                          Text('Thêm công việc mới', style: TextStyle(color: DashboardColors.onSurface)),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'sort_priority',
-                      child: Row(
-                        children: [
-                          Icon(
-                            _sortType == 'priority' ? Icons.check_rounded : Icons.sort_rounded,
-                            size: 16,
-                            color: _sortType == 'priority' ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Sắp xếp theo độ ưu tiên',
-                            style: TextStyle(
-                              color: _sortType == 'priority' ? DashboardColors.primary : DashboardColors.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: 'sort_due',
-                      child: Row(
-                        children: [
-                          Icon(
-                            _sortType == 'dueDate' ? Icons.check_rounded : Icons.calendar_month_rounded,
-                            size: 16,
-                            color: _sortType == 'dueDate' ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Sắp xếp theo hạn chót',
-                            style: TextStyle(
-                              color: _sortType == 'dueDate' ? DashboardColors.primary : DashboardColors.onSurface,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const PopupMenuItem<String>(
-                      value: 'collapse',
-                      child: Row(
-                        children: [
-                          Icon(Icons.view_column_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                          SizedBox(width: 8),
-                          Text('Thu gọn cột', style: TextStyle(color: DashboardColors.onSurface)),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -429,6 +359,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
                                   });
                                 },
                                 onTap: () => widget.onTaskTap?.call(task),
+                                onViewDetails: () => widget.onViewDetails?.call(task),
                               ),
                             );
                           },

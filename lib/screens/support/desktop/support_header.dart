@@ -2,6 +2,7 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class SupportHeader extends StatelessWidget {
@@ -37,6 +38,8 @@ class SupportHeader extends StatelessWidget {
               _HeaderIcon(icon: Icons.notifications_none_rounded),
               SizedBox(width: 12),
               _HeaderIcon(icon: Icons.history_edu_rounded),
+              SizedBox(width: 12),
+              XPLevelCard(),
               SizedBox(width: 12),
               ProfileAvatar(),
             ],

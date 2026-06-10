@@ -17,6 +17,7 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_analytic
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_command_palette.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_header.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_insights.dart';
+import 'package:to_do_app/screens/tasks_projects/widgets/tasks_premium_filters.dart';
 
 TaskBoardItem _mapTaskToBoardItem(
   NexusTask task,
@@ -189,6 +190,7 @@ class _TasksProjectsDesktopContentState
     extends ConsumerState<TasksProjectsDesktopContent> {
   TaskBoardItem? _selectedTask;
   TaskBoardItem? _activeTask;
+  TasksFilterState _filters = TasksFilterState.empty;
 
   void _selectTask(TaskBoardItem? task) {
     setState(() {
@@ -213,7 +215,11 @@ class _TasksProjectsDesktopContentState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    TasksProjectsHeader(onNewTask: widget.onNewTask),
+                    TasksProjectsHeader(
+                      onNewTask: widget.onNewTask,
+                      filters: _filters,
+                      onFiltersChanged: (filters) => setState(() => _filters = filters),
+                    ),
                     const SizedBox(height: 18),
                     const TasksProjectsSmartInsightBanner(),
                     const SizedBox(height: 14),
@@ -225,8 +231,10 @@ class _TasksProjectsDesktopContentState
                     const SizedBox(height: 18),
                     _DesktopKanbanBoard(
                       searchQuery: widget.searchQuery,
+                      filters: _filters,
                       onTaskTap: _selectTask,
                       onNewTask: widget.onNewTask,
+                      onViewDetails: widget.onViewDetails,
                     ),
                     const SizedBox(height: 32),
                     _ProjectsBottomRail(
@@ -291,19 +299,68 @@ class _TasksProjectsDesktopContentState
 class _DesktopKanbanBoard extends ConsumerStatefulWidget {
   const _DesktopKanbanBoard({
     required this.searchQuery,
+    required this.filters,
     this.onTaskTap,
     this.onNewTask,
+    this.onViewDetails,
   });
 
   final String? searchQuery;
+  final TasksFilterState filters;
   final ValueChanged<TaskBoardItem>? onTaskTap;
   final VoidCallback? onNewTask;
+  final ValueChanged<TaskBoardItem>? onViewDetails;
 
   @override
   ConsumerState<_DesktopKanbanBoard> createState() => _DesktopKanbanBoardState();
 }
 
 class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
+  bool _matchesFilters(TaskBoardItem item) {
+    final f = widget.filters;
+    if (f.statuses.isNotEmpty && !f.statuses.contains(item.status)) return false;
+    if (f.priorities.isNotEmpty && !f.priorities.contains(item.priority)) return false;
+    if (!_matchesDuePreset(item, f.duePreset)) return false;
+    final now = DateTime.now();
+    switch (f.quickPreset) {
+      case 'today':
+        return item.dueDate != null && _sameDay(item.dueDate!, now);
+      case 'overdue':
+        return item.dueDate != null && item.dueDate!.isBefore(DateTime(now.year, now.month, now.day));
+      case 'completed':
+        return item.status == TaskBoardStatus.completed;
+      case 'high':
+        return item.priority == TaskBoardPriority.high || item.priority == TaskBoardPriority.urgent;
+      case 'mine':
+      case 'all':
+      default:
+        return true;
+    }
+  }
+
+  bool _matchesDuePreset(TaskBoardItem item, String? preset) {
+    if (preset == null) return true;
+    final now = DateTime.now();
+    final due = item.dueDate;
+    switch (preset) {
+      case 'today':
+        return due != null && _sameDay(due, now);
+      case 'tomorrow':
+        return due != null && _sameDay(due, now.add(const Duration(days: 1)));
+      case 'week':
+        return due != null && due.isBefore(now.add(const Duration(days: 7))) && !due.isBefore(DateTime(now.year, now.month, now.day));
+      case 'overdue':
+        return due != null && due.isBefore(DateTime(now.year, now.month, now.day));
+      case 'none':
+        return due == null;
+      default:
+        return true;
+    }
+  }
+
+  bool _sameDay(DateTime a, DateTime b) =>
+      a.year == b.year && a.month == b.month && a.day == b.day;
+
   @override
   Widget build(BuildContext context) {
     final tasksAsync = ref.watch(userTasksProvider);
@@ -334,6 +391,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                 query.isEmpty ||
                 item.title.toLowerCase().contains(query) ||
                 item.description.toLowerCase().contains(query))
+            .where(_matchesFilters)
             .toList();
 
         final draftTasks = boardItems.where((t) => t.status == TaskBoardStatus.draft).toList();
@@ -358,6 +416,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                       tasks: draftTasks,
                     ),
                     onTaskTap: widget.onTaskTap,
+                    onViewDetails: widget.onViewDetails,
                     onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.draft),
                     onNewTask: widget.onNewTask,
                   )),
@@ -369,6 +428,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                       tasks: todoTasks,
                     ),
                     onTaskTap: widget.onTaskTap,
+                    onViewDetails: widget.onViewDetails,
                     onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.todo),
                     onNewTask: widget.onNewTask,
                   )),
@@ -380,6 +440,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                       tasks: inProgressTasks,
                     ),
                     onTaskTap: widget.onTaskTap,
+                    onViewDetails: widget.onViewDetails,
                     onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.inProgress),
                     onNewTask: widget.onNewTask,
                   )),
@@ -391,6 +452,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                       tasks: doneTasks,
                     ),
                     onTaskTap: widget.onTaskTap,
+                    onViewDetails: widget.onViewDetails,
                     onTaskDropped: (item) => _updateTaskStatus(ref, item.id, TaskBoardStatus.completed),
                     onNewTask: widget.onNewTask,
                   )),

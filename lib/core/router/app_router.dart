@@ -38,52 +38,31 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/splash',
-        builder: (context, state) => const SplashScreen(),
-      ),
-      GoRoute(path: '/', builder: (context, state) => const Home()),
-      GoRoute(path: '/login', builder: (context, state) => const SignInPage()),
-      GoRoute(path: '/signup', builder: (context, state) => const SignUpPage()),
-      GoRoute(
-        path: '/home',
-        builder: (context, state) => const DashboardScreen(),
-      ),
+      GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
+      GoRoute(path: '/', builder: (_, __) => const Home()),
+      GoRoute(path: '/login', builder: (_, __) => const SignInPage()),
+      GoRoute(path: '/signup', builder: (_, __) => const SignUpPage()),
+      GoRoute(path: '/home', builder: (_, __) => const DashboardScreen()),
       GoRoute(
         path: '/tasks',
-        builder:
-            (context, state) => TasksScreen(
-              openNewTask: state.uri.queryParameters['newTask'] == '1',
-              searchQuery: state.uri.queryParameters['search'],
-            ),
+        builder: (_, state) => TasksScreen(
+          openNewTask: state.uri.queryParameters['newTask'] == '1',
+          searchQuery: state.uri.queryParameters['search'],
+        ),
       ),
-      GoRoute(path: '/ai', builder: (context, state) => const AiScreen()),
-      GoRoute(
-        path: '/calendar',
-        builder: (context, state) => const CalendarScreen(),
-      ),
-      GoRoute(
-        path: '/analytics',
-        builder: (context, state) => const AnalyticsScreen(),
-      ),
-      GoRoute(
-        path: '/settings',
-        builder: (context, state) => const SettingsScreen(),
-      ),
-      GoRoute(
-        path: '/support',
-        builder: (context, state) => const SupportScreen(),
-      ),
-      GoRoute(
-        path: '/profile',
-        builder: (context, state) => const ProfileScreen(),
-      ),
+      GoRoute(path: '/ai', builder: (_, __) => const AiScreen()),
+      GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
+      GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
+      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
+      GoRoute(path: '/profile', builder: (_, __) => const ProfileScreen()),
       GoRoute(
         path: '/task-detail/:id',
-        builder: (context, state) => TaskDetailFromIdScreen(
+        builder: (_, state) => TaskDetailFromIdScreen(
           taskId: state.pathParameters['id']!,
         ),
       ),
     ],
   );
 });
+
