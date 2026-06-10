@@ -11,6 +11,12 @@ class FilterState {
   final DateRangePreset datePreset;
   final DateTime? startDate;
   final DateTime? endDate;
+  final String? assignedUserId;
+  final bool unassignedOnly;
+  final bool hasSubtasks;
+  final bool missingSubtasks;
+  final bool overdue;
+  final bool blocked;
 
   const FilterState({
     this.selectedStatuses = const {TaskStatus.all},
@@ -19,6 +25,12 @@ class FilterState {
     this.datePreset = DateRangePreset.thisWeek,
     this.startDate,
     this.endDate,
+    this.assignedUserId,
+    this.unassignedOnly = false,
+    this.hasSubtasks = false,
+    this.missingSubtasks = false,
+    this.overdue = false,
+    this.blocked = false,
   });
 
   FilterState copyWith({
@@ -28,8 +40,15 @@ class FilterState {
     DateRangePreset? datePreset,
     DateTime? startDate,
     DateTime? endDate,
+    String? assignedUserId,
+    bool clearAssignedUserId = false,
     bool clearStartDate = false,
     bool clearEndDate = false,
+    bool? unassignedOnly,
+    bool? hasSubtasks,
+    bool? missingSubtasks,
+    bool? overdue,
+    bool? blocked,
   }) {
     return FilterState(
       selectedStatuses: selectedStatuses ?? this.selectedStatuses,
@@ -38,6 +57,13 @@ class FilterState {
       datePreset: datePreset ?? this.datePreset,
       startDate: clearStartDate ? null : (startDate ?? this.startDate),
       endDate: clearEndDate ? null : (endDate ?? this.endDate),
+      assignedUserId:
+          clearAssignedUserId ? null : (assignedUserId ?? this.assignedUserId),
+      unassignedOnly: unassignedOnly ?? this.unassignedOnly,
+      hasSubtasks: hasSubtasks ?? this.hasSubtasks,
+      missingSubtasks: missingSubtasks ?? this.missingSubtasks,
+      overdue: overdue ?? this.overdue,
+      blocked: blocked ?? this.blocked,
     );
   }
 

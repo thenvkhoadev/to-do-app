@@ -16,10 +16,10 @@ class TasksProjectsHeader extends StatelessWidget {
   final VoidCallback? onNewTask;
   final TasksFilterState filters;
   final ValueChanged<TasksFilterState>? onFiltersChanged;
-  final VoidCallback? onOpenFilters;
+  final ValueChanged<Rect>? onOpenFilters;
 
-  void _openFilters() {
-    onOpenFilters?.call();
+  void _openFilters(Rect anchor) {
+    onOpenFilters?.call(anchor);
   }
 
   @override
@@ -60,7 +60,7 @@ class TasksProjectsHeader extends StatelessWidget {
                           ? 'Filter (${filters.count})'
                           : 'Filter',
                   icon: Icons.filter_list_rounded,
-                  onTap: _openFilters,
+                  onTapWithAnchor: _openFilters,
                 ),
               ),
               const SizedBox(width: 8),
@@ -92,7 +92,7 @@ class TasksProjectsHeader extends StatelessWidget {
         _HeaderButton(
           label: filters.count > 0 ? 'Filter (${filters.count})' : 'Filter',
           icon: Icons.filter_list_rounded,
-          onTap: _openFilters,
+          onTapWithAnchor: _openFilters,
         ),
         const SizedBox(width: 12),
         _HeaderButton(
@@ -107,21 +107,25 @@ class TasksProjectsHeader extends StatelessWidget {
 }
 
 class _HeaderButton extends StatelessWidget {
-  const _HeaderButton({
+  _HeaderButton({
     required this.label,
     required this.icon,
     this.gradient = false,
     this.onTap,
-  });
+    this.onTapWithAnchor,
+  }) : _key = GlobalKey();
 
   final String label;
   final IconData icon;
   final bool gradient;
   final VoidCallback? onTap;
+  final ValueChanged<Rect>? onTapWithAnchor;
+  final GlobalKey _key;
 
   @override
   Widget build(BuildContext context) {
     return Material(
+      key: _key,
       color: Colors.transparent,
       borderRadius: BorderRadius.circular(999),
       child: Ink(
@@ -153,7 +157,19 @@ class _HeaderButton extends StatelessWidget {
         ),
         child: InkWell(
           borderRadius: BorderRadius.circular(999),
-          onTap: onTap,
+          onTap: () {
+            final anchoredTap = onTapWithAnchor;
+            if (anchoredTap != null) {
+              final renderBox =
+                  _key.currentContext?.findRenderObject() as RenderBox?;
+              if (renderBox != null) {
+                final topLeft = renderBox.localToGlobal(Offset.zero);
+                anchoredTap(topLeft & renderBox.size);
+                return;
+              }
+            }
+            onTap?.call();
+          },
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
             child: Row(

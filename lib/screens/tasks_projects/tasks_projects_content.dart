@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
@@ -205,6 +206,7 @@ class _TasksProjectsDesktopContentState
   TasksFilterState _filters = TasksFilterState.empty;
   FilterState _overlayFilterState = const FilterState();
   bool _showFilterPanel = false;
+  Rect? _filterAnchorRect;
 
   void _selectTask(TaskBoardItem? task) {
     setState(() {
@@ -215,8 +217,13 @@ class _TasksProjectsDesktopContentState
     });
   }
 
-  void _openFilters() {
-    setState(() => _showFilterPanel = true);
+  void _openFilters(Rect anchor) {
+    final box = context.findRenderObject() as RenderBox?;
+    final localTopLeft = box?.globalToLocal(anchor.topLeft) ?? anchor.topLeft;
+    setState(() {
+      _filterAnchorRect = localTopLeft & anchor.size;
+      _showFilterPanel = true;
+    });
   }
 
   void _applyOverlayFilters(FilterState state) {
@@ -365,16 +372,12 @@ class _TasksProjectsDesktopContentState
                 );
               }()),
               if (_showFilterPanel)
-                Positioned(
-                  top: 0,
-                  right: 0,
-                  bottom: 0,
-                  width: 400,
-                  child: DesktopFilterPanel(
-                    initialState: _overlayFilterState,
-                    onApply: _applyOverlayFilters,
-                    onClose: () => setState(() => _showFilterPanel = false),
-                  ),
+                _DesktopFilterOverlayLayer(
+                  constraints: constraints,
+                  anchorRect: _filterAnchorRect,
+                  initialState: _overlayFilterState,
+                  onApply: _applyOverlayFilters,
+                  onClose: () => setState(() => _showFilterPanel = false),
                 ),
             ],
           );
@@ -382,6 +385,133 @@ class _TasksProjectsDesktopContentState
       ),
     );
   }
+}
+
+class _DesktopFilterOverlayLayer extends StatelessWidget {
+  const _DesktopFilterOverlayLayer({
+    required this.constraints,
+    required this.anchorRect,
+    required this.initialState,
+    required this.onApply,
+    required this.onClose,
+  });
+
+  final BoxConstraints constraints;
+  final Rect? anchorRect;
+  final FilterState initialState;
+  final ValueChanged<FilterState> onApply;
+  final VoidCallback onClose;
+
+  @override
+  Widget build(BuildContext context) {
+    final overlayWidth =
+        constraints.maxWidth >= 1280
+            ? 1100.0.clamp(0.0, constraints.maxWidth - 32.0)
+            : (constraints.maxWidth * .88).clamp(0.0, 1320.0);
+    final anchor =
+        anchorRect ?? Rect.fromLTWH(constraints.maxWidth - 220, 64, 120, 44);
+    final left = ((constraints.maxWidth - overlayWidth) / 2).clamp(
+      24.0,
+      constraints.maxWidth - overlayWidth - 24.0,
+    );
+    final top = anchor.bottom + 16;
+    final arrowCenterX = anchor.center.dx.clamp(
+      left + 36,
+      left + overlayWidth - 36,
+    );
+
+    return Shortcuts(
+      shortcuts: const {
+        SingleActivator(LogicalKeyboardKey.escape): DismissIntent(),
+      },
+      child: Actions(
+        actions: {
+          DismissIntent: CallbackAction<DismissIntent>(
+            onInvoke: (_) {
+              onClose();
+              return null;
+            },
+          ),
+        },
+        child: Focus(
+          autofocus: true,
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: onClose,
+                  child: Container(color: const Color(0xBF050814)),
+                ),
+              ),
+              Positioned(
+                top: anchor.bottom + 2,
+                left: arrowCenterX - 10,
+                width: 20,
+                height: top - anchor.bottom,
+                child: const _FilterOverlayConnector(),
+              ),
+              Positioned(
+                top: top,
+                left: left,
+                width: overlayWidth,
+                bottom: 32,
+                child: DesktopFilterPanel(
+                  initialState: initialState,
+                  onApply: onApply,
+                  onClose: onClose,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FilterOverlayConnector extends StatelessWidget {
+  const _FilterOverlayConnector();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: CustomPaint(painter: _FilterOverlayConnectorPainter()),
+    );
+  }
+}
+
+class _FilterOverlayConnectorPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final path =
+        Path()
+          ..moveTo(size.width / 2, 0)
+          ..lineTo(size.width, size.height)
+          ..lineTo(0, size.height)
+          ..close();
+
+    canvas.drawShadow(path, const Color(0x66000000), 10, false);
+    canvas.drawPath(
+      path,
+      Paint()
+        ..shader = const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Color(0xFA1A1E30), Color(0xF0131420)],
+        ).createShader(Offset.zero & size),
+    );
+    canvas.drawPath(
+      path,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: .08),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _DesktopKanbanBoard extends ConsumerStatefulWidget {
@@ -647,7 +777,7 @@ class _TasksProjectsMobileSliverBodyState
   FilterState _overlayFilterState = const FilterState();
   TasksFilterState _filters = TasksFilterState.empty;
 
-  Future<void> _openFilters() async {
+  Future<void> _openFilters(Rect _) async {
     final result = await MobileFilterSheet.show(
       context,
       initialState: _overlayFilterState,

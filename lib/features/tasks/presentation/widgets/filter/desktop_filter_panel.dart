@@ -2,11 +2,12 @@ import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_action_footer.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_categories_list.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_assigned_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_categories_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_date_range_desktop.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_priority_grid.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_status_chips.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_other_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_priority_section.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_status_section.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 
 class DesktopFilterPanel extends StatefulWidget {
@@ -31,6 +32,7 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
   late AnimationController _controller;
   late Animation<Offset> _slide;
   late Animation<double> _fade;
+  late Animation<double> _scale;
 
   @override
   void initState() {
@@ -38,13 +40,18 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
     _state = widget.initialState;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
+      duration: const Duration(milliseconds: 250),
+      reverseDuration: const Duration(milliseconds: 200),
     );
     _slide = Tween<Offset>(
-      begin: const Offset(1, 0),
+      begin: const Offset(0, .02),
       end: Offset.zero,
     ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _scale = Tween<double>(
+      begin: .98,
+      end: 1,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
     _controller.forward();
   }
 
@@ -59,101 +66,65 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
     widget.onClose();
   }
 
+  int get _activeCount {
+    var count = 0;
+    if (_state.selectedPriorities.isNotEmpty) count++;
+    if (_state.selectedCategoryIds.isNotEmpty) count++;
+    if (!_state.selectedStatuses.contains(TaskStatus.all) ||
+        _state.selectedStatuses.length > 1) {
+      count++;
+    }
+    if (_state.startDate != null || _state.endDate != null) count++;
+    if (_state.unassignedOnly || _state.assignedUserId != null) count++;
+    if (_state.hasSubtasks ||
+        _state.missingSubtasks ||
+        _state.overdue ||
+        _state.blocked) {
+      count++;
+    }
+    return count;
+  }
+
   @override
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fade,
       child: SlideTransition(
         position: _slide,
-        child: ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 28, sigmaY: 28),
-            child: Container(
-              width: 400,
-              decoration: const BoxDecoration(
-                color: Color(0xB30D0E0F),
-                border: Border(left: BorderSide(color: Color(0x14FFFFFF))),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0x80000000),
-                    blurRadius: 50,
-                    offset: Offset(-10, 0),
+        child: ScaleTransition(
+          scale: _scale,
+          alignment: Alignment.topCenter,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xF0131420),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .06),
                   ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  _Header(onClose: _dismiss),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.fromLTRB(32, 0, 32, 48),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 10),
-                          FilterStatusChips(
-                            selected: _state.selectedStatuses,
-                            onChanged:
-                                (v) => setState(
-                                  () =>
-                                      _state = _state.copyWith(
-                                        selectedStatuses: v,
-                                      ),
-                                ),
-                          ),
-                          const SizedBox(height: 40),
-                          FilterPriorityGrid(
-                            selected: _state.selectedPriorities,
-                            onChanged:
-                                (v) => setState(
-                                  () =>
-                                      _state = _state.copyWith(
-                                        selectedPriorities: v,
-                                      ),
-                                ),
-                          ),
-                          const SizedBox(height: 40),
-                          FilterCategoriesList(
-                            selected: _state.selectedCategoryIds,
-                            onChanged:
-                                (v) => setState(
-                                  () =>
-                                      _state = _state.copyWith(
-                                        selectedCategoryIds: v,
-                                      ),
-                                ),
-                          ),
-                          const SizedBox(height: 40),
-                          FilterDateRangeDesktop(
-                            preset: _state.datePreset,
-                            startDate: _state.startDate,
-                            endDate: _state.endDate,
-                            onPresetChanged:
-                                (preset) => setState(
-                                  () =>
-                                      _state = _state.copyWith(
-                                        datePreset: preset,
-                                      ),
-                                ),
-                            onRangeChanged:
-                                (start, end) => setState(
-                                  () =>
-                                      _state = _state.copyWith(
-                                        startDate: start,
-                                        endDate: end,
-                                        datePreset: DateRangePreset.custom,
-                                      ),
-                                ),
-                          ),
-                        ],
-                      ),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x0FFFFFFF), spreadRadius: 1),
+                    BoxShadow(
+                      color: Color(0x80000000),
+                      blurRadius: 60,
+                      offset: Offset(0, 20),
                     ),
-                  ),
-                  FilterActionFooter(
-                    onReset: () => setState(() => _state = _state.reset()),
-                    onApply: () => widget.onApply(_state),
-                  ),
-                ],
+                    BoxShadow(color: Color(0x147C5CFF), blurRadius: 40),
+                  ],
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildHeader(),
+                    _divider(),
+                    Flexible(child: _buildBody()),
+                    _divider(),
+                    _buildFooter(),
+                  ],
+                ),
               ),
             ),
           ),
@@ -161,51 +132,386 @@ class _DesktopFilterPanelState extends State<DesktopFilterPanel>
       ),
     );
   }
-}
 
-class _Header extends StatelessWidget {
-  const _Header({required this.onClose});
-  final VoidCallback onClose;
-
-  @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(32, 32, 32, 32),
-    child: Row(
-      children: [
-        const Icon(
-          Icons.filter_list_rounded,
-          color: Color(0xFFE1DFFF),
-          size: 24,
-        ),
-        const SizedBox(width: 12),
-        const Text(
-          'Filter Tasks',
-          style: TextStyle(
-            color: DashboardColors.onSurface,
-            fontSize: 24,
-            height: 1.3,
-            fontWeight: FontWeight.w800,
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 24, 28, 20),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: const Color(0x1AE1DFFF),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: .15)),
+            ),
+            child: const Icon(
+              Icons.filter_list_rounded,
+              color: DashboardColors.primary,
+              size: 22,
+            ),
           ),
-        ),
-        const Spacer(),
-        Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: onClose,
-            child: const SizedBox(
-              width: 44,
-              height: 44,
-              child: Icon(
+          const SizedBox(width: 16),
+          const Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Filter Tasks',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  height: 1.2,
+                ),
+              ),
+              SizedBox(height: 2),
+              Text(
+                'Refine your view to find exactly what you need',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const Spacer(),
+          GestureDetector(
+            onTap: () => setState(() => _state = _state.reset()),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.refresh_rounded,
+                  color: DashboardColors.onSurfaceVariant,
+                  size: 16,
+                ),
+                SizedBox(width: 6),
+                Text(
+                  'Clear all',
+                  style: TextStyle(
+                    color: DashboardColors.onSurfaceVariant,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 20),
+          GestureDetector(
+            onTap: _dismiss,
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: DashboardColors.surfaceHigh,
+              ),
+              child: const Icon(
                 Icons.close_rounded,
-                color: Color(0xFFC7C5D0),
-                size: 20,
+                color: DashboardColors.onSurfaceVariant,
+                size: 18,
               ),
             ),
           ),
-        ),
-      ],
-    ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBody() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(28, 20, 28, 20),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.calendar_view_day_rounded,
+                  label: 'STATUS',
+                  child: FilterStatusSection(
+                    selected: _state.selectedStatuses,
+                    onChanged:
+                        (value) => setState(
+                          () =>
+                              _state = _state.copyWith(selectedStatuses: value),
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.flag_rounded,
+                  label: 'PRIORITY',
+                  child: FilterPrioritySection(
+                    selected: _state.selectedPriorities,
+                    onChanged:
+                        (value) => setState(
+                          () =>
+                              _state = _state.copyWith(
+                                selectedPriorities: value,
+                              ),
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.folder_outlined,
+                  label: 'CATEGORIES',
+                  trailing: TextButton.icon(
+                    onPressed: () {},
+                    icon: const Icon(
+                      Icons.add,
+                      size: 14,
+                      color: DashboardColors.onSurfaceVariant,
+                    ),
+                    label: const Text(
+                      'Add',
+                      style: TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                  ),
+                  child: FilterCategoriesSection(
+                    selected: _state.selectedCategoryIds,
+                    onChanged:
+                        (value) => setState(
+                          () =>
+                              _state = _state.copyWith(
+                                selectedCategoryIds: value,
+                              ),
+                        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.calendar_month_outlined,
+                  label: 'DATE RANGE',
+                  child: FilterDateRangeDesktop(
+                    preset: _state.datePreset,
+                    startDate: _state.startDate,
+                    endDate: _state.endDate,
+                    onPresetChanged:
+                        (value) => setState(
+                          () => _state = _state.copyWith(datePreset: value),
+                        ),
+                    onRangeChanged:
+                        (start, end) => setState(
+                          () =>
+                              _state = _state.copyWith(
+                                startDate: start,
+                                endDate: end,
+                                datePreset: DateRangePreset.custom,
+                              ),
+                        ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _SectionCard(
+                  icon: Icons.person_outline_rounded,
+                  label: 'ASSIGNED TO',
+                  child: FilterAssignedSection(
+                    selectedUserId: _state.assignedUserId,
+                    unassignedOnly: _state.unassignedOnly,
+                    onUserChanged:
+                        (value) => setState(
+                          () => _state = _state.copyWith(assignedUserId: value),
+                        ),
+                    onUnassignedChanged:
+                        (value) => setState(
+                          () => _state = _state.copyWith(unassignedOnly: value),
+                        ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _SectionCard(
+            icon: Icons.tune_rounded,
+            label: 'OTHER FILTERS',
+            child: FilterOtherSection(
+              state: _state,
+              onChanged: (value) => setState(() => _state = value),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFooter() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(28, 16, 28, 20),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: () => setState(() => _state = _state.reset()),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: DashboardColors.outlineVariant.withValues(alpha: .25),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.refresh_rounded,
+                    color: DashboardColors.onSurfaceVariant,
+                    size: 18,
+                  ),
+                  SizedBox(width: 8),
+                  Text(
+                    'Reset All Filters',
+                    style: TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const Spacer(),
+          if (_activeCount > 0) ...[
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: DashboardColors.primary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '$_activeCount active filter${_activeCount > 1 ? 's' : ''}',
+              style: const TextStyle(
+                color: DashboardColors.onSurfaceVariant,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(width: 24),
+          ],
+          GestureDetector(
+            onTap: () => widget.onApply(_state),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 14),
+              decoration: BoxDecoration(
+                color: DashboardColors.secondaryContainer,
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x40321ED2),
+                    blurRadius: 20,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.check_circle_outline_rounded,
+                    color: DashboardColors.secondary,
+                    size: 18,
+                  ),
+                  SizedBox(width: 10),
+                  Text(
+                    'Apply Filters',
+                    style: TextStyle(
+                      color: DashboardColors.onSurface,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _divider() => Divider(
+    color: Colors.white.withValues(alpha: .08),
+    height: 1,
+    thickness: 1,
   );
+}
+
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.icon,
+    required this.label,
+    required this.child,
+    this.trailing,
+  });
+
+  final IconData icon;
+  final String label;
+  final Widget child;
+  final Widget? trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .04),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: DashboardColors.onSurfaceVariant, size: 16),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: .96,
+                ),
+              ),
+              if (trailing != null) ...[const Spacer(), trailing!],
+            ],
+          ),
+          const SizedBox(height: 14),
+          child,
+        ],
+      ),
+    );
+  }
 }
