@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_premium_filters.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/tasks_export_button.dart';
 
 class TasksProjectsHeader extends StatelessWidget {
   const TasksProjectsHeader({
@@ -9,6 +11,7 @@ class TasksProjectsHeader extends StatelessWidget {
     this.filters = TasksFilterState.empty,
     this.onFiltersChanged,
     this.onOpenFilters,
+    required this.tasks,
     super.key,
   });
 
@@ -17,6 +20,7 @@ class TasksProjectsHeader extends StatelessWidget {
   final TasksFilterState filters;
   final ValueChanged<TasksFilterState>? onFiltersChanged;
   final ValueChanged<Rect>? onOpenFilters;
+  final List<TaskBoardItem> tasks;
 
   void _openFilters(Rect anchor) {
     onOpenFilters?.call(anchor);
@@ -64,6 +68,8 @@ class TasksProjectsHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 8),
+              TasksExportButton(tasks: tasks),
+              const SizedBox(width: 8),
               Expanded(
                 flex: 2,
                 child: _HeaderButton(
@@ -94,6 +100,8 @@ class TasksProjectsHeader extends StatelessWidget {
           icon: Icons.filter_list_rounded,
           onTapWithAnchor: _openFilters,
         ),
+        const SizedBox(width: 12),
+        TasksExportButton(tasks: tasks),
         const SizedBox(width: 12),
         _HeaderButton(
           label: 'New Task',

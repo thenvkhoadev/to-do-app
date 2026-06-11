@@ -7,6 +7,7 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/collaborator_assign_dialog.dart';
 
 class MobileAssignees extends ConsumerWidget {
   const MobileAssignees({required this.item, super.key});
@@ -94,125 +95,40 @@ class MobileAssignees extends ConsumerWidget {
     List<UserProfileModel> currentAssignees,
   ) {
     final initialSelectedIds = currentAssignees.map((u) => u.id).toSet();
-    final selectedIds = Set<String>.from(initialSelectedIds);
 
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: DashboardColors.surfaceLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(
-                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
-                ),
-              ),
-              title: const Text(
-                'Assign Collaborators',
-                style: TextStyle(
-                  fontWeight: FontWeight.w700,
-                  color: DashboardColors.onSurface,
-                  fontSize: 18,
-                ),
-              ),
-              content: SizedBox(
-                width: 320,
-                child: allUsers.isEmpty
-                    ? const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Text(
-                          'No workspace users found',
-                          style: TextStyle(color: DashboardColors.onSurfaceVariant),
-                          textAlign: TextAlign.center,
-                        ),
-                      )
-                    : ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: allUsers.length,
-                        itemBuilder: (context, index) {
-                          final user = allUsers[index];
-                          final isSelected = selectedIds.contains(user.id);
-                          final initials = _getInitials(user);
-                          final userColor = _getUserColor(user.id);
-                          final hasImage = user.avatarUrl != null && user.avatarUrl!.isNotEmpty;
+    final collaborators = allUsers.map((u) {
+      final name = u.fullName ?? u.username ?? u.email;
+      final initials = _getInitials(u);
+      final color = _getUserColor(u.id);
+      return CollaboratorItem(
+        id: u.id,
+        name: name,
+        avatarUrl: u.avatarUrl,
+        initials: initials,
+        color: color,
+        isOnline: true,
+      );
+    }).toList();
 
-                          return CheckboxListTile(
-                            activeColor: DashboardColors.primary,
-                            checkboxShape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            secondary: CircleAvatar(
-                              radius: 16,
-                              backgroundColor: userColor.withValues(alpha: .18),
-                              backgroundImage: hasImage ? NetworkImage(user.avatarUrl!) : null,
-                              child: hasImage
-                                  ? null
-                                  : Text(
-                                      initials,
-                                      style: TextStyle(
-                                        color: userColor,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                            ),
-                            title: Text(
-                              user.fullName ?? user.username ?? user.email,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: DashboardColors.onSurface,
-                                fontSize: 14,
-                              ),
-                            ),
-                            value: isSelected,
-                            onChanged: (val) async {
-                              final supabase = ref.read(supabaseClientProvider);
-                              try {
-                                if (val == true) {
-                                  await supabase.from('task_assignees').insert({
-                                    'task_id': taskId,
-                                    'user_id': user.id,
-                                  });
-                                  setDialogState(() {
-                                    selectedIds.add(user.id);
-                                  });
-                                } else {
-                                  await supabase
-                                      .from('task_assignees')
-                                      .delete()
-                                      .eq('task_id', taskId)
-                                      .eq('user_id', user.id);
-                                  setDialogState(() {
-                                    selectedIds.remove(user.id);
-                                  });
-                                }
-                                ref.invalidate(taskAssigneeIdsProvider(taskId));
-                              } catch (e) {
-                                if (context.mounted) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Failed to update assignment: $e')),
-                                  );
-                                }
-                              }
-                            },
-                          );
-                        },
-                      ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Close',
-                    style: TextStyle(color: DashboardColors.onSurfaceVariant),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
+    CollaboratorAssignDialog.show(
+      context,
+      collaborators: collaborators,
+      initialSelectedIds: initialSelectedIds,
+      onChanged: (item, isSelected) async {
+        final supabase = ref.read(supabaseClientProvider);
+        if (isSelected) {
+          await supabase.from('task_assignees').insert({
+            'task_id': taskId,
+            'user_id': item.id,
+          });
+        } else {
+          await supabase
+              .from('task_assignees')
+              .delete()
+              .eq('task_id', taskId)
+              .eq('user_id', item.id);
+        }
+        ref.invalidate(taskAssigneeIdsProvider(taskId));
       },
     );
   }

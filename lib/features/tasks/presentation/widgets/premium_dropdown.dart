@@ -7,36 +7,99 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
+
+// ── Arrow painter ─────────────────────────────────────────────────────────────
+
+class _ArrowPainter extends CustomPainter {
+  const _ArrowPainter({required this.fromTop});
+  final bool fromTop; // true = arrow on top, false = arrow on bottom
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    const arrowW = 12.0;
+    const arrowH = 7.0;
+    const x = 24.0; // arrow horizontal center from left edge of menu
+
+    final fill = Paint()
+      ..color = const Color(0xFF0A0E1E).withValues(alpha: 0.97)
+      ..style = PaintingStyle.fill;
+    final border = Paint()
+      ..color = Colors.white.withValues(alpha: 0.08)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+
+    final path = Path();
+    if (fromTop) {
+      path.moveTo(x - arrowW / 2, arrowH);
+      path.lineTo(x, 0);
+      path.lineTo(x + arrowW / 2, arrowH);
+      path.close();
+    } else {
+      final y = size.height;
+      path.moveTo(x - arrowW / 2, y - arrowH);
+      path.lineTo(x, y);
+      path.lineTo(x + arrowW / 2, y - arrowH);
+      path.close();
+    }
+    canvas.drawPath(path, border);
+    canvas.drawPath(path, fill);
+  }
+
+  @override
+  bool shouldRepaint(_ArrowPainter old) => old.fromTop != fromTop;
+}
 
 // ── Shared glass container ────────────────────────────────────────────────────
 
 class _GlassMenu extends StatelessWidget {
-  const _GlassMenu({required this.child});
+  const _GlassMenu({required this.child, this.showArrowTop = true});
   final Widget child;
+  final bool showArrowTop;
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(18),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: Container(
-          width: 280,
-          decoration: BoxDecoration(
-            color: const Color(0xFF0A0E1E).withValues(alpha: 0.92),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 50,
-                offset: const Offset(0, 12),
-              ),
-            ],
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    const arrowH = 7.0;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (showArrowTop)
+          SizedBox(
+            width: 280,
+            height: arrowH,
+            child: CustomPaint(painter: _ArrowPainter(fromTop: true)),
           ),
-          child: child,
+        ClipRRect(
+          borderRadius: BorderRadius.circular(14),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            child: Container(
+              width: 280,
+              decoration: BoxDecoration(
+                color: const Color(0xFF0A0E1E).withValues(alpha: 0.97),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 50,
+                    offset: const Offset(0, 12),
+                  ),
+                ],
+              ),
+              child: IntrinsicHeight(child: child),
+            ),
+          ),
         ),
-      ),
+        if (!showArrowTop)
+          SizedBox(
+            width: 280,
+            height: arrowH,
+            child: CustomPaint(painter: _ArrowPainter(fromTop: false)),
+          ),
+      ],
     );
   }
 }
@@ -173,7 +236,8 @@ class _MenuSection extends StatelessWidget {
 Future<void> _showGlassMenu({
   required BuildContext context,
   required Offset offset,
-  required Widget menu,
+  required Widget Function(bool arrowTop) menuBuilder,
+  Size? anchorSize,
 }) async {
   await showGeneralDialog(
     context: context,
@@ -184,10 +248,22 @@ Future<void> _showGlassMenu({
     pageBuilder: (ctx, anim, _) => const SizedBox.shrink(),
     transitionBuilder: (ctx, anim, _, child) {
       final screen = MediaQuery.sizeOf(ctx);
+      // offset.dy = bottom edge of anchor (caller passes top + height + gap)
+      const menuH = 300.0; // approximate, menu is constrained to 0.6 * screen
       double left = offset.dx;
       double top = offset.dy;
+      bool arrowTop = true;
+
       if (left + 280 > screen.width) left = screen.width - 296;
-      if (top + 480 > screen.height) top = screen.height - 496;
+      if (left < 8) left = 8;
+
+      // Flip above anchor if not enough room below
+      if (top + menuH > screen.height - 16) {
+        final anchorH = anchorSize?.height ?? 0;
+        top = offset.dy - anchorH - 6 - menuH - 7; // 7 = arrow height
+        if (top < 8) top = 8;
+        arrowTop = false;
+      }
 
       return Stack(
         children: [
@@ -198,12 +274,12 @@ Future<void> _showGlassMenu({
               opacity: anim,
               child: SlideTransition(
                 position: Tween<Offset>(
-                  begin: const Offset(0, -0.04),
+                  begin: Offset(0, arrowTop ? -0.04 : 0.04),
                   end: Offset.zero,
                 ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
                 child: Material(
                   type: MaterialType.transparency,
-                  child: menu,
+                  child: menuBuilder(arrowTop),
                 ),
               ),
             ),
@@ -225,6 +301,7 @@ class ColumnPremiumMenu extends ConsumerStatefulWidget {
     required this.onSortChanged,
     required this.onCollapse,
     required this.onNewTask,
+    this.showArrowTop = true,
     super.key,
   });
 
@@ -232,6 +309,7 @@ class ColumnPremiumMenu extends ConsumerStatefulWidget {
   final String sortType;
   final ValueChanged<String> onSortChanged;
   final VoidCallback onCollapse;
+  final bool showArrowTop;
   final VoidCallback onNewTask;
 
   @override
@@ -254,6 +332,7 @@ class _ColumnPremiumMenuState extends ConsumerState<ColumnPremiumMenu> {
       }
     }
     return _GlassMenu(
+      showArrowTop: widget.showArrowTop,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -454,16 +533,19 @@ void showColumnMenu({
   required ValueChanged<String> onSortChanged,
   required VoidCallback onCollapse,
   required VoidCallback onNewTask,
+  Size? anchorSize,
 }) {
   _showGlassMenu(
     context: context,
     offset: offset,
-    menu: ColumnPremiumMenu(
+    anchorSize: anchorSize,
+    menuBuilder: (arrowTop) => ColumnPremiumMenu(
       column: column,
       sortType: sortType,
       onSortChanged: onSortChanged,
       onCollapse: onCollapse,
       onNewTask: onNewTask,
+      showArrowTop: arrowTop,
     ),
   );
 }
@@ -480,6 +562,7 @@ class TaskCardPremiumMenu extends ConsumerWidget {
     required this.onDelete,
     required this.onDuplicate,
     this.onOpenPage,
+    this.showArrowTop = true,
     super.key,
   });
 
@@ -489,6 +572,7 @@ class TaskCardPremiumMenu extends ConsumerWidget {
   final VoidCallback onDelete;
   final VoidCallback onDuplicate;
   final VoidCallback? onOpenPage;
+  final bool showArrowTop;
 
   String _statusLabel(TaskBoardStatus s) {
     switch (s) {
@@ -506,6 +590,7 @@ class TaskCardPremiumMenu extends ConsumerWidget {
     final isInProgress = task.status == TaskBoardStatus.inProgress;
 
     return _GlassMenu(
+      showArrowTop: showArrowTop,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -658,8 +743,28 @@ class TaskCardPremiumMenu extends ConsumerWidget {
       await ref.read(taskRepositoryProvider).updateTask(updated);
       if (completedNow) {
         await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+        if (context.mounted) {
+          TaskCompleteSuccessDialog.show(context, task.title);
+        }
       } else if (draftToActive) {
         await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Activated');
+      }
+
+      final fromStatus = task.status;
+      final toStatus = switch (status) {
+        'draft' => TaskBoardStatus.draft,
+        'todo' => TaskBoardStatus.todo,
+        'in_progress' => TaskBoardStatus.inProgress,
+        'done' => TaskBoardStatus.completed,
+        _ => TaskBoardStatus.todo,
+      };
+
+      final isTransitionOfInterest = (fromStatus == TaskBoardStatus.draft && (toStatus == TaskBoardStatus.todo || toStatus == TaskBoardStatus.inProgress)) ||
+                                     (fromStatus == TaskBoardStatus.todo && toStatus == TaskBoardStatus.inProgress) ||
+                                     (fromStatus == TaskBoardStatus.inProgress && toStatus == TaskBoardStatus.todo);
+
+      if (isTransitionOfInterest && context.mounted) {
+        TaskTransitionSuccessDialog.show(context, task.title, fromStatus, toStatus);
       }
     } catch (e) {
       if (context.mounted) {
@@ -681,17 +786,20 @@ void showTaskCardMenu({
   required VoidCallback onDelete,
   required VoidCallback onDuplicate,
   VoidCallback? onOpenPage,
+  Size? anchorSize,
 }) {
   _showGlassMenu(
     context: context,
     offset: offset,
-    menu: TaskCardPremiumMenu(
+    anchorSize: anchorSize,
+    menuBuilder: (arrowTop) => TaskCardPremiumMenu(
       task: task,
       isCreator: isCreator,
       onEdit: onEdit,
       onDelete: onDelete,
       onDuplicate: onDuplicate,
       onOpenPage: onOpenPage,
+      showArrowTop: arrowTop,
     ),
   );
 }
@@ -852,9 +960,8 @@ class _AssigneeTileState extends ConsumerState<_AssigneeTile> {
             .eq('user_id', userId);
       } else {
         await supabase.from('task_assignees').upsert(
-          {'task_id': widget.task.id, 'user_id': userId},
-          onConflict: 'task_id,user_id',
-        );
+            {'task_id': widget.task.id, 'user_id': userId},
+            onConflict: 'task_id,user_id');
       }
       ref.invalidate(taskAssigneeIdsProvider(widget.task.id));
       setState(() {});
@@ -866,4 +973,240 @@ class _AssigneeTileState extends ConsumerState<_AssigneeTile> {
       }
     }
   }
+}
+
+// ── Task Column Copy Menu ───────────────────────────────────────────────────
+
+class TaskColumnCopyMenu extends StatelessWidget {
+  const TaskColumnCopyMenu({required this.onSelect, this.showArrowTop = true, super.key});
+  final ValueChanged<String> onSelect;
+  final bool showArrowTop;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassMenu(
+      showArrowTop: showArrowTop,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                Icon(Icons.copy_rounded, size: 14, color: DashboardColors.onSurfaceVariant),
+                SizedBox(width: 6),
+                Text(
+                  'Copy Column Tasks',
+                  style: TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const _MenuDivider(),
+          const SizedBox(height: 4),
+          _MenuTile(
+            icon: Icons.table_chart_rounded,
+            label: 'Copy as CSV',
+            color: Color(0xFF22C55E),
+            onTap: () => onSelect('csv'),
+          ),
+          _MenuTile(
+            icon: Icons.storage_rounded,
+            label: 'Copy as SQL',
+            color: Color(0xFFFFB020),
+            onTap: () => onSelect('sql'),
+          ),
+          _MenuTile(
+            icon: Icons.data_object_rounded,
+            label: 'Copy as JSON',
+            color: Color(0xFF5B8CFF),
+            onTap: () => onSelect('json'),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Task Column Export Menu ─────────────────────────────────────────────────
+
+class TaskColumnExportMenu extends StatelessWidget {
+  const TaskColumnExportMenu({required this.onSelect, this.showArrowTop = true, super.key});
+  final ValueChanged<String> onSelect;
+  final bool showArrowTop;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassMenu(
+      showArrowTop: showArrowTop,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                Icon(Icons.download_rounded, size: 14, color: DashboardColors.onSurfaceVariant),
+                SizedBox(width: 6),
+                Text(
+                  'Export Column Tasks',
+                  style: TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const _MenuDivider(),
+          const SizedBox(height: 4),
+          _MenuTile(
+            icon: Icons.table_chart_rounded,
+            label: 'Export as CSV',
+            color: Color(0xFF22C55E),
+            onTap: () => onSelect('csv'),
+          ),
+          _MenuTile(
+            icon: Icons.storage_rounded,
+            label: 'Export as SQL',
+            color: Color(0xFFFFB020),
+            onTap: () => onSelect('sql'),
+          ),
+          _MenuTile(
+            icon: Icons.data_object_rounded,
+            label: 'Export as JSON',
+            color: Color(0xFF5B8CFF),
+            onTap: () => onSelect('json'),
+          ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Task Details Option Menu ─────────────────────────────────────────────────
+
+class TaskDetailsOptionMenu extends StatelessWidget {
+  const TaskDetailsOptionMenu({
+    required this.onDuplicate,
+    required this.onArchive,
+    required this.onDelete,
+    this.showArrowTop = true,
+    super.key,
+  });
+
+  final VoidCallback onDuplicate;
+  final VoidCallback onArchive;
+  final VoidCallback onDelete;
+  final bool showArrowTop;
+
+  @override
+  Widget build(BuildContext context) {
+    return _GlassMenu(
+      showArrowTop: showArrowTop,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const Padding(
+            padding: EdgeInsets.fromLTRB(14, 12, 14, 8),
+            child: Row(
+              children: [
+                Icon(Icons.more_horiz_rounded, size: 14, color: DashboardColors.onSurfaceVariant),
+                SizedBox(width: 6),
+                Text(
+                  'Options',
+                  style: TextStyle(
+                    color: DashboardColors.onSurface,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const _MenuDivider(),
+          const SizedBox(height: 4),
+          _MenuTile(
+            icon: Icons.copy_rounded,
+            label: 'Nhân bản',
+            onTap: onDuplicate,
+          ),
+          _MenuTile(
+            icon: Icons.archive_rounded,
+            label: 'Lưu trữ',
+            onTap: onArchive,
+          ),
+          const _MenuDivider(),
+          _MenuTile(
+            icon: Icons.delete_rounded,
+            label: 'Xóa công việc',
+            danger: true,
+            onTap: onDelete,
+          ),
+          const SizedBox(height: 6),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Show Helpers ─────────────────────────────────────────────────────────────
+
+void showTaskColumnCopyMenu({
+  required BuildContext context,
+  required Offset offset,
+  required ValueChanged<String> onSelect,
+  Size? anchorSize,
+}) {
+  _showGlassMenu(
+    context: context,
+    offset: offset,
+    anchorSize: anchorSize,
+    menuBuilder: (arrowTop) => TaskColumnCopyMenu(onSelect: onSelect, showArrowTop: arrowTop),
+  );
+}
+
+void showTaskColumnExportMenu({
+  required BuildContext context,
+  required Offset offset,
+  required ValueChanged<String> onSelect,
+  Size? anchorSize,
+}) {
+  _showGlassMenu(
+    context: context,
+    offset: offset,
+    anchorSize: anchorSize,
+    menuBuilder: (arrowTop) => TaskColumnExportMenu(onSelect: onSelect, showArrowTop: arrowTop),
+  );
+}
+
+void showTaskDetailsOptionMenu({
+  required BuildContext context,
+  required Offset offset,
+  required VoidCallback onDuplicate,
+  required VoidCallback onArchive,
+  required VoidCallback onDelete,
+  Size? anchorSize,
+}) {
+  _showGlassMenu(
+    context: context,
+    offset: offset,
+    anchorSize: anchorSize,
+    menuBuilder: (arrowTop) => TaskDetailsOptionMenu(
+      onDuplicate: onDuplicate,
+      onArchive: onArchive,
+      onDelete: onDelete,
+      showArrowTop: arrowTop,
+    ),
+  );
 }

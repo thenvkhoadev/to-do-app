@@ -69,7 +69,6 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
   late Animation<double> _cardScaleAnim;
   late Animation<double> _particlesAnim;
   late Animation<double> _punchAnim;
-  late Animation<double> _counterAnim;
 
   final List<ExplosionParticle> _explosionParticles = [];
   final List<FloatingParticle> _floatingParticles = [];
@@ -135,11 +134,6 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
     _punchAnim = CurvedAnimation(
       parent: _entryCtrl,
       curve: const Interval(0.7, 1.0, curve: Curves.easeOut),
-    );
-
-    _counterAnim = CurvedAnimation(
-      parent: _entryCtrl,
-      curve: const Interval(0.3, 0.7, curve: Curves.easeInOut),
     );
 
     // Particles Initialization
@@ -350,25 +344,22 @@ class _LevelUpModalState extends ConsumerState<LevelUpModal>
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Header: Trophy Icon
-                                  const _TrophyHeader(),
-                                  const SizedBox(height: 24),
+                                  // Header: Glowing Rank Medallion
+                                  _RankMedallion(
+                                    level: widget.newLevel,
+                                    scaleAnim: _glowScaleAnim,
+                                  ),
+                                  const SizedBox(height: 28),
 
-                                  // Centered Title: LEVEL UP!
+                                  // Centered Title: THĂNG CẤP THÀNH CÔNG
                                   const _GradientTitle(),
-                                  const SizedBox(height: 16),
+                                  const SizedBox(height: 12),
 
-                                  // Level Section: LEVEL 7 (large)
-                                  _LevelSection(
-                                    oldLevel: oldLevel,
-                                    newLevel: widget.newLevel,
-                                    counterAnim: _counterAnim,
+                                  // Large Rank & Division title: e.g. LEGEND I
+                                  _RankDivisionHeader(
+                                    level: widget.newLevel,
                                     punchAnim: _punchAnim,
                                   ),
-                                  const SizedBox(height: 20),
-
-                                  // Rank Badge: e.g. Specialist Gold II
-                                  _RankBadge(level: widget.newLevel),
                                   const SizedBox(height: 24),
 
                                   // Level Progress Summary: Level 6 -> Level 7
@@ -545,34 +536,207 @@ class _ShineSweepWidgetState extends State<ShineSweepWidget>
 
 // ── Component Widgets ──────────────────────────────────────────────────────
 
-class _TrophyHeader extends StatelessWidget {
-  const _TrophyHeader();
+class _RankMedallion extends StatefulWidget {
+  final int level;
+  final Animation<double> scaleAnim;
+  const _RankMedallion({required this.level, required this.scaleAnim});
+
+  @override
+  State<_RankMedallion> createState() => _RankMedallionState();
+}
+
+class _RankMedallionState extends State<_RankMedallion> with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationCtrl.dispose();
+    super.dispose();
+  }
+
+  IconData _getRankIcon(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase.contains('eternal') || lowercase.contains('mythic') || lowercase.contains('legend')) {
+      return Icons.emoji_events_rounded;
+    } else if (lowercase.contains('master') || lowercase.contains('grandmaster')) {
+      return Icons.bolt_rounded;
+    } else if (lowercase.contains('elite')) {
+      return Icons.diamond_rounded;
+    } else if (lowercase.contains('challenger')) {
+      return Icons.workspace_premium_rounded;
+    } else if (lowercase.contains('explorer')) {
+      return Icons.explore_rounded;
+    } else if (lowercase.contains('apprentice')) {
+      return Icons.military_tech_rounded;
+    } else {
+      return Icons.shield_rounded;
+    }
+  }
+
+  Color _getRankColor(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase.contains('rookie') || lowercase.contains('bronze')) {
+      return const Color(0xFFCD7F32); // Bronze
+    } else if (lowercase.contains('apprentice') || lowercase.contains('explorer') || lowercase.contains('silver')) {
+      return const Color(0xFF94A3B8); // Silver
+    } else if (lowercase.contains('challenger') || lowercase.contains('gold')) {
+      return const Color(0xFFFFD700); // Gold
+    } else if (lowercase.contains('elite') || lowercase.contains('platinum')) {
+      return const Color(0xFF38BDF8); // Platinum
+    } else if (lowercase.contains('master') || lowercase.contains('grandmaster')) {
+      return const Color(0xFF10B981); // Emerald
+    } else {
+      return const Color(0xFFD946EF); // Cosmic purple/magenta for Legend+
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 110,
-      height: 110,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: const Color(0xFF8B5CF6).withValues(alpha: 0.15),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFF8B5CF6).withValues(alpha: 0.4),
-            blurRadius: 32,
-            spreadRadius: 4,
-          ),
-        ],
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.emoji_events_rounded,
-          size: 72,
-          color: Color(0xFFFFD700), // Gold trophy
+    final rank = leveling.xpRankForLevel(widget.level);
+    final rankColor = _getRankColor(rank.name);
+    final rankIcon = _getRankIcon(rank.name);
+
+    return ScaleTransition(
+      scale: widget.scaleAnim,
+      child: Container(
+        width: 140,
+        height: 140,
+        alignment: Alignment.center,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer glowing aura
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: rankColor.withValues(alpha: 0.35),
+                    blurRadius: 40,
+                    spreadRadius: 6,
+                  ),
+                ],
+              ),
+            ),
+            
+            // Rotating outer ring dashes
+            RotationTransition(
+              turns: _rotationCtrl,
+              child: CustomPaint(
+                size: const Size(130, 130),
+                painter: _MedallionRingPainter(color: rankColor),
+              ),
+            ),
+
+            // Inner solid metal border
+            Container(
+              width: 100,
+              height: 100,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF111827).withValues(alpha: 0.9),
+                border: Border.all(
+                  color: rankColor,
+                  width: 3.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.4),
+                    blurRadius: 10,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              alignment: Alignment.center,
+              child: Icon(
+                rankIcon,
+                color: rankColor,
+                size: 48,
+              ),
+            ),
+
+            // Floating Level indicator pill at the bottom
+            Positioned(
+              bottom: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      rankColor,
+                      rankColor.withValues(alpha: 0.7),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: const Color(0xFF0F1322),
+                    width: 2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: rankColor.withValues(alpha: 0.4),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Text(
+                  'LVL ${widget.level}',
+                  style: GoogleFonts.jetBrainsMono(
+                    color: const Color(0xFF0F1322),
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+}
+
+class _MedallionRingPainter extends CustomPainter {
+  final Color color;
+  const _MedallionRingPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color.withValues(alpha: 0.6)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2.0;
+
+    final center = Offset(size.width / 2, size.height / 2);
+    final radius = size.width / 2 - 4;
+
+    for (int i = 0; i < 4; i++) {
+      final startAngle = i * (math.pi / 2) + 0.15;
+      final sweepAngle = (math.pi / 2) - 0.3;
+      canvas.drawArc(
+        Rect.fromCircle(center: center, radius: radius),
+        startAngle,
+        sweepAngle,
+        false,
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _GradientTitle extends StatelessWidget {
@@ -582,15 +746,17 @@ class _GradientTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return ShaderMask(
       shaderCallback: (bounds) => const LinearGradient(
-        colors: [Color(0xFFC084FC), Color(0xFF8B5CF6), Color(0xFF6366F1)],
+        colors: [Color(0xFFFDE047), Color(0xFFFACC15), Color(0xFFCA8A04)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
       ).createShader(bounds),
       child: Text(
-        'LEVEL UP!',
+        'THĂNG CẤP THÀNH CÔNG',
         textAlign: TextAlign.center,
         style: GoogleFonts.interTight(
-          fontSize: 36,
-          fontWeight: FontWeight.w800,
-          letterSpacing: 1.5,
+          fontSize: 13,
+          fontWeight: FontWeight.w900,
+          letterSpacing: 2.5,
           color: Colors.white,
         ),
       ),
@@ -598,44 +764,55 @@ class _GradientTitle extends StatelessWidget {
   }
 }
 
-class _LevelSection extends StatelessWidget {
-  const _LevelSection({
-    required this.oldLevel,
-    required this.newLevel,
-    required this.counterAnim,
-    required this.punchAnim,
-  });
-
-  final int oldLevel;
-  final int newLevel;
-  final Animation<double> counterAnim;
+class _RankDivisionHeader extends StatelessWidget {
+  final int level;
   final Animation<double> punchAnim;
+  const _RankDivisionHeader({required this.level, required this.punchAnim});
+
+  Color _getRankColor(String name) {
+    final lowercase = name.toLowerCase();
+    if (lowercase.contains('rookie') || lowercase.contains('bronze')) {
+      return const Color(0xFFCD7F32); // Bronze
+    } else if (lowercase.contains('apprentice') || lowercase.contains('explorer') || lowercase.contains('silver')) {
+      return const Color(0xFF94A3B8); // Silver
+    } else if (lowercase.contains('challenger') || lowercase.contains('gold')) {
+      return const Color(0xFFFFD700); // Gold
+    } else if (lowercase.contains('elite') || lowercase.contains('platinum')) {
+      return const Color(0xFF38BDF8); // Platinum
+    } else if (lowercase.contains('master') || lowercase.contains('grandmaster')) {
+      return const Color(0xFF10B981); // Emerald
+    } else {
+      return const Color(0xFFD946EF); // Cosmic purple/magenta for Legend+
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final rank = leveling.xpRankForLevel(level);
+    final rankName = rank.name.toUpperCase();
+    final rankDivision = rank.division;
+    final rankColor = _getRankColor(rank.name);
+
     return AnimatedBuilder(
-      animation: Listenable.merge([counterAnim, punchAnim]),
+      animation: punchAnim,
       builder: (context, child) {
-        final currentVal = lerpDouble(oldLevel.toDouble(), newLevel.toDouble(), counterAnim.value)!;
-        final int levelToDisplay = currentVal.round();
-        
         final double punchVal = punchAnim.value;
-        final double scale = 1.0 + 0.15 * math.sin(punchVal * math.pi);
+        final double scale = 1.0 + 0.08 * math.sin(punchVal * math.pi);
 
         return Transform.scale(
           scale: scale,
           child: Text(
-            'LEVEL $levelToDisplay',
+            '$rankName $rankDivision',
+            textAlign: TextAlign.center,
             style: GoogleFonts.interTight(
-              fontSize: 72,
+              fontSize: 40,
               fontWeight: FontWeight.w900,
               color: Colors.white,
-              height: 1.1,
-              letterSpacing: -1.0,
+              letterSpacing: 0.5,
               shadows: [
                 Shadow(
-                  color: const Color(0xFF6366F1).withValues(alpha: 0.6),
-                  blurRadius: 20,
+                  color: rankColor.withValues(alpha: 0.6),
+                  blurRadius: 25,
                   offset: const Offset(0, 4),
                 ),
               ],
@@ -643,77 +820,6 @@ class _LevelSection extends StatelessWidget {
           ),
         );
       },
-    );
-  }
-}
-
-class _RankBadge extends StatelessWidget {
-  const _RankBadge({required this.level});
-  final int level;
-
-  Color _getRankColor(String name) {
-    final lowercase = name.toLowerCase();
-    if (lowercase.contains('rookie') || lowercase.contains('bronze')) {
-      return const Color(0xFFCD7F32); // Bronze
-    } else if (lowercase.contains('apprentice') || lowercase.contains('explorer') || lowercase.contains('silver')) {
-      return const Color(0xFFD1D5DB); // Silver
-    } else if (lowercase.contains('challenger') || lowercase.contains('gold')) {
-      return const Color(0xFFFFD700); // Gold
-    } else if (lowercase.contains('elite') || lowercase.contains('platinum')) {
-      return const Color(0xFF38BDF8); // Platinum
-    } else {
-      return const Color(0xFFC084FC); // Diamond / Master / Legend
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final rank = leveling.xpRankForLevel(level);
-    final rankName = rank.name;
-    final rankDivision = rank.division;
-    final rankColor = _getRankColor(rankName);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E293B).withValues(alpha: 0.4),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: rankColor.withValues(alpha: 0.25),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: rankColor.withValues(alpha: 0.08),
-            blurRadius: 12,
-            spreadRadius: 1,
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            rankName.toUpperCase(),
-            style: GoogleFonts.inter(
-              color: rankColor,
-              fontSize: 13,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 2.0,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'DIVISION $rankDivision',
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.5,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

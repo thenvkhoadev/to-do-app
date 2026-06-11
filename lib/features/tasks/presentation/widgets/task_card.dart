@@ -12,6 +12,7 @@ import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
@@ -70,29 +71,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
   }
 
   Future<void> _confirmDelete() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: DashboardColors.surfaceLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12),
-        ),
-        title: const Text('Xác nhận xóa', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
-        content: Text('Bạn có chắc chắn muốn xóa công việc "${widget.task.title}" không?', style: const TextStyle(color: DashboardColors.onSurfaceVariant)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: DashboardColors.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await DeleteConfirmDialog.show(context, widget.task.title);
 
     if (confirmed == true && mounted) {
       try {
@@ -107,6 +86,18 @@ class _TaskCardState extends ConsumerState<TaskCard> {
           );
         }
       }
+    }
+  }
+
+  String _getDuplicateTitle(String title) {
+    final match = RegExp(r'\s\((\d+)\)$').firstMatch(title);
+    if (match != null) {
+      final numStr = match.group(1)!;
+      final number = int.parse(numStr) + 1;
+      final prefix = title.substring(0, match.start);
+      return '$prefix ($number)';
+    } else {
+      return '$title (1)';
     }
   }
 
@@ -127,7 +118,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       final now = DateTime.now().toUtc();
       final duplicate = nexusTask.copyWith(
         id: '',
-        title: 'Copy of ${nexusTask.title}',
+        title: _getDuplicateTitle(nexusTask.title),
         status: 'todo',
         completedAt: null,
         createdAt: now,
@@ -135,12 +126,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
       );
       await ref.read(taskRepositoryProvider).createTask(duplicate);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã nhân bản công việc'),
-            backgroundColor: DashboardColors.success,
-          ),
-        );
+        TaskDuplicateSuccessDialog.show(context, widget.task.title);
       }
     } catch (e) {
       if (mounted) {

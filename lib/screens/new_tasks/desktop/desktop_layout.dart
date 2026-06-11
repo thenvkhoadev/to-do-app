@@ -17,6 +17,8 @@ import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.d
 import 'package:to_do_app/features/xp/data/datasource/xp_remote_datasource.dart';
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/collaborator_assign_dialog.dart';
 
 class SubtaskItem {
   SubtaskItem({required this.id, required this.text, this.isDone = false});
@@ -610,103 +612,32 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   }
 
   void _openAssigneePicker(List<TeamMember> teamMembers) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setDialogState) {
-            return AlertDialog(
-              backgroundColor: DashboardColors.surfaceLow,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-                side: BorderSide(
-                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
-                ),
-              ),
-              title: Text(
-                'Assign Collaborators',
-                style: GoogleFonts.interTight(
-                  fontWeight: FontWeight.w700,
-                  color: DashboardColors.onSurface,
-                ),
-              ),
-              content: SizedBox(
-                width: 320,
-                child: ListView(
-                  shrinkWrap: true,
-                  children:
-                      teamMembers.map((m) {
-                        final isSelected = _selectedAssignees.any(
-                          (selected) => selected.id == m.id,
-                        );
-                        return CheckboxListTile(
-                          activeColor: DashboardColors.primary,
-                          checkboxShape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          secondary: CircleAvatar(
-                            radius: 16,
-                            backgroundColor: m.color.withValues(alpha: .18),
-                            backgroundImage: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
-                                ? NetworkImage(m.avatarUrl!)
-                                : null,
-                            child: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
-                                ? null
-                                : Text(
-                                    m.avatarText,
-                                    style: TextStyle(
-                                      color: m.color,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w900,
-                                    ),
-                                  ),
-                          ),
-                          title: Text(
-                            m.name,
-                            style: const TextStyle(fontWeight: FontWeight.w600),
-                          ),
-                          subtitle: Text(
-                            m.isOnline ? 'Active Now' : 'Offline',
-                            style: TextStyle(
-                              color:
-                                  m.isOnline
-                                      ? const Color(0xFF7CFFB2)
-                                      : DashboardColors.onSurfaceVariant,
-                              fontSize: 11,
-                            ),
-                          ),
-                          value: isSelected,
-                          onChanged: (val) {
-                            setDialogState(() {
-                              if (val == true) {
-                                _selectedAssignees.add(m);
-                              } else {
-                                _selectedAssignees.removeWhere(
-                                  (selected) => selected.id == m.id,
-                                );
-                              }
-                            });
-                            setState(() {}); // Update parent screen state
-                          },
-                        );
-                      }).toList(),
-                ),
-              ),
-              actions: [
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: DashboardColors.primaryContainer,
-                  ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Done',
-                    style: TextStyle(color: DashboardColors.onPrimary),
-                  ),
-                ),
-              ],
-            );
-          },
-        );
+    final collaborators = teamMembers.map((m) {
+      return CollaboratorItem(
+        id: m.id,
+        name: m.name,
+        avatarUrl: m.avatarUrl,
+        initials: m.avatarText,
+        color: m.color,
+        isOnline: m.isOnline,
+      );
+    }).toList();
+
+    final initialSelectedIds = _selectedAssignees.map((selected) => selected.id).toSet();
+
+    CollaboratorAssignDialog.show(
+      context,
+      collaborators: collaborators,
+      initialSelectedIds: initialSelectedIds,
+      onChanged: (item, isSelected) async {
+        setState(() {
+          if (isSelected) {
+            final member = teamMembers.firstWhere((m) => m.id == item.id);
+            _selectedAssignees.add(member);
+          } else {
+            _selectedAssignees.removeWhere((selected) => selected.id == item.id);
+          }
+        });
       },
     );
   }
@@ -777,29 +708,12 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
           );
           ref.invalidate(xpLogsProvider);
         } catch (_) {}
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.rocket_launch_rounded,
-                    color: DashboardColors.onPrimary, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    isDraft
-                        ? 'Saved "${created.title}" as draft!'
-                        : 'Deployed "${created.title}" to workspace!',
-                    style: const TextStyle(
-                        color: DashboardColors.onPrimary,
-                        fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ],
-            ),
-            backgroundColor: DashboardColors.primary,
-            duration: const Duration(seconds: 3),
-          ),
-        );
+        if (!mounted) return;
+        if (isDraft) {
+          await DraftSavedSuccessDialog.show(context, created.title);
+        } else {
+          await TaskDeploySuccessDialog.show(context, created.title);
+        }
         widget.onClose?.call();
       } else {
         final error = ref.read(taskCreationProvider).error;

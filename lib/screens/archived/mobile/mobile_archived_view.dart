@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/tasks/data/models/category_model.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/screens/archived/models/archived_task_model.dart';
 import 'package:to_do_app/screens/archived/providers/archived_tasks_provider.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_shared_widgets.dart';
 import 'package:to_do_app/screens/archived/widgets/archived_task_card.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_detail_drawer.dart';
+import 'package:to_do_app/screens/archived/widgets/archive_export_service.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 
@@ -105,6 +110,8 @@ class _MobileArchivedViewState extends ConsumerState<MobileArchivedView> {
     final async = ref.watch(archivedTasksProvider);
     final tasks = async.valueOrNull ?? [];
     final filtered = _filtered(tasks);
+    final categories = ref.watch(userCategoriesProvider).valueOrNull ?? [];
+    final users = ref.watch(allUsersProvider).valueOrNull ?? [];
 
     if (_selected != null) {
       return Scaffold(
@@ -125,7 +132,12 @@ class _MobileArchivedViewState extends ConsumerState<MobileArchivedView> {
       body: SafeArea(
         child: Column(
           children: [
-            _MobileHeader(total: tasks.length),
+            _MobileHeader(
+              total: tasks.length,
+              tasks: tasks,
+              categories: categories,
+              users: users,
+            ),
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 100),
@@ -186,8 +198,16 @@ class _MobileArchivedViewState extends ConsumerState<MobileArchivedView> {
 // ── Mobile header ─────────────────────────────────────────────────────────────
 
 class _MobileHeader extends StatelessWidget {
-  const _MobileHeader({required this.total});
+  const _MobileHeader({
+    required this.total,
+    required this.tasks,
+    required this.categories,
+    required this.users,
+  });
   final int total;
+  final List<ArchivedTask> tasks;
+  final List<CategoryModel> categories;
+  final List<UserProfileModel> users;
 
   @override
   Widget build(BuildContext context) {
@@ -223,6 +243,12 @@ class _MobileHeader extends StatelessWidget {
             ],
           ),
           const Spacer(),
+          ArchiveExportButton(
+            tasks: tasks,
+            categories: categories,
+            users: users,
+          ),
+          const SizedBox(width: 8),
           const Icon(Icons.archive_rounded,
               color: DashboardColors.primary, size: 28),
         ],

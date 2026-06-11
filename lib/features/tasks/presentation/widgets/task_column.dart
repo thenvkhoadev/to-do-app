@@ -10,7 +10,9 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/export_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/column_batch_toolbar.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
@@ -39,6 +41,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
   bool _isCollapsed = false;
   String _sortType = 'none'; // 'none', 'priority', 'dueDate'
   final Set<String> _selectedTaskIds = {};
+  final _menuKey = GlobalKey();
 
   int _priorityWeight(TaskBoardPriority p) {
     switch (p) {
@@ -221,18 +224,24 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
                   ),
                 const Spacer(),
                 GestureDetector(
-                  onTapDown: (details) {
-                    showColumnMenu(
-                      context: context,
-                      offset: details.globalPosition,
-                      column: widget.column,
-                      sortType: _sortType,
-                      onSortChanged: (v) => setState(() => _sortType = v),
-                      onCollapse: () => setState(() => _isCollapsed = true),
-                      onNewTask: () => widget.onNewTask?.call(),
-                    );
+                  onTap: () {
+                    final renderBox = _menuKey.currentContext?.findRenderObject() as RenderBox?;
+                    if (renderBox != null) {
+                      final pos = renderBox.localToGlobal(Offset.zero);
+                      showColumnMenu(
+                        context: context,
+                        offset: Offset(pos.dx, pos.dy + renderBox.size.height + 6),
+                        anchorSize: renderBox.size,
+                        column: widget.column,
+                        sortType: _sortType,
+                        onSortChanged: (v) => setState(() => _sortType = v),
+                        onCollapse: () => setState(() => _isCollapsed = true),
+                        onNewTask: () => widget.onNewTask?.call(),
+                      );
+                    }
                   },
-                  child: const Icon(
+                  child: Icon(
+                    key: _menuKey,
                     Icons.more_horiz_rounded,
                     color: DashboardColors.onSurfaceVariant,
                     size: 20,
@@ -243,27 +252,11 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
           ),
           // Batch actions toolbar (Only visible if there are selected tasks)
           if (_selectedTaskIds.isNotEmpty) ...[
-            Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 10),
-              child: Row(
-                children: [
-                  _buildCopyMenu(context, selectedTasks),
-                  const SizedBox(width: 8),
-                  _buildExportMenu(context, selectedTasks),
-                  const Spacer(),
-                  IconButton(
-                    icon: const Icon(
-                      Icons.delete_sweep_rounded,
-                      color: DashboardColors.error,
-                      size: 20,
-                    ),
-                    tooltip: 'Xóa các công việc đã chọn',
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                    onPressed: () => _handleDeleteSelected(context, selectedTasks),
-                  ),
-                ],
-              ),
+            ColumnBatchToolbar(
+              selectedTasks: selectedTasks,
+              onCopy: (fmt) => _handleCopy(context, fmt, selectedTasks),
+              onExport: (fmt) => _handleExport(context, fmt, selectedTasks),
+              onDelete: () => _handleDeleteSelected(context, selectedTasks),
             ),
           ],
           Expanded(
@@ -370,114 +363,6 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildCopyMenu(BuildContext context, List<TaskBoardItem> tasks) {
-    return PopupMenuButton<String>(
-      tooltip: 'Copy all tasks',
-      offset: const Offset(0, 32),
-      color: const Color(0xFF161B26),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.white12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Copy',
-              style: TextStyle(
-                color: DashboardColors.onSurface,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: DashboardColors.onSurfaceVariant,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-      onSelected: (value) => _handleCopy(context, value, tasks),
-      itemBuilder: (context) => [
-        const PopupMenuItem<String>(
-          value: 'csv',
-          child: Text('Copy as CSV', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-        const PopupMenuItem<String>(
-          value: 'sql',
-          child: Text('Copy as SQL', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-        const PopupMenuItem<String>(
-          value: 'json',
-          child: Text('Copy as JSON', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildExportMenu(BuildContext context, List<TaskBoardItem> tasks) {
-    return PopupMenuButton<String>(
-      tooltip: 'Export all tasks',
-      offset: const Offset(0, 32),
-      color: const Color(0xFF161B26),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-        side: const BorderSide(color: Colors.white12),
-      ),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.04),
-          borderRadius: BorderRadius.circular(6),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-        ),
-        child: const Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Export',
-              style: TextStyle(
-                color: DashboardColors.onSurface,
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            SizedBox(width: 4),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              color: DashboardColors.onSurfaceVariant,
-              size: 16,
-            ),
-          ],
-        ),
-      ),
-      onSelected: (value) => _handleExport(context, value, tasks),
-      itemBuilder: (context) => [
-        const PopupMenuItem<String>(
-          value: 'csv',
-          child: Text('Export as CSV', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-        const PopupMenuItem<String>(
-          value: 'sql',
-          child: Text('Export as SQL', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-        const PopupMenuItem<String>(
-          value: 'json',
-          child: Text('Export as JSON', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13)),
-        ),
-      ],
     );
   }
 
@@ -598,28 +483,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
       return;
     }
     
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF0F131E),
-        title: const Text('Xác nhận xóa đã chọn', style: TextStyle(color: DashboardColors.onSurface)),
-        content: Text(
-          'Bạn có chắc chắn muốn xóa ${ownedTasks.length} công việc đã chọn (do bạn tạo) trong cột "${widget.column.title}" không? Hành động này không thể hoàn tác.',
-          style: const TextStyle(color: DashboardColors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: DashboardColors.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await DeleteConfirmDialog.show(context, widget.column.title, count: ownedTasks.length);
 
     if (confirmed == true && context.mounted) {
       try {

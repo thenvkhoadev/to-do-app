@@ -12,6 +12,7 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_celebration_modal.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_fire_bar.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 
 /// Wraps authenticated content. Listens to [xpLogsProvider] for new inserts,
 /// queues XP toast notifications, and shows the level-up modal when the user's
@@ -135,30 +136,6 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
   Future<void> _handleStreakChange(int newStreak) async {
     if (_lastKnownStreak == null) {
       _lastKnownStreak = newStreak;
-      // Trigger immediately after successful login if streak was updated today
-      final profile = ref.read(userProfileProvider).valueOrNull;
-      if (profile != null && profile.lastActivityDate != null) {
-        final now = DateTime.now();
-        final today = DateTime(now.year, now.month, now.day);
-        final localActivity = profile.lastActivityDate!.toLocal();
-        final active = DateTime(
-          localActivity.year,
-          localActivity.month,
-          localActivity.day,
-        );
-        if (active.isAtSameMomentAs(today) && newStreak > 0) {
-          final storage = ref.read(secureStorageServiceProvider);
-          final todayStr = '${today.year}-${today.month}-${today.day}';
-          final lastShown = await storage.read('last_shown_streak_date');
-          if (lastShown != todayStr) {
-            await storage.write('last_shown_streak_date', todayStr);
-            ref.read(pendingStreakProvider.notifier).show(
-                  previousCount: newStreak - 1,
-                  currentCount: newStreak,
-                );
-          }
-        }
-      }
       return;
     }
     if (newStreak > _lastKnownStreak!) {
@@ -179,6 +156,15 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
 
   @override
   Widget build(BuildContext context) {
+    // Listen to authentication changes
+    ref.listen(authControllerProvider, (prev, next) {
+      final user = next.valueOrNull;
+      if (user == null) {
+        _lastKnownLevel = null;
+        _lastKnownStreak = null;
+      }
+    });
+
     // Listen to new xp_logs
     ref.listen(xpLogsProvider, (_, next) {
       next.whenData(_handleNewLogs);

@@ -12,6 +12,8 @@ import 'package:to_do_app/features/tasks/data/models/task_model.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'widgets/desktop/desktop_task_header.dart';
@@ -201,6 +203,19 @@ class TaskDetailPage extends ConsumerWidget {
       await ref.read(taskRepositoryProvider).updateTask(updated);
       if (completedNow) {
         await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+        if (context.mounted) {
+          TaskCompleteSuccessDialog.show(context, item.title);
+        }
+      }
+
+      final fromStatus = item.status;
+      final toStatus = newStatus;
+      final isTransitionOfInterest = (fromStatus == TaskBoardStatus.draft && (toStatus == TaskBoardStatus.todo || toStatus == TaskBoardStatus.inProgress)) ||
+                                     (fromStatus == TaskBoardStatus.todo && toStatus == TaskBoardStatus.inProgress) ||
+                                     (fromStatus == TaskBoardStatus.inProgress && toStatus == TaskBoardStatus.todo);
+
+      if (isTransitionOfInterest && context.mounted) {
+        TaskTransitionSuccessDialog.show(context, item.title, fromStatus, toStatus);
       }
 
       // Handle paused tasks set
@@ -238,7 +253,8 @@ class TaskDetailPage extends ConsumerWidget {
         detail: detail,
       );
 
-      if (context.mounted) {
+      final showSnackbar = !completedNow && !isTransitionOfInterest;
+      if (showSnackbar && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Đã cập nhật trạng thái sang ${newStatus == TaskBoardStatus.completed ? "Hoàn thành" : newStatus == TaskBoardStatus.inProgress ? "Đang thực hiện" : newStatus == TaskBoardStatus.todo ? "To Do" : newStatus.name}'),
@@ -455,6 +471,18 @@ class TaskDetailPage extends ConsumerWidget {
     }
   }
 
+  String _getDuplicateTitle(String title) {
+    final match = RegExp(r'\s\((\d+)\)$').firstMatch(title);
+    if (match != null) {
+      final numStr = match.group(1)!;
+      final number = int.parse(numStr) + 1;
+      final prefix = title.substring(0, match.start);
+      return '$prefix ($number)';
+    } else {
+      return '$title (1)';
+    }
+  }
+
   Future<void> _duplicateTask(BuildContext context, WidgetRef ref, TaskBoardItem item) async {
     final user = ref.read(authControllerProvider).valueOrNull;
     if (user == null || item.userId != user.id) {
@@ -471,7 +499,7 @@ class TaskDetailPage extends ConsumerWidget {
       );
       final duplicate = nexusTask.copyWith(
         id: '',
-        title: 'Copy of ${nexusTask.title}',
+        title: _getDuplicateTitle(nexusTask.title),
         status: 'todo',
         completedAt: null,
         createdAt: DateTime.now().toUtc(),
@@ -479,12 +507,7 @@ class TaskDetailPage extends ConsumerWidget {
       );
       await ref.read(taskRepositoryProvider).createTask(duplicate);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã nhân bản công việc'),
-            backgroundColor: DashboardColors.success,
-          ),
-        );
+        TaskDuplicateSuccessDialog.show(context, item.title);
       }
     } catch (e) {
       if (context.mounted) {
@@ -503,32 +526,7 @@ class TaskDetailPage extends ConsumerWidget {
       );
       return;
     }
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: DashboardColors.surfaceLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12),
-        ),
-        title: const Text('Lưu trữ công việc', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Công việc "${item.title}" sẽ được lưu trữ và không hiển thị trong bảng chính.',
-          style: const TextStyle(color: DashboardColors.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
-          ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Lưu trữ', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
+    final confirmed = await ArchiveConfirmDialog.show(context, item.title);
 
     if (confirmed == true && context.mounted) {
       try {
@@ -561,12 +559,7 @@ class TaskDetailPage extends ConsumerWidget {
         await ref.read(archivedTaskDataSourceProvider).archiveTask(taskModel);
         await ref.read(taskRepositoryProvider).deleteTask(item.id);
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Đã lưu trữ công việc'),
-              backgroundColor: DashboardColors.success,
-            ),
-          );
+          await ArchiveSuccessDialog.show(context, item.title);
           onBack();
         }
       } catch (e) {
@@ -892,57 +885,29 @@ class _MobileLayout extends StatelessWidget {
                     onPressed: () {},
                   ),
                   if (isCreator)
-                    PopupMenuButton<String>(
-                      icon: const Icon(Icons.more_vert_rounded,
-                          color: DashboardColors.onSurface),
-                      color: DashboardColors.surfaceLow,
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.white12),
-                      ),
-                      onSelected: (val) {
-                        if (val == 'delete') {
-                          onDeleteTask();
-                        } else if (val == 'duplicate') {
-                          onDuplicateTask();
-                        } else if (val == 'archive') {
-                          onArchiveTask();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem<String>(
-                          value: 'duplicate',
-                          child: Row(
-                            children: [
-                              Icon(Icons.copy_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                              SizedBox(width: 8),
-                              Text('Nhân bản', style: TextStyle(color: DashboardColors.onSurface)),
-                            ],
+                    Builder(
+                      builder: (btnContext) {
+                        return GestureDetector(
+                          onTap: () {
+                            final renderBox = btnContext.findRenderObject() as RenderBox?;
+                            if (renderBox != null) {
+                              final position = renderBox.localToGlobal(Offset.zero);
+                              showTaskDetailsOptionMenu(
+                                context: context,
+                                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
+                                onDuplicate: onDuplicateTask,
+                                onArchive: onArchiveTask,
+                                onDelete: onDeleteTask,
+                              );
+                            }
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: Icon(Icons.more_vert_rounded,
+                                color: DashboardColors.onSurface),
                           ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'archive',
-                          child: Row(
-                            children: [
-                              Icon(Icons.archive_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                              SizedBox(width: 8),
-                              Text('Lưu trữ', style: TextStyle(color: DashboardColors.onSurface)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-                              SizedBox(width: 8),
-                              Text('Xóa công việc', style: TextStyle(color: DashboardColors.error)),
-                            ],
-                          ),
-                        ),
-                      ],
+                        );
+                      }
                     ),
                 ],
               ),

@@ -5,168 +5,106 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
-import 'package:to_do_app/features/tasks/data/models/category_model.dart';
-import 'package:to_do_app/screens/archived/models/archived_task_model.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
-import 'package:to_do_app/features/tasks/presentation/widgets/export_success_dialog.dart';
+import 'export_success_dialog.dart';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// ── Helpers for Active Tasks Export ───────────────────────────────────────────
 
-String _fmt(DateTime? d) => d?.toIso8601String() ?? '';
-String _esc(String? s) => (s ?? '').replaceAll("'", "''");
-String _csvField(String? raw) {
-  final v = raw ?? '';
-  if (v.contains(',') || v.contains('"') || v.contains('\n')) {
-    return '"${v.replaceAll('"', '""')}"';
-  }
-  return v;
-}
-
-String _catName(String? id, List<CategoryModel> cats) {
-  if (id == null) return '';
-  final m = cats.where((c) => c.id == id);
-  return m.isNotEmpty ? m.first.name : id;
-}
-
-String _assigneeNames(List<String> ids, List<UserProfileModel> users) {
-  return ids.map((id) {
-    final u = users.where((u) => u.id == id);
-    if (u.isEmpty) return id;
-    final p = u.first;
-    return p.fullName ?? p.username ?? p.email;
-  }).join(', ');
-}
-
-// ── Format functions ──────────────────────────────────────────────────────────
-
-String archivedTasksToCsv(
-  List<ArchivedTask> tasks,
-  List<CategoryModel> cats,
-  List<UserProfileModel> users,
-) {
-  final buf = StringBuffer();
-  buf.writeln('ID,Title,Description,Status,Priority,Category,Assignees,'
-      'Created,Completed,Archived,Due Date,Estimated Minutes');
+String _tasksToCsv(List<TaskBoardItem> tasks) {
+  final buffer = StringBuffer();
+  buffer.writeln('ID,Title,Description,Status,Priority,Due Date,Creator');
   for (final t in tasks) {
-    final row = [
+    final fields = [
       t.id,
       t.title,
       t.description,
-      t.status,
-      t.priority,
-      _catName(t.categoryId, cats),
-      _assigneeNames(t.assigneeIds, users),
-      _fmt(t.createdAt),
-      _fmt(t.completedAt),
-      _fmt(t.archivedAt),
-      _fmt(t.dueDate),
-      t.estimatedMinutes?.toString() ?? '',
-    ].map(_csvField).join(',');
-    buf.writeln(row);
+      t.status.name,
+      t.priority.name,
+      t.dueDate != null ? t.dueDate!.toIso8601String() : '',
+      t.creatorName ?? '',
+    ];
+    final csvLine = fields.map((f) {
+      final val = f.toString();
+      if (val.contains(',') || val.contains('"') || val.contains('\n') || val.contains('\r')) {
+        return '"${val.replaceAll('"', '""')}"';
+      }
+      return val;
+    }).join(',');
+    buffer.writeln(csvLine);
   }
-  return buf.toString();
+  return buffer.toString();
 }
 
-String archivedTasksToJson(
-  List<ArchivedTask> tasks,
-  List<CategoryModel> cats,
-  List<UserProfileModel> users,
-) {
+String _tasksToSql(List<TaskBoardItem> tasks) {
+  final buffer = StringBuffer();
+  for (final t in tasks) {
+    final id = t.id.replaceAll("'", "''");
+    final title = t.title.replaceAll("'", "''");
+    final description = t.description.replaceAll("'", "''");
+    final status = t.status.name;
+    final priority = t.priority.name;
+    final dueDate = t.dueDate != null ? t.dueDate!.toIso8601String() : 'NULL';
+    final dueDateVal = dueDate == 'NULL' ? 'NULL' : "'$dueDate'";
+    
+    buffer.writeln(
+      "INSERT INTO tasks (id, title, description, status, priority, due_date) VALUES ('$id', '$title', '$description', '$status', '$priority', $dueDateVal);"
+    );
+  }
+  return buffer.toString();
+}
+
+String _tasksToJson(List<TaskBoardItem> tasks) {
   final list = tasks.map((t) => {
-        'id': t.id,
-        'title': t.title,
-        'description': t.description,
-        'status': t.status,
-        'priority': t.priority,
-        'category': _catName(t.categoryId, cats),
-        'assignees': t.assigneeIds
-            .map((id) {
-              final u = users.where((u) => u.id == id);
-              if (u.isEmpty) return {'id': id};
-              final p = u.first;
-              return {
-                'id': id,
-                'name': p.fullName ?? p.username ?? p.email,
-                'email': p.email,
-              };
-            })
-            .toList(),
-        'created_at': _fmt(t.createdAt),
-        'completed_at': _fmt(t.completedAt),
-        'archived_at': _fmt(t.archivedAt),
-        'due_date': _fmt(t.dueDate),
-        'estimated_minutes': t.estimatedMinutes,
-        'ai_generated': t.aiGenerated,
-        'tags': t.tagIds,
-      }).toList();
+    'id': t.id,
+    'title': t.title,
+    'description': t.description,
+    'status': t.status.name,
+    'priority': t.priority.name,
+    'dueDate': t.dueDate?.toIso8601String(),
+    'creatorName': t.creatorName,
+  }).toList();
   return const JsonEncoder.withIndent('  ').convert(list);
 }
 
-String archivedTasksToSql(
-  List<ArchivedTask> tasks,
-  List<CategoryModel> cats,
-  List<UserProfileModel> users,
-) {
-  final buf = StringBuffer();
-  buf.writeln('-- Archived tasks export');
-  buf.writeln(
-      'INSERT INTO archived_tasks (id, title, description, status, priority, '
-      'category_id, created_at, completed_at, archived_at, due_date) VALUES');
-  for (int i = 0; i < tasks.length; i++) {
-    final t = tasks[i];
-    final comma = i < tasks.length - 1 ? ',' : ';';
-    final due = t.dueDate != null ? "'${_fmt(t.dueDate)}'" : 'NULL';
-    final comp = t.completedAt != null ? "'${_fmt(t.completedAt)}'" : 'NULL';
-    final arch = t.archivedAt != null ? "'${_fmt(t.archivedAt)}'" : 'NULL';
-    final cat = t.categoryId != null ? "'${_esc(t.categoryId)}'" : 'NULL';
-    buf.writeln("  ('${_esc(t.id)}', '${_esc(t.title)}', "
-        "'${_esc(t.description)}', '${_esc(t.status)}', "
-        "'${_esc(t.priority)}', $cat, "
-        "'${_fmt(t.createdAt)}', $comp, $arch, $due)$comma");
-  }
-  return buf.toString();
-}
-
-// ── Save to file ──────────────────────────────────────────────────────────────
-
-Future<String?> saveArchivedExportFile(String fileName, String content) async {
+Future<String?> _saveToFile(String fileName, String content) async {
   try {
     if (kIsWeb) return null;
+    
     String? dirPath;
     if (Platform.isWindows || Platform.isMacOS || Platform.isLinux) {
       final dir = await getDownloadsDirectory();
       if (dir != null) dirPath = dir.path;
     }
-    dirPath ??= (await getApplicationDocumentsDirectory()).path;
+    if (dirPath == null) {
+      final dir = await getApplicationDocumentsDirectory();
+      dirPath = dir.path;
+    }
+    
     final file = File('$dirPath/$fileName');
     await file.writeAsString(content);
     return file.absolute.path;
   } catch (e) {
-    debugPrint('archive export error: $e');
+    debugPrint('Error saving file: $e');
     return null;
   }
 }
 
-// ── Export button with dropdown ───────────────────────────────────────────────
+// ── TasksExportButton ──────────────────────────────────────────────────────────
 
-class ArchiveExportButton extends StatefulWidget {
-  const ArchiveExportButton({
+class TasksExportButton extends StatefulWidget {
+  const TasksExportButton({
     required this.tasks,
-    required this.categories,
-    required this.users,
     super.key,
   });
 
-  final List<ArchivedTask> tasks;
-  final List<CategoryModel> categories;
-  final List<UserProfileModel> users;
+  final List<TaskBoardItem> tasks;
 
   @override
-  State<ArchiveExportButton> createState() => _ArchiveExportButtonState();
+  State<TasksExportButton> createState() => _TasksExportButtonState();
 }
 
-class _ArchiveExportButtonState extends State<ArchiveExportButton> {
+class _TasksExportButtonState extends State<TasksExportButton> {
   bool _loading = false;
   final _layerLink = LayerLink();
   OverlayEntry? _overlay;
@@ -198,8 +136,8 @@ class _ArchiveExportButtonState extends State<ArchiveExportButton> {
             Positioned.fill(child: Container(color: Colors.transparent)),
             CompositedTransformFollower(
               link: _layerLink,
-              targetAnchor: Alignment.bottomRight,
-              followerAnchor: Alignment.topRight,
+              targetAnchor: Alignment.bottomLeft,
+              followerAnchor: Alignment.topLeft,
               offset: const Offset(0, 6),
               child: Material(
                 color: Colors.transparent,
@@ -222,7 +160,7 @@ class _ArchiveExportButtonState extends State<ArchiveExportButton> {
   Future<void> _export(String format) async {
     if (widget.tasks.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text('No tasks to export'),
+        content: Text('Không có công việc nào để xuất'),
         backgroundColor: DashboardColors.error,
       ));
       return;
@@ -233,20 +171,21 @@ class _ArchiveExportButtonState extends State<ArchiveExportButton> {
       late String ext;
       switch (format) {
         case 'json':
-          content = archivedTasksToJson(widget.tasks, widget.categories, widget.users);
+          content = _tasksToJson(widget.tasks);
           ext = 'json';
           break;
         case 'sql':
-          content = archivedTasksToSql(widget.tasks, widget.categories, widget.users);
+          content = _tasksToSql(widget.tasks);
           ext = 'sql';
           break;
         default:
-          content = archivedTasksToCsv(widget.tasks, widget.categories, widget.users);
+          content = _tasksToCsv(widget.tasks);
           ext = 'csv';
       }
       final ts = DateTime.now().millisecondsSinceEpoch;
-      final fileName = 'archived_tasks_$ts.$ext';
+      final fileName = 'active_tasks_$ts.$ext';
       await Clipboard.setData(ClipboardData(text: content));
+      
       if (kIsWeb) {
         final b64 = base64Encode(utf8.encode(content));
         final mime = format == 'json'
@@ -256,13 +195,13 @@ class _ArchiveExportButtonState extends State<ArchiveExportButton> {
             mode: LaunchMode.externalApplication);
         if (mounted) _showSuccess(fileName, null, format);
       } else {
-        final path = await saveArchivedExportFile(fileName, content);
+        final path = await _saveToFile(fileName, content);
         if (mounted) _showSuccess(fileName, path, format);
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text('Export error: $e'),
+          content: Text('Lỗi khi xuất file: $e'),
           backgroundColor: DashboardColors.error,
         ));
       }

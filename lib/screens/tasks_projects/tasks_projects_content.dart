@@ -8,6 +8,7 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_column.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_detail_panel.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/filter/filter_data_helpers.dart';
 import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/presentation/models/filter_state.dart';
@@ -152,6 +153,7 @@ TaskBoardItem _mapTaskToBoardItem(
 }
 
 Future<void> _updateTaskStatus(
+  BuildContext context,
   WidgetRef ref,
   String taskId,
   TaskBoardStatus newStatus,
@@ -189,8 +191,27 @@ Future<void> _updateTaskStatus(
   await ref.read(taskRepositoryProvider).updateTask(updated);
   if (completedNow) {
     await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+    if (context.mounted) {
+      TaskCompleteSuccessDialog.show(context, task.title);
+    }
   } else if (draftToActive) {
     await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Activated');
+  }
+
+  final fromStatus = switch (task.status) {
+    'draft' => TaskBoardStatus.draft,
+    'todo' => TaskBoardStatus.todo,
+    'in_progress' => TaskBoardStatus.inProgress,
+    'done' => TaskBoardStatus.completed,
+    _ => TaskBoardStatus.todo,
+  };
+  final toStatus = newStatus;
+  final isTransitionOfInterest = (fromStatus == TaskBoardStatus.draft && (toStatus == TaskBoardStatus.todo || toStatus == TaskBoardStatus.inProgress)) ||
+                                 (fromStatus == TaskBoardStatus.todo && toStatus == TaskBoardStatus.inProgress) ||
+                                 (fromStatus == TaskBoardStatus.inProgress && toStatus == TaskBoardStatus.todo);
+
+  if (isTransitionOfInterest && context.mounted) {
+    TaskTransitionSuccessDialog.show(context, task.title, fromStatus, toStatus);
   }
 }
 
@@ -295,6 +316,15 @@ class _TasksProjectsDesktopContentState
 
   @override
   Widget build(BuildContext context) {
+    final tasksAsync = ref.watch(userTasksProvider);
+    final usersAsync = ref.watch(allUsersProvider);
+    final tagsAsync = ref.watch(userTagsProvider);
+
+    final users = usersAsync.valueOrNull ?? [];
+    final tags = tagsAsync.valueOrNull ?? [];
+    final rawTasks = tasksAsync.valueOrNull ?? [];
+    final boardTasks = rawTasks.map((t) => _mapTaskToBoardItem(t, users, tags)).toList();
+
     final isPanelOpen = _selectedTask != null;
     return TasksProjectsCommandScope(
       child: LayoutBuilder(
@@ -313,6 +343,7 @@ class _TasksProjectsDesktopContentState
                       onFiltersChanged:
                           (filters) => setState(() => _filters = filters),
                       onOpenFilters: _openFilters,
+                      tasks: boardTasks,
                     ),
                     const SizedBox(height: 18),
                     const TasksProjectsSmartInsightBanner(),
@@ -804,6 +835,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                         onViewDetails: widget.onViewDetails,
                         onTaskDropped:
                             (item) => _updateTaskStatus(
+                              context,
                               ref,
                               item.id,
                               TaskBoardStatus.draft,
@@ -824,6 +856,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                         onViewDetails: widget.onViewDetails,
                         onTaskDropped:
                             (item) => _updateTaskStatus(
+                              context,
                               ref,
                               item.id,
                               TaskBoardStatus.todo,
@@ -844,6 +877,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                         onViewDetails: widget.onViewDetails,
                         onTaskDropped:
                             (item) => _updateTaskStatus(
+                              context,
                               ref,
                               item.id,
                               TaskBoardStatus.inProgress,
@@ -864,6 +898,7 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
                         onViewDetails: widget.onViewDetails,
                         onTaskDropped:
                             (item) => _updateTaskStatus(
+                              context,
                               ref,
                               item.id,
                               TaskBoardStatus.completed,
@@ -1005,6 +1040,11 @@ class _TasksProjectsMobileSliverBodyState
     final usersAsync = ref.watch(allUsersProvider);
     final tagsAsync = ref.watch(userTagsProvider);
 
+    final users = usersAsync.valueOrNull ?? [];
+    final tags = tagsAsync.valueOrNull ?? [];
+    final rawTasks = tasksAsync.valueOrNull ?? [];
+    final boardTasks = rawTasks.map((t) => _mapTaskToBoardItem(t, users, tags)).toList();
+
     return SliverPadding(
       padding:
           widget.compact
@@ -1021,6 +1061,7 @@ class _TasksProjectsMobileSliverBodyState
                   mobile: true,
                   filters: _filters,
                   onOpenFilters: _openFilters,
+                  tasks: boardTasks,
                 ),
                 const SizedBox(height: 18),
                 const TasksProjectsSmartInsightBanner(compact: true),

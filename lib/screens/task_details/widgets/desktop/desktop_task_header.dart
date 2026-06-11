@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
@@ -199,57 +200,25 @@ class _HeaderBody extends StatelessWidget {
                       onTap: onEditTask,
                     ),
                     const SizedBox(width: 8),
-                    PopupMenuButton<String>(
-                      padding: EdgeInsets.zero,
-                      color: DashboardColors.surfaceLow,
-                      elevation: 8,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        side: const BorderSide(color: Colors.white12),
-                      ),
-                      onSelected: (val) {
-                        if (val == 'delete') {
-                          onDeleteTask();
-                        } else if (val == 'duplicate') {
-                          onDuplicateTask();
-                        } else if (val == 'archive') {
-                          onArchiveTask();
-                        }
-                      },
-                      itemBuilder: (context) => [
-                        const PopupMenuItem<String>(
-                          value: 'duplicate',
-                          child: Row(
-                            children: [
-                              Icon(Icons.copy_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                              SizedBox(width: 8),
-                              Text('Nhân bản', style: TextStyle(color: DashboardColors.onSurface)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuItem<String>(
-                          value: 'archive',
-                          child: Row(
-                            children: [
-                              Icon(Icons.archive_rounded, size: 16, color: DashboardColors.onSurfaceVariant),
-                              SizedBox(width: 8),
-                              Text('Lưu trữ', style: TextStyle(color: DashboardColors.onSurface)),
-                            ],
-                          ),
-                        ),
-                        const PopupMenuDivider(),
-                        const PopupMenuItem<String>(
-                          value: 'delete',
-                          child: Row(
-                            children: [
-                              Icon(Icons.delete_rounded, size: 16, color: DashboardColors.error),
-                              SizedBox(width: 8),
-                              Text('Xóa công việc', style: TextStyle(color: DashboardColors.error)),
-                            ],
-                          ),
-                        ),
-                      ],
-                      child: const _IconActionButton(icon: Icons.more_horiz_rounded),
+                    Builder(
+                      builder: (btnContext) {
+                        return GestureDetector(
+                          onTap: () {
+                            final renderBox = btnContext.findRenderObject() as RenderBox?;
+                            if (renderBox != null) {
+                              final position = renderBox.localToGlobal(Offset.zero);
+                              showTaskDetailsOptionMenu(
+                                context: context,
+                                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
+                                onDuplicate: onDuplicateTask,
+                                onArchive: onArchiveTask,
+                                onDelete: onDeleteTask,
+                              );
+                            }
+                          },
+                          child: const _IconActionButton(icon: Icons.more_horiz_rounded),
+                        );
+                      }
                     ),
                   ],
                 ],
