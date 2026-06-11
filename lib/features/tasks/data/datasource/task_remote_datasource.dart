@@ -39,6 +39,17 @@ class TaskRemoteDataSource {
     }).eq('id', id);
   }
 
+  /// Fetches the current xp_awarded flag for a task. Returns true if missing.
+  Future<bool> fetchXpAwarded(String taskId) async {
+    final row = await _client
+        .from('tasks')
+        .select('xp_awarded')
+        .eq('id', taskId)
+        .maybeSingle();
+    if (row == null) return true;
+    return row['xp_awarded'] == true;
+  }
+
   Future<void> seedSampleTasks(String userId, String? categoryId) async {
     final now = DateTime.now().toUtc();
     final tasks = [

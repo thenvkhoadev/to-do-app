@@ -29,6 +29,10 @@ class TaskRepositoryImpl implements TaskRepository {
   Future<void> deleteTask(String id) => _remoteDataSource.deleteTask(id);
 
   @override
+  Future<bool> fetchXpAwarded(String taskId) =>
+      _remoteDataSource.fetchXpAwarded(taskId);
+
+  @override
   Future<void> seedSampleTasks(String userId, String? categoryId) =>
       _remoteDataSource.seedSampleTasks(userId, categoryId);
 
@@ -44,6 +48,7 @@ class TaskRepositoryImpl implements TaskRepository {
         dueDate: task.dueDate,
         reminderAt: task.reminderAt,
         completedAt: task.completedAt,
+        xpAwarded: task.xpAwarded,
         parentTaskId: task.parentTaskId,
         sortOrder: task.sortOrder,
         estimatedMinutes: task.estimatedMinutes,

@@ -202,21 +202,18 @@ class _HeaderBody extends StatelessWidget {
                     const SizedBox(width: 8),
                     Builder(
                       builder: (btnContext) {
+                        final menuKey = GlobalKey();
                         return GestureDetector(
                           onTap: () {
-                            final renderBox = btnContext.findRenderObject() as RenderBox?;
-                            if (renderBox != null) {
-                              final position = renderBox.localToGlobal(Offset.zero);
-                              showTaskDetailsOptionMenu(
-                                context: context,
-                                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
-                                onDuplicate: onDuplicateTask,
-                                onArchive: onArchiveTask,
-                                onDelete: onDeleteTask,
-                              );
-                            }
+                            showTaskDetailsOptionMenu(
+                              context: context,
+                              triggerKey: menuKey,
+                              onDuplicate: onDuplicateTask,
+                              onArchive: onArchiveTask,
+                              onDelete: onDeleteTask,
+                            );
                           },
-                          child: const _IconActionButton(icon: Icons.more_horiz_rounded),
+                          child: _IconActionButton(key: menuKey, icon: Icons.more_horiz_rounded),
                         );
                       }
                     ),
@@ -325,6 +322,7 @@ class _IconActionButton extends StatelessWidget {
     required this.icon,
     this.onTap,
     this.color,
+    super.key,
   });
   final IconData icon;
   final VoidCallback? onTap;

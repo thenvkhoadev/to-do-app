@@ -26,29 +26,21 @@ class ColumnBatchToolbar extends StatelessWidget {
           _DropdownButton(
             label: 'Copy',
             icon: Icons.copy_rounded,
-            onTap: (renderBox) {
-              final position = renderBox.localToGlobal(Offset.zero);
-              showTaskColumnCopyMenu(
-                context: context,
-                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
-                anchorSize: renderBox.size,
-                onSelect: onCopy,
-              );
-            },
+            onTap: (key) => showTaskColumnCopyMenu(
+              context: context,
+              triggerKey: key,
+              onSelect: onCopy,
+            ),
           ),
           const SizedBox(width: 8),
           _DropdownButton(
             label: 'Export',
             icon: Icons.download_rounded,
-            onTap: (renderBox) {
-              final position = renderBox.localToGlobal(Offset.zero);
-              showTaskColumnExportMenu(
-                context: context,
-                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
-                anchorSize: renderBox.size,
-                onSelect: onExport,
-              );
-            },
+            onTap: (key) => showTaskColumnExportMenu(
+              context: context,
+              triggerKey: key,
+              onSelect: onExport,
+            ),
           ),
           const Spacer(),
           IconButton(
@@ -77,17 +69,14 @@ class _DropdownButton extends StatelessWidget {
 
   final String label;
   final IconData icon;
-  final void Function(RenderBox renderBox) onTap;
+  final void Function(GlobalKey key) onTap;
   final GlobalKey _key;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       key: _key,
-      onTap: () {
-        final renderBox = _key.currentContext?.findRenderObject() as RenderBox?;
-        if (renderBox != null) onTap(renderBox);
-      },
+      onTap: () => onTap(_key),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(

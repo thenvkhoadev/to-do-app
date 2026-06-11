@@ -273,11 +273,14 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
         status: 'done',
         completedAt: DateTime.now().toUtc(),
       );
+      final wasXpAwarded = nexusTask.xpAwarded;
       await ref.read(taskRepositoryProvider).updateTask(updated);
       if (completedNow) {
-        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
-        if (mounted) {
-          TaskCompleteSuccessDialog.show(context, widget.task.title);
+        if (!wasXpAwarded) {
+          await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+          if (mounted) {
+            TaskCompleteSuccessDialog.show(context, widget.task.title);
+          }
         }
       }
     } catch (e) {
@@ -662,6 +665,10 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
   }
 
   Widget _buildAiProductivityScore() {
+    final tasksAsync = ref.watch(userTasksProvider);
+    final allTasks = tasksAsync.valueOrNull ?? const <NexusTask>[];
+    final nexusTask = allTasks.where((t) => t.id == widget.task.id).firstOrNull;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
@@ -718,11 +725,15 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                     padding: const EdgeInsets.symmetric(
                         horizontal: 8, vertical: 2),
                     decoration: BoxDecoration(
-                      color: const Color(0xff10B981).withValues(alpha: 0.2),
+                      color: (nexusTask?.xpAwarded ?? widget.task.xpAwarded)
+                          ? const Color(0xff10B981).withValues(alpha: 0.15)
+                          : const Color(0xff10B981).withValues(alpha: 0.2),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      '+$xp XP',
+                      (nexusTask?.xpAwarded ?? widget.task.xpAwarded)
+                          ? 'XP REWARDED'
+                          : '+$xp XP',
                       style: const TextStyle(
                         color: Color(0xff10B981),
                         fontSize: 11,
@@ -1126,6 +1137,7 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
         aiSuggestion: widget.task.aiSuggestion,
         creatorName: resolvedCreatorName,
         userId: userId,
+        xpAwarded: nexusTask?.xpAwarded ?? widget.task.xpAwarded,
       );
     })();
 

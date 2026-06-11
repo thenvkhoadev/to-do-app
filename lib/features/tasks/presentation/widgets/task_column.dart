@@ -42,6 +42,7 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
   String _sortType = 'none'; // 'none', 'priority', 'dueDate'
   final Set<String> _selectedTaskIds = {};
   final _menuKey = GlobalKey();
+  bool _menuOpen = false;
 
   int _priorityWeight(TaskBoardPriority p) {
     switch (p) {
@@ -225,25 +226,29 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
                 const Spacer(),
                 GestureDetector(
                   onTap: () {
-                    final renderBox = _menuKey.currentContext?.findRenderObject() as RenderBox?;
-                    if (renderBox != null) {
-                      final pos = renderBox.localToGlobal(Offset.zero);
-                      showColumnMenu(
-                        context: context,
-                        offset: Offset(pos.dx, pos.dy + renderBox.size.height + 6),
-                        anchorSize: renderBox.size,
-                        column: widget.column,
-                        sortType: _sortType,
-                        onSortChanged: (v) => setState(() => _sortType = v),
-                        onCollapse: () => setState(() => _isCollapsed = true),
-                        onNewTask: () => widget.onNewTask?.call(),
-                      );
+                    if (_menuOpen) {
+                      Navigator.of(context, rootNavigator: true).pop();
+                      return;
                     }
+                    setState(() => _menuOpen = true);
+                    showColumnMenu(
+                      context: context,
+                      triggerKey: _menuKey,
+                      column: widget.column,
+                      sortType: _sortType,
+                      onSortChanged: (v) => setState(() => _sortType = v),
+                      onCollapse: () => setState(() => _isCollapsed = true),
+                      onNewTask: () => widget.onNewTask?.call(),
+                    ).then((_) {
+                      if (mounted) setState(() => _menuOpen = false);
+                    });
                   },
                   child: Icon(
                     key: _menuKey,
                     Icons.more_horiz_rounded,
-                    color: DashboardColors.onSurfaceVariant,
+                    color: _menuOpen
+                        ? DashboardColors.primary
+                        : DashboardColors.onSurfaceVariant,
                     size: 20,
                   ),
                 ),
@@ -486,10 +491,13 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
     final confirmed = await DeleteConfirmDialog.show(context, widget.column.title, count: ownedTasks.length);
 
     if (confirmed == true && context.mounted) {
+      final count = ownedTasks.length;
+      final idsToDelete = ownedTasks.map((t) => t.id).toList();
+
+      // Show deleting animation modal (non-dismissible)
+      DeletingProgressDialog.show(context, count);
+
       try {
-        final count = ownedTasks.length;
-        final idsToDelete = ownedTasks.map((t) => t.id).toList();
-        
         setState(() {
           _selectedTaskIds.removeAll(idsToDelete);
         });
@@ -497,11 +505,15 @@ class _TaskColumnState extends ConsumerState<TaskColumn> {
         for (final id in idsToDelete) {
           await ref.read(taskRepositoryProvider).deleteTask(id);
         }
+
         if (context.mounted) {
+          // Close progress dialog then show success
+          Navigator.of(context).pop();
           DeleteAllSuccessDialog.show(context, count);
         }
       } catch (e) {
         if (context.mounted) {
+          Navigator.of(context).pop();
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Lỗi khi xóa: $e')),
           );

@@ -41,13 +41,14 @@ class TaskCard extends ConsumerStatefulWidget {
 
 class _TaskCardState extends ConsumerState<TaskCard> {
   bool _hovered = false;
+  final _menuKey = GlobalKey();
 
-  void _showContextMenu(BuildContext context, Offset globalPosition) {
+  void _showContextMenu(BuildContext context) {
     final user = ref.read(authControllerProvider).valueOrNull;
     final isCreator = user != null && widget.task.userId == user.id;
     showTaskCardMenu(
       context: context,
-      offset: globalPosition,
+      triggerKey: _menuKey,
       task: widget.task,
       isCreator: isCreator,
       onEdit: _showEditDialog,
@@ -58,13 +59,12 @@ class _TaskCardState extends ConsumerState<TaskCard> {
   }
 
   void _handleMenuAction(String action) {
+    if (action == '__open_menu__') {
+      _showContextMenu(context);
+      return;
+    }
     if (action.startsWith('__open_menu__:')) {
-      final parts = action.substring('__open_menu__:'.length).split(',');
-      if (parts.length == 2) {
-        final dx = double.tryParse(parts[0]) ?? 0;
-        final dy = double.tryParse(parts[1]) ?? 0;
-        _showContextMenu(context, Offset(dx, dy));
-      }
+      _showContextMenu(context);
       return;
     }
     if (action == 'view') widget.onTap?.call();
@@ -438,7 +438,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
           opacity: completed ? .62 : 1,
           child: GestureDetector(
             onTap: widget.onTap,
-            onSecondaryTapDown: (details) => _showContextMenu(context, details.globalPosition),
+            onSecondaryTapDown: (details) => _showContextMenu(context),
             child: GlassContainer(
               radius: widget.mobile ? 18 : 16,
               padding: EdgeInsets.all(widget.mobile ? 16 : 18),
@@ -483,6 +483,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             getUserColor: _getUserColor,
                             tags: displayTags,
                             isCreator: isCreator,
+                            menuKey: _menuKey,
                           )
                         : _DesktopTaskBody(
                             task: widget.task,
@@ -493,6 +494,7 @@ class _TaskCardState extends ConsumerState<TaskCard> {
                             tags: displayTags,
                             progress: progressValue,
                             isCreator: isCreator,
+                            menuKey: _menuKey,
                           ),
                   ),
                 ],
@@ -515,6 +517,7 @@ class _DesktopTaskBody extends StatelessWidget {
     required this.tags,
     required this.progress,
     required this.isCreator,
+    required this.menuKey,
   });
 
   final TaskBoardItem task;
@@ -525,6 +528,7 @@ class _DesktopTaskBody extends StatelessWidget {
   final List<String> tags;
   final double? progress;
   final bool isCreator;
+  final GlobalKey menuKey;
 
   @override
   Widget build(BuildContext context) {
@@ -535,7 +539,7 @@ class _DesktopTaskBody extends StatelessWidget {
           children: [
             TaskPriorityChip(priority: task.priority),
             const Spacer(),
-            _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator),
+            _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator, menuKey: menuKey),
           ],
         ),
         const SizedBox(height: 12),
@@ -614,6 +618,7 @@ class _MobileTaskBody extends StatelessWidget {
     required this.getUserColor,
     required this.tags,
     required this.isCreator,
+    required this.menuKey,
   });
 
   final TaskBoardItem task;
@@ -623,6 +628,7 @@ class _MobileTaskBody extends StatelessWidget {
   final Color Function(String) getUserColor;
   final List<String> tags;
   final bool isCreator;
+  final GlobalKey menuKey;
 
   @override
   Widget build(BuildContext context) {
@@ -641,7 +647,7 @@ class _MobileTaskBody extends StatelessWidget {
                   const SizedBox(width: 6),
                   TaskPriorityChip(priority: task.priority, compact: true),
                   const Spacer(),
-                  _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator),
+                  _TaskContextMenuButton(onSelected: onMenuSelected, isCreator: isCreator, menuKey: menuKey),
                 ],
               ),
               const SizedBox(height: 8),
@@ -764,21 +770,24 @@ Widget _buildAssigneesRow(
 }
 
 class _TaskContextMenuButton extends StatelessWidget {
-  const _TaskContextMenuButton({required this.onSelected, required this.isCreator});
+  const _TaskContextMenuButton({
+    required this.onSelected,
+    required this.isCreator,
+    required this.menuKey,
+  });
   final ValueChanged<String> onSelected;
   final bool isCreator;
+  final GlobalKey menuKey;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (details) => onSelected('__open_menu__:${details.globalPosition.dx},${details.globalPosition.dy}'),
-      child: const Padding(
-        padding: EdgeInsets.all(4),
-        child: Icon(
-          Icons.more_horiz_rounded,
-          size: 18,
-          color: DashboardColors.onSurfaceVariant,
-        ),
+      onTap: () => onSelected('__open_menu__'),
+      child: Icon(
+        key: menuKey,
+        Icons.more_horiz_rounded,
+        size: 18,
+        color: DashboardColors.onSurfaceVariant,
       ),
     );
   }

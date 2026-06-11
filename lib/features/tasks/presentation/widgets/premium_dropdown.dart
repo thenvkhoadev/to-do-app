@@ -1,4 +1,3 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
@@ -7,102 +6,9 @@ import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
+import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
-
-// ── Arrow painter ─────────────────────────────────────────────────────────────
-
-class _ArrowPainter extends CustomPainter {
-  const _ArrowPainter({required this.fromTop});
-  final bool fromTop; // true = arrow on top, false = arrow on bottom
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    const arrowW = 12.0;
-    const arrowH = 7.0;
-    const x = 24.0; // arrow horizontal center from left edge of menu
-
-    final fill = Paint()
-      ..color = const Color(0xFF0A0E1E).withValues(alpha: 0.97)
-      ..style = PaintingStyle.fill;
-    final border = Paint()
-      ..color = Colors.white.withValues(alpha: 0.08)
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
-
-    final path = Path();
-    if (fromTop) {
-      path.moveTo(x - arrowW / 2, arrowH);
-      path.lineTo(x, 0);
-      path.lineTo(x + arrowW / 2, arrowH);
-      path.close();
-    } else {
-      final y = size.height;
-      path.moveTo(x - arrowW / 2, y - arrowH);
-      path.lineTo(x, y);
-      path.lineTo(x + arrowW / 2, y - arrowH);
-      path.close();
-    }
-    canvas.drawPath(path, border);
-    canvas.drawPath(path, fill);
-  }
-
-  @override
-  bool shouldRepaint(_ArrowPainter old) => old.fromTop != fromTop;
-}
-
-// ── Shared glass container ────────────────────────────────────────────────────
-
-class _GlassMenu extends StatelessWidget {
-  const _GlassMenu({required this.child, this.showArrowTop = true});
-  final Widget child;
-  final bool showArrowTop;
-
-  @override
-  Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.sizeOf(context).height;
-    const arrowH = 7.0;
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        if (showArrowTop)
-          SizedBox(
-            width: 280,
-            height: arrowH,
-            child: CustomPaint(painter: _ArrowPainter(fromTop: true)),
-          ),
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-            child: Container(
-              width: 280,
-              decoration: BoxDecoration(
-                color: const Color(0xFF0A0E1E).withValues(alpha: 0.97),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.45),
-                    blurRadius: 50,
-                    offset: const Offset(0, 12),
-                  ),
-                ],
-              ),
-              child: IntrinsicHeight(child: child),
-            ),
-          ),
-        ),
-        if (!showArrowTop)
-          SizedBox(
-            width: 280,
-            height: arrowH,
-            child: CustomPaint(painter: _ArrowPainter(fromTop: false)),
-          ),
-      ],
-    );
-  }
-}
+import 'package:to_do_app/features/tasks/presentation/widgets/smart_dropdown_overlay.dart';
 
 // ── Menu item tile ────────────────────────────────────────────────────────────
 
@@ -145,7 +51,7 @@ class _MenuTileState extends State<_MenuTile> {
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
         onTap: () {
-          Navigator.of(context).pop();
+          Navigator.of(context, rootNavigator: true).pop();
           widget.onTap();
         },
         child: AnimatedContainer(
@@ -231,65 +137,6 @@ class _MenuSection extends StatelessWidget {
   }
 }
 
-// ── Show helper ───────────────────────────────────────────────────────────────
-
-Future<void> _showGlassMenu({
-  required BuildContext context,
-  required Offset offset,
-  required Widget Function(bool arrowTop) menuBuilder,
-  Size? anchorSize,
-}) async {
-  await showGeneralDialog(
-    context: context,
-    barrierDismissible: true,
-    barrierLabel: 'menu',
-    barrierColor: Colors.transparent,
-    transitionDuration: const Duration(milliseconds: 180),
-    pageBuilder: (ctx, anim, _) => const SizedBox.shrink(),
-    transitionBuilder: (ctx, anim, _, child) {
-      final screen = MediaQuery.sizeOf(ctx);
-      // offset.dy = bottom edge of anchor (caller passes top + height + gap)
-      const menuH = 300.0; // approximate, menu is constrained to 0.6 * screen
-      double left = offset.dx;
-      double top = offset.dy;
-      bool arrowTop = true;
-
-      if (left + 280 > screen.width) left = screen.width - 296;
-      if (left < 8) left = 8;
-
-      // Flip above anchor if not enough room below
-      if (top + menuH > screen.height - 16) {
-        final anchorH = anchorSize?.height ?? 0;
-        top = offset.dy - anchorH - 6 - menuH - 7; // 7 = arrow height
-        if (top < 8) top = 8;
-        arrowTop = false;
-      }
-
-      return Stack(
-        children: [
-          Positioned(
-            left: left,
-            top: top,
-            child: FadeTransition(
-              opacity: anim,
-              child: SlideTransition(
-                position: Tween<Offset>(
-                  begin: Offset(0, arrowTop ? -0.04 : 0.04),
-                  end: Offset.zero,
-                ).animate(CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
-                child: Material(
-                  type: MaterialType.transparency,
-                  child: menuBuilder(arrowTop),
-                ),
-              ),
-            ),
-          ),
-        ],
-      );
-    },
-  );
-}
-
 // ═══════════════════════════════════════════════════════════════════
 // COLUMN MENU
 // ═══════════════════════════════════════════════════════════════════
@@ -301,7 +148,6 @@ class ColumnPremiumMenu extends ConsumerStatefulWidget {
     required this.onSortChanged,
     required this.onCollapse,
     required this.onNewTask,
-    this.showArrowTop = true,
     super.key,
   });
 
@@ -309,7 +155,6 @@ class ColumnPremiumMenu extends ConsumerStatefulWidget {
   final String sortType;
   final ValueChanged<String> onSortChanged;
   final VoidCallback onCollapse;
-  final bool showArrowTop;
   final VoidCallback onNewTask;
 
   @override
@@ -331,8 +176,7 @@ class _ColumnPremiumMenuState extends ConsumerState<ColumnPremiumMenu> {
         columnAssigneeIds[id] = (columnAssigneeIds[id] ?? 0) + 1;
       }
     }
-    return _GlassMenu(
-      showArrowTop: widget.showArrowTop,
+    return SmartMenuContainer(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -524,28 +368,25 @@ class _ColumnPremiumMenuState extends ConsumerState<ColumnPremiumMenu> {
   }
 }
 
-/// Show the column menu at [offset].
-void showColumnMenu({
+/// Show the column menu anchored to [triggerKey].
+Future<void> showColumnMenu({
   required BuildContext context,
-  required Offset offset,
+  required GlobalKey triggerKey,
   required TaskColumnData column,
   required String sortType,
   required ValueChanged<String> onSortChanged,
   required VoidCallback onCollapse,
   required VoidCallback onNewTask,
-  Size? anchorSize,
 }) {
-  _showGlassMenu(
+  return showSmartDropdown(
     context: context,
-    offset: offset,
-    anchorSize: anchorSize,
-    menuBuilder: (arrowTop) => ColumnPremiumMenu(
+    triggerKey: triggerKey,
+    menuBuilder: (ctx) => ColumnPremiumMenu(
       column: column,
       sortType: sortType,
       onSortChanged: onSortChanged,
       onCollapse: onCollapse,
       onNewTask: onNewTask,
-      showArrowTop: arrowTop,
     ),
   );
 }
@@ -562,7 +403,6 @@ class TaskCardPremiumMenu extends ConsumerWidget {
     required this.onDelete,
     required this.onDuplicate,
     this.onOpenPage,
-    this.showArrowTop = true,
     super.key,
   });
 
@@ -572,7 +412,6 @@ class TaskCardPremiumMenu extends ConsumerWidget {
   final VoidCallback onDelete;
   final VoidCallback onDuplicate;
   final VoidCallback? onOpenPage;
-  final bool showArrowTop;
 
   String _statusLabel(TaskBoardStatus s) {
     switch (s) {
@@ -589,12 +428,10 @@ class TaskCardPremiumMenu extends ConsumerWidget {
     final isCompleted = task.status == TaskBoardStatus.completed;
     final isInProgress = task.status == TaskBoardStatus.inProgress;
 
-    return _GlassMenu(
-      showArrowTop: showArrowTop,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
           // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 10),
@@ -639,6 +476,26 @@ class TaskCardPremiumMenu extends ConsumerWidget {
                         fontSize: 11,
                       ),
                     ),
+                    if (task.xpAwarded) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xff10B981).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(999),
+                          border: Border.all(color: const Color(0xff10B981).withValues(alpha: 0.3)),
+                        ),
+                        child: const Text(
+                          'XP CLAIMED',
+                          style: TextStyle(
+                            color: Color(0xff10B981),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -709,7 +566,6 @@ class TaskCardPremiumMenu extends ConsumerWidget {
           ],
           const SizedBox(height: 6),
         ],
-      ),
     );
   }
 
@@ -737,14 +593,21 @@ class TaskCardPremiumMenu extends ConsumerWidget {
       final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
       final nexus = tasks.firstWhere((t) => t.id == task.id,
           orElse: () => throw Exception('Task not found'));
-      final completedNow = nexus.status != 'done' && status == 'done';
+      final completedNow = status == 'done';
       final draftToActive = nexus.status == 'draft' && (status == 'todo' || status == 'in_progress');
-      final updated = nexus.copyWith(status: status);
+      final updated = nexus.copyWith(
+        status: status,
+        completedAt: status == 'done' ? DateTime.now().toUtc() : null,
+      );
+      final wasXpAwarded = nexus.xpAwarded;
       await ref.read(taskRepositoryProvider).updateTask(updated);
       if (completedNow) {
-        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
-        if (context.mounted) {
-          TaskCompleteSuccessDialog.show(context, task.title);
+        if (!wasXpAwarded) {
+          await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+          ref.invalidate(xpLogsProvider);
+          if (context.mounted) {
+            TaskCompleteSuccessDialog.show(context, task.title);
+          }
         }
       } else if (draftToActive) {
         await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Activated');
@@ -776,30 +639,27 @@ class TaskCardPremiumMenu extends ConsumerWidget {
   }
 }
 
-/// Show the task card menu at [offset].
+/// Show the task card menu anchored to [triggerKey].
 void showTaskCardMenu({
   required BuildContext context,
-  required Offset offset,
+  required GlobalKey triggerKey,
   required TaskBoardItem task,
   required bool isCreator,
   required VoidCallback onEdit,
   required VoidCallback onDelete,
   required VoidCallback onDuplicate,
   VoidCallback? onOpenPage,
-  Size? anchorSize,
 }) {
-  _showGlassMenu(
+  showSmartDropdown(
     context: context,
-    offset: offset,
-    anchorSize: anchorSize,
-    menuBuilder: (arrowTop) => TaskCardPremiumMenu(
+    triggerKey: triggerKey,
+    menuBuilder: (ctx) => TaskCardPremiumMenu(
       task: task,
       isCreator: isCreator,
       onEdit: onEdit,
       onDelete: onDelete,
       onDuplicate: onDuplicate,
       onOpenPage: onOpenPage,
-      showArrowTop: arrowTop,
     ),
   );
 }
@@ -978,14 +838,12 @@ class _AssigneeTileState extends ConsumerState<_AssigneeTile> {
 // ── Task Column Copy Menu ───────────────────────────────────────────────────
 
 class TaskColumnCopyMenu extends StatelessWidget {
-  const TaskColumnCopyMenu({required this.onSelect, this.showArrowTop = true, super.key});
+  const TaskColumnCopyMenu({required this.onSelect, super.key});
   final ValueChanged<String> onSelect;
-  final bool showArrowTop;
 
   @override
   Widget build(BuildContext context) {
-    return _GlassMenu(
-      showArrowTop: showArrowTop,
+    return SmartMenuContainer(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1037,14 +895,12 @@ class TaskColumnCopyMenu extends StatelessWidget {
 // ── Task Column Export Menu ─────────────────────────────────────────────────
 
 class TaskColumnExportMenu extends StatelessWidget {
-  const TaskColumnExportMenu({required this.onSelect, this.showArrowTop = true, super.key});
+  const TaskColumnExportMenu({required this.onSelect, super.key});
   final ValueChanged<String> onSelect;
-  final bool showArrowTop;
 
   @override
   Widget build(BuildContext context) {
-    return _GlassMenu(
-      showArrowTop: showArrowTop,
+    return SmartMenuContainer(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1100,19 +956,16 @@ class TaskDetailsOptionMenu extends StatelessWidget {
     required this.onDuplicate,
     required this.onArchive,
     required this.onDelete,
-    this.showArrowTop = true,
     super.key,
   });
 
   final VoidCallback onDuplicate;
   final VoidCallback onArchive;
   final VoidCallback onDelete;
-  final bool showArrowTop;
 
   @override
   Widget build(BuildContext context) {
-    return _GlassMenu(
-      showArrowTop: showArrowTop,
+    return SmartMenuContainer(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1164,49 +1017,42 @@ class TaskDetailsOptionMenu extends StatelessWidget {
 
 void showTaskColumnCopyMenu({
   required BuildContext context,
-  required Offset offset,
+  required GlobalKey triggerKey,
   required ValueChanged<String> onSelect,
-  Size? anchorSize,
 }) {
-  _showGlassMenu(
+  showSmartDropdown(
     context: context,
-    offset: offset,
-    anchorSize: anchorSize,
-    menuBuilder: (arrowTop) => TaskColumnCopyMenu(onSelect: onSelect, showArrowTop: arrowTop),
+    triggerKey: triggerKey,
+    menuBuilder: (ctx) => TaskColumnCopyMenu(onSelect: onSelect),
   );
 }
 
 void showTaskColumnExportMenu({
   required BuildContext context,
-  required Offset offset,
+  required GlobalKey triggerKey,
   required ValueChanged<String> onSelect,
-  Size? anchorSize,
 }) {
-  _showGlassMenu(
+  showSmartDropdown(
     context: context,
-    offset: offset,
-    anchorSize: anchorSize,
-    menuBuilder: (arrowTop) => TaskColumnExportMenu(onSelect: onSelect, showArrowTop: arrowTop),
+    triggerKey: triggerKey,
+    menuBuilder: (ctx) => TaskColumnExportMenu(onSelect: onSelect),
   );
 }
 
 void showTaskDetailsOptionMenu({
   required BuildContext context,
-  required Offset offset,
+  required GlobalKey triggerKey,
   required VoidCallback onDuplicate,
   required VoidCallback onArchive,
   required VoidCallback onDelete,
-  Size? anchorSize,
 }) {
-  _showGlassMenu(
+  showSmartDropdown(
     context: context,
-    offset: offset,
-    anchorSize: anchorSize,
-    menuBuilder: (arrowTop) => TaskDetailsOptionMenu(
+    triggerKey: triggerKey,
+    menuBuilder: (ctx) => TaskDetailsOptionMenu(
       onDuplicate: onDuplicate,
       onArchive: onArchive,
       onDelete: onDelete,
-      showArrowTop: arrowTop,
     ),
   );
 }

@@ -142,6 +142,7 @@ class TaskDetailFromIdScreen extends ConsumerWidget {
       updatedAt: t.updatedAt as DateTime?,
       userId: userId,
       creatorName: resolvedCreatorName,
+      xpAwarded: (t.xpAwarded as bool?) ?? false,
     );
   }
 }

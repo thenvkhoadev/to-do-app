@@ -167,6 +167,7 @@ class TaskDetailPage extends ConsumerWidget {
       updatedAt: task.updatedAt,
       creatorName: creatorName,
       userId: task.userId,
+      xpAwarded: task.xpAwarded,
     );
   }
 
@@ -200,11 +201,14 @@ class TaskDetailPage extends ConsumerWidget {
         completedAt: newStatus == TaskBoardStatus.completed ? DateTime.now().toUtc() : null,
       );
 
+      final wasXpAwarded = nexusTask.xpAwarded;
       await ref.read(taskRepositoryProvider).updateTask(updated);
       if (completedNow) {
-        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
-        if (context.mounted) {
-          TaskCompleteSuccessDialog.show(context, item.title);
+        if (!wasXpAwarded) {
+          await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+          if (context.mounted) {
+            TaskCompleteSuccessDialog.show(context, item.title);
+          }
         }
       }
 
@@ -887,23 +891,21 @@ class _MobileLayout extends StatelessWidget {
                   if (isCreator)
                     Builder(
                       builder: (btnContext) {
+                        final menuKey = GlobalKey();
                         return GestureDetector(
                           onTap: () {
-                            final renderBox = btnContext.findRenderObject() as RenderBox?;
-                            if (renderBox != null) {
-                              final position = renderBox.localToGlobal(Offset.zero);
-                              showTaskDetailsOptionMenu(
-                                context: context,
-                                offset: Offset(position.dx, position.dy + renderBox.size.height + 6),
-                                onDuplicate: onDuplicateTask,
-                                onArchive: onArchiveTask,
-                                onDelete: onDeleteTask,
-                              );
-                            }
+                            showTaskDetailsOptionMenu(
+                              context: context,
+                              triggerKey: menuKey,
+                              onDuplicate: onDuplicateTask,
+                              onArchive: onArchiveTask,
+                              onDelete: onDeleteTask,
+                            );
                           },
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            child: Icon(Icons.more_vert_rounded,
+                          child: Padding(
+                            key: menuKey,
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            child: const Icon(Icons.more_vert_rounded,
                                 color: DashboardColors.onSurface),
                           ),
                         );

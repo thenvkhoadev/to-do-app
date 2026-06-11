@@ -1159,3 +1159,130 @@ class _MultipleTrashAnimationState extends State<_MultipleTrashAnimation>
     );
   }
 }
+
+// ── Deleting progress dialog ──────────────────────────────────────────────────
+
+class DeletingProgressDialog extends StatefulWidget {
+  final int count;
+  const DeletingProgressDialog({required this.count, super.key});
+
+  static Future<void> show(BuildContext context, int count) {
+    return showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.55),
+      builder: (context) => DeletingProgressDialog(count: count),
+    );
+  }
+
+  static void close(BuildContext context) {
+    if (Navigator.of(context, rootNavigator: false).canPop()) {
+      Navigator.of(context, rootNavigator: false).pop();
+    }
+  }
+
+  @override
+  State<DeletingProgressDialog> createState() => _DeletingProgressDialogState();
+}
+
+class _DeletingProgressDialogState extends State<DeletingProgressDialog>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+  late final Animation<double> _spin;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat();
+    _scale = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
+    );
+    _spin = Tween<double>(begin: 0.0, end: 1.0).animate(_ctrl);
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return BackdropFilter(
+      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+      child: Center(
+        child: Container(
+          width: 300,
+          padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+          decoration: BoxDecoration(
+            color: const Color(0xFF0F131E).withValues(alpha: 0.92),
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.09), width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.5),
+                blurRadius: 32,
+                offset: const Offset(0, 16),
+              ),
+              BoxShadow(
+                color: DashboardColors.error.withValues(alpha: 0.10),
+                blurRadius: 28,
+              ),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              AnimatedBuilder(
+                animation: _ctrl,
+                builder: (_, __) => Transform.rotate(
+                  angle: _spin.value * 2 * math.pi,
+                  child: Transform.scale(
+                    scale: _scale.value,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: DashboardColors.error.withValues(alpha: 0.8),
+                          width: 3,
+                        ),
+                        color: DashboardColors.error.withValues(alpha: 0.08),
+                      ),
+                      child: const Icon(
+                        Icons.delete_sweep_rounded,
+                        color: DashboardColors.error,
+                        size: 28,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Đang xóa ${widget.count} công việc...',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Vui lòng chờ trong giây lát',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant.withValues(alpha: 0.7),
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

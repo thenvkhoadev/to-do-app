@@ -127,6 +127,7 @@ class _CalendarScreenState extends ConsumerState<CalendarScreen> {
       updatedAt: t.updatedAt,
       userId: t.userId,
       creatorName: resolvedCreatorName,
+      xpAwarded: t.xpAwarded,
     );
   }
 

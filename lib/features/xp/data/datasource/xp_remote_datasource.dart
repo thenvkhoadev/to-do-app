@@ -76,6 +76,17 @@ class XpRemoteDataSource {
     );
   }
 
+  /// Returns true if this task has already been awarded completion XP.
+  Future<bool> hasCompletionXp(String taskId) async {
+    final rows = await _client
+        .from('xp_logs')
+        .select('id')
+        .eq('task_id', taskId)
+        .eq('reason', 'Task Completed')
+        .limit(1);
+    return (rows as List).isNotEmpty;
+  }
+
   /// Insert an XP log entry and update users.total_xp + current_xp directly.
   /// Used for actions without a DB trigger (task creation = 2 XP, subtask done = 5 XP).
   Future<void> awardXp({

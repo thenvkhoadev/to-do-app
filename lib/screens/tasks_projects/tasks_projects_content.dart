@@ -27,6 +27,7 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_header.d
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_insights.dart';
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_premium_filters.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
+import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 
 TaskBoardItem _mapTaskToBoardItem(
   NexusTask task,
@@ -148,6 +149,7 @@ TaskBoardItem _mapTaskToBoardItem(
     createdAt: task.createdAt,
     updatedAt: task.updatedAt,
     creatorName: creatorName,
+    xpAwarded: task.xpAwarded,
     userId: task.userId,
   );
 }
@@ -181,18 +183,21 @@ Future<void> _updateTaskStatus(
   }
 
   final completedNow = task.status != 'done' && newStatus == TaskBoardStatus.completed;
-  final draftToActive = task.status == 'draft' &&
-      (newStatus == TaskBoardStatus.todo || newStatus == TaskBoardStatus.inProgress);
+  final draftToActive = task.status == 'draft' && (newStatus == TaskBoardStatus.todo || newStatus == TaskBoardStatus.inProgress);
   final updated = task.copyWith(
     status: statusStr,
     completedAt:
         newStatus == TaskBoardStatus.completed ? DateTime.now().toUtc() : null,
   );
+  final wasXpAwarded = task.xpAwarded;
   await ref.read(taskRepositoryProvider).updateTask(updated);
   if (completedNow) {
-    await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
-    if (context.mounted) {
-      TaskCompleteSuccessDialog.show(context, task.title);
+    if (!wasXpAwarded) {
+      await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+      ref.invalidate(xpLogsProvider);
+      if (context.mounted) {
+        TaskCompleteSuccessDialog.show(context, task.title);
+      }
     }
   } else if (draftToActive) {
     await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Activated');

@@ -5,5 +5,6 @@ abstract interface class TaskRepository {
   Future<NexusTask> createTask(NexusTask task);
   Future<void> updateTask(NexusTask task);
   Future<void> deleteTask(String id);
+  Future<bool> fetchXpAwarded(String taskId);
   Future<void> seedSampleTasks(String userId, String? categoryId);
 }

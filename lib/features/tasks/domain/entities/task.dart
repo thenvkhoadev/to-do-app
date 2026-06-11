@@ -11,6 +11,7 @@ class NexusTask {
     this.dueDate,
     this.reminderAt,
     this.completedAt,
+    this.xpAwarded = false,
     this.parentTaskId,
     this.sortOrder = 0,
     this.estimatedMinutes,
@@ -32,6 +33,7 @@ class NexusTask {
   final DateTime? dueDate;
   final DateTime? reminderAt;
   final DateTime? completedAt;
+  final bool xpAwarded;
   final String? parentTaskId;
   final int sortOrder;
   final int? estimatedMinutes;
@@ -53,6 +55,7 @@ class NexusTask {
     DateTime? dueDate,
     DateTime? reminderAt,
     DateTime? completedAt,
+    bool? xpAwarded,
     String? parentTaskId,
     int? sortOrder,
     int? estimatedMinutes,
@@ -74,6 +77,7 @@ class NexusTask {
       dueDate: dueDate ?? this.dueDate,
       reminderAt: reminderAt ?? this.reminderAt,
       completedAt: completedAt ?? this.completedAt,
+      xpAwarded: xpAwarded ?? this.xpAwarded,
       parentTaskId: parentTaskId ?? this.parentTaskId,
       sortOrder: sortOrder ?? this.sortOrder,
       estimatedMinutes: estimatedMinutes ?? this.estimatedMinutes,

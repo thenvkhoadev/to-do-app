@@ -55,6 +55,7 @@ class TaskBoardItem {
     this.updatedAt,
     this.creatorName,
     this.userId,
+    this.xpAwarded = false,
   });
 
   final String id;
@@ -74,6 +75,7 @@ class TaskBoardItem {
   final DateTime? updatedAt;
   final String? creatorName;
   final String? userId;
+  final bool xpAwarded;
 
   String get plainTextDescription => parseDescriptionToPlainText(description);
 

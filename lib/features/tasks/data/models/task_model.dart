@@ -13,6 +13,7 @@ class TaskModel {
     this.dueDate,
     this.reminderAt,
     this.completedAt,
+    this.xpAwarded = false,
     this.parentTaskId,
     this.sortOrder = 0,
     this.estimatedMinutes,
@@ -34,6 +35,7 @@ class TaskModel {
   final DateTime? dueDate;
   final DateTime? reminderAt;
   final DateTime? completedAt;
+  final bool xpAwarded;
   final String? parentTaskId;
   final int sortOrder;
   final int? estimatedMinutes;
@@ -56,6 +58,7 @@ class TaskModel {
       dueDate: _parseDate(json['due_date']),
       reminderAt: _parseDate(json['reminder_at']),
       completedAt: _parseDate(json['completed_at']),
+      xpAwarded: json['xp_awarded'] == true,
       parentTaskId: json['parent_task_id']?.toString(),
       sortOrder: (json['sort_order'] as num?)?.toInt() ?? 0,
       estimatedMinutes: (json['estimated_minutes'] as num?)?.toInt(),
@@ -87,6 +90,7 @@ class TaskModel {
         'due_date': dueDate?.toUtc().toIso8601String(),
         'reminder_at': reminderAt?.toUtc().toIso8601String(),
         'completed_at': completedAt?.toUtc().toIso8601String(),
+        'xp_awarded': xpAwarded,
         'parent_task_id': parentTaskId,
         'sort_order': sortOrder,
         'estimated_minutes': estimatedMinutes,
@@ -120,6 +124,7 @@ class TaskModel {
         dueDate: dueDate,
         reminderAt: reminderAt,
         completedAt: completedAt,
+        xpAwarded: xpAwarded,
         parentTaskId: parentTaskId,
         sortOrder: sortOrder,
         estimatedMinutes: estimatedMinutes,
