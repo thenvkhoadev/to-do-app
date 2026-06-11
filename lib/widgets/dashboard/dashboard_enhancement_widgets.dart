@@ -1036,7 +1036,9 @@ class _KnowledgeRow extends StatelessWidget {
 }
 
 class XPLevelCard extends ConsumerWidget {
-  const XPLevelCard({super.key});
+  const XPLevelCard({this.compact = false, super.key});
+
+  final bool compact;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -1048,6 +1050,36 @@ class XPLevelCard extends ConsumerWidget {
     final xpInto = levelState.xpIntoLevel;
     final xpForNext = levelState.xpForNextLevel;
     final title = leveling.xpRankForLevel(level).title;
+
+    if (compact) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: DashboardColors.primary.withValues(alpha: 0.12),
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(color: DashboardColors.primary.withValues(alpha: 0.25)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.emoji_events_rounded,
+              color: DashboardColors.primary,
+              size: 14,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              'Lvl $level',
+              style: const TextStyle(
+                color: DashboardColors.onSurface,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return GlassCard(
       radius: DashboardRadii.full,

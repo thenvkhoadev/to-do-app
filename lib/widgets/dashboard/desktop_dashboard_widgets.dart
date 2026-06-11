@@ -22,17 +22,19 @@ import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/pages/edit_task_page_v2.dart';
 
-class DesktopDashboardLayout extends StatefulWidget {
+class DesktopDashboardLayout extends ConsumerStatefulWidget {
   const DesktopDashboardLayout({super.key, this.initialIndex = 0});
 
   final int initialIndex;
 
   @override
-  State<DesktopDashboardLayout> createState() => _DesktopDashboardLayoutState();
+  ConsumerState<DesktopDashboardLayout> createState() => _DesktopDashboardLayoutState();
 }
 
-class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
+class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout> {
   late int _selectedIndex = widget.initialIndex;
   TaskBoardItem? _detailsItem;
 
@@ -43,6 +45,7 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final editingItem = ref.watch(editingTaskProvider);
     return Row(
       children: [
         DesktopSidebar(
@@ -51,6 +54,7 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
               (index) => setState(() {
                 _detailsItem = null;
                 _selectedIndex = index;
+                ref.read(editingTaskProvider.notifier).state = null;
               }),
         ),
         Expanded(
@@ -61,15 +65,23 @@ class _DesktopDashboardLayoutState extends State<DesktopDashboardLayout> {
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
               child:
-                  _detailsItem != null
-                      ? TaskDetailsDesktopContent(
-                        key: ValueKey(
-                          'dashboard-task-details-${_detailsItem!.title}',
-                        ),
-                        item: _detailsItem!,
-                        onBack: _closeTaskDetails,
-                      )
-                      : switch (_selectedIndex) {
+                  editingItem != null
+                      ? EditTaskPageV2(
+                          key: ValueKey('dashboard-task-edit-${editingItem.id}'),
+                          item: editingItem,
+                          onBack: () {
+                            ref.read(editingTaskProvider.notifier).state = null;
+                          },
+                        )
+                      : _detailsItem != null
+                          ? TaskDetailsDesktopContent(
+                            key: ValueKey(
+                              'dashboard-task-details-${_detailsItem!.title}',
+                            ),
+                            item: _detailsItem!,
+                            onBack: _closeTaskDetails,
+                          )
+                          : switch (_selectedIndex) {
                         0 => _DashboardMainPane(
                           key: const ValueKey('dashboard-main'),
                           onProfileTap:

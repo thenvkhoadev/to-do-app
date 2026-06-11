@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/pages/edit_task_page_v2.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/ai_suggestion_banner.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/glass_container.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_priority_chip.dart';
@@ -13,7 +15,6 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/core/utils/description_utils.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
-import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 
@@ -137,193 +138,15 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     }
   }
 
-  Future<void> _showEditDialog() async {
-    try {
-      final tasks = ref.read(userTasksProvider).valueOrNull ?? [];
-      final nexusTask = tasks.firstWhere(
-        (t) => t.id == widget.task.id,
-        orElse: () => throw Exception('Không tìm thấy task trong database'),
+  void _showEditDialog() {
+    if (widget.mobile) {
+      Navigator.of(context).push(
+        MaterialPageRoute(
+          builder: (context) => EditTaskPageV2(item: widget.task),
+        ),
       );
-
-      final titleController = TextEditingController(text: nexusTask.title);
-      final descController = TextEditingController(text: parseDescriptionToPlainText(nexusTask.description));
-      final estController = TextEditingController(text: nexusTask.estimatedMinutes?.toString() ?? '');
-      String priority = nexusTask.priority.toLowerCase();
-      DateTime? dueDate = nexusTask.dueDate;
-
-      if (priority != 'low' && priority != 'medium' && priority != 'high' && priority != 'urgent') {
-        priority = 'medium';
-      }
-
-      await showDialog(
-        context: context,
-        builder: (context) {
-          return StatefulBuilder(
-            builder: (context, setDialogState) {
-              return AlertDialog(
-                backgroundColor: DashboardColors.surfaceLow,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(24),
-                  side: const BorderSide(color: Colors.white12),
-                ),
-                title: const Text('Chỉnh sửa công việc', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
-                content: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      TextField(
-                        controller: titleController,
-                        style: const TextStyle(color: DashboardColors.onSurface),
-                        decoration: const InputDecoration(
-                          labelText: 'Tiêu đề',
-                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: descController,
-                        maxLines: 3,
-                        style: const TextStyle(color: DashboardColors.onSurface),
-                        decoration: const InputDecoration(
-                          labelText: 'Mô tả',
-                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      DropdownButtonFormField<String>(
-                        dropdownColor: DashboardColors.surfaceLow,
-                        initialValue: priority,
-                        style: const TextStyle(color: DashboardColors.onSurface),
-                        decoration: const InputDecoration(
-                          labelText: 'Độ ưu tiên',
-                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
-                        ),
-                        items: const [
-                          DropdownMenuItem(value: 'low', child: Text('Low')),
-                          DropdownMenuItem(value: 'medium', child: Text('Medium')),
-                          DropdownMenuItem(value: 'high', child: Text('High')),
-                          DropdownMenuItem(value: 'urgent', child: Text('Urgent')),
-                        ],
-                        onChanged: (val) {
-                          if (val != null) {
-                            setDialogState(() {
-                              priority = val;
-                            });
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextField(
-                        controller: estController,
-                        keyboardType: TextInputType.number,
-                        style: const TextStyle(color: DashboardColors.onSurface),
-                        decoration: const InputDecoration(
-                          labelText: 'Thời gian ước tính (phút)',
-                          labelStyle: TextStyle(color: DashboardColors.onSurfaceVariant),
-                          enabledBorder: UnderlineInputBorder(borderSide: BorderSide(color: Colors.white12)),
-                          focusedBorder: UnderlineInputBorder(borderSide: BorderSide(color: DashboardColors.primary)),
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              dueDate == null
-                                  ? 'Chưa chọn hạn chót'
-                                  : 'Hạn chót: ${dueDate!.day}/${dueDate!.month}/${dueDate!.year}',
-                              style: const TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 13),
-                            ),
-                          ),
-                          TextButton(
-                            onPressed: () async {
-                              final picked = await showDatePicker(
-                                context: context,
-                                initialDate: dueDate ?? DateTime.now(),
-                                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                                lastDate: DateTime.now().add(const Duration(days: 3650)),
-                              );
-                              if (picked != null) {
-                                setDialogState(() {
-                                  dueDate = picked;
-                                });
-                              }
-                            },
-                            child: const Text('Chọn ngày', style: TextStyle(color: DashboardColors.primary)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
-                  ),
-                  FilledButton(
-                    style: FilledButton.styleFrom(backgroundColor: DashboardColors.primaryContainer),
-                    onPressed: () async {
-                      final title = titleController.text.trim();
-                      if (title.isEmpty) return;
-
-                      final newDescText = descController.text.trim();
-                      final String? finalDescription;
-                      if (newDescText == parseDescriptionToPlainText(nexusTask.description)) {
-                        finalDescription = nexusTask.description;
-                      } else {
-                        finalDescription = newDescText.isEmpty ? null : newDescText;
-                      }
-
-                      final updated = nexusTask.copyWith(
-                        title: title,
-                        description: finalDescription,
-                        priority: priority,
-                        estimatedMinutes: int.tryParse(estController.text),
-                        dueDate: dueDate,
-                      );
-
-                      final descriptionChanged = nexusTask.description != finalDescription;
-
-                      await ref.read(taskRepositoryProvider).updateTask(updated);
-                      
-                      if (descriptionChanged) {
-                        final userProfile = ref.read(userProfileProvider).valueOrNull;
-                        final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
-                        await ref.read(taskTimelineProvider(widget.task.id).notifier).addActivity(
-                          actorName: actor,
-                          action: 'update_description',
-                          detail: 'updated description',
-                        );
-                      }
-
-                      if (context.mounted) {
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Đã cập nhật công việc thành công')),
-                        );
-                      }
-                    },
-                    child: const Text('Lưu', style: TextStyle(color: Colors.white)),
-                  ),
-                ],
-              );
-            },
-          );
-        },
-      );
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Không thể sửa task này: $e')),
-        );
-      }
+    } else {
+      ref.read(editingTaskProvider.notifier).state = widget.task;
     }
   }
 

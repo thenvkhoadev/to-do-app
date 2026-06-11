@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/floating_ai_button.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/tasks_sidebar.dart';
@@ -10,8 +11,10 @@ import 'package:to_do_app/screens/archived/archived_screen.dart';
 import 'package:to_do_app/screens/task_details/task_details_desktop_content.dart';
 import 'package:to_do_app/screens/tasks_projects/tasks_projects_content.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/pages/edit_task_page_v2.dart';
 
-class TasksDesktopLayout extends StatefulWidget {
+class TasksDesktopLayout extends ConsumerStatefulWidget {
   const TasksDesktopLayout({
     this.openNewTask = false,
     this.searchQuery,
@@ -26,10 +29,10 @@ class TasksDesktopLayout extends StatefulWidget {
   final VoidCallback? onDetailBack;
 
   @override
-  State<TasksDesktopLayout> createState() => _TasksDesktopLayoutState();
+  ConsumerState<TasksDesktopLayout> createState() => _TasksDesktopLayoutState();
 }
 
-class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
+class _TasksDesktopLayoutState extends ConsumerState<TasksDesktopLayout> {
   late int _selectedIndex;
   TaskBoardItem? _detailsItem;
 
@@ -54,6 +57,7 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
 
   @override
   Widget build(BuildContext context) {
+    final editingItem = ref.watch(editingTaskProvider);
     return LayoutBuilder(
       builder: (context, constraints) {
         return Stack(
@@ -62,15 +66,28 @@ class _TasksDesktopLayoutState extends State<TasksDesktopLayout> {
               children: [
                 TasksSidebar(
                   selectedIndex: _selectedIndex,
-                  onSelected: (index) => setState(() => _selectedIndex = index),
+                  onSelected: (index) {
+                    setState(() => _selectedIndex = index);
+                    if (_detailsItem != null) _closeTaskDetails();
+                    ref.read(editingTaskProvider.notifier).state = null;
+                  },
                 ),
                 Expanded(
                   child: AnimatedSwitcher(
                     duration: const Duration(milliseconds: 240),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
-                    child:
-                        _detailsItem != null
+                    child: editingItem != null
+                        ? EditTaskPageV2(
+                            key: ValueKey(
+                              'task-edit-${editingItem.id}',
+                            ),
+                            item: editingItem,
+                            onBack: () {
+                              ref.read(editingTaskProvider.notifier).state = null;
+                            },
+                          )
+                        : _detailsItem != null
                             ? TaskDetailsDesktopContent(
                               key: ValueKey(
                                 'task-details-${_detailsItem!.title}',
