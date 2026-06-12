@@ -1,12 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/data/models/category_model.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart'
-    hide GlassCard, GlowOrb, GradientButton, SectionTitle;
 import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart'
     show XPLevelCard;
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
