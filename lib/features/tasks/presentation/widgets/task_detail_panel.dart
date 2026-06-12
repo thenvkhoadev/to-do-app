@@ -17,6 +17,7 @@ import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
+import 'package:to_do_app/screens/task_details/widgets/task_comments_section.dart';
 
 class TaskDetailPanel extends ConsumerStatefulWidget {
   const TaskDetailPanel({
@@ -35,25 +36,10 @@ class TaskDetailPanel extends ConsumerStatefulWidget {
 }
 
 class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
-  final _commentController = TextEditingController();
-  List<Map<String, String>> _comments = [];
 
   @override
   void initState() {
     super.initState();
-    // Prepopulate some comments for mock realism
-    _comments = [
-      {
-        'author': 'A',
-        'name': 'Alex',
-        'text': 'Great progress on this! Timeline looks perfect.'
-      },
-      {
-        'author': 'K',
-        'name': 'Khoa',
-        'text': 'Need revision on UI alignment before final push.'
-      },
-    ];
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.invalidate(taskAttachmentsProvider(widget.task.id));
     });
@@ -61,7 +47,6 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
 
   @override
   void dispose() {
-    _commentController.dispose();
     super.dispose();
   }
 
@@ -98,19 +83,6 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
         );
       }
     }
-  }
-
-  void _postComment() {
-    final text = _commentController.text.trim();
-    if (text.isEmpty) return;
-    setState(() {
-      _comments.add({
-        'author': 'U',
-        'name': 'You',
-        'text': text,
-      });
-      _commentController.clear();
-    });
   }
 
   String _formatDate(DateTime date) {
@@ -677,158 +649,6 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
     );
   }
 
-  Widget _buildSmartCommentChips() {
-    final templates = [
-      '✨ Looks great!',
-      '⚠️ Reviewing blockers',
-      '💬 Needs design sync',
-    ];
-    return Wrap(
-      spacing: 6,
-      runSpacing: 6,
-      children: templates.map((t) {
-        return InkWell(
-          onTap: () {
-            _commentController.text = t;
-          },
-          borderRadius: BorderRadius.circular(8),
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: const Color(0xff8B5CF6).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: const Color(0xff8B5CF6).withValues(alpha: 0.15),
-              ),
-            ),
-            child: Text(
-              t,
-              style: const TextStyle(
-                color: Color(0xffa78bfa),
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _buildCommentsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'COMMENTS',
-          style: TextStyle(
-            color: Colors.white38,
-            fontSize: 12,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 1.1,
-          ),
-        ),
-        const SizedBox(height: 12),
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: _comments.length,
-          itemBuilder: (context, index) {
-            final comment = _comments[index];
-            final author = comment['author'] ?? 'U';
-            final name = comment['name'] ?? 'User';
-            final text = comment['text'] ?? '';
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  CircleAvatar(
-                    radius: 14,
-                    backgroundColor: author == 'A'
-                        ? const Color(0xff8B5CF6)
-                        : author == 'K'
-                            ? const Color(0xff06B6D4)
-                            : const Color(0xff6366F1),
-                    child: Text(
-                      author,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          name,
-                          style: const TextStyle(
-                            color: Colors.white54,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          text,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
-        const SizedBox(height: 8),
-        _buildSmartCommentChips(),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.03),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.08),
-                  ),
-                ),
-                child: TextField(
-                  controller: _commentController,
-                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                  decoration: const InputDecoration(
-                    hintText: 'Write comment...',
-                    hintStyle: TextStyle(color: Colors.white30),
-                    border: InputBorder.none,
-                    isDense: true,
-                  ),
-                  onSubmitted: (val) => _postComment(),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            IconButton(
-              icon: const Icon(Icons.send_rounded,
-                  color: Color(0xff6366F1), size: 18),
-              onPressed: _postComment,
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -1072,7 +892,7 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
                         const SizedBox(height: 24),
                         _buildAttachmentsSection(context, ref),
                         const SizedBox(height: 24),
-                        _buildCommentsSection(),
+                        TaskCommentsSection(taskId: task.id, isPanel: true),
                       ],
                     ),
                   ),

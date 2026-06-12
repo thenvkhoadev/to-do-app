@@ -798,14 +798,14 @@ class DesktopTopbar extends StatelessWidget {
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
+                          const StreakTopbarButton(),
+                          const SizedBox(width: 12),
+                          const XPLevelCard(),
+                          const SizedBox(width: 12),
                           const _TopIcon(
                             icon: Icons.notifications_none_rounded,
                             badge: true,
                           ),
-                          const SizedBox(width: 12),
-                          const StreakTopbarButton(),
-                          const SizedBox(width: 12),
-                          const XPLevelCard(),
                           const SizedBox(width: 12),
                           ProfileAvatar(
                             onTap: onProfileTap,

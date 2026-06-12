@@ -1,0 +1,179 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 900" role="img" aria-label="Achievement badge design system grid preview">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1320" y2="900"><stop offset="0" stop-color="#080B14"/><stop offset="1" stop-color="#111827"/></linearGradient>
+    <filter id="blur"><feGaussianBlur stdDeviation="20"/></filter>
+  </defs>
+  <rect width="1320" height="900" fill="url(#bg)"/>
+  <circle cx="220" cy="120" r="120" fill="#8083FF" opacity="0.18" filter="url(#blur)"/>
+  <circle cx="1110" cy="780" r="150" fill="#E91E63" opacity="0.16" filter="url(#blur)"/>
+  <text x="48" y="64" fill="#FFFFFF" font-family="Inter,Arial" font-size="34" font-weight="800">Achievement Badge Design System</text>
+  <text x="48" y="96" fill="#9CA3AF" font-family="Inter,Arial" font-size="16">28 base SVG icons × 12 rank frames = 336 premium badge combinations</text>
+  <g transform='translate(54 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#B87333' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#B87333' opacity='0.16' stroke='#B87333' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>shield_check</text>
+  </g>
+  <g transform='translate(230 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#C0C0C0' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#C0C0C0' opacity='0.16' stroke='#C0C0C0' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>clipboard</text>
+  </g>
+  <g transform='translate(406 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FFD700' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FFD700' opacity='0.16' stroke='#FFD700' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>checklist</text>
+  </g>
+  <g transform='translate(582 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#59D5FF' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#59D5FF' opacity='0.16' stroke='#59D5FF' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>crystal</text>
+  </g>
+  <g transform='translate(758 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#00FFC6' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#00FFC6' opacity='0.16' stroke='#00FFC6' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>rocket</text>
+  </g>
+  <g transform='translate(934 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#9C27B0' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#9C27B0' opacity='0.16' stroke='#9C27B0' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>fire</text>
+  </g>
+  <g transform='translate(1110 138)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF5722' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF5722' opacity='0.16' stroke='#FF5722' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>flame_crown</text>
+  </g>
+  <g transform='translate(54 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#F44336' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#F44336' opacity='0.16' stroke='#F44336' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>folder</text>
+  </g>
+  <g transform='translate(230 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF1744' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF1744' opacity='0.16' stroke='#FF1744' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>brain</text>
+  </g>
+  <g transform='translate(406 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF9800' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF9800' opacity='0.16' stroke='#FF9800' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>hourglass</text>
+  </g>
+  <g transform='translate(582 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#00E5FF' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#00E5FF' opacity='0.16' stroke='#00E5FF' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>paperclip</text>
+  </g>
+  <g transform='translate(758 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#E91E63' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#E91E63' opacity='0.16' stroke='#E91E63' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>chat</text>
+  </g>
+  <g transform='translate(934 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#B87333' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#B87333' opacity='0.16' stroke='#B87333' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>users</text>
+  </g>
+  <g transform='translate(1110 310)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#C0C0C0' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#C0C0C0' opacity='0.16' stroke='#C0C0C0' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>ai_chip</text>
+  </g>
+  <g transform='translate(54 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FFD700' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FFD700' opacity='0.16' stroke='#FFD700' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>target</text>
+  </g>
+  <g transform='translate(230 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#59D5FF' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#59D5FF' opacity='0.16' stroke='#59D5FF' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>moon</text>
+  </g>
+  <g transform='translate(406 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#00FFC6' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#00FFC6' opacity='0.16' stroke='#00FFC6' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>sunrise</text>
+  </g>
+  <g transform='translate(582 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#9C27B0' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#9C27B0' opacity='0.16' stroke='#9C27B0' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>lightning</text>
+  </g>
+  <g transform='translate(758 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF5722' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF5722' opacity='0.16' stroke='#FF5722' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>gem</text>
+  </g>
+  <g transform='translate(934 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#F44336' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#F44336' opacity='0.16' stroke='#F44336' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>crown</text>
+  </g>
+  <g transform='translate(1110 482)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF1744' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF1744' opacity='0.16' stroke='#FF1744' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>calendar</text>
+  </g>
+  <g transform='translate(54 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FF9800' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FF9800' opacity='0.16' stroke='#FF9800' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>grid</text>
+  </g>
+  <g transform='translate(230 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#00E5FF' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#00E5FF' opacity='0.16' stroke='#00E5FF' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>tag</text>
+  </g>
+  <g transform='translate(406 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#E91E63' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#E91E63' opacity='0.16' stroke='#E91E63' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>archive</text>
+  </g>
+  <g transform='translate(582 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#B87333' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#B87333' opacity='0.16' stroke='#B87333' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>restore</text>
+  </g>
+  <g transform='translate(758 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#C0C0C0' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#C0C0C0' opacity='0.16' stroke='#C0C0C0' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>flag</text>
+  </g>
+  <g transform='translate(934 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#FFD700' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#FFD700' opacity='0.16' stroke='#FFD700' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>siren</text>
+  </g>
+  <g transform='translate(1110 654)'>
+    <rect width='136' height='136' rx='30' fill='#FFFFFF' opacity='0.045' stroke='#59D5FF' stroke-opacity='0.35'/>
+    <path d='M68 10 106 26 124 64 112 112 68 134 24 112 12 64 30 26 68 10Z' fill='#59D5FF' opacity='0.16' stroke='#59D5FF' stroke-width='4'/>
+    <circle cx='68' cy='68' r='38' fill='#0B1020' opacity='0.78' stroke='#fff' stroke-opacity='0.12'/>
+    <text x='68' y='154' text-anchor='middle' fill='#D1D5DB' font-family='Inter,Arial' font-size='11' font-weight='700'>shield_clock</text>
+  </g>
+</svg>

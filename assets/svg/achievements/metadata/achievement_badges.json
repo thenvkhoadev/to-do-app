@@ -1,0 +1,166 @@
+{
+  "icons": [
+    "shield_check",
+    "clipboard",
+    "checklist",
+    "crystal",
+    "rocket",
+    "fire",
+    "flame_crown",
+    "folder",
+    "brain",
+    "hourglass",
+    "paperclip",
+    "chat",
+    "users",
+    "ai_chip",
+    "target",
+    "moon",
+    "sunrise",
+    "lightning",
+    "gem",
+    "crown",
+    "calendar",
+    "grid",
+    "tag",
+    "archive",
+    "restore",
+    "flag",
+    "siren",
+    "shield_clock"
+  ],
+  "model": "Achievement Type -> Base Icon -> Rank Frame -> Rarity Color -> Glow Effect -> Animated Particles",
+  "ranks": [
+    {
+      "label": "Bronze",
+      "effect": "none",
+      "slug": "bronze",
+      "color": "#B87333"
+    },
+    {
+      "label": "Silver",
+      "effect": "sparkle",
+      "slug": "silver",
+      "color": "#C0C0C0"
+    },
+    {
+      "label": "Gold",
+      "effect": "particles",
+      "slug": "gold",
+      "color": "#FFD700"
+    },
+    {
+      "label": "Diamond",
+      "effect": "crystal",
+      "slug": "diamond",
+      "color": "#59D5FF"
+    },
+    {
+      "label": "Elite",
+      "effect": "floating_diamonds",
+      "slug": "elite",
+      "color": "#00FFC6"
+    },
+    {
+      "label": "Master",
+      "effect": "energy_ring",
+      "slug": "master",
+      "color": "#9C27B0"
+    },
+    {
+      "label": "Challenger",
+      "effect": "flame_wings",
+      "slug": "challenger",
+      "color": "#FF5722"
+    },
+    {
+      "label": "Grandmaster",
+      "effect": "crown_flames",
+      "slug": "grandmaster",
+      "color": "#F44336"
+    },
+    {
+      "label": "Supreme Challenger",
+      "effect": "double_wings",
+      "slug": "supreme_challenger",
+      "color": "#FF1744"
+    },
+    {
+      "label": "Legend",
+      "effect": "floating_crown",
+      "slug": "legend",
+      "color": "#FF9800"
+    },
+    {
+      "label": "Immortal",
+      "effect": "energy_orbit",
+      "slug": "immortal",
+      "color": "#00E5FF"
+    },
+    {
+      "label": "Mythic",
+      "effect": "galaxy_particles",
+      "slug": "mythic",
+      "color": "#E91E63"
+    }
+  ],
+  "achievements": {
+    "comments_created": {
+      "label": "Comments Created",
+      "icon": "chat",
+      "unit": "comments",
+      "thresholds": [
+        {
+          "rank": "bronze",
+          "label": "Đồng",
+          "value": 10
+        },
+        {
+          "rank": "silver",
+          "label": "Bạc",
+          "value": 25
+        },
+        {
+          "rank": "gold",
+          "label": "Vàng",
+          "value": 50
+        },
+        {
+          "rank": "diamond",
+          "label": "Kim Cương",
+          "value": 100
+        },
+        {
+          "rank": "elite",
+          "label": "Tinh Anh",
+          "value": 250
+        },
+        {
+          "rank": "master",
+          "label": "Cao Thủ",
+          "value": 500
+        },
+        {
+          "rank": "challenger",
+          "label": "Thách Đấu",
+          "value": 1000
+        },
+        {
+          "rank": "grandmaster",
+          "label": "Đại Cao Thủ",
+          "value": 2500
+        },
+        {
+          "rank": "supreme_challenger",
+          "label": "Đại Thách Đấu",
+          "value": 5000
+        },
+        {
+          "rank": "legend",
+          "label": "Huyền Thoại",
+          "value": 10000
+        }
+      ]
+    }
+  }
+}

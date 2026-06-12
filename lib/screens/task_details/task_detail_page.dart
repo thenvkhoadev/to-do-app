@@ -36,6 +36,7 @@ import 'widgets/mobile/mobile_description.dart';
 import 'widgets/mobile/mobile_subtasks.dart';
 import 'widgets/mobile/mobile_attachments.dart';
 import 'widgets/mobile/mobile_timeline.dart';
+import 'widgets/task_comments_section.dart';
 
 const _desktopBreakpoint = 1200.0;
 
@@ -620,6 +621,8 @@ class _DesktopLeftColumn extends StatelessWidget {
         DesktopAttachments(taskId: item.id),
         const SizedBox(height: 24),
         DesktopTimeline(item: item),
+        const SizedBox(height: 24),
+        TaskCommentsSection(taskId: item.id),
       ],
     );
   }
@@ -781,6 +784,8 @@ class _MobileLayout extends StatelessWidget {
                           MobileAttachments(taskId: item.id),
                           const SizedBox(height: 24),
                           MobileTimeline(item: item),
+                          const SizedBox(height: 24),
+                          TaskCommentsSection(taskId: item.id),
                         ],
                       ),
                     ),
