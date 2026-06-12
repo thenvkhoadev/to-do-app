@@ -107,6 +107,18 @@ flutter:
     - assets/svg/achievements/frames/
     - assets/svg/achievements/previews/
     - assets/svg/achievements/metadata/
+    - assets/badges/bronze/
+    - assets/badges/silver/
+    - assets/badges/gold/
+    - assets/badges/diamond/
+    - assets/badges/elite/
+    - assets/badges/master/
+    - assets/badges/challenger/
+    - assets/badges/grandmaster/
+    - assets/badges/supreme_challenger/
+    - assets/badges/legend/
+    - assets/badges/immortal/
+    - assets/badges/mythic/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

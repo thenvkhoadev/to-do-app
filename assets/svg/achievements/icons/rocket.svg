@@ -10,13 +10,10 @@
       <stop offset="0.58" stop-color="#8BA4FF" stop-opacity="0.10"/>
       <stop offset="1" stop-color="#111827" stop-opacity="0.18"/>
     </radialGradient>
-    <filter id="softGlow" x="-30%" y="-30%" width="160%" height="160%">
-      <feGaussianBlur stdDeviation="2.4" result="blur"/>
-      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
-    </filter>
+    
   </defs>
   <circle cx="50" cy="50" r="42" fill="url(#iconFill)" opacity="0.9"/>
-  <g fill="none" stroke="url(#iconStroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" filter="url(#softGlow)">
+  <g fill="none" stroke="url(#iconStroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" >
     <path d="M60 14c16 6 22 28 9 43L49 77 23 51l20-20c5-9 10-14 17-17Z"/><path d="M35 65 23 77l-3-17 15 5ZM56 33a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z"/>
   </g>
 </svg>

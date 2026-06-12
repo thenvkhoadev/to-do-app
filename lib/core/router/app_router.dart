@@ -65,6 +65,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const DashboardScreen(initialIndex: 11),
       ),
       GoRoute(
+        path: '/achievements',
+        builder: (_, __) => const DashboardScreen(initialIndex: 10),
+      ),
+      GoRoute(
         path: '/task-detail/:id',
         builder:
             (_, state) =>

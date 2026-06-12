@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 190" role="img" aria-label="clipboard challenger badge">
+  <defs>
+
+    <linearGradient id="rank" x1="24" y1="12" x2="136" y2="170" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.95"/>
+      <stop offset="0.18" stop-color="#FF5722"/>
+      <stop offset="0.72" stop-color="#FF5722" stop-opacity="0.72"/>
+      <stop offset="1" stop-color="#111827"/>
+    </linearGradient>
+    <radialGradient id="glass" cx="80" cy="70" r="76" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.24"/>
+      <stop offset="0.52" stop-color="#FF5722" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#080B14" stop-opacity="0.82"/>
+    </radialGradient>
+    
+  
+
+    <linearGradient id="iconStroke" x1="18" y1="12" x2="82" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#BFD7FF"/>
+      <stop offset="1" stop-color="#6C7CFF"/>
+    </linearGradient>
+    <radialGradient id="iconFill" cx="50" cy="42" r="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.58" stop-color="#8BA4FF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#111827" stop-opacity="0.18"/>
+    </radialGradient>
+    
+  
+</defs>
+  <path d="M80 8 125 26 146 72 132 140 80 182 28 140 14 72 35 26 80 8Z" fill="#FF5722" opacity="0.18" />
+  <path d="M80 16 119 32 138 74 125 134 80 170 35 134 22 74 41 32 80 16Z" fill="url(#glass)" stroke="url(#rank)" stroke-width="5"/>
+  <path d="M80 32 106 43 119 76 110 122 80 147 50 122 41 76 54 43 80 32Z" fill="#080B14" opacity="0.46" stroke="#FFFFFF" stroke-opacity="0.14" stroke-width="2"/>
+  <path d="M48 30 25 54 8 98 36 88" fill="none" stroke="#FF5722" stroke-width="4" stroke-linecap="round" opacity="0.95"/>
+  <path d="M112 30 135 54 152 98 124 88" fill="none" stroke="#FF5722" stroke-width="4" stroke-linecap="round" opacity="0.95"/>
+  <path d="M54 31 66 43 80 19 94 43 106 31 101 55H59l-5-24Z" fill="#FF5722" opacity="0.95"/>
+  <circle cx="32" cy="62" r="2.2" fill="#fff" opacity="0.7"/>
+  <circle cx="128" cy="62" r="2.2" fill="#fff" opacity="0.7"/>
+  <circle cx="80" cy="154" r="2.8" fill="#FF5722"/>
+  <path d="M46 150c20 14 48 14 68 0" fill="none" stroke="#FF5722" stroke-width="3" stroke-linecap="round" opacity="0.7"/>
+  <g transform="translate(55, 60.5) scale(0.5)">
+<circle cx="50" cy="50" r="42" fill="url(#iconFill)" opacity="0.9"/>
+  <g fill="none" stroke="url(#iconStroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" >
+    <rect x="28" y="24" width="44" height="58" rx="10"/><path d="M40 20h20l4 8H36l4-8Z"/><path d="M38 44h24M38 58h24M38 72h16"/>
+  </g>
+</g>
+</svg>

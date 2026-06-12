@@ -30,6 +30,7 @@ import 'package:to_do_app/features/notifications/presentation/screens/notificati
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/achievements/achievements_page.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
@@ -338,6 +339,10 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                           onClose: () => setState(() => _selectedIndex = 0),
                         ),
                         9 => const ArchivedScreen(key: ValueKey('archived')),
+                        10 => const AchievementsPage(
+                          key: ValueKey('achievements'),
+                          embeddedInDashboard: true,
+                        ),
                         11 => const NotificationsScreen(
                           key: ValueKey('notifications'),
                           embeddedInDashboard: true,

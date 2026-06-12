@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="trophy achievement icon">
+  <defs>
+    <linearGradient id="iconStroke" x1="18" y1="12" x2="82" y2="88" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset="0.45" stop-color="#BFD7FF"/>
+      <stop offset="1" stop-color="#6C7CFF"/>
+    </linearGradient>
+    <radialGradient id="iconFill" cx="50" cy="42" r="44" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="0.58" stop-color="#8BA4FF" stop-opacity="0.10"/>
+      <stop offset="1" stop-color="#111827" stop-opacity="0.18"/>
+    </radialGradient>
+    
+  </defs>
+  <circle cx="50" cy="50" r="42" fill="url(#iconFill)" opacity="0.9"/>
+  <g fill="none" stroke="url(#iconStroke)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" >
+    <path d="M30 25h40v20c0 11-9 20-20 20s-20-9-20-20V25ZM50 65v15M32 80h36M30 32H18v16h12M70 32h12v16H70"/>
+  </g>
+</svg>

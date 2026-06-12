@@ -1,11 +1,11 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1320 900" role="img" aria-label="Achievement badge design system grid preview">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1320" y2="900"><stop offset="0" stop-color="#080B14"/><stop offset="1" stop-color="#111827"/></linearGradient>
-    <filter id="blur"><feGaussianBlur stdDeviation="20"/></filter>
+    
   </defs>
   <rect width="1320" height="900" fill="url(#bg)"/>
-  <circle cx="220" cy="120" r="120" fill="#8083FF" opacity="0.18" filter="url(#blur)"/>
-  <circle cx="1110" cy="780" r="150" fill="#E91E63" opacity="0.16" filter="url(#blur)"/>
+  <circle cx="220" cy="120" r="120" fill="#8083FF" opacity="0.18" />
+  <circle cx="1110" cy="780" r="150" fill="#E91E63" opacity="0.16" />
   <text x="48" y="64" fill="#FFFFFF" font-family="Inter,Arial" font-size="34" font-weight="800">Achievement Badge Design System</text>
   <text x="48" y="96" fill="#9CA3AF" font-family="Inter,Arial" font-size="16">28 base SVG icons × 12 rank frames = 336 premium badge combinations</text>
   <g transform='translate(54 138)'>
