@@ -1,6 +1,7 @@
 import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
@@ -99,10 +100,18 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
 
   Future<void> _loadTaskDetailsFromDb() async {
     try {
-      final subtasks = await ref.read(subtaskDataSourceProvider).getSubtasks(widget.item.id);
-      final attachments = await ref.read(attachmentDataSourceProvider).getAttachments(widget.item.id);
-      final tagIds = await ref.read(tagDataSourceProvider).getTaskTagIds(widget.item.id);
-      final assigneeIds = await ref.read(taskAssigneeIdsProvider(widget.item.id).future);
+      final subtasks = await ref
+          .read(subtaskDataSourceProvider)
+          .getSubtasks(widget.item.id);
+      final attachments = await ref
+          .read(attachmentDataSourceProvider)
+          .getAttachments(widget.item.id);
+      final tagIds = await ref
+          .read(tagDataSourceProvider)
+          .getTaskTagIds(widget.item.id);
+      final assigneeIds = await ref.read(
+        taskAssigneeIdsProvider(widget.item.id).future,
+      );
 
       if (mounted) {
         setState(() {
@@ -110,7 +119,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           _attachments = attachments;
           _selectedTagIds = tagIds;
           _assigneeIds = assigneeIds;
-          
+
           _initialSubtasks = List.from(subtasks);
           _initialTagIds = List.from(tagIds);
           _initialAssigneeIds = List.from(assigneeIds);
@@ -175,10 +184,13 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     if (_selectedCategoryId != _initialCategoryId) return true;
     if (_selectedStatus != _initialStatus) return true;
     if (_selectedPriority != _initialPriority) return true;
-    
-    final dateChanged = (_dueDate == null && _initialDueDate != null) ||
+
+    final dateChanged =
+        (_dueDate == null && _initialDueDate != null) ||
         (_dueDate != null && _initialDueDate == null) ||
-        (_dueDate != null && _initialDueDate != null && !_dueDate!.isAtSameMomentAs(_initialDueDate!));
+        (_dueDate != null &&
+            _initialDueDate != null &&
+            !_dueDate!.isAtSameMomentAs(_initialDueDate!));
     if (dateChanged) return true;
 
     // Check tags
@@ -204,31 +216,35 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     }
 
     // Check attachments
-    if (_newAttachments.isNotEmpty || _deletedAttachments.isNotEmpty) return true;
+    if (_newAttachments.isNotEmpty || _deletedAttachments.isNotEmpty)
+      return true;
 
     return false;
   }
 
-
-
   Future<void> _deleteAttachment(TaskAttachmentModel attachment) async {
     final client = ref.read(supabaseClientProvider);
     try {
-      await client.storage.from('task-attachments').remove([attachment.storagePath]);
+      await client.storage.from('task-attachments').remove([
+        attachment.storagePath,
+      ]);
     } catch (e) {
       debugPrint('Failed to remove attachment file from storage: $e');
     }
     await client.from('task_attachments').delete().eq('id', attachment.id);
   }
 
-  Future<void> _updateTaskAssignees(String taskId, List<String> assigneeIds) async {
+  Future<void> _updateTaskAssignees(
+    String taskId,
+    List<String> assigneeIds,
+  ) async {
     final supabase = ref.read(supabaseClientProvider);
     await supabase.from('task_assignees').delete().eq('task_id', taskId);
     if (assigneeIds.isNotEmpty) {
-      final rows = assigneeIds.map((uid) => {
-        'task_id': taskId,
-        'user_id': uid,
-      }).toList();
+      final rows =
+          assigneeIds
+              .map((uid) => {'task_id': taskId, 'user_id': uid})
+              .toList();
       await supabase.from('task_assignees').insert(rows);
     }
   }
@@ -237,7 +253,10 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     final title = _titleController.text.trim();
     if (title.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Tiêu đề công việc không được bỏ trống!'), backgroundColor: DashboardColors.error),
+        const SnackBar(
+          content: Text('Tiêu đề công việc không được bỏ trống!'),
+          backgroundColor: DashboardColors.error,
+        ),
       );
       return;
     }
@@ -251,7 +270,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       );
 
       final estMin = _estimateHour * 60 + _estimateMinute;
-      final completedNow = _selectedStatus == 'done' && nexusTask.status != 'done';
+      final completedNow =
+          _selectedStatus == 'done' && nexusTask.status != 'done';
 
       final updated = nexusTask.copyWith(
         title: title,
@@ -268,13 +288,17 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       await ref.read(taskRepositoryProvider).updateTask(updated);
 
       // 2. Update tags
-      await ref.read(tagDataSourceProvider).setTaskTags(widget.item.id, _selectedTagIds);
+      await ref
+          .read(tagDataSourceProvider)
+          .setTaskTags(widget.item.id, _selectedTagIds);
 
       // 3. Update assignees
       await _updateTaskAssignees(widget.item.id, _assigneeIds);
 
       // 4. Sync subtasks
-      final dbSubtasks = await ref.read(subtaskDataSourceProvider).getSubtasks(widget.item.id);
+      final dbSubtasks = await ref
+          .read(subtaskDataSourceProvider)
+          .getSubtasks(widget.item.id);
       // Delete missing subtasks
       for (final dbSub in dbSubtasks) {
         if (!_subtasks.any((s) => s.id == dbSub.id)) {
@@ -284,9 +308,14 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       // Insert/Update current subtasks
       for (final sub in _subtasks) {
         if (sub.id.isEmpty) {
-          await ref.read(subtaskDataSourceProvider).createSubtask(sub.copyWith(taskId: widget.item.id));
+          await ref
+              .read(subtaskDataSourceProvider)
+              .createSubtask(sub.copyWith(taskId: widget.item.id));
         } else {
-          final dbSub = dbSubtasks.firstWhere((s) => s.id == sub.id, orElse: () => sub);
+          final dbSub = dbSubtasks.firstWhere(
+            (s) => s.id == sub.id,
+            orElse: () => sub,
+          );
           if (dbSub.title != sub.title || dbSub.isDone != sub.isDone) {
             await ref.read(subtaskDataSourceProvider).updateSubtask(sub.id, {
               'title': sub.title,
@@ -303,25 +332,35 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       if (_newAttachments.isNotEmpty) {
         final user = ref.read(authControllerProvider).valueOrNull;
         if (user != null) {
-          await ref.read(attachmentDataSourceProvider).uploadAttachments(
-            taskId: widget.item.id,
-            userId: user.id,
-            files: _newAttachments,
-          );
+          await ref
+              .read(attachmentDataSourceProvider)
+              .uploadAttachments(
+                taskId: widget.item.id,
+                userId: user.id,
+                files: _newAttachments,
+              );
         }
       }
 
       // Timeline log
       final userProfile = ref.read(userProfileProvider).valueOrNull;
-      final actor = userProfile?.fullName ?? userProfile?.username ?? userProfile?.email ?? 'You';
-      await ref.read(taskTimelineProvider(widget.item.id).notifier).addActivity(
-        actorName: actor,
-        action: 'edit_task',
-        detail: 'modified task details, subtasks, or attachments',
-      );
+      final actor =
+          userProfile?.fullName ??
+          userProfile?.username ??
+          userProfile?.email ??
+          'You';
+      await ref
+          .read(taskTimelineProvider(widget.item.id).notifier)
+          .addActivity(
+            actorName: actor,
+            action: 'edit_task',
+            detail: 'modified task details, subtasks, or attachments',
+          );
 
       if (completedNow && !nexusTask.xpAwarded) {
-        await ref.read(streakRemoteDataSourceProvider).updateUserStreak('Task Completed');
+        await ref
+            .read(streakRemoteDataSourceProvider)
+            .updateUserStreak('Task Completed');
         ref.invalidate(xpLogsProvider);
       }
 
@@ -338,7 +377,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
 
       if (mounted) {
         await _showSuccessDialog();
-        
+
         final users = ref.read(allUsersProvider).valueOrNull ?? [];
         final tags = ref.read(userTagsProvider).valueOrNull ?? [];
         final updatedItem = _mapTaskToBoardItem(updated, users, tags);
@@ -352,7 +391,10 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi khi lưu thay đổi: $e'), backgroundColor: DashboardColors.error),
+          SnackBar(
+            content: Text('Lỗi khi lưu thay đổi: $e'),
+            backgroundColor: DashboardColors.error,
+          ),
         );
       }
     } finally {
@@ -436,7 +478,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     }
 
     // 5. Get estimate
-    final estimate = task.estimatedMinutes != null ? '${task.estimatedMinutes}m' : '';
+    final estimate =
+        task.estimatedMinutes != null ? '${task.estimatedMinutes}m' : '';
 
     // 6. Get progress
     double progress = 0.0;
@@ -454,7 +497,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     );
     if (creatorUser.fullName != null && creatorUser.fullName!.isNotEmpty) {
       creatorName = creatorUser.fullName;
-    } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+    } else if (creatorUser.username != null &&
+        creatorUser.username!.isNotEmpty) {
       creatorName = creatorUser.username;
     } else if (creatorUser.email.isNotEmpty) {
       creatorName = creatorUser.email;
@@ -471,7 +515,10 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       progress: progress,
       tags: taskTags,
       completed: task.status == 'done',
-      dueLabel: task.dueDate != null ? '${task.dueDate!.day}/${task.dueDate!.month}' : null,
+      dueLabel:
+          task.dueDate != null
+              ? '${task.dueDate!.day}/${task.dueDate!.month}'
+              : null,
       dueDate: task.dueDate,
       createdAt: task.createdAt,
       updatedAt: task.updatedAt,
@@ -494,10 +541,16 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
       },
       transitionBuilder: (context, animation, secondaryAnimation, child) {
         final scale = Tween<double>(begin: 0.85, end: 1.0).animate(
-          CurvedAnimation(parent: animation, curve: const Cubic(0.34, 1.56, 0.64, 1.0)),
+          CurvedAnimation(
+            parent: animation,
+            curve: const Cubic(0.34, 1.56, 0.64, 1.0),
+          ),
         );
-        final opacity = CurvedAnimation(parent: animation, curve: Curves.easeOut);
-        
+        final opacity = CurvedAnimation(
+          parent: animation,
+          curve: Curves.easeOut,
+        );
+
         return GestureDetector(
           onTap: () => Navigator.of(context).pop(),
           behavior: HitTestBehavior.opaque,
@@ -523,14 +576,20 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
                           width: 300,
                           padding: const EdgeInsets.all(28),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF090D1A).withValues(alpha: 0.82),
+                            color: const Color(
+                              0xFF090D1A,
+                            ).withValues(alpha: 0.82),
                             borderRadius: BorderRadius.circular(28),
                             border: Border.all(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                              color: const Color(
+                                0xFF10B981,
+                              ).withValues(alpha: 0.25),
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                color: const Color(
+                                  0xFF10B981,
+                                ).withValues(alpha: 0.12),
                                 blurRadius: 24,
                                 spreadRadius: 3,
                               ),
@@ -555,7 +614,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
                               Text(
                                 'Mọi thay đổi của công việc đã được đồng bộ hóa thành công.',
                                 style: TextStyle(
-                                  color: DashboardColors.onSurfaceVariant.withValues(alpha: 0.7),
+                                  color: DashboardColors.onSurfaceVariant
+                                      .withValues(alpha: 0.7),
                                   fontSize: 12,
                                   height: 1.4,
                                 ),
@@ -587,29 +647,49 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     ref.read(editingTaskProvider.notifier).state = null;
   }
 
+  void _handleProfileTap() {
+    ref.read(editingTaskProvider.notifier).state = null;
+    context.go('/profile');
+  }
+
   Future<void> _confirmDelete() async {
     final confirmed = await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: DashboardColors.surfaceLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: Colors.white12),
-        ),
-        title: const Text('Xác nhận xóa', style: TextStyle(color: DashboardColors.onSurface, fontWeight: FontWeight.bold)),
-        content: Text('Bạn có chắc chắn muốn xóa công việc "${widget.item.title}" không?', style: const TextStyle(color: DashboardColors.onSurfaceVariant)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Hủy', style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: DashboardColors.surfaceLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+              side: const BorderSide(color: Colors.white12),
+            ),
+            title: const Text(
+              'Xác nhận xóa',
+              style: TextStyle(
+                color: DashboardColors.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            content: Text(
+              'Bạn có chắc chắn muốn xóa công việc "${widget.item.title}" không?',
+              style: const TextStyle(color: DashboardColors.onSurfaceVariant),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text(
+                  'Hủy',
+                  style: TextStyle(color: DashboardColors.onSurfaceVariant),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: DashboardColors.error,
+                ),
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text('Xóa', style: TextStyle(color: Colors.white)),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: DashboardColors.error),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Xóa', style: TextStyle(color: Colors.white)),
-          ),
-        ],
-      ),
     );
 
     if (confirmed == true && mounted) {
@@ -620,15 +700,18 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         ref.invalidate(userSubtasksByTaskProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã xóa công việc thành công'), backgroundColor: DashboardColors.success),
+            const SnackBar(
+              content: Text('Đã xóa công việc thành công'),
+              backgroundColor: DashboardColors.success,
+            ),
           );
           _handleBack();
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi khi xóa: $e')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(SnackBar(content: Text('Lỗi khi xóa: $e')));
         }
       }
     }
@@ -658,7 +741,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isMobile = constraints.maxWidth < 768;
-        final isTablet = constraints.maxWidth >= 768 && constraints.maxWidth < 1200;
+        final isTablet =
+            constraints.maxWidth >= 768 && constraints.maxWidth < 1200;
 
         final overviewWidget = StaggeredEntrance(
           delayIndex: 1,
@@ -672,7 +756,8 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
             estimateMinutes: _estimateHour * 60 + _estimateMinute,
             actualMinutes: _actualHour * 60 + _actualMinute,
             attachmentsCount: _attachments.length + _newAttachments.length,
-            hasDescription: parseDescriptionToPlainText(_currentDescription).isNotEmpty,
+            hasDescription:
+                parseDescriptionToPlainText(_currentDescription).isNotEmpty,
             tagsCount: _selectedTagIds.length,
             isMobile: isMobile,
           ),
@@ -691,43 +776,63 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
             },
             estimateHour: _estimateHour,
             estimateMinute: _estimateMinute,
-            onEstimateChanged: (h, m) => setState(() { _estimateHour = h; _estimateMinute = m; }),
+            onEstimateChanged:
+                (h, m) => setState(() {
+                  _estimateHour = h;
+                  _estimateMinute = m;
+                }),
             actualHour: _actualHour,
             actualMinute: _actualMinute,
-            onActualChanged: (h, m) => setState(() { _actualHour = h; _actualMinute = m; }),
+            onActualChanged:
+                (h, m) => setState(() {
+                  _actualHour = h;
+                  _actualMinute = m;
+                }),
             categories: categories,
             tags: tags,
             selectedCategoryId: _selectedCategoryId,
-            onCategoryChanged: (catId) => setState(() => _selectedCategoryId = catId),
+            onCategoryChanged:
+                (catId) => setState(() => _selectedCategoryId = catId),
             selectedStatus: _selectedStatus,
-            onStatusChanged: (status) => setState(() => _selectedStatus = status),
+            onStatusChanged:
+                (status) => setState(() => _selectedStatus = status),
             dueDate: _dueDate,
             onDueDateChanged: (date) => setState(() => _dueDate = date),
             selectedTagIds: _selectedTagIds,
             onAddTag: (tid) => setState(() => _selectedTagIds.add(tid)),
             onRemoveTag: (tid) => setState(() => _selectedTagIds.remove(tid)),
             selectedPriority: _selectedPriority,
-            onPriorityChanged: (newPriority) => setState(() => _selectedPriority = newPriority),
+            onPriorityChanged:
+                (newPriority) =>
+                    setState(() => _selectedPriority = newPriority),
             onCreateTag: (name, colorHex) async {
               final user = ref.read(authControllerProvider).valueOrNull;
               if (user == null) throw Exception('User is not signed in');
-              return ref.read(tagDataSourceProvider).createTag(TagModel(
-                    id: '',
-                    userId: user.id,
-                    name: name,
-                    color: colorHex,
-                  ));
+              return ref
+                  .read(tagDataSourceProvider)
+                  .createTag(
+                    TagModel(
+                      id: '',
+                      userId: user.id,
+                      name: name,
+                      color: colorHex,
+                    ),
+                  );
             },
             onCreateCategory: (name, colorHex, iconName) async {
               final user = ref.read(authControllerProvider).valueOrNull;
               if (user == null) throw Exception('User is not signed in');
-              return ref.read(categoryDataSourceProvider).createCategory(CategoryModel(
-                    id: '',
-                    userId: user.id,
-                    name: name,
-                    color: colorHex,
-                    icon: iconName,
-                  ));
+              return ref
+                  .read(categoryDataSourceProvider)
+                  .createCategory(
+                    CategoryModel(
+                      id: '',
+                      userId: user.id,
+                      name: name,
+                      color: colorHex,
+                      icon: iconName,
+                    ),
+                  );
             },
           ),
         );
@@ -756,36 +861,37 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           child: TaskAttachmentsSection(
             attachments: _attachments,
             newAttachments: _newAttachments,
-            onAddAttachments: (list) => setState(() => _newAttachments.addAll(list)),
-            onRemoveExistingAttachment: (att) => setState(() {
-              _attachments.remove(att);
-              _deletedAttachments.add(att);
-            }),
-            onRemoveNewAttachment: (idx) => setState(() => _newAttachments.removeAt(idx)),
+            onAddAttachments:
+                (list) => setState(() => _newAttachments.addAll(list)),
+            onRemoveExistingAttachment:
+                (att) => setState(() {
+                  _attachments.remove(att);
+                  _deletedAttachments.add(att);
+                }),
+            onRemoveNewAttachment:
+                (idx) => setState(() => _newAttachments.removeAt(idx)),
             isMobile: isMobile,
           ),
         );
 
         final aiAnalysisWidget = StaggeredEntrance(
           delayIndex: 6,
-          child: TaskAIAnalysisSection(
-            item: widget.item,
-            isMobile: isMobile,
-          ),
+          child: TaskAIAnalysisSection(item: widget.item, isMobile: isMobile),
         );
 
-        final bottomBarWidget = _hasChanges
-            ? StaggeredEntrance(
-                delayIndex: 7,
-                child: TaskBottomActionBar(
-                  onSave: _saveChanges,
-                  onCancel: _handleBack,
-                  onDelete: _confirmDelete,
-                  isMobile: isMobile,
-                  isSaving: _isSaving,
-                ),
-              )
-            : const SizedBox.shrink();
+        final bottomBarWidget =
+            _hasChanges
+                ? StaggeredEntrance(
+                  delayIndex: 7,
+                  child: TaskBottomActionBar(
+                    onSave: _saveChanges,
+                    onCancel: _handleBack,
+                    onDelete: _confirmDelete,
+                    isMobile: isMobile,
+                    isSaving: _isSaving,
+                  ),
+                )
+                : const SizedBox.shrink();
 
         final healthCard = StaggeredEntrance(
           delayIndex: 4,
@@ -855,6 +961,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           return EditTaskTabletLayout(
             header: headerWidget,
             overview: overviewWidget,
+            onProfileTap: _handleProfileTap,
             generalInfo: generalInfoWidget,
             subtasks: subtasksWidget,
             attachments: attachmentsWidget,
@@ -875,6 +982,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         return EditTaskDesktopLayout(
           header: headerWidget,
           overview: overviewWidget,
+          onProfileTap: _handleProfileTap,
           generalInfo: generalInfoWidget,
           subtasks: subtasksWidget,
           attachments: attachmentsWidget,
@@ -911,7 +1019,8 @@ class StaggeredEntrance extends StatefulWidget {
   State<StaggeredEntrance> createState() => _StaggeredEntranceState();
 }
 
-class _StaggeredEntranceState extends State<StaggeredEntrance> with SingleTickerProviderStateMixin {
+class _StaggeredEntranceState extends State<StaggeredEntrance>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
@@ -923,13 +1032,15 @@ class _StaggeredEntranceState extends State<StaggeredEntrance> with SingleTicker
       vsync: this,
       duration: const Duration(milliseconds: 500),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    _slideAnimation = Tween<Offset>(begin: const Offset(0, 0.05), end: Offset.zero).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic),
-    );
-    
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.05),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutCubic));
+
     Future.delayed(Duration(milliseconds: 50 * widget.delayIndex), () {
       if (mounted) _controller.forward();
     });
@@ -945,10 +1056,7 @@ class _StaggeredEntranceState extends State<StaggeredEntrance> with SingleTicker
   Widget build(BuildContext context) {
     return FadeTransition(
       opacity: _fadeAnimation,
-      child: SlideTransition(
-        position: _slideAnimation,
-        child: widget.child,
-      ),
+      child: SlideTransition(position: _slideAnimation, child: widget.child),
     );
   }
 }
@@ -979,7 +1087,11 @@ class _XPPreviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Icon(Icons.military_tech_rounded, color: DashboardColors.primary, size: 22),
+              const Icon(
+                Icons.military_tech_rounded,
+                color: DashboardColors.primary,
+                size: 22,
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
@@ -988,7 +1100,11 @@ class _XPPreviewCard extends StatelessWidget {
                 ),
                 child: const Text(
                   'LVL 6 SPECIALIST',
-                  style: TextStyle(color: DashboardColors.primary, fontSize: 8, fontWeight: FontWeight.w900),
+                  style: TextStyle(
+                    color: DashboardColors.primary,
+                    fontSize: 8,
+                    fontWeight: FontWeight.w900,
+                  ),
                 ),
               ),
             ],
@@ -997,8 +1113,22 @@ class _XPPreviewCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: const [
-              Text('CURRENT XP', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold)),
-              Text('950 / 1100', style: TextStyle(color: DashboardColors.onSurface, fontSize: 11, fontWeight: FontWeight.bold)),
+              Text(
+                'CURRENT XP',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '950 / 1100',
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 8),
@@ -1023,7 +1153,11 @@ class _XPPreviewCard extends StatelessWidget {
           const SizedBox(height: 14),
           const Text(
             'Reward +100 XP will trigger Level 7!',
-            style: TextStyle(color: DashboardColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: DashboardColors.primary,
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
           ),
         ],
       ),
@@ -1049,48 +1183,90 @@ class _DependenciesCard extends StatelessWidget {
         children: [
           Row(
             children: const [
-              Icon(Icons.account_tree_rounded, color: DashboardColors.primary, size: 22),
+              Icon(
+                Icons.account_tree_rounded,
+                color: DashboardColors.primary,
+                size: 22,
+              ),
               SizedBox(width: 12),
               Text(
                 'Dependencies',
-                style: TextStyle(color: DashboardColors.onSurface, fontSize: 18, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  color: DashboardColors.onSurface,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 24),
           const Text(
             'PARENT TASKS (BLOCKING THIS)',
-            style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               color: DashboardColors.surfaceLow,
-              border: Border.all(color: DashboardColors.error.withValues(alpha: 0.25)),
+              border: Border.all(
+                color: DashboardColors.error.withValues(alpha: 0.25),
+              ),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Row(
               children: [
-                const Icon(Icons.lock_rounded, color: DashboardColors.error, size: 16),
+                const Icon(
+                  Icons.lock_rounded,
+                  color: DashboardColors.error,
+                  size: 16,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('Security Audit Phase 1', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Text(
+                        'Security Audit Phase 1',
+                        style: TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('Due Oct 22 · High Priority', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11)),
+                      Text(
+                        'Due Oct 22 · High Priority',
+                        style: TextStyle(
+                          color: DashboardColors.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
                   decoration: BoxDecoration(
                     color: DashboardColors.error.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(6),
                   ),
-                  child: const Text('OVERDUE', style: TextStyle(color: DashboardColors.error, fontSize: 8, fontWeight: FontWeight.bold)),
+                  child: const Text(
+                    'OVERDUE',
+                    style: TextStyle(
+                      color: DashboardColors.error,
+                      fontSize: 8,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -1098,7 +1274,12 @@ class _DependenciesCard extends StatelessWidget {
           const SizedBox(height: 20),
           const Text(
             'CHILD TASKS (WAITING ON THIS)',
-            style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 10, fontWeight: FontWeight.bold, letterSpacing: 0.5),
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.5,
+            ),
           ),
           const SizedBox(height: 10),
           Container(
@@ -1110,15 +1291,32 @@ class _DependenciesCard extends StatelessWidget {
             ),
             child: Row(
               children: [
-                const Icon(Icons.pending_actions_rounded, color: DashboardColors.primary, size: 16),
+                const Icon(
+                  Icons.pending_actions_rounded,
+                  color: DashboardColors.primary,
+                  size: 16,
+                ),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
-                      Text('QA Stress Testing', style: TextStyle(color: DashboardColors.onSurface, fontSize: 13, fontWeight: FontWeight.bold)),
+                      Text(
+                        'QA Stress Testing',
+                        style: TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 13,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('Due Oct 28 · Medium Priority', style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11)),
+                      Text(
+                        'Due Oct 28 · Medium Priority',
+                        style: TextStyle(
+                          color: DashboardColors.onSurfaceVariant,
+                          fontSize: 11,
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -1151,14 +1349,22 @@ class _ActivityTimelineCard extends ConsumerWidget {
         children: [
           const Text(
             'ACTIVITY TIMELINE',
-            style: TextStyle(color: DashboardColors.onSurfaceVariant, fontSize: 11, fontWeight: FontWeight.bold, letterSpacing: 1.0),
+            style: TextStyle(
+              color: DashboardColors.onSurfaceVariant,
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.0,
+            ),
           ),
           const SizedBox(height: 24),
           Builder(
             builder: (context) {
               final activities = timelineAsync;
               if (activities.isEmpty) {
-                return const Text('No recent activity.', style: TextStyle(color: Colors.white24, fontSize: 12));
+                return const Text(
+                  'No recent activity.',
+                  style: TextStyle(color: Colors.white24, fontSize: 12),
+                );
               }
               return ListView.builder(
                 shrinkWrap: true,
@@ -1187,12 +1393,20 @@ class _ActivityTimelineCard extends ConsumerWidget {
                             children: [
                               Text(
                                 '${act.actorName} ${act.detail}',
-                                style: const TextStyle(color: DashboardColors.onSurface, fontSize: 12, fontWeight: FontWeight.bold),
+                                style: const TextStyle(
+                                  color: DashboardColors.onSurface,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                               const SizedBox(height: 2),
                               Text(
                                 'Today, 09:12 AM', // Mock timestamp for visual alignment
-                                style: TextStyle(color: DashboardColors.onSurfaceVariant.withValues(alpha: 0.4), fontSize: 10),
+                                style: TextStyle(
+                                  color: DashboardColors.onSurfaceVariant
+                                      .withValues(alpha: 0.4),
+                                  fontSize: 10,
+                                ),
                               ),
                             ],
                           ),
@@ -1230,10 +1444,13 @@ class _SuccessCheckmarkPainter extends CustomPainter {
 
     // 1. Draw expanding ripples/halos (behind the main circle)
     if (rippleProgress > 0) {
-      final ripplePaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 2.0
-        ..color = const Color(0xFF10B981).withValues(alpha: (1.0 - rippleProgress) * 0.4);
+      final ripplePaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 2.0
+            ..color = const Color(
+              0xFF10B981,
+            ).withValues(alpha: (1.0 - rippleProgress) * 0.4);
 
       // Inner ripple
       final radius1 = baseRadius * (1.0 + rippleProgress * 0.6);
@@ -1241,10 +1458,13 @@ class _SuccessCheckmarkPainter extends CustomPainter {
 
       // Outer ripple
       if (rippleProgress > 0.3) {
-        final ripplePaint2 = Paint()
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.0
-          ..color = const Color(0xFF10B981).withValues(alpha: (1.0 - rippleProgress) * 0.2);
+        final ripplePaint2 =
+            Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 1.0
+              ..color = const Color(
+                0xFF10B981,
+              ).withValues(alpha: (1.0 - rippleProgress) * 0.2);
         final radius2 = baseRadius * (1.0 + rippleProgress * 1.3);
         canvas.drawCircle(center, radius2, ripplePaint2);
       }
@@ -1252,14 +1472,19 @@ class _SuccessCheckmarkPainter extends CustomPainter {
 
     // 2. Draw bursting particles
     if (particleProgress > 0) {
-      final particlePaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = const Color(0xFF34D399).withValues(alpha: (1.0 - particleProgress) * 0.8);
+      final particlePaint =
+          Paint()
+            ..style = PaintingStyle.fill
+            ..color = const Color(
+              0xFF34D399,
+            ).withValues(alpha: (1.0 - particleProgress) * 0.8);
 
       final numParticles = 8;
       final distance = baseRadius * (1.1 + particleProgress * 1.5);
       for (int i = 0; i < numParticles; i++) {
-        final angle = (i * 2 * 3.141592653589793) / numParticles + (particleProgress * 0.2);
+        final angle =
+            (i * 2 * 3.141592653589793) / numParticles +
+            (particleProgress * 0.2);
         final px = center.dx + distance * cos(angle);
         final py = center.dy + distance * sin(angle);
         final radius = 3.0 * (1.0 - particleProgress * 0.5);
@@ -1269,21 +1494,30 @@ class _SuccessCheckmarkPainter extends CustomPainter {
 
     // 3. Draw the main background circle
     if (circleScale > 0) {
-      final bgPaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = const Color(0xFF10B981).withValues(alpha: 0.12 * circleScale);
-      
-      final borderPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
-        ..color = const Color(0xFF10B981).withValues(alpha: 0.35 * circleScale);
+      final bgPaint =
+          Paint()
+            ..style = PaintingStyle.fill
+            ..color = const Color(
+              0xFF10B981,
+            ).withValues(alpha: 0.12 * circleScale);
+
+      final borderPaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.5
+            ..color = const Color(
+              0xFF10B981,
+            ).withValues(alpha: 0.35 * circleScale);
 
       // Shadow/Glow
-      final glowPaint = Paint()
-        ..style = PaintingStyle.fill
-        ..color = const Color(0xFF10B981).withValues(alpha: 0.2 * circleScale)
-        ..imageFilter = ImageFilter.blur(sigmaX: 10, sigmaY: 10);
-      
+      final glowPaint =
+          Paint()
+            ..style = PaintingStyle.fill
+            ..color = const Color(
+              0xFF10B981,
+            ).withValues(alpha: 0.2 * circleScale)
+            ..imageFilter = ImageFilter.blur(sigmaX: 10, sigmaY: 10);
+
       canvas.drawCircle(center, baseRadius * circleScale, glowPaint);
       canvas.drawCircle(center, baseRadius * circleScale, bgPaint);
       canvas.drawCircle(center, baseRadius * circleScale, borderPaint);
@@ -1291,12 +1525,13 @@ class _SuccessCheckmarkPainter extends CustomPainter {
 
     // 4. Draw the drawing checkmark
     if (checkmarkProgress > 0) {
-      final checkPaint = Paint()
-        ..style = PaintingStyle.stroke
-        ..strokeWidth = 3.5
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..color = const Color(0xFF10B981);
+      final checkPaint =
+          Paint()
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 3.5
+            ..strokeCap = StrokeCap.round
+            ..strokeJoin = StrokeJoin.round
+            ..color = const Color(0xFF10B981);
 
       final w = size.width;
       final h = size.height;
@@ -1334,7 +1569,8 @@ class _SuccessCheckmarkWidget extends StatefulWidget {
   const _SuccessCheckmarkWidget();
 
   @override
-  State<_SuccessCheckmarkWidget> createState() => _SuccessCheckmarkWidgetState();
+  State<_SuccessCheckmarkWidget> createState() =>
+      _SuccessCheckmarkWidgetState();
 }
 
 class _SuccessCheckmarkWidgetState extends State<_SuccessCheckmarkWidget>
@@ -1428,9 +1664,10 @@ class _BlinkingTextPromptState extends State<_BlinkingTextPrompt>
       vsync: this,
       duration: const Duration(seconds: 1),
     )..repeat(reverse: true);
-    _opacity = Tween<double>(begin: 0.25, end: 0.75).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
-    );
+    _opacity = Tween<double>(
+      begin: 0.25,
+      end: 0.75,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeInOut));
   }
 
   @override
@@ -1455,4 +1692,3 @@ class _BlinkingTextPromptState extends State<_BlinkingTextPrompt>
     );
   }
 }
-

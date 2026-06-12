@@ -808,7 +808,7 @@ class DesktopTopbar extends StatelessWidget {
                           ),
                           const SizedBox(width: 12),
                           ProfileAvatar(
-                            onTap: onProfileTap,
+                            onTap: onProfileTap ?? () => context.go('/profile'),
                             showUsername: true,
                           ),
                         ],

@@ -5,7 +5,7 @@ import 'package:to_do_app/screens/support/desktop/featured_support_grid.dart';
 import 'package:to_do_app/screens/support/desktop/hero_support_section.dart';
 import 'package:to_do_app/screens/support/desktop/proactive_support_section.dart';
 import 'package:to_do_app/screens/support/desktop/support_footer.dart';
-import 'package:to_do_app/screens/support/desktop/support_header.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 
 class SupportDesktopContent extends StatelessWidget {
   const SupportDesktopContent({super.key});
@@ -14,7 +14,7 @@ class SupportDesktopContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const SupportHeader(),
+        const DesktopTopbar(),
         Expanded(
           child: CustomScrollView(
             slivers: [

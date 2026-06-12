@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/data/models/category_model.dart';
@@ -386,20 +387,6 @@ class _Topbar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Notification icon — matches TasksTopbar
-              Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {},
-                  child: const SizedBox(
-                    width: 42, height: 42,
-                    child: Icon(Icons.notifications_none_rounded, color: DashboardColors.onSurfaceVariant),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
               // Bolt icon — matches TasksTopbar
               Material(
                 color: Colors.transparent,
@@ -417,7 +404,24 @@ class _Topbar extends StatelessWidget {
               // Profile avatar — exactly as TasksTopbar
               const XPLevelCard(),
               const SizedBox(width: 14),
-              const ProfileAvatar(radius: 20),
+              // Notification icon — matches TasksTopbar
+              Material(
+                color: Colors.transparent,
+                shape: const CircleBorder(),
+                child: InkWell(
+                  customBorder: const CircleBorder(),
+                  onTap: () {},
+                  child: const SizedBox(
+                    width: 42, height: 42,
+                    child: Icon(Icons.notifications_none_rounded, color: DashboardColors.onSurfaceVariant),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              ProfileAvatar(
+                radius: 20,
+                onTap: () => context.go('/profile'),
+              ),
             ],
           ),
         ),

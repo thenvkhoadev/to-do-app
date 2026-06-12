@@ -19,6 +19,7 @@ class EditTaskDesktopLayout extends StatelessWidget {
     required this.productivityBoosterCard,
     required this.focusTimerCard,
     required this.achievementsCard,
+    this.onProfileTap,
     super.key,
   });
 
@@ -38,6 +39,7 @@ class EditTaskDesktopLayout extends StatelessWidget {
   final Widget productivityBoosterCard;
   final Widget focusTimerCard;
   final Widget achievementsCard;
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -45,7 +47,7 @@ class EditTaskDesktopLayout extends StatelessWidget {
       color: const Color(0xFF08090A),
       child: Column(
         children: [
-          const DesktopTopbar(),
+          DesktopTopbar(onProfileTap: onProfileTap),
           Expanded(
             child: Stack(
               children: [
@@ -153,6 +155,7 @@ class EditTaskTabletLayout extends StatelessWidget {
     required this.productivityBoosterCard,
     required this.focusTimerCard,
     required this.achievementsCard,
+    this.onProfileTap,
     super.key,
   });
 
@@ -172,6 +175,7 @@ class EditTaskTabletLayout extends StatelessWidget {
   final Widget productivityBoosterCard;
   final Widget focusTimerCard;
   final Widget achievementsCard;
+  final VoidCallback? onProfileTap;
 
   @override
   Widget build(BuildContext context) {
@@ -179,7 +183,7 @@ class EditTaskTabletLayout extends StatelessWidget {
       color: const Color(0xFF08090A),
       child: Column(
         children: [
-          const DesktopTopbar(),
+          DesktopTopbar(onProfileTap: onProfileTap),
           Expanded(
             child: Stack(
               children: [

@@ -1,9 +1,7 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
-import 'package:to_do_app/theme/dashboard_theme.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 
 class CalendarDesktopLayout extends StatelessWidget {
   const CalendarDesktopLayout({
@@ -35,7 +33,7 @@ class CalendarDesktopLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const CalendarDesktopTopNav(),
+        const DesktopTopbar(),
         Expanded(
           child: Row(
             children: [
@@ -83,115 +81,6 @@ class CalendarDesktopLayout extends StatelessWidget {
 
 enum CalendarDesktopView { month, week, day }
 
-class CalendarDesktopTopNav extends StatelessWidget {
-  const CalendarDesktopTopNav({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-        child: Container(
-          height: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(
-            color: DashboardColors.surface.withValues(alpha: .5),
-            border: Border(
-              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
-            ),
-          ),
-          child: Row(
-            children: [
-              const _CalendarSearchBar(),
-              const Spacer(),
-              const _CalendarTopIcon(
-                icon: Icons.notifications_none_rounded,
-                badge: true,
-              ),
-              const SizedBox(width: 12),
-              const _CalendarTopIcon(icon: Icons.bolt_rounded),
-              const SizedBox(width: 12),
-              const XPLevelCard(),
-              const SizedBox(width: 12),
-              const ProfileAvatar(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _CalendarSearchBar extends StatelessWidget {
-  const _CalendarSearchBar();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 330,
-      height: 42,
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: DashboardColors.surfaceLow,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.search_rounded, size: 20),
-          SizedBox(width: 10),
-          Text(
-            'Search events or schedules...',
-            style: TextStyle(
-              color: DashboardColors.onSurfaceVariant,
-              fontSize: 13,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CalendarTopIcon extends StatelessWidget {
-  const _CalendarTopIcon({required this.icon, this.badge = false});
-
-  final IconData icon;
-  final bool badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () {},
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: Icon(icon, color: DashboardColors.onSurface),
-            ),
-          ),
-        ),
-        if (badge)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: DashboardColors.error,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 class CalendarDesktopToolbar extends StatelessWidget {
   const CalendarDesktopToolbar({

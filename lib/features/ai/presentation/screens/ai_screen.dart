@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/mobile_dashboard_widgets.dart';
@@ -69,7 +68,7 @@ class DesktopAiAssistantContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const AiAssistantHeader(),
+        const DesktopTopbar(),
         Expanded(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(32, 24, 32, 28),
@@ -88,58 +87,6 @@ class DesktopAiAssistantContent extends StatelessWidget {
   }
 }
 
-class AiAssistantHeader extends StatelessWidget {
-  const AiAssistantHeader({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 66,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: BoxDecoration(
-        color: DashboardColors.surface.withValues(alpha: .50),
-        border: Border(
-          bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
-        ),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.chat_bubble_rounded, color: DashboardColors.primary),
-          SizedBox(width: 12),
-          Text(
-            'AI Assistant',
-            style: TextStyle(
-              color: DashboardColors.primary,
-              fontSize: 24,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-          const Spacer(),
-          const _HeaderIcon(icon: Icons.notifications_none_rounded),
-          const SizedBox(width: 12),
-          const XPLevelCard(),
-          const SizedBox(width: 12),
-          const ProfileAvatar(),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeaderIcon extends StatelessWidget {
-  const _HeaderIcon({required this.icon});
-
-  final IconData icon;
-
-  @override
-  Widget build(BuildContext context) {
-    return IconButton(
-      onPressed: () {},
-      tooltip: 'Notifications',
-      icon: Icon(icon, color: DashboardColors.onSurfaceVariant),
-    );
-  }
-}
 
 class ChatSection extends StatelessWidget {
   const ChatSection({super.key});

@@ -1,5 +1,3 @@
-import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/screens/settings/desktop/account_security_section.dart';
@@ -8,10 +6,8 @@ import 'package:to_do_app/screens/settings/desktop/appearance_panel.dart';
 import 'package:to_do_app/screens/settings/desktop/connected_apps_section.dart';
 import 'package:to_do_app/screens/settings/desktop/help_support_panel.dart';
 import 'package:to_do_app/screens/settings/desktop/notifications_section.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/screens/settings/widgets/settings_shared_widgets.dart';
-import 'package:to_do_app/theme/dashboard_theme.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 
 class SettingsDesktopLayout extends StatelessWidget {
   const SettingsDesktopLayout({super.key});
@@ -20,7 +16,7 @@ class SettingsDesktopLayout extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        const _SettingsDesktopTopbar(),
+        const DesktopTopbar(),
         Expanded(
           child: CustomScrollView(
             slivers: [
@@ -40,98 +36,6 @@ class SettingsDesktopLayout extends StatelessWidget {
             ],
           ),
         ),
-      ],
-    );
-  }
-}
-
-class _SettingsDesktopTopbar extends StatelessWidget {
-  const _SettingsDesktopTopbar();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 50, sigmaY: 50),
-        child: Container(
-          height: 66,
-          padding: const EdgeInsets.symmetric(horizontal: 32),
-          decoration: BoxDecoration(
-            color: DashboardColors.surface.withValues(alpha: .5),
-            border: Border(
-              bottom: BorderSide(color: Colors.white.withValues(alpha: .08)),
-            ),
-          ),
-          child: Row(
-            children: const [
-              Text(
-                'Settings',
-                style: TextStyle(
-                  color: DashboardColors.primary,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              SizedBox(width: 12),
-              Text(
-                '/ Dashboard',
-                style: TextStyle(
-                  color: DashboardColors.onSurfaceVariant,
-                  fontSize: 15,
-                ),
-              ),
-              Spacer(),
-              const _TopIcon(icon: Icons.bolt_rounded),
-              const SizedBox(width: 12),
-              const XPLevelCard(),
-              const SizedBox(width: 12),
-              const _TopIcon(icon: Icons.notifications_none_rounded, badge: true),
-              const SizedBox(width: 12),
-              const ProfileAvatar(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TopIcon extends StatelessWidget {
-  const _TopIcon({required this.icon, this.badge = false});
-
-  final IconData icon;
-  final bool badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () {},
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: Icon(icon, color: DashboardColors.onSurface),
-            ),
-          ),
-        ),
-        if (badge)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: DashboardColors.error,
-              ),
-            ),
-          ),
       ],
     );
   }
