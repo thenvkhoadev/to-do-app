@@ -40,6 +40,18 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
   TaskBoardItem? _detailsItem;
   TaskBoardItem? _detailsItemBeforeEdit;
 
+  @override
+  void didUpdateWidget(covariant DesktopDashboardLayout oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      setState(() {
+        _selectedIndex = widget.initialIndex;
+        _detailsItem = null;
+        ref.read(editingTaskProvider.notifier).state = null;
+      });
+    }
+  }
+
   void _openTaskDetails(TaskBoardItem item) =>
       setState(() => _detailsItem = item);
 

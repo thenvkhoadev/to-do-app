@@ -24,6 +24,9 @@ import 'package:to_do_app/screens/archived/widgets/assignee_avatar_group.dart';
 import 'package:to_do_app/screens/archived/widgets/archive_command_center.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/profile/premium_profile_dropdown.dart';
+import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
+
 
 class DesktopArchivedView extends ConsumerStatefulWidget {
   const DesktopArchivedView({super.key});
@@ -387,23 +390,10 @@ class _Topbar extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Bolt icon — matches TasksTopbar
-              Material(
-                color: Colors.transparent,
-                shape: const CircleBorder(),
-                child: InkWell(
-                  customBorder: const CircleBorder(),
-                  onTap: () {},
-                  child: const SizedBox(
-                    width: 42, height: 42,
-                    child: Icon(Icons.bolt_rounded, color: DashboardColors.primary),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              // Profile avatar — exactly as TasksTopbar
+              const StreakTopbarButton(),
+              const SizedBox(width: 12),
               const XPLevelCard(),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               // Notification icon — matches TasksTopbar
               Material(
                 color: Colors.transparent,
@@ -417,11 +407,8 @@ class _Topbar extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
-              ProfileAvatar(
-                radius: 20,
-                onTap: () => context.go('/profile'),
-              ),
+              const SizedBox(width: 12),
+              const PremiumProfileCapsuleDropdown(),
             ],
           ),
         ),

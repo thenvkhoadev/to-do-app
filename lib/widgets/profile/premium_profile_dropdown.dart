@@ -53,6 +53,7 @@ class _PremiumProfileCapsuleDropdownState
   }
 
   OverlayEntry _createOverlayEntry() {
+    final scope = ProfileNavigationScope.maybeOf(context);
     return OverlayEntry(
       builder: (context) => Stack(
         children: [
@@ -74,6 +75,7 @@ class _PremiumProfileCapsuleDropdownState
               offset: const Offset(0, 12),
               child: _DropdownContent(
                 onClose: _closeDropdown,
+                parentScope: scope,
               ),
             ),
           ),
@@ -181,13 +183,17 @@ class _PremiumProfileCapsuleDropdownState
 }
 
 class _DropdownContent extends ConsumerWidget {
-  const _DropdownContent({required this.onClose});
+  const _DropdownContent({
+    required this.onClose,
+    this.parentScope,
+  });
 
   final VoidCallback onClose;
+  final ProfileNavigationScope? parentScope;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final scope = ProfileNavigationScope.maybeOf(context);
+    final scope = parentScope;
     final user = Supabase.instance.client.auth.currentUser;
     final metadata = user?.userMetadata;
     final profile = ref.watch(userProfileProvider).valueOrNull;
