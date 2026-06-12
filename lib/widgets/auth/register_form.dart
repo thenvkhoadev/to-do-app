@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
-import 'package:to_do_app/screens/blank_page.dart';
 import 'package:to_do_app/theme/auth_theme.dart';
 import 'package:to_do_app/widgets/auth/auth_text_field.dart';
 import 'package:to_do_app/widgets/auth/gradient_button.dart';
@@ -58,10 +58,10 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
       if (userId != null) {
         await ref.read(taskCreationProvider.notifier).seedUserData(userId);
       }
+      await Supabase.instance.client.auth.signOut();
       if (mounted) {
-        Navigator.of(
-          context,
-        ).pushReplacement(MaterialPageRoute(builder: (_) => const BlankPage()));
+        _showMessage('Đăng ký thành công! Vui lòng đăng nhập.');
+        context.go('/login');
       }
     } on AuthException catch (error) {
       _showMessage(error.message);

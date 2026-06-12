@@ -13,6 +13,7 @@ import 'package:to_do_app/features/streak/presentation/providers/streak_provider
 import 'package:to_do_app/features/streak/presentation/widgets/streak_celebration_modal.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_fire_bar.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 
 /// Wraps authenticated content. Listens to [xpLogsProvider] for new inserts,
 /// queues XP toast notifications, and shows the level-up modal when the user's
@@ -31,6 +32,7 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
   final Set<String> _seen = {};
   int? _lastKnownLevel;
   int? _lastKnownStreak;
+  String? _lastKnownUserId;
   Timer? _levelUpTimer;
 
   @override
@@ -115,7 +117,12 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
     }
   }
 
-  void _handleLevelChange(int newLevel) {
+  void _handleLevelChange(int newLevel, String userId) {
+    if (_lastKnownUserId != userId) {
+      _lastKnownUserId = userId;
+      _lastKnownLevel = newLevel;
+      return;
+    }
     if (_lastKnownLevel == null) {
       _lastKnownLevel = newLevel;
       return;
@@ -133,7 +140,12 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
     }
   }
 
-  Future<void> _handleStreakChange(int newStreak) async {
+  Future<void> _handleStreakChange(int newStreak, String userId) async {
+    if (_lastKnownUserId != userId) {
+      _lastKnownUserId = userId;
+      _lastKnownStreak = newStreak;
+      return;
+    }
     if (_lastKnownStreak == null) {
       _lastKnownStreak = newStreak;
       return;
@@ -162,6 +174,25 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
       if (user == null) {
         _lastKnownLevel = null;
         _lastKnownStreak = null;
+        _lastKnownUserId = null;
+        _seen.clear();
+        ref.read(levelUpProvider.notifier).dismiss();
+        ref.read(levelDownProvider.notifier).dismiss();
+        ref.read(pendingStreakProvider.notifier).dismiss();
+        ref.read(showStreakOverlayProvider.notifier).state = false;
+        ref.invalidate(userProfileProvider);
+        ref.invalidate(xpLogsProvider);
+        ref.invalidate(userStreakDaysProvider);
+        ref.invalidate(userTasksProvider);
+      } else {
+        _lastKnownLevel = null;
+        _lastKnownStreak = null;
+        _lastKnownUserId = null;
+        _seen.clear();
+        ref.read(levelUpProvider.notifier).dismiss();
+        ref.read(levelDownProvider.notifier).dismiss();
+        ref.read(pendingStreakProvider.notifier).dismiss();
+        ref.read(showStreakOverlayProvider.notifier).state = false;
       }
     });
 
@@ -173,11 +204,11 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
     // Listen to profile level and streak changes
     ref.listen(userProfileProvider, (prev, next) {
       final profile = next.valueOrNull;
-      final level = profile?.level;
-      if (level != null) _handleLevelChange(level);
       if (profile != null) {
+        _handleLevelChange(profile.level, profile.id);
         _handleStreakChange(
           displayStreakCount(profile.streakCount, profile.lastActivityDate),
+          profile.id,
         );
       }
     });
