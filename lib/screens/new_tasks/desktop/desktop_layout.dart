@@ -19,6 +19,7 @@ import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/collaborator_assign_dialog.dart';
+import 'package:string_to_icon/string_to_icon.dart';
 
 class SubtaskItem {
   SubtaskItem({required this.id, required this.text, this.isDone = false});
@@ -43,8 +44,6 @@ class TeamMember {
   final bool isOnline;
   final String? avatarUrl;
 }
-
-
 
 const mockProjects = [
   {'name': 'AI Core 2.0', 'color': DashboardColors.primary},
@@ -119,11 +118,13 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
       if (sel.isValid) {
         final currentOffset = sel.start;
         if (sel.isCollapsed) {
-          if (_lastToggledOffset != null && currentOffset == _lastToggledOffset) {
+          if (_lastToggledOffset != null &&
+              currentOffset == _lastToggledOffset) {
             final style = _quillController.getSelectionStyle();
             bool needReapply = false;
             for (final attr in _explicitActiveAttributes.values) {
-              final hasAttr = style.containsKey(attr.key) &&
+              final hasAttr =
+                  style.containsKey(attr.key) &&
                   style.attributes[attr.key]?.value == true;
               if (!hasAttr) {
                 needReapply = true;
@@ -139,7 +140,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
             _explicitActiveAttributes.clear();
             final style = _quillController.getSelectionStyle();
             for (final attr in [quill.Attribute.bold, quill.Attribute.italic]) {
-              final hasAttr = style.containsKey(attr.key) &&
+              final hasAttr =
+                  style.containsKey(attr.key) &&
                   style.attributes[attr.key]?.value == true;
               if (hasAttr) {
                 _explicitActiveAttributes[attr.key] = attr;
@@ -151,7 +153,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
           _explicitActiveAttributes.clear();
           final style = _quillController.getSelectionStyle();
           for (final attr in [quill.Attribute.bold, quill.Attribute.italic]) {
-            final hasAttr = style.containsKey(attr.key) &&
+            final hasAttr =
+                style.containsKey(attr.key) &&
                 style.attributes[attr.key]?.value == true;
             if (hasAttr) {
               _explicitActiveAttributes[attr.key] = attr;
@@ -228,14 +231,17 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
       if (_suggestionApplyType == 'security_assign') {
         final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
         final kevinUser = allUsers.firstWhere(
-          (u) => (u.fullName ?? u.username ?? '').toLowerCase().contains('kevin'),
-          orElse: () => allUsers.isNotEmpty
-              ? allUsers.first
-              : const UserProfileModel(
-                  id: 'kevin',
-                  email: 'kevin@example.com',
-                  fullName: 'Kevin Park',
-                ),
+          (u) =>
+              (u.fullName ?? u.username ?? '').toLowerCase().contains('kevin'),
+          orElse:
+              () =>
+                  allUsers.isNotEmpty
+                      ? allUsers.first
+                      : const UserProfileModel(
+                        id: 'kevin',
+                        email: 'kevin@example.com',
+                        fullName: 'Kevin Park',
+                      ),
         );
         final kevinMember = _mapUserToTeamMember(kevinUser);
         if (!_selectedAssignees.any((m) => m.id == kevinMember.id)) {
@@ -330,13 +336,15 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
         );
 
         final style = _quillController.getSelectionStyle();
-        final isActive = style.containsKey(attribute.key) &&
+        final isActive =
+            style.containsKey(attribute.key) &&
             style.attributes[attribute.key]?.value == true;
 
         if (isActive) {
           _explicitActiveAttributes.remove(attribute.key);
           _quillController.formatSelection(
-              quill.Attribute.clone(attribute, null));
+            quill.Attribute.clone(attribute, null),
+          );
         } else {
           _explicitActiveAttributes[attribute.key] = attribute;
           _quillController.formatSelection(attribute);
@@ -353,13 +361,13 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
 
     // Check if the attribute is already applied on the selection/cursor
     final style = _quillController.getSelectionStyle();
-    final isActive = style.containsKey(attribute.key) &&
+    final isActive =
+        style.containsKey(attribute.key) &&
         style.attributes[attribute.key]?.value == true;
 
     if (isActive) {
       _explicitActiveAttributes.remove(attribute.key);
-      _quillController.formatSelection(
-          quill.Attribute.clone(attribute, null));
+      _quillController.formatSelection(quill.Attribute.clone(attribute, null));
     } else {
       _explicitActiveAttributes[attribute.key] = attribute;
       _quillController.formatSelection(attribute);
@@ -374,7 +382,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
     final currentList = style.attributes[quill.Attribute.list.key]?.value;
     if (currentList == 'bullet') {
       _quillController.formatSelection(
-          quill.Attribute.clone(quill.Attribute.list, null));
+        quill.Attribute.clone(quill.Attribute.list, null),
+      );
     } else {
       _quillController.formatSelection(const quill.ListAttribute('bullet'));
     }
@@ -393,74 +402,92 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
 
     await showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: DashboardColors.surfaceLow,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-              color: DashboardColors.outlineVariant.withValues(alpha: .3)),
-        ),
-        title: Text('Insert Link',
-            style: GoogleFonts.interTight(
+      builder:
+          (context) => AlertDialog(
+            backgroundColor: DashboardColors.surfaceLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: BorderSide(
+                color: DashboardColors.outlineVariant.withValues(alpha: .3),
+              ),
+            ),
+            title: Text(
+              'Insert Link',
+              style: GoogleFonts.interTight(
                 fontWeight: FontWeight.w700,
-                color: DashboardColors.onSurface)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: labelController,
-              decoration: const InputDecoration(labelText: 'Label'),
+                color: DashboardColors.onSurface,
+              ),
             ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: urlController,
-              decoration: const InputDecoration(
-                  labelText: 'URL', hintText: 'https://'),
-              keyboardType: TextInputType.url,
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: labelController,
+                  decoration: const InputDecoration(labelText: 'Label'),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: urlController,
+                  decoration: const InputDecoration(
+                    labelText: 'URL',
+                    hintText: 'https://',
+                  ),
+                  keyboardType: TextInputType.url,
+                ),
+              ],
             ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel',
-                style: TextStyle(color: DashboardColors.onSurfaceVariant)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text(
+                  'Cancel',
+                  style: TextStyle(color: DashboardColors.onSurfaceVariant),
+                ),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: DashboardColors.primaryContainer,
+                ),
+                onPressed: () {
+                  final url = urlController.text.trim();
+                  final label = labelController.text.trim();
+                  if (url.isNotEmpty) {
+                    final sel = _quillController.selection;
+                    if (sel.isValid && !sel.isCollapsed) {
+                      // Apply link attribute to selection
+                      _quillController.formatSelection(
+                        quill.LinkAttribute(url),
+                      );
+                    } else {
+                      // Insert label text with link
+                      final insertText = label.isNotEmpty ? label : url;
+                      _quillController.document.insert(
+                        sel.isValid ? sel.start : 0,
+                        insertText,
+                      );
+                      final insertSel = TextSelection(
+                        baseOffset: sel.isValid ? sel.start : 0,
+                        extentOffset:
+                            (sel.isValid ? sel.start : 0) + insertText.length,
+                      );
+                      _quillController.updateSelection(
+                        insertSel,
+                        quill.ChangeSource.local,
+                      );
+                      _quillController.formatSelection(
+                        quill.LinkAttribute(url),
+                      );
+                    }
+                  }
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'Insert',
+                  style: TextStyle(color: DashboardColors.onPrimary),
+                ),
+              ),
+            ],
           ),
-          FilledButton(
-            style: FilledButton.styleFrom(
-                backgroundColor: DashboardColors.primaryContainer),
-            onPressed: () {
-              final url = urlController.text.trim();
-              final label = labelController.text.trim();
-              if (url.isNotEmpty) {
-                final sel = _quillController.selection;
-                if (sel.isValid && !sel.isCollapsed) {
-                  // Apply link attribute to selection
-                  _quillController.formatSelection(
-                      quill.LinkAttribute(url));
-                } else {
-                  // Insert label text with link
-                  final insertText = label.isNotEmpty ? label : url;
-                  _quillController.document.insert(
-                      sel.isValid ? sel.start : 0, insertText);
-                  final insertSel = TextSelection(
-                    baseOffset: sel.isValid ? sel.start : 0,
-                    extentOffset:
-                        (sel.isValid ? sel.start : 0) + insertText.length,
-                  );
-                  _quillController.updateSelection(
-                      insertSel, quill.ChangeSource.local);
-                  _quillController.formatSelection(
-                      quill.LinkAttribute(url));
-                }
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('Insert',
-                style: TextStyle(color: DashboardColors.onPrimary)),
-          ),
-        ],
-      ),
     );
 
     urlController.dispose();
@@ -612,18 +639,20 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
   }
 
   void _openAssigneePicker(List<TeamMember> teamMembers) {
-    final collaborators = teamMembers.map((m) {
-      return CollaboratorItem(
-        id: m.id,
-        name: m.name,
-        avatarUrl: m.avatarUrl,
-        initials: m.avatarText,
-        color: m.color,
-        isOnline: m.isOnline,
-      );
-    }).toList();
+    final collaborators =
+        teamMembers.map((m) {
+          return CollaboratorItem(
+            id: m.id,
+            name: m.name,
+            avatarUrl: m.avatarUrl,
+            initials: m.avatarText,
+            color: m.color,
+            isOnline: m.isOnline,
+          );
+        }).toList();
 
-    final initialSelectedIds = _selectedAssignees.map((selected) => selected.id).toSet();
+    final initialSelectedIds =
+        _selectedAssignees.map((selected) => selected.id).toSet();
 
     CollaboratorAssignDialog.show(
       context,
@@ -635,7 +664,9 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
             final member = teamMembers.firstWhere((m) => m.id == item.id);
             _selectedAssignees.add(member);
           } else {
-            _selectedAssignees.removeWhere((selected) => selected.id == item.id);
+            _selectedAssignees.removeWhere(
+              (selected) => selected.id == item.id,
+            );
           }
         });
       },
@@ -675,12 +706,15 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
       };
 
       final plain = _quillController.document.toPlainText().trim();
-      final created = await ref.read(taskCreationProvider.notifier).createTask(
+      final created = await ref
+          .read(taskCreationProvider.notifier)
+          .createTask(
             userId: user.id,
             title: title,
-            description: plain.isEmpty
-                ? null
-                : jsonEncode(_quillController.document.toDelta().toJson()),
+            description:
+                plain.isEmpty
+                    ? null
+                    : jsonEncode(_quillController.document.toDelta().toJson()),
             categoryId: _selectedCategoryId,
             priority: priorityMap[_selectedPriority] ?? 'medium',
             status: isDraft ? 'draft' : 'todo',
@@ -698,9 +732,7 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
         ref.invalidate(taskAttachmentsProvider(created.id));
         // Award 2 XP for task creation (get_task_creation_xp() = 2)
         try {
-          await XpRemoteDataSource(
-            ref.read(supabaseClientProvider),
-          ).awardXp(
+          await XpRemoteDataSource(ref.read(supabaseClientProvider)).awardXp(
             userId: user.id,
             taskId: created.id,
             xpGained: 2,
@@ -740,7 +772,14 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
 
     final controller = TextEditingController();
     String selectedColorHex = '#8083FF';
-    final colors = ['#8083FF', '#7CFFB2', '#FF6B9D', '#FFD166', '#06D6A0', '#FF5733'];
+    final colors = [
+      '#8083FF',
+      '#7CFFB2',
+      '#FF6B9D',
+      '#FFD166',
+      '#06D6A0',
+      '#FF5733',
+    ];
 
     await showDialog(
       context: context,
@@ -772,14 +811,22 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                     style: const TextStyle(color: DashboardColors.onSurface),
                     decoration: InputDecoration(
                       labelText: 'Tag Name',
-                      labelStyle: const TextStyle(color: DashboardColors.onSurfaceVariant),
+                      labelStyle: const TextStyle(
+                        color: DashboardColors.onSurfaceVariant,
+                      ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+                        borderSide: BorderSide(
+                          color: DashboardColors.outlineVariant.withValues(
+                            alpha: .3,
+                          ),
+                        ),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: const BorderSide(color: DashboardColors.primary),
+                        borderSide: const BorderSide(
+                          color: DashboardColors.primary,
+                        ),
                       ),
                     ),
                   ),
@@ -795,31 +842,42 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                   const SizedBox(height: 10),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: colors.map((colorHex) {
-                      final color = _parseTagColor(colorHex);
-                      final isSelected = selectedColorHex == colorHex;
-                      return GestureDetector(
-                        onTap: () {
-                          setDialogState(() {
-                            selectedColorHex = colorHex;
-                          });
-                        },
-                        child: Container(
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: color,
-                            shape: BoxShape.circle,
-                            border: isSelected
-                                ? Border.all(color: Colors.white, width: 2)
-                                : null,
-                            boxShadow: isSelected
-                                ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
-                                : null,
-                          ),
-                        ),
-                      );
-                    }).toList(),
+                    children:
+                        colors.map((colorHex) {
+                          final color = _parseTagColor(colorHex);
+                          final isSelected = selectedColorHex == colorHex;
+                          return GestureDetector(
+                            onTap: () {
+                              setDialogState(() {
+                                selectedColorHex = colorHex;
+                              });
+                            },
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: color,
+                                shape: BoxShape.circle,
+                                border:
+                                    isSelected
+                                        ? Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        )
+                                        : null,
+                                boxShadow:
+                                    isSelected
+                                        ? [
+                                          BoxShadow(
+                                            color: color.withValues(alpha: 0.5),
+                                            blurRadius: 8,
+                                          ),
+                                        ]
+                                        : null,
+                              ),
+                            ),
+                          );
+                        }).toList(),
                   ),
                 ],
               ),
@@ -840,12 +898,14 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                     if (name.isEmpty) return;
                     try {
                       final tagDs = ref.read(tagDataSourceProvider);
-                      final newTag = await tagDs.createTag(TagModel(
-                        id: '',
-                        userId: user.id,
-                        name: name,
-                        color: selectedColorHex,
-                      ));
+                      final newTag = await tagDs.createTag(
+                        TagModel(
+                          id: '',
+                          userId: user.id,
+                          name: name,
+                          color: selectedColorHex,
+                        ),
+                      );
                       // Automatically select the newly created tag
                       setState(() {
                         _selectedTagIds.add(newTag.id);
@@ -878,17 +938,49 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
     if (user == null) return;
 
     final controller = TextEditingController();
+    final iconSearchController = TextEditingController();
     String selectedColorHex = '#8083FF';
     String selectedIcon = 'work';
-    final colors = ['#8083FF', '#7CFFB2', '#FF6B9D', '#FFD166', '#06D6A0', '#FF5733'];
-    final icons = {
-      'work': Icons.work_rounded,
-      'person': Icons.person_rounded,
-      'school': Icons.school_rounded,
-      'heart': Icons.favorite_rounded,
-      'balance': Icons.account_balance_rounded,
-      'sports': Icons.sports_basketball_rounded,
-    };
+    final colors = [
+      '#8083FF',
+      '#7CFFB2',
+      '#FF6B9D',
+      '#FFD166',
+      '#06D6A0',
+      '#FF5733',
+    ];
+    final presetIcons = [
+      'work',
+      'person',
+      'school',
+      'favorite',
+      'account_balance',
+      'home',
+      'shopping_bag',
+      'fitness_center',
+      'flight',
+      'code',
+      'palette',
+      'calendar_month',
+      'flag',
+      'star',
+      'sports_soccer',
+      'music_note',
+      'movie',
+      'restaurant',
+      'directions_car',
+      'pets',
+      'book',
+      'lightbulb',
+      'camera_alt',
+      'phone',
+      'email',
+      'chat',
+      'lock',
+      'key',
+      'sunny',
+      'cloud',
+    ];
 
     await showDialog(
       context: context,
@@ -910,111 +1002,256 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                   color: DashboardColors.onSurface,
                 ),
               ),
-              content: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextField(
-                      controller: controller,
-                      autofocus: true,
-                      style: const TextStyle(color: DashboardColors.onSurface),
-                      decoration: InputDecoration(
-                        labelText: 'Category Name',
-                        labelStyle: const TextStyle(color: DashboardColors.onSurfaceVariant),
-                        enabledBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: BorderSide(color: DashboardColors.outlineVariant.withValues(alpha: .3)),
+              content: SizedBox(
+                width: 420,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      TextField(
+                        controller: controller,
+                        autofocus: true,
+                        style: const TextStyle(
+                          color: DashboardColors.onSurface,
                         ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: DashboardColors.primary),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Select Category Color',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: DashboardColors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: colors.map((colorHex) {
-                        final color = _parseTagColor(colorHex);
-                        final isSelected = selectedColorHex == colorHex;
-                        return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              selectedColorHex = colorHex;
-                            });
-                          },
-                          child: Container(
-                            width: 32,
-                            height: 32,
-                            decoration: BoxDecoration(
-                              color: color,
-                              shape: BoxShape.circle,
-                              border: isSelected
-                                  ? Border.all(color: Colors.white, width: 2)
-                                  : null,
-                              boxShadow: isSelected
-                                  ? [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 8)]
-                                  : null,
-                            ),
+                        decoration: InputDecoration(
+                          labelText: 'Category Name',
+                          labelStyle: const TextStyle(
+                            color: DashboardColors.onSurfaceVariant,
                           ),
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 20),
-                    Text(
-                      'Select Icon',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: DashboardColors.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Wrap(
-                      spacing: 12,
-                      runSpacing: 12,
-                      children: icons.entries.map((entry) {
-                        final isSelected = selectedIcon == entry.key;
-                        final color = _parseTagColor(selectedColorHex);
-                        return GestureDetector(
-                          onTap: () {
-                            setDialogState(() {
-                              selectedIcon = entry.key;
-                            });
-                          },
-                          child: Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? color.withValues(alpha: .18)
-                                  : Colors.white.withValues(alpha: .02),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: isSelected
-                                    ? color
-                                    : DashboardColors.outlineVariant.withValues(alpha: .2),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: DashboardColors.outlineVariant.withValues(
+                                alpha: .3,
                               ),
                             ),
-                            child: Icon(
-                              entry.value,
-                              color: isSelected ? color : DashboardColors.onSurfaceVariant,
-                              size: 20,
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: DashboardColors.primary,
                             ),
                           ),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Select Category Color',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: DashboardColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children:
+                            colors.map((colorHex) {
+                              final color = _parseTagColor(colorHex);
+                              final isSelected = selectedColorHex == colorHex;
+                              return GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    selectedColorHex = colorHex;
+                                  });
+                                },
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    color: color,
+                                    shape: BoxShape.circle,
+                                    border:
+                                        isSelected
+                                            ? Border.all(
+                                              color: Colors.white,
+                                              width: 2,
+                                            )
+                                            : null,
+                                    boxShadow:
+                                        isSelected
+                                            ? [
+                                              BoxShadow(
+                                                color: color.withValues(
+                                                  alpha: 0.5,
+                                                ),
+                                                blurRadius: 8,
+                                              ),
+                                            ]
+                                            : null,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        'Select Icon',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: DashboardColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      TextField(
+                        controller: iconSearchController,
+                        style: const TextStyle(
+                          color: DashboardColors.onSurface,
+                          fontSize: 14,
+                        ),
+                        decoration: InputDecoration(
+                          hintText: 'Search icons (e.g. work, sports, code...)',
+                          hintStyle: TextStyle(
+                            color: DashboardColors.onSurfaceVariant.withValues(
+                              alpha: 0.4,
+                            ),
+                          ),
+                          prefixIcon: const Icon(
+                            Icons.search_rounded,
+                            color: DashboardColors.onSurfaceVariant,
+                            size: 18,
+                          ),
+                          isDense: true,
+                          contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.1),
+                            ),
+                          ),
+                          focusedBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: const BorderSide(
+                              color: DashboardColors.primary,
+                            ),
+                          ),
+                        ),
+                        onChanged: (val) {
+                          setDialogState(() {});
+                        },
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 130,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.02),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.05),
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Builder(
+                            builder: (context) {
+                              final query =
+                                  iconSearchController.text
+                                      .trim()
+                                      .toLowerCase();
+                              final filteredPresets =
+                                  presetIcons
+                                      .where((name) => name.contains(query))
+                                      .toList();
+                              final List<String> displayIcons = [
+                                ...filteredPresets,
+                              ];
+                              if (query.isNotEmpty &&
+                                  !displayIcons.contains(query)) {
+                                final customIcon = IconMapper.getIconData(
+                                  query,
+                                );
+                                if (customIcon != Icons.circle &&
+                                    customIcon != Icons.help_outline &&
+                                    customIcon != Icons.error) {
+                                  displayIcons.insert(0, query);
+                                }
+                              }
+
+                              if (displayIcons.isEmpty) {
+                                return Center(
+                                  child: Text(
+                                    'No icons found',
+                                    style: TextStyle(
+                                      color: DashboardColors.onSurfaceVariant
+                                          .withValues(alpha: 0.5),
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                );
+                              }
+
+                              return GridView.builder(
+                                padding: const EdgeInsets.all(8),
+                                gridDelegate:
+                                    const SliverGridDelegateWithFixedCrossAxisCount(
+                                      crossAxisCount: 6,
+                                      mainAxisSpacing: 8,
+                                      crossAxisSpacing: 8,
+                                    ),
+                                itemCount: displayIcons.length,
+                                itemBuilder: (context, index) {
+                                  final iconName = displayIcons[index];
+                                  final iconData = IconMapper.getIconData(
+                                    iconName,
+                                  );
+                                  final isSelected = selectedIcon == iconName;
+                                  final color = _parseTagColor(
+                                    selectedColorHex,
+                                  );
+
+                                  return GestureDetector(
+                                    onTap:
+                                        () => setDialogState(
+                                          () => selectedIcon = iconName,
+                                        ),
+                                    child: AnimatedContainer(
+                                      duration: const Duration(
+                                        milliseconds: 150,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color:
+                                            isSelected
+                                                ? color.withValues(alpha: 0.15)
+                                                : Colors.white.withValues(
+                                                  alpha: 0.02,
+                                                ),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color:
+                                              isSelected
+                                                  ? color
+                                                  : Colors.white.withValues(
+                                                    alpha: 0.05,
+                                                  ),
+                                          width: isSelected ? 1.5 : 1,
+                                        ),
+                                      ),
+                                      child: Icon(
+                                        iconData,
+                                        color:
+                                            isSelected
+                                                ? color
+                                                : DashboardColors
+                                                    .onSurfaceVariant,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              );
+                            },
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               actions: [
@@ -1034,13 +1271,15 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                     if (name.isEmpty) return;
                     try {
                       final categoryDs = ref.read(categoryDataSourceProvider);
-                      final newCat = await categoryDs.createCategory(CategoryModel(
-                        id: '',
-                        userId: user.id,
-                        name: name,
-                        color: selectedColorHex,
-                        icon: selectedIcon,
-                      ));
+                      final newCat = await categoryDs.createCategory(
+                        CategoryModel(
+                          id: '',
+                          userId: user.id,
+                          name: name,
+                          color: selectedColorHex,
+                          icon: selectedIcon,
+                        ),
+                      );
                       // Automatically select the newly created category
                       setState(() {
                         _selectedCategoryId = newCat.id;
@@ -1049,7 +1288,9 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                     } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Failed to create category: $e')),
+                          SnackBar(
+                            content: Text('Failed to create category: $e'),
+                          ),
                         );
                       }
                     }
@@ -1066,6 +1307,7 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
       },
     );
     controller.dispose();
+    iconSearchController.dispose();
   }
 
   @override
@@ -1080,7 +1322,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
     final allUsers = allUsersAsync.valueOrNull ?? [];
     final teamMembers = allUsers.map(_mapUserToTeamMember).toList();
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
-    final otherTeamMembers = teamMembers.where((m) => m.id != currentUser?.id).toList();
+    final otherTeamMembers =
+        teamMembers.where((m) => m.id != currentUser?.id).toList();
 
     return Stack(
       children: [
@@ -1178,52 +1421,92 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                           // Toolbar
                                           Builder(
                                             builder: (context) {
-                                              final style = _quillController.getSelectionStyle();
-                                              final isBold = style.containsKey(quill.Attribute.bold.key) &&
-                                                  style.attributes[quill.Attribute.bold.key]?.value == true;
-                                              final isItalic = style.containsKey(quill.Attribute.italic.key) &&
-                                                  style.attributes[quill.Attribute.italic.key]?.value == true;
+                                              final style =
+                                                  _quillController
+                                                      .getSelectionStyle();
+                                              final isBold =
+                                                  style.containsKey(
+                                                    quill.Attribute.bold.key,
+                                                  ) &&
+                                                  style
+                                                          .attributes[quill
+                                                              .Attribute
+                                                              .bold
+                                                              .key]
+                                                          ?.value ==
+                                                      true;
+                                              final isItalic =
+                                                  style.containsKey(
+                                                    quill.Attribute.italic.key,
+                                                  ) &&
+                                                  style
+                                                          .attributes[quill
+                                                              .Attribute
+                                                              .italic
+                                                              .key]
+                                                          ?.value ==
+                                                      true;
                                               return Row(
                                                 children: [
                                                   _FormatButton(
-                                                    icon: Icons.format_bold_rounded,
+                                                    icon:
+                                                        Icons
+                                                            .format_bold_rounded,
                                                     isSelected: isBold,
-                                                    onTap: () => _toggleQuillFormat(
-                                                        quill.Attribute.bold),
+                                                    onTap:
+                                                        () =>
+                                                            _toggleQuillFormat(
+                                                              quill
+                                                                  .Attribute
+                                                                  .bold,
+                                                            ),
                                                   ),
                                                   const SizedBox(width: 10),
                                                   _FormatButton(
                                                     icon:
-                                                        Icons.format_italic_rounded,
+                                                        Icons
+                                                            .format_italic_rounded,
                                                     isSelected: isItalic,
-                                                    onTap: () => _toggleQuillFormat(
-                                                        quill.Attribute.italic),
+                                                    onTap:
+                                                        () =>
+                                                            _toggleQuillFormat(
+                                                              quill
+                                                                  .Attribute
+                                                                  .italic,
+                                                            ),
                                                   ),
                                                   const SizedBox(width: 10),
                                                   _FormatButton(
                                                     icon: Icons.link_rounded,
-                                                    onTap: () =>
-                                                        _insertQuillLink(),
+                                                    onTap:
+                                                        () =>
+                                                            _insertQuillLink(),
                                                   ),
                                                   const SizedBox(width: 10),
                                                   _FormatButton(
-                                                    icon: Icons.format_list_bulleted_rounded,
-                                                    onTap: () => _toggleBulletList(),
+                                                    icon:
+                                                        Icons
+                                                            .format_list_bulleted_rounded,
+                                                    onTap:
+                                                        () =>
+                                                            _toggleBulletList(),
                                                   ),
                                                   const Spacer(),
                                                   const Icon(
                                                     Icons.auto_awesome_rounded,
-                                                    color: DashboardColors.primary,
+                                                    color:
+                                                        DashboardColors.primary,
                                                     size: 20,
                                                   ),
                                                 ],
                                               );
-                                            }
+                                            },
                                           ),
                                           const SizedBox(height: 10),
                                           const Divider(
                                             height: 1,
-                                            color: DashboardColors.surfaceHighest,
+                                            color:
+                                                DashboardColors.surfaceHighest,
                                           ),
                                           const SizedBox(height: 10),
                                           // Editor
@@ -1235,20 +1518,27 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                               maxHeight: 200,
                                               placeholder:
                                                   'Outline the objective and requirements...',
-                                              customStyles:
-                                                  quill.DefaultStyles(
-                                                paragraph: quill.DefaultTextBlockStyle(
-                                                  GoogleFonts.inter(
-                                                    fontSize: 16,
-                                                    height: 1.5,
-                                                    color: DashboardColors
-                                                        .onSurface,
-                                                  ),
-                                                  quill.HorizontalSpacing.zero,
-                                                  quill.VerticalSpacing.zero,
-                                                  quill.VerticalSpacing.zero,
-                                                  null,
-                                                ),
+                                              customStyles: quill.DefaultStyles(
+                                                paragraph:
+                                                    quill.DefaultTextBlockStyle(
+                                                      GoogleFonts.inter(
+                                                        fontSize: 16,
+                                                        height: 1.5,
+                                                        color:
+                                                            DashboardColors
+                                                                .onSurface,
+                                                      ),
+                                                      quill
+                                                          .HorizontalSpacing
+                                                          .zero,
+                                                      quill
+                                                          .VerticalSpacing
+                                                          .zero,
+                                                      quill
+                                                          .VerticalSpacing
+                                                          .zero,
+                                                      null,
+                                                    ),
                                               ),
                                             ),
                                           ),
@@ -1585,18 +1875,26 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                               const SizedBox(height: 24),
                                               // Assigned Project selector
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment
+                                                        .spaceBetween,
                                                 children: [
-                                                  const _Label('ASSIGNED PROJECT'),
+                                                  const _Label(
+                                                    'ASSIGNED PROJECT',
+                                                  ),
                                                   IconButton(
                                                     icon: const Icon(
                                                       Icons.add_rounded,
-                                                      color: DashboardColors.primary,
+                                                      color:
+                                                          DashboardColors
+                                                              .primary,
                                                       size: 18,
                                                     ),
                                                     padding: EdgeInsets.zero,
-                                                    constraints: const BoxConstraints(),
-                                                    onPressed: _showAddCategoryDialog,
+                                                    constraints:
+                                                        const BoxConstraints(),
+                                                    onPressed:
+                                                        _showAddCategoryDialog,
                                                   ),
                                                 ],
                                               ),
@@ -1641,7 +1939,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                                   .secondary,
                                                           };
                                                       final label =
-                                                          priority[0].toUpperCase() +
+                                                          priority[0]
+                                                              .toUpperCase() +
                                                           priority.substring(1);
                                                       return Expanded(
                                                         child: GestureDetector(
@@ -1666,13 +1965,16 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                                     vertical: 8,
                                                                   ),
                                                               decoration: BoxDecoration(
-                                                                color: isSelected
-                                                                    ? accentColor.withValues(
-                                                                        alpha: .18,
-                                                                      )
-                                                                    : Colors.white.withValues(
-                                                                        alpha: .02,
-                                                                      ),
+                                                                color:
+                                                                    isSelected
+                                                                        ? accentColor.withValues(
+                                                                          alpha:
+                                                                              .18,
+                                                                        )
+                                                                        : Colors.white.withValues(
+                                                                          alpha:
+                                                                              .02,
+                                                                        ),
                                                                 borderRadius:
                                                                     BorderRadius.circular(
                                                                       10,
@@ -1864,18 +2166,27 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                     CrossAxisAlignment.start,
                                                 children: [
                                                   Row(
-                                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                    mainAxisAlignment:
+                                                        MainAxisAlignment
+                                                            .spaceBetween,
                                                     children: [
-                                                      const _Label('TAGS & LABELS'),
+                                                      const _Label(
+                                                        'TAGS & LABELS',
+                                                      ),
                                                       IconButton(
                                                         icon: const Icon(
                                                           Icons.add_rounded,
-                                                          color: DashboardColors.primary,
+                                                          color:
+                                                              DashboardColors
+                                                                  .primary,
                                                           size: 18,
                                                         ),
-                                                        padding: EdgeInsets.zero,
-                                                        constraints: const BoxConstraints(),
-                                                        onPressed: _showAddTagDialog,
+                                                        padding:
+                                                            EdgeInsets.zero,
+                                                        constraints:
+                                                            const BoxConstraints(),
+                                                        onPressed:
+                                                            _showAddTagDialog,
                                                       ),
                                                     ],
                                                   ),
@@ -1888,20 +2199,25 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                         final isSelected =
                                                             _selectedTagIds
                                                                 .contains(
-                                                                    tag.id);
-                                                        final color = _parseTagColor(
-                                                            tag.color);
+                                                                  tag.id,
+                                                                );
+                                                        final color =
+                                                            _parseTagColor(
+                                                              tag.color,
+                                                            );
                                                         return GestureDetector(
                                                           onTap: () {
                                                             setState(() {
                                                               if (isSelected) {
                                                                 _selectedTagIds
                                                                     .remove(
-                                                                        tag.id);
+                                                                      tag.id,
+                                                                    );
                                                               } else {
                                                                 _selectedTagIds
                                                                     .add(
-                                                                        tag.id);
+                                                                      tag.id,
+                                                                    );
                                                               }
                                                             });
                                                           },
@@ -1912,7 +2228,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                             child: _Tag(
                                                               '#${tag.name}',
                                                               color,
-                                                              isSelected: isSelected,
+                                                              isSelected:
+                                                                  isSelected,
                                                             ),
                                                           ),
                                                         );
@@ -1957,7 +2274,8 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                         child: Row(
                           children: [
                             GestureDetector(
-                              onTap: () => _openAssigneePicker(otherTeamMembers),
+                              onTap:
+                                  () => _openAssigneePicker(otherTeamMembers),
                               child: MouseRegion(
                                 cursor: SystemMouseCursors.click,
                                 child: Row(
@@ -1993,20 +2311,31 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                                   radius: 16,
                                                   backgroundColor: m.color
                                                       .withValues(alpha: .2),
-                                                  backgroundImage: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
-                                                      ? NetworkImage(m.avatarUrl!)
-                                                      : null,
-                                                  child: (m.avatarUrl != null && m.avatarUrl!.isNotEmpty)
-                                                      ? null
-                                                      : Text(
-                                                          m.avatarText,
-                                                          style: TextStyle(
-                                                            color: m.color,
-                                                            fontSize: 12,
-                                                            fontWeight:
-                                                                FontWeight.w900,
+                                                  backgroundImage:
+                                                      (m.avatarUrl != null &&
+                                                              m
+                                                                  .avatarUrl!
+                                                                  .isNotEmpty)
+                                                          ? NetworkImage(
+                                                            m.avatarUrl!,
+                                                          )
+                                                          : null,
+                                                  child:
+                                                      (m.avatarUrl != null &&
+                                                              m
+                                                                  .avatarUrl!
+                                                                  .isNotEmpty)
+                                                          ? null
+                                                          : Text(
+                                                            m.avatarText,
+                                                            style: TextStyle(
+                                                              color: m.color,
+                                                              fontSize: 12,
+                                                              fontWeight:
+                                                                  FontWeight
+                                                                      .w900,
+                                                            ),
                                                           ),
-                                                        ),
                                                 ),
                                               );
                                             },
@@ -2028,11 +2357,12 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                               ),
                             ),
                             const Spacer(),
-                             OutlinedButton(
+                            OutlinedButton(
                               style: OutlinedButton.styleFrom(
                                 foregroundColor: DashboardColors.onSurface,
                                 side: BorderSide(
-                                  color: DashboardColors.outlineVariant.withValues(alpha: .3),
+                                  color: DashboardColors.outlineVariant
+                                      .withValues(alpha: .3),
                                 ),
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 24,
@@ -2042,17 +2372,21 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                   borderRadius: BorderRadius.circular(999),
                                 ),
                               ),
-                              onPressed: isDeploying ? null : () => _deployTask(isDraft: true),
-                              child: _localSavingDraft
-                                  ? const SizedBox(
-                                      width: 16,
-                                      height: 16,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: DashboardColors.onSurface,
-                                      ),
-                                    )
-                                  : const Text('Save Draft'),
+                              onPressed:
+                                  isDeploying
+                                      ? null
+                                      : () => _deployTask(isDraft: true),
+                              child:
+                                  _localSavingDraft
+                                      ? const SizedBox(
+                                        width: 16,
+                                        height: 16,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: DashboardColors.onSurface,
+                                        ),
+                                      )
+                                      : const Text('Save Draft'),
                             ),
                             const SizedBox(width: 16),
                             DecoratedBox(
@@ -2060,12 +2394,14 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                 gradient: LinearGradient(
                                   colors: [
                                     isDeploying
-                                        ? DashboardColors.primary
-                                            .withValues(alpha: .5)
+                                        ? DashboardColors.primary.withValues(
+                                          alpha: .5,
+                                        )
                                         : DashboardColors.primary,
                                     isDeploying
-                                        ? DashboardColors.secondary
-                                            .withValues(alpha: .5)
+                                        ? DashboardColors.secondary.withValues(
+                                          alpha: .5,
+                                        )
                                         : DashboardColors.secondary,
                                   ],
                                 ),
@@ -2089,22 +2425,29 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                                     vertical: 18,
                                   ),
                                 ),
-                                onPressed: isDeploying ? null : () => _deployTask(isDraft: false),
-                                icon: _localDeploying
-                                    ? const SizedBox(
-                                        width: 16,
-                                        height: 16,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: DashboardColors.onPrimary,
+                                onPressed:
+                                    isDeploying
+                                        ? null
+                                        : () => _deployTask(isDraft: false),
+                                icon:
+                                    _localDeploying
+                                        ? const SizedBox(
+                                          width: 16,
+                                          height: 16,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: DashboardColors.onPrimary,
+                                          ),
+                                        )
+                                        : const Icon(
+                                          Icons.rocket_launch_rounded,
+                                          size: 16,
                                         ),
-                                      )
-                                    : const Icon(
-                                        Icons.rocket_launch_rounded,
-                                        size: 16,
-                                      ),
                                 label: Text(
-                                    _localDeploying ? 'Deploying...' : 'Deploy Task'),
+                                  _localDeploying
+                                      ? 'Deploying...'
+                                      : 'Deploy Task',
+                                ),
                               ),
                             ),
                           ],
@@ -2126,7 +2469,10 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
         AnimatedPositioned(
           duration: const Duration(milliseconds: 320),
           curve: Curves.easeOutCubic,
-          top: _showSuggestionDock ? 60 : -100, // Di chuyển lên phía trên để không đè nút bên dưới
+          top:
+              _showSuggestionDock
+                  ? 60
+                  : -100, // Di chuyển lên phía trên để không đè nút bên dưới
           left: 12,
           right: 30,
           child: Center(
@@ -2178,13 +2524,19 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                         onPressed: _applyAiSuggestion,
                         style: TextButton.styleFrom(
                           foregroundColor: DashboardColors.primary,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
                         child: const Text(
                           'Apply',
-                          style: TextStyle(fontWeight: FontWeight.w900, fontSize: 12),
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 12,
+                          ),
                         ),
                       ),
                       const SizedBox(width: 6),
@@ -2196,11 +2548,17 @@ class _NewTasksDesktopLayoutState extends ConsumerState<NewTasksDesktopLayout> {
                         },
                         style: TextButton.styleFrom(
                           foregroundColor: DashboardColors.onSurfaceVariant,
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 4,
+                          ),
                           minimumSize: Size.zero,
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                         ),
-                        child: const Text('Dismiss', style: TextStyle(fontSize: 12)),
+                        child: const Text(
+                          'Dismiss',
+                          style: TextStyle(fontSize: 12),
+                        ),
                       ),
                     ],
                   ),
@@ -2340,6 +2698,12 @@ class _AssignedProjectDropdownState extends State<_AssignedProjectDropdown> {
   bool _isOpen = false;
   bool _isHovered = false;
 
+  void _setHovered(bool value) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _isHovered = value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final selected = _projectByName(widget.selectedProject);
@@ -2430,8 +2794,8 @@ class _AssignedProjectDropdownState extends State<_AssignedProjectDropdown> {
               mouseCursor: SystemMouseCursors.click,
               onShowFocusHighlight: (_) => setState(() {}),
               child: MouseRegion(
-                onEnter: (_) => setState(() => _isHovered = true),
-                onExit: (_) => setState(() => _isHovered = false),
+                onEnter: (_) => _setHovered(true),
+                onExit: (_) => _setHovered(false),
                 child: GestureDetector(
                   behavior: HitTestBehavior.opaque,
                   onTap: () {
@@ -2532,6 +2896,12 @@ class _AssignedProjectMenuItem extends StatefulWidget {
 class _AssignedProjectMenuItemState extends State<_AssignedProjectMenuItem> {
   bool _hovered = false;
 
+  void _setHovered(bool value) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _hovered = value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final color = widget.project['color'] as Color;
@@ -2541,8 +2911,8 @@ class _AssignedProjectMenuItemState extends State<_AssignedProjectMenuItem> {
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
+        onEnter: (_) => _setHovered(true),
+        onExit: (_) => _setHovered(false),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
@@ -2681,14 +3051,20 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
   bool _isHovered = false;
   final MenuController _controller = MenuController();
 
+  void _setHovered(bool value) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _isHovered = value);
+    });
+  }
+
   String get _selectedName {
     if (widget.selectedId == null) return 'No category';
     return widget.categories
-            .firstWhere(
-              (c) => c.id == widget.selectedId,
-              orElse: () => widget.categories.first,
-            )
-            .name;
+        .firstWhere(
+          (c) => c.id == widget.selectedId,
+          orElse: () => widget.categories.first,
+        )
+        .name;
   }
 
   Color get _selectedColor {
@@ -2714,8 +3090,7 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
             surfaceTintColor: WidgetStateProperty.all(Colors.transparent),
             elevation: WidgetStateProperty.all(0),
             shape: WidgetStateProperty.all(
-              RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(18)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
             ),
           ),
           menuChildren: [
@@ -2731,7 +3106,8 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
                       color: DashboardColors.surface.withValues(alpha: .78),
                       borderRadius: BorderRadius.circular(18),
                       border: Border.all(
-                          color: Colors.white.withValues(alpha: .10)),
+                        color: Colors.white.withValues(alpha: .10),
+                      ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: .28),
@@ -2774,8 +3150,8 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
           ],
           builder: (context, controller, child) {
             return MouseRegion(
-              onEnter: (_) => setState(() => _isHovered = true),
-              onExit: (_) => setState(() => _isHovered = false),
+              onEnter: (_) => _setHovered(true),
+              onExit: (_) => _setHovered(false),
               child: GestureDetector(
                 behavior: HitTestBehavior.opaque,
                 onTap: () {
@@ -2792,14 +3168,16 @@ class _CategoryDropdownState extends State<_CategoryDropdown> {
                   height: 56,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: _isHovered || _isOpen
-                        ? Colors.white.withValues(alpha: .065)
-                        : Colors.white.withValues(alpha: .04),
+                    color:
+                        _isHovered || _isOpen
+                            ? Colors.white.withValues(alpha: .065)
+                            : Colors.white.withValues(alpha: .04),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: _isOpen
-                          ? DashboardColors.primary.withValues(alpha: .34)
-                          : Colors.white.withValues(alpha: .10),
+                      color:
+                          _isOpen
+                              ? DashboardColors.primary.withValues(alpha: .34)
+                              : Colors.white.withValues(alpha: .10),
                     ),
                   ),
                   child: Row(
@@ -2865,14 +3243,20 @@ class _CategoryMenuItem extends StatefulWidget {
 class _CategoryMenuItemState extends State<_CategoryMenuItem> {
   bool _hovered = false;
 
+  void _setHovered(bool value) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _hovered = value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 2),
       child: MouseRegion(
         cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
+        onEnter: (_) => _setHovered(true),
+        onExit: (_) => _setHovered(false),
         child: GestureDetector(
           behavior: HitTestBehavior.opaque,
           onTap: widget.onTap,
@@ -2881,15 +3265,17 @@ class _CategoryMenuItemState extends State<_CategoryMenuItem> {
             height: 44,
             padding: const EdgeInsets.symmetric(horizontal: 16),
             decoration: BoxDecoration(
-              color: widget.selected
-                  ? widget.color.withValues(alpha: .16)
-                  : _hovered
+              color:
+                  widget.selected
+                      ? widget.color.withValues(alpha: .16)
+                      : _hovered
                       ? Colors.white.withValues(alpha: .055)
                       : Colors.transparent,
               borderRadius: BorderRadius.circular(12),
-              border: widget.selected
-                  ? Border.all(color: widget.color.withValues(alpha: .28))
-                  : null,
+              border:
+                  widget.selected
+                      ? Border.all(color: widget.color.withValues(alpha: .28))
+                      : null,
             ),
             child: Row(
               children: [
@@ -2908,17 +3294,19 @@ class _CategoryMenuItemState extends State<_CategoryMenuItem> {
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: DashboardColors.onSurface,
-                      fontWeight: widget.selected
-                          ? FontWeight.w800
-                          : FontWeight.w600,
+                      fontWeight:
+                          widget.selected ? FontWeight.w800 : FontWeight.w600,
                     ),
                   ),
                 ),
                 AnimatedOpacity(
                   opacity: widget.selected ? 1 : 0,
                   duration: const Duration(milliseconds: 150),
-                  child: Icon(Icons.check_rounded,
-                      color: widget.color, size: 18),
+                  child: Icon(
+                    Icons.check_rounded,
+                    color: widget.color,
+                    size: 18,
+                  ),
                 ),
               ],
             ),
@@ -2995,13 +3383,15 @@ class _AttachmentCardState extends State<_AttachmentCard> {
     setState(() {
       for (final f in result.files) {
         if (!_files.any((e) => e.name == f.name)) {
-          _files.add(PlatformFileInfo(
-            name: f.name,
-            sizeBytes: f.size,
-            extension: f.extension ?? '',
-            bytes: f.bytes,
-            filePath: f.path,
-          ));
+          _files.add(
+            PlatformFileInfo(
+              name: f.name,
+              sizeBytes: f.size,
+              extension: f.extension ?? '',
+              bytes: f.bytes,
+              filePath: f.path,
+            ),
+          );
         }
       }
     });
@@ -3092,15 +3482,16 @@ class _AttachmentCardState extends State<_AttachmentCard> {
               padding: const EdgeInsets.only(bottom: 8),
               child: _GlassBox(
                 padding: const EdgeInsets.symmetric(
-                    horizontal: 14, vertical: 10),
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 child: Row(
                   children: [
                     Container(
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: _extColor(f.extension)
-                            .withValues(alpha: .15),
+                        color: _extColor(f.extension).withValues(alpha: .15),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
@@ -3140,8 +3531,7 @@ class _AttachmentCardState extends State<_AttachmentCard> {
                     ),
                     IconButton(
                       icon: const Icon(Icons.close_rounded, size: 16),
-                      color: DashboardColors.outline
-                          .withValues(alpha: .6),
+                      color: DashboardColors.outline.withValues(alpha: .6),
                       onPressed: () => _removeFile(i),
                     ),
                   ],
@@ -3155,12 +3545,12 @@ class _AttachmentCardState extends State<_AttachmentCard> {
   }
 
   Color _extColor(String ext) => switch (ext.toLowerCase()) {
-        'pdf' => DashboardColors.error,
-        'png' || 'jpg' || 'jpeg' => DashboardColors.secondary,
-        'doc' || 'docx' => const Color(0xFF2B7CD3),
-        'txt' => DashboardColors.tertiary,
-        _ => DashboardColors.outline,
-      };
+    'pdf' => DashboardColors.error,
+    'png' || 'jpg' || 'jpeg' => DashboardColors.secondary,
+    'doc' || 'docx' => const Color(0xFF2B7CD3),
+    'txt' => DashboardColors.tertiary,
+    _ => DashboardColors.outline,
+  };
 
   String _formatSize(int bytes) {
     if (bytes < 1024) return '${bytes}B';
@@ -3168,8 +3558,6 @@ class _AttachmentCardState extends State<_AttachmentCard> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)}MB';
   }
 }
-
-
 
 class _FormatButton extends StatefulWidget {
   const _FormatButton({
@@ -3189,12 +3577,18 @@ class _FormatButton extends StatefulWidget {
 class _FormatButtonState extends State<_FormatButton> {
   bool _hovered = false;
 
+  void _setHovered(bool value) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) setState(() => _hovered = value);
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _hovered = true),
-      onExit: (_) => setState(() => _hovered = false),
+      onEnter: (_) => _setHovered(true),
+      onExit: (_) => _setHovered(false),
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -3202,22 +3596,27 @@ class _FormatButtonState extends State<_FormatButton> {
           width: 28,
           height: 28,
           decoration: BoxDecoration(
-            color: widget.isSelected
-                ? DashboardColors.primary.withValues(alpha: .22)
-                : _hovered
+            color:
+                widget.isSelected
+                    ? DashboardColors.primary.withValues(alpha: .22)
+                    : _hovered
                     ? DashboardColors.primary.withValues(alpha: .12)
                     : Colors.transparent,
             borderRadius: BorderRadius.circular(6),
-            border: widget.isSelected
-                ? Border.all(color: DashboardColors.primary.withValues(alpha: .3))
-                : null,
+            border:
+                widget.isSelected
+                    ? Border.all(
+                      color: DashboardColors.primary.withValues(alpha: .3),
+                    )
+                    : null,
           ),
           child: Icon(
             widget.icon,
             size: 18,
-            color: (widget.isSelected || _hovered)
-                ? DashboardColors.primary
-                : DashboardColors.onSurfaceVariant,
+            color:
+                (widget.isSelected || _hovered)
+                    ? DashboardColors.primary
+                    : DashboardColors.onSurfaceVariant,
           ),
         ),
       ),
@@ -3297,9 +3696,12 @@ class _Tag extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // Tự động điều chỉnh màu chữ dựa trên độ sáng (luminance) của nền tag khi được chọn
-    final textColor = isSelected
-        ? (color.computeLuminance() > 0.5 ? const Color(0xFF121214) : Colors.white)
-        : color;
+    final textColor =
+        isSelected
+            ? (color.computeLuminance() > 0.5
+                ? const Color(0xFF121214)
+                : Colors.white)
+            : color;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -3418,7 +3820,10 @@ class _InsightLine extends StatelessWidget {
 }
 
 class _TeamPresenceRow extends StatelessWidget {
-  const _TeamPresenceRow({required this.members, required this.fallbackMembers});
+  const _TeamPresenceRow({
+    required this.members,
+    required this.fallbackMembers,
+  });
   final List<TeamMember> members;
   final List<TeamMember> fallbackMembers;
 
@@ -3428,8 +3833,10 @@ class _TeamPresenceRow extends StatelessWidget {
         members.isEmpty
             ? fallbackMembers.take(3).toList()
             : members.take(3).toList();
-    final activeCount = fallbackMembers.isEmpty ? visible.length : fallbackMembers.length;
-    final firstActiveName = fallbackMembers.isNotEmpty ? fallbackMembers.first.name : 'Someone';
+    final activeCount =
+        fallbackMembers.isEmpty ? visible.length : fallbackMembers.length;
+    final firstActiveName =
+        fallbackMembers.isNotEmpty ? fallbackMembers.first.name : 'Someone';
     return _GlassBox(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
@@ -3480,19 +3887,21 @@ class _PresenceAvatar extends StatelessWidget {
           child: CircleAvatar(
             radius: 14,
             backgroundColor: member.color.withValues(alpha: .18),
-            backgroundImage: (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
-                ? NetworkImage(member.avatarUrl!)
-                : null,
-            child: (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
-                ? null
-                : Text(
-                    member.avatarText,
-                    style: TextStyle(
-                      color: member.color,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w900,
+            backgroundImage:
+                (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+                    ? NetworkImage(member.avatarUrl!)
+                    : null,
+            child:
+                (member.avatarUrl != null && member.avatarUrl!.isNotEmpty)
+                    ? null
+                    : Text(
+                      member.avatarText,
+                      style: TextStyle(
+                        color: member.color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
-                  ),
           ),
         ),
         if (member.isOnline)
@@ -3777,7 +4186,9 @@ class _FocusForecastCard extends StatelessWidget {
                 child: CircularProgressIndicator(
                   value: progress,
                   strokeWidth: 3,
-                  valueColor: const AlwaysStoppedAnimation<Color>(DashboardColors.tertiary),
+                  valueColor: const AlwaysStoppedAnimation<Color>(
+                    DashboardColors.tertiary,
+                  ),
                   backgroundColor: Colors.transparent,
                 ),
               ),

@@ -33,7 +33,20 @@ class TaskHeaderSection extends ConsumerWidget {
 
   String _formatDate(DateTime? dt) {
     if (dt == null) return '—';
-    const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
     return '${months[dt.month - 1]} ${dt.day}, ${dt.year}';
   }
 
@@ -54,7 +67,7 @@ class TaskHeaderSection extends ConsumerWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isDesktop = constraints.maxWidth >= 1024;
-        
+
         if (isDesktop) {
           return _DesktopHeader(
             item: item,
@@ -71,7 +84,7 @@ class TaskHeaderSection extends ConsumerWidget {
             allUsers: allUsers,
           );
         }
-        
+
         return _MobileTabletHeader(
           item: item,
           onBack: onBack,
@@ -150,12 +163,20 @@ class _DesktopHeader extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.calendar_today_rounded, size: 14, color: Colors.white60),
+          const Icon(
+            Icons.calendar_today_rounded,
+            size: 14,
+            color: Colors.white60,
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               formatDate(item.createdAt),
-              style: const TextStyle(color: Colors.white60, fontSize: 13, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -168,12 +189,20 @@ class _DesktopHeader extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.access_time_rounded, size: 14, color: Colors.white60),
+          const Icon(
+            Icons.access_time_rounded,
+            size: 14,
+            color: Colors.white60,
+          ),
           const SizedBox(width: 8),
           Flexible(
             child: Text(
               'Updated ${timeAgo(item.updatedAt)}',
-              style: const TextStyle(color: Colors.white60, fontSize: 13, fontWeight: FontWeight.w500),
+              style: const TextStyle(
+                color: Colors.white60,
+                fontSize: 13,
+                fontWeight: FontWeight.w500,
+              ),
               overflow: TextOverflow.ellipsis,
             ),
           ),
@@ -189,7 +218,11 @@ class _DesktopHeader extends StatelessWidget {
         children: [
           Text(
             '$pct%',
-            style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           const SizedBox(width: 8),
           Expanded(
@@ -217,18 +250,20 @@ class _DesktopHeader extends StatelessWidget {
 
     final statusWidget = _buildStatusBadge();
 
-    final category = categoryId == null
-        ? null
-        : categories.firstWhere(
-            (c) => c.id == categoryId,
-            orElse: () => const CategoryModel(id: '', userId: '', name: ''),
-          );
+    final category =
+        categoryId == null
+            ? null
+            : categories.firstWhere(
+              (c) => c.id == categoryId,
+              orElse: () => const CategoryModel(id: '', userId: '', name: ''),
+            );
     final showCategory = category != null && category.name.isNotEmpty;
 
     final taskTags = tags.where((t) => tagIds.contains(t.id)).toList();
     final showTags = taskTags.isNotEmpty;
 
-    final assignedUsers = allUsers.where((u) => assigneeIds.contains(u.id)).toList();
+    final assignedUsers =
+        allUsers.where((u) => assigneeIds.contains(u.id)).toList();
     final showAssignees = assignedUsers.isNotEmpty;
 
     return ClipRRect(
@@ -241,10 +276,7 @@ class _DesktopHeader extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: const LinearGradient(
-              colors: [
-                Color(0xF20F172A),
-                Color(0xF2020617),
-              ],
+              colors: [Color(0xF20F172A), Color(0xF2020617)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -325,7 +357,11 @@ class _DesktopHeader extends StatelessWidget {
         for (final tag in visibleTags)
           _ChipWidget(text: tag.name, type: _ChipType.tag),
         if (extraCount > 0)
-          _ChipWidget(text: '+$extraCount', type: _ChipType.tag, isNumber: true),
+          _ChipWidget(
+            text: '+$extraCount',
+            type: _ChipType.tag,
+            isNumber: true,
+          ),
       ],
     );
   }
@@ -333,14 +369,17 @@ class _DesktopHeader extends StatelessWidget {
   Widget _buildAssigneeAvatars(List<UserProfileModel> assignedUsers) {
     const double avatarSize = 28.0;
     const double overlap = 8.0;
-    
+
     final visibleUsers = assignedUsers.take(4).toList();
     final hasMore = assignedUsers.length > 4;
     final extraCount = assignedUsers.length - 4;
 
     return SizedBox(
       height: avatarSize,
-      width: (visibleUsers.length * (avatarSize - overlap)) + overlap + (hasMore ? avatarSize - overlap : 0),
+      width:
+          (visibleUsers.length * (avatarSize - overlap)) +
+          overlap +
+          (hasMore ? avatarSize - overlap : 0),
       child: Stack(
         children: [
           for (int i = 0; i < visibleUsers.length; i++)
@@ -353,7 +392,10 @@ class _DesktopHeader extends StatelessWidget {
                   height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.5,
+                    ),
                   ),
                   child: ClipOval(
                     child: Builder(
@@ -363,13 +405,14 @@ class _DesktopHeader extends StatelessWidget {
                         final name = user.fullName ?? '';
                         if (name.isNotEmpty) {
                           final parts = name.split(' ');
-                          initials = parts.length >= 2 
-                            ? '${parts[0][0]}${parts[1][0]}'.toUpperCase() 
-                            : parts[0][0].toUpperCase();
+                          initials =
+                              parts.length >= 2
+                                  ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+                                  : parts[0][0].toUpperCase();
                         } else if (user.email.isNotEmpty) {
                           initials = user.email[0].toUpperCase();
                         }
-                        
+
                         final colors = [
                           DashboardColors.primary,
                           DashboardColors.secondary,
@@ -377,22 +420,25 @@ class _DesktopHeader extends StatelessWidget {
                           Colors.greenAccent,
                           Colors.orangeAccent,
                         ];
-                        final color = colors[user.id.hashCode.abs() % colors.length];
+                        final color =
+                            colors[user.id.hashCode.abs() % colors.length];
                         final hasImage = user.avatarUrl?.isNotEmpty == true;
 
                         return CircleAvatar(
                           backgroundColor: color.withValues(alpha: 0.15),
-                          backgroundImage: hasImage ? NetworkImage(user.avatarUrl!) : null,
-                          child: hasImage
-                              ? null
-                              : Text(
-                                  initials,
-                                  style: TextStyle(
-                                    color: color,
-                                    fontSize: 9,
-                                    fontWeight: FontWeight.w900,
+                          backgroundImage:
+                              hasImage ? NetworkImage(user.avatarUrl!) : null,
+                          child:
+                              hasImage
+                                  ? null
+                                  : Text(
+                                    initials,
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.w900,
+                                    ),
                                   ),
-                                ),
                         );
                       },
                     ),
@@ -409,7 +455,10 @@ class _DesktopHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                  border: Border.all(
+                    color: const Color(0xFF0F172A),
+                    width: 1.5,
+                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -488,17 +537,31 @@ class _MobileTabletHeader extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.calendar_today_rounded, size: 12, color: Colors.white60),
+            const Icon(
+              Icons.calendar_today_rounded,
+              size: 12,
+              color: Colors.white60,
+            ),
             const SizedBox(width: 6),
-            Text(formatDate(item.createdAt), style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            Text(
+              formatDate(item.createdAt),
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
           ],
         ),
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.access_time_rounded, size: 12, color: Colors.white60),
+            const Icon(
+              Icons.access_time_rounded,
+              size: 12,
+              color: Colors.white60,
+            ),
             const SizedBox(width: 6),
-            Text('Updated ${timeAgo(item.updatedAt)}', style: const TextStyle(color: Colors.white60, fontSize: 12)),
+            Text(
+              'Updated ${timeAgo(item.updatedAt)}',
+              style: const TextStyle(color: Colors.white60, fontSize: 12),
+            ),
           ],
         ),
       ],
@@ -509,7 +572,11 @@ class _MobileTabletHeader extends StatelessWidget {
       children: [
         Text(
           '$pct%',
-          style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 12,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(width: 8),
         Container(
@@ -540,7 +607,10 @@ class _MobileTabletHeader extends StatelessWidget {
         orElse: () => const CategoryModel(id: '', userId: '', name: ''),
       );
       if (category.name.isNotEmpty) {
-        categoriesWidget = _ChipWidget(text: category.name, type: _ChipType.category);
+        categoriesWidget = _ChipWidget(
+          text: category.name,
+          type: _ChipType.category,
+        );
       }
     }
 
@@ -555,12 +625,17 @@ class _MobileTabletHeader extends StatelessWidget {
           for (final tag in visibleTags)
             _ChipWidget(text: tag.name, type: _ChipType.tag),
           if (extraTags > 0)
-            _ChipWidget(text: '+$extraTags', type: _ChipType.tag, isNumber: true),
+            _ChipWidget(
+              text: '+$extraTags',
+              type: _ChipType.tag,
+              isNumber: true,
+            ),
         ],
       );
     }
 
-    final assignedUsers = allUsers.where((u) => assigneeIds.contains(u.id)).toList();
+    final assignedUsers =
+        allUsers.where((u) => assigneeIds.contains(u.id)).toList();
     Widget? assigneesWidget;
     if (assignedUsers.isNotEmpty) {
       const double avatarSize = 24.0;
@@ -571,7 +646,10 @@ class _MobileTabletHeader extends StatelessWidget {
 
       assigneesWidget = SizedBox(
         height: avatarSize,
-        width: (visibleUsers.length * (avatarSize - overlap)) + overlap + (hasMoreAvatars ? avatarSize - overlap : 0),
+        width:
+            (visibleUsers.length * (avatarSize - overlap)) +
+            overlap +
+            (hasMoreAvatars ? avatarSize - overlap : 0),
         child: Stack(
           children: [
             for (int i = 0; i < visibleUsers.length; i++)
@@ -582,7 +660,10 @@ class _MobileTabletHeader extends StatelessWidget {
                   height: avatarSize,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.5,
+                    ),
                   ),
                   child: ClipOval(
                     child: Builder(
@@ -592,13 +673,14 @@ class _MobileTabletHeader extends StatelessWidget {
                         final name = user.fullName ?? '';
                         if (name.isNotEmpty) {
                           final parts = name.split(' ');
-                          initials = parts.length >= 2 
-                            ? '${parts[0][0]}${parts[1][0]}'.toUpperCase() 
-                            : parts[0][0].toUpperCase();
+                          initials =
+                              parts.length >= 2
+                                  ? '${parts[0][0]}${parts[1][0]}'.toUpperCase()
+                                  : parts[0][0].toUpperCase();
                         } else if (user.email.isNotEmpty) {
                           initials = user.email[0].toUpperCase();
                         }
-                        
+
                         final colors = [
                           DashboardColors.primary,
                           DashboardColors.secondary,
@@ -606,22 +688,25 @@ class _MobileTabletHeader extends StatelessWidget {
                           Colors.greenAccent,
                           Colors.orangeAccent,
                         ];
-                        final color = colors[user.id.hashCode.abs() % colors.length];
+                        final color =
+                            colors[user.id.hashCode.abs() % colors.length];
                         final hasImage = user.avatarUrl?.isNotEmpty == true;
 
                         return CircleAvatar(
                           backgroundColor: color.withValues(alpha: 0.15),
-                          backgroundImage: hasImage ? NetworkImage(user.avatarUrl!) : null,
-                          child: hasImage
-                              ? null
-                              : Text(
-                                  initials,
-                                  style: TextStyle(
-                                    color: color,
-                                    fontSize: 8,
-                                    fontWeight: FontWeight.bold,
+                          backgroundImage:
+                              hasImage ? NetworkImage(user.avatarUrl!) : null,
+                          child:
+                              hasImage
+                                  ? null
+                                  : Text(
+                                    initials,
+                                    style: TextStyle(
+                                      color: color,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
-                                ),
                         );
                       },
                     ),
@@ -637,12 +722,19 @@ class _MobileTabletHeader extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: Colors.white.withValues(alpha: 0.08),
                     shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFF0F172A), width: 1.5),
+                    border: Border.all(
+                      color: const Color(0xFF0F172A),
+                      width: 1.5,
+                    ),
                   ),
                   child: Center(
                     child: Text(
                       '+$extraAvatars',
-                      style: const TextStyle(color: Colors.white70, fontSize: 8, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -661,10 +753,7 @@ class _MobileTabletHeader extends StatelessWidget {
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(20),
             gradient: const LinearGradient(
-              colors: [
-                Color(0xF20F172A),
-                Color(0xF2020617),
-              ],
+              colors: [Color(0xF20F172A), Color(0xF2020617)],
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -686,12 +775,11 @@ class _MobileTabletHeader extends StatelessWidget {
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  dateChips,
-                  progressWidget,
-                ],
+                children: [dateChips, progressWidget],
               ),
-              if (categoriesWidget != null || tagsWidget != null || assigneesWidget != null) ...[
+              if (categoriesWidget != null ||
+                  tagsWidget != null ||
+                  assigneesWidget != null) ...[
                 const SizedBox(height: 12),
                 const Divider(color: Colors.white10, height: 1),
                 const SizedBox(height: 12),
@@ -747,7 +835,11 @@ class _MobileTabletHeader extends StatelessWidget {
 enum _ChipType { category, tag }
 
 class _ChipWidget extends StatefulWidget {
-  const _ChipWidget({required this.text, required this.type, this.isNumber = false});
+  const _ChipWidget({
+    required this.text,
+    required this.type,
+    this.isNumber = false,
+  });
   final String text;
   final _ChipType type;
   final bool isNumber;
@@ -765,28 +857,35 @@ class _ChipWidgetState extends State<_ChipWidget> {
     final color = isTag ? DashboardColors.secondary : DashboardColors.primary;
 
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter:
+          (_) => WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isHovered = true);
+          }),
+      onExit:
+          (_) => WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isHovered = false);
+          }),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
         decoration: BoxDecoration(
-          color: _isHovered
-              ? color.withValues(alpha: 0.1)
-              : Colors.white.withValues(alpha: 0.04),
+          color:
+              _isHovered
+                  ? color.withValues(alpha: 0.1)
+                  : Colors.white.withValues(alpha: 0.04),
           borderRadius: BorderRadius.circular(6),
           border: Border.all(
-            color: _isHovered
-                ? color.withValues(alpha: 0.3)
-                : Colors.white.withValues(alpha: 0.08),
+            color:
+                _isHovered
+                    ? color.withValues(alpha: 0.3)
+                    : Colors.white.withValues(alpha: 0.08),
           ),
         ),
         child: Text(
           widget.text,
           style: TextStyle(
-            color: widget.isNumber
-                ? color
-                : (_isHovered ? color : Colors.white70),
+            color:
+                widget.isNumber ? color : (_isHovered ? color : Colors.white70),
             fontSize: 11,
             fontWeight: widget.isNumber ? FontWeight.bold : FontWeight.w500,
           ),
@@ -810,8 +909,14 @@ class _HoverBackButtonState extends State<_HoverBackButton> {
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
+      onEnter:
+          (_) => WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isHovered = true);
+          }),
+      onExit:
+          (_) => WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) setState(() => _isHovered = false);
+          }),
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
@@ -825,11 +930,7 @@ class _HoverBackButtonState extends State<_HoverBackButton> {
             border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
           ),
           child: const Center(
-            child: Icon(
-              Icons.arrow_back,
-              size: 22,
-              color: Colors.white,
-            ),
+            child: Icon(Icons.arrow_back, size: 22, color: Colors.white),
           ),
         ),
       ),

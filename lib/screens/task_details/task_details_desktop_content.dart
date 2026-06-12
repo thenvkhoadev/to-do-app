@@ -6,14 +6,16 @@ class TaskDetailsDesktopContent extends StatelessWidget {
   const TaskDetailsDesktopContent({
     required this.item,
     required this.onBack,
+    this.onEditTask,
     super.key,
   });
 
   final TaskBoardItem item;
   final VoidCallback onBack;
+  final VoidCallback? onEditTask;
 
   @override
   Widget build(BuildContext context) {
-    return TaskDetailPage(item: item, onBack: onBack);
+    return TaskDetailPage(item: item, onBack: onBack, onEditTask: onEditTask);
   }
 }

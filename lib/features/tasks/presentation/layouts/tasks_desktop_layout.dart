@@ -35,6 +35,7 @@ class TasksDesktopLayout extends ConsumerStatefulWidget {
 class _TasksDesktopLayoutState extends ConsumerState<TasksDesktopLayout> {
   late int _selectedIndex;
   TaskBoardItem? _detailsItem;
+  TaskBoardItem? _detailsItemBeforeEdit;
 
   @override
   void initState() {
@@ -85,6 +86,19 @@ class _TasksDesktopLayoutState extends ConsumerState<TasksDesktopLayout> {
                             item: editingItem,
                             onBack: () {
                               ref.read(editingTaskProvider.notifier).state = null;
+                              if (_detailsItemBeforeEdit != null) {
+                                setState(() {
+                                  _detailsItem = _detailsItemBeforeEdit;
+                                  _detailsItemBeforeEdit = null;
+                                });
+                              }
+                            },
+                            onSaveSuccess: (updatedItem) {
+                              ref.read(editingTaskProvider.notifier).state = null;
+                              setState(() {
+                                _detailsItem = updatedItem;
+                                _detailsItemBeforeEdit = null;
+                              });
                             },
                           )
                         : _detailsItem != null
@@ -94,6 +108,12 @@ class _TasksDesktopLayoutState extends ConsumerState<TasksDesktopLayout> {
                               ),
                               item: _detailsItem!,
                               onBack: _closeTaskDetails,
+                              onEditTask: () {
+                                final itemToEdit = _detailsItem;
+                                _detailsItemBeforeEdit = _detailsItem;
+                                setState(() => _detailsItem = null);
+                                ref.read(editingTaskProvider.notifier).state = itemToEdit;
+                              },
                             )
                             : _selectedIndex == 1
                             ? TasksProjectsDesktopContent(

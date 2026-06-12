@@ -16,6 +16,9 @@ class EditTaskDesktopLayout extends StatelessWidget {
     required this.activityTimelineCard,
     required this.healthCard,
     required this.smartSchedule,
+    required this.productivityBoosterCard,
+    required this.focusTimerCard,
+    required this.achievementsCard,
     super.key,
   });
 
@@ -32,6 +35,9 @@ class EditTaskDesktopLayout extends StatelessWidget {
   final Widget activityTimelineCard;
   final Widget healthCard;
   final Widget smartSchedule;
+  final Widget productivityBoosterCard;
+  final Widget focusTimerCard;
+  final Widget achievementsCard;
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +102,12 @@ class EditTaskDesktopLayout extends StatelessWidget {
                                       assignees,
                                       const SizedBox(height: 24),
                                       activityTimelineCard,
+                                      const SizedBox(height: 24),
+                                      productivityBoosterCard,
+                                      const SizedBox(height: 24),
+                                      focusTimerCard,
+                                      const SizedBox(height: 24),
+                                      achievementsCard,
                                     ],
                                   ),
                                 ),
@@ -138,6 +150,9 @@ class EditTaskTabletLayout extends StatelessWidget {
     required this.activityTimelineCard,
     required this.healthCard,
     required this.smartSchedule,
+    required this.productivityBoosterCard,
+    required this.focusTimerCard,
+    required this.achievementsCard,
     super.key,
   });
 
@@ -154,6 +169,9 @@ class EditTaskTabletLayout extends StatelessWidget {
   final Widget activityTimelineCard;
   final Widget healthCard;
   final Widget smartSchedule;
+  final Widget productivityBoosterCard;
+  final Widget focusTimerCard;
+  final Widget achievementsCard;
 
   @override
   Widget build(BuildContext context) {
@@ -211,6 +229,12 @@ class EditTaskTabletLayout extends StatelessWidget {
                                   assignees,
                                   const SizedBox(height: 20),
                                   activityTimelineCard,
+                                  const SizedBox(height: 20),
+                                  productivityBoosterCard,
+                                  const SizedBox(height: 20),
+                                  focusTimerCard,
+                                  const SizedBox(height: 20),
+                                  achievementsCard,
                                 ],
                               ),
                             ),

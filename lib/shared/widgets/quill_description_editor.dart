@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
@@ -17,6 +18,7 @@ class QuillDescriptionEditor extends ConsumerStatefulWidget {
     this.minHeight = 100,
     this.maxHeight = 300,
     this.showLabel = false,
+    this.onChanged,
     super.key,
   });
 
@@ -25,6 +27,7 @@ class QuillDescriptionEditor extends ConsumerStatefulWidget {
   final double minHeight;
   final double maxHeight;
   final bool showLabel;
+  final ValueChanged<String?>? onChanged;
 
   @override
   ConsumerState<QuillDescriptionEditor> createState() =>
@@ -38,6 +41,7 @@ class _QuillDescriptionEditorState extends ConsumerState<QuillDescriptionEditor>
   final Map<String, quill.Attribute> _explicitActive = {};
   int? _lastToggledOffset;
   String? _lastSavedText;
+  StreamSubscription? _changeSubscription;
 
   @override
   void initState() {
@@ -51,6 +55,18 @@ class _QuillDescriptionEditorState extends ConsumerState<QuillDescriptionEditor>
     );
     _ctrl.addListener(_onSelectionChanged);
     _focusNode.addListener(_onFocusChanged);
+    _listenToChanges();
+  }
+
+  void _listenToChanges() {
+    _changeSubscription?.cancel();
+    _changeSubscription = _ctrl.document.changes.listen((_) {
+      if (widget.onChanged != null) {
+        final plain = _ctrl.document.toPlainText().trim();
+        final String? descriptionToSave = plain.isEmpty ? null : jsonEncode(_ctrl.document.toDelta().toJson());
+        widget.onChanged!(descriptionToSave);
+      }
+    });
   }
 
   quill.Document _docFromText(String text) {
@@ -76,12 +92,14 @@ class _QuillDescriptionEditorState extends ConsumerState<QuillDescriptionEditor>
       _ctrl.document = widget.initialText.trim().isEmpty
           ? quill.Document()
           : _docFromText(widget.initialText);
+      _listenToChanges();
     }
   }
 
   @override
   void dispose() {
     _save(isDisposing: true);
+    _changeSubscription?.cancel();
     _ctrl.removeListener(_onSelectionChanged);
     _focusNode.removeListener(_onFocusChanged);
     _ctrl.dispose();

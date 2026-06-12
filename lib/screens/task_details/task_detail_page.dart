@@ -45,11 +45,13 @@ class TaskDetailPage extends ConsumerWidget {
   const TaskDetailPage({
     required this.item,
     required this.onBack,
+    this.onEditTask,
     super.key,
   });
 
   final TaskBoardItem item;
   final VoidCallback onBack;
+  final VoidCallback? onEditTask;
 
   TaskBoardItem _mapTaskToBoardItem(
     NexusTask task,
@@ -465,7 +467,7 @@ class TaskDetailPage extends ConsumerWidget {
             onStartTask: () => _updateStatus(context, ref, taskItem, TaskBoardStatus.inProgress),
             onPauseTask: () => _updateStatus(context, ref, taskItem, TaskBoardStatus.todo),
             onCompleteTask: () => _updateStatus(context, ref, taskItem, TaskBoardStatus.completed),
-            onEditTask: () {
+            onEditTask: onEditTask ?? () {
               ref.read(editingTaskProvider.notifier).state = taskItem;
               onBack();
             },
@@ -486,7 +488,12 @@ class TaskDetailPage extends ConsumerWidget {
           onEditTask: () {
             Navigator.of(context).push(
               MaterialPageRoute(
-                builder: (context) => EditTaskPageV2(item: taskItem),
+                builder: (context) => EditTaskPageV2(
+                  item: taskItem,
+                  onSaveSuccess: (updatedItem) {
+                    Navigator.of(context).pop();
+                  },
+                ),
               ),
             );
           },

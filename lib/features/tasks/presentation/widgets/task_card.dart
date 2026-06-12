@@ -17,6 +17,7 @@ import 'package:to_do_app/features/tasks/presentation/widgets/delete_success_dia
 import 'package:to_do_app/features/tasks/presentation/widgets/task_success_dialog.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/premium_dropdown.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
+import 'package:to_do_app/screens/task_details/task_detail_page.dart';
 
 class TaskCard extends ConsumerStatefulWidget {
   const TaskCard({
@@ -142,7 +143,19 @@ class _TaskCardState extends ConsumerState<TaskCard> {
     if (widget.mobile) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => EditTaskPageV2(item: widget.task),
+          builder: (context) => EditTaskPageV2(
+            item: widget.task,
+            onSaveSuccess: (updatedItem) {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                  builder: (context) => TaskDetailPage(
+                    item: updatedItem,
+                    onBack: () => Navigator.of(context).pop(),
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       );
     } else {
@@ -395,18 +408,22 @@ class _DesktopTaskBody extends StatelessWidget {
         const SizedBox(height: 16),
         Row(
           children: [
-            const Text(
-              'Progress',
-              style: TextStyle(
-                color: DashboardColors.onSurfaceVariant,
-                fontSize: 12,
+            const Expanded(
+              child: Text(
+                'Progress',
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                  fontSize: 12,
+                ),
               ),
             ),
-            const Spacer(),
+            const SizedBox(width: 8),
             Text(
               progress != null
                   ? '${(progress! * 100).round()}%'
-                  : 'No subtasks available',
+                  : 'No subtasks',
               style: TextStyle(
                 color: progress != null
                     ? DashboardColors.primary
@@ -424,7 +441,16 @@ class _DesktopTaskBody extends StatelessWidget {
           children: [
             _buildAssigneesRow(assignees, getInitials, getUserColor),
             const Spacer(),
-            ...tags.take(2).map((tag) => _TagChip(label: tag)),
+            Flexible(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                physics: const NeverScrollableScrollPhysics(),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: tags.take(2).map((tag) => _TagChip(label: tag)).toList(),
+                ),
+              ),
+            ),
           ],
         ),
       ],

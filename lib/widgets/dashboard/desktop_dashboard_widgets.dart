@@ -37,6 +37,7 @@ class DesktopDashboardLayout extends ConsumerStatefulWidget {
 class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout> {
   late int _selectedIndex = widget.initialIndex;
   TaskBoardItem? _detailsItem;
+  TaskBoardItem? _detailsItemBeforeEdit;
 
   void _openTaskDetails(TaskBoardItem item) =>
       setState(() => _detailsItem = item);
@@ -71,6 +72,19 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                           item: editingItem,
                           onBack: () {
                             ref.read(editingTaskProvider.notifier).state = null;
+                            if (_detailsItemBeforeEdit != null) {
+                              setState(() {
+                                _detailsItem = _detailsItemBeforeEdit;
+                                _detailsItemBeforeEdit = null;
+                              });
+                            }
+                          },
+                          onSaveSuccess: (updatedItem) {
+                            ref.read(editingTaskProvider.notifier).state = null;
+                            setState(() {
+                              _detailsItem = updatedItem;
+                              _detailsItemBeforeEdit = null;
+                            });
                           },
                         )
                       : _detailsItem != null
@@ -80,6 +94,12 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                             ),
                             item: _detailsItem!,
                             onBack: _closeTaskDetails,
+                            onEditTask: () {
+                              final itemToEdit = _detailsItem;
+                              _detailsItemBeforeEdit = _detailsItem;
+                              setState(() => _detailsItem = null);
+                              ref.read(editingTaskProvider.notifier).state = itemToEdit;
+                            },
                           )
                           : switch (_selectedIndex) {
                         0 => _DashboardMainPane(

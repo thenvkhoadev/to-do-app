@@ -1,20 +1,25 @@
+import 'dart:ui' show ImageFilter;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/features/tasks/data/datasource/attachment_datasource.dart';
 import 'package:to_do_app/features/tasks/data/models/task_attachment_model.dart';
+import 'package:to_do_app/features/tasks/data/models/tag_model.dart';
+import 'package:to_do_app/features/tasks/data/models/category_model.dart';
 import 'package:to_do_app/features/tasks/data/models/task_subtask_model.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/task_timeline_provider.dart';
-import 'dart:math' show min;
+import 'dart:math' show min, cos, sin;
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
+import 'package:to_do_app/core/utils/description_utils.dart';
 
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/layouts.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/overview_cards.dart';
@@ -24,17 +29,22 @@ import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/subtasks
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/attachments_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/ai_analysis_section.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/bottom_action_bar.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/productivity_booster_card.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/focus_timer_card.dart';
+import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/achievements_card.dart';
 import 'package:to_do_app/features/tasks/presentation/widgets/edit_task/header_section.dart';
 
 class EditTaskPageV2 extends ConsumerStatefulWidget {
   const EditTaskPageV2({
     required this.item,
     this.onBack,
+    this.onSaveSuccess,
     super.key,
   });
 
   final TaskBoardItem item;
   final VoidCallback? onBack;
+  final ValueChanged<TaskBoardItem>? onSaveSuccess;
 
   @override
   ConsumerState<EditTaskPageV2> createState() => _EditTaskPageV2State();
@@ -42,9 +52,7 @@ class EditTaskPageV2 extends ConsumerStatefulWidget {
 
 class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
   final _titleController = TextEditingController();
-  final _descController = TextEditingController();
-  final _estimateController = TextEditingController();
-  final _actualController = TextEditingController();
+  String? _currentDescription;
 
   bool _initialized = false;
   bool _isSaving = false;
@@ -61,6 +69,12 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
   final List<TaskAttachmentModel> _deletedAttachments = [];
   final List<PlatformFileInfo> _newAttachments = [];
 
+  // Time picker state
+  int _estimateHour = 4;
+  int _estimateMinute = 0;
+  int _actualHour = 2;
+  int _actualMinute = 15;
+
   // Original state tracking for changes detection
   String _initialTitle = '';
   String _initialDesc = '';
@@ -76,9 +90,6 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
   void initState() {
     super.initState();
     _titleController.addListener(_onTextChanged);
-    _descController.addListener(_onTextChanged);
-    _estimateController.addListener(_onTextChanged);
-    _actualController.addListener(_onTextChanged);
     _loadTaskDetailsFromDb();
   }
 
@@ -115,26 +126,21 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
 
     if (task != null) {
       _titleController.text = task.title;
-      _descController.text = task.description ?? '';
+      _currentDescription = task.description ?? '';
       _selectedCategoryId = task.categoryId;
       _selectedStatus = task.status;
       _selectedPriority = task.priority;
       _dueDate = task.dueDate;
 
       if (task.estimatedMinutes != null) {
-        final hours = task.estimatedMinutes! ~/ 60;
-        final mins = task.estimatedMinutes! % 60;
-        _estimateController.text = '${hours}h ${mins}m';
+        _estimateHour = task.estimatedMinutes! ~/ 60;
+        _estimateMinute = task.estimatedMinutes! % 60;
       }
-      _actualController.text = '2h 15m'; // Mock default
     } else {
       _titleController.text = widget.item.title;
-      _descController.text = widget.item.plainTextDescription;
+      _currentDescription = widget.item.description;
       _dueDate = widget.item.dueDate;
-      _estimateController.text = widget.item.estimate;
-      _actualController.text = '2h 15m'; // Mock default
-      
-      // Map status
+
       _selectedStatus = switch (widget.item.status) {
         TaskBoardStatus.draft => 'draft',
         TaskBoardStatus.todo => 'todo',
@@ -150,9 +156,9 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         TaskBoardPriority.done => 'medium',
       };
     }
-    
+
     _initialTitle = _titleController.text;
-    _initialDesc = _descController.text;
+    _initialDesc = _currentDescription ?? '';
     _initialCategoryId = _selectedCategoryId;
     _initialStatus = _selectedStatus;
     _initialPriority = _selectedPriority;
@@ -165,7 +171,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     if (!_initialized) return false;
 
     if (_titleController.text != _initialTitle) return true;
-    if (_descController.text != _initialDesc) return true;
+    if ((_currentDescription ?? '') != _initialDesc) return true;
     if (_selectedCategoryId != _initialCategoryId) return true;
     if (_selectedStatus != _initialStatus) return true;
     if (_selectedPriority != _initialPriority) return true;
@@ -203,28 +209,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     return false;
   }
 
-  int? _parseTimeToMinutes(String input) {
-    final clean = input.toLowerCase().trim();
-    if (clean.isEmpty) return null;
-    
-    int total = 0;
-    final hourMatch = RegExp(r'(\d+)\s*h').firstMatch(clean);
-    final minMatch = RegExp(r'(\d+)\s*m').firstMatch(clean);
-    
-    if (hourMatch != null) {
-      total += int.parse(hourMatch.group(1)!) * 60;
-    }
-    if (minMatch != null) {
-      total += int.parse(minMatch.group(1)!);
-    }
-    
-    if (hourMatch == null && minMatch == null) {
-      final rawNum = int.tryParse(clean);
-      if (rawNum != null) return rawNum;
-      return null;
-    }
-    return total;
-  }
+
 
   Future<void> _deleteAttachment(TaskAttachmentModel attachment) async {
     final client = ref.read(supabaseClientProvider);
@@ -265,12 +250,12 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         orElse: () => throw Exception('Không tìm thấy task trong database'),
       );
 
-      final estMin = _parseTimeToMinutes(_estimateController.text);
+      final estMin = _estimateHour * 60 + _estimateMinute;
       final completedNow = _selectedStatus == 'done' && nexusTask.status != 'done';
 
       final updated = nexusTask.copyWith(
         title: title,
-        description: _descController.text.trim(),
+        description: _currentDescription,
         categoryId: _selectedCategoryId,
         status: _selectedStatus,
         priority: _selectedPriority,
@@ -340,11 +325,29 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         ref.invalidate(xpLogsProvider);
       }
 
+      // Invalidate relevant providers to force a refresh across the app
+      ref.invalidate(userTasksProvider);
+      ref.invalidate(userCategoriesProvider);
+      ref.invalidate(userTagsProvider);
+      ref.invalidate(taskSubtasksProvider(widget.item.id));
+      ref.invalidate(taskAttachmentsProvider(widget.item.id));
+      ref.invalidate(taskAssigneeIdsProvider(widget.item.id));
+      ref.invalidate(taskTagIdsProvider(widget.item.id));
+      ref.invalidate(userAttachmentTaskIdsProvider);
+      ref.invalidate(userSubtasksByTaskProvider);
+
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã cập nhật công việc thành công!'), backgroundColor: DashboardColors.success),
-        );
-        _handleBack();
+        await _showSuccessDialog();
+        
+        final users = ref.read(allUsersProvider).valueOrNull ?? [];
+        final tags = ref.read(userTagsProvider).valueOrNull ?? [];
+        final updatedItem = _mapTaskToBoardItem(updated, users, tags);
+
+        if (widget.onSaveSuccess != null) {
+          widget.onSaveSuccess!(updatedItem);
+        } else {
+          _handleBack();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -355,6 +358,224 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
+  }
+
+  TaskBoardItem _mapTaskToBoardItem(
+    NexusTask task,
+    List<UserProfileModel> users,
+    List<TagModel> tags,
+  ) {
+    // 1. Get assignee initials
+    String assigneeInitials = 'AI';
+    if (task.assigneeIds.isNotEmpty) {
+      final assigneeId = task.assigneeIds.first;
+      final user = users.firstWhere(
+        (u) => u.id == assigneeId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (user.fullName != null && user.fullName!.trim().isNotEmpty) {
+        final names = user.fullName!.trim().split(' ');
+        if (names.length >= 2) {
+          assigneeInitials = '${names[0][0]}${names[1][0]}'.toUpperCase();
+        } else if (names.isNotEmpty && names[0].isNotEmpty) {
+          assigneeInitials = names[0][0].toUpperCase();
+        }
+      } else if (user.username != null && user.username!.isNotEmpty) {
+        assigneeInitials = user.username![0].toUpperCase();
+      }
+    }
+
+    // 2. Get status
+    TaskBoardStatus boardStatus;
+    switch (task.status) {
+      case 'draft':
+        boardStatus = TaskBoardStatus.draft;
+        break;
+      case 'todo':
+        boardStatus = TaskBoardStatus.todo;
+        break;
+      case 'in_progress':
+        boardStatus = TaskBoardStatus.inProgress;
+        break;
+      case 'done':
+        boardStatus = TaskBoardStatus.completed;
+        break;
+      default:
+        boardStatus = TaskBoardStatus.todo;
+    }
+
+    // 3. Get priority
+    TaskBoardPriority boardPriority;
+    switch (task.priority) {
+      case 'urgent':
+        boardPriority = TaskBoardPriority.urgent;
+        break;
+      case 'high':
+        boardPriority = TaskBoardPriority.high;
+        break;
+      case 'medium':
+        boardPriority = TaskBoardPriority.medium;
+        break;
+      case 'low':
+        boardPriority = TaskBoardPriority.low;
+        break;
+      default:
+        boardPriority = TaskBoardPriority.medium;
+    }
+
+    // 4. Get tags
+    final taskTags = <String>[];
+    for (final tagId in task.tagIds) {
+      final tag = tags.firstWhere(
+        (t) => t.id == tagId,
+        orElse: () => TagModel(id: '', name: '', userId: ''),
+      );
+      if (tag.name.isNotEmpty) {
+        taskTags.add(tag.name);
+      }
+    }
+
+    // 5. Get estimate
+    final estimate = task.estimatedMinutes != null ? '${task.estimatedMinutes}m' : '';
+
+    // 6. Get progress
+    double progress = 0.0;
+    if (task.status == 'done') {
+      progress = 1.0;
+    } else if (task.status == 'in_progress') {
+      progress = 0.5;
+    }
+
+    // 7. Get creator name
+    String? creatorName;
+    final creatorUser = users.firstWhere(
+      (u) => u.id == task.userId,
+      orElse: () => UserProfileModel(id: '', email: ''),
+    );
+    if (creatorUser.fullName != null && creatorUser.fullName!.isNotEmpty) {
+      creatorName = creatorUser.fullName;
+    } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+      creatorName = creatorUser.username;
+    } else if (creatorUser.email.isNotEmpty) {
+      creatorName = creatorUser.email;
+    }
+
+    return TaskBoardItem(
+      id: task.id,
+      title: task.title,
+      description: task.description ?? '',
+      status: boardStatus,
+      priority: boardPriority,
+      estimate: estimate,
+      assignee: assigneeInitials,
+      progress: progress,
+      tags: taskTags,
+      completed: task.status == 'done',
+      dueLabel: task.dueDate != null ? '${task.dueDate!.day}/${task.dueDate!.month}' : null,
+      dueDate: task.dueDate,
+      createdAt: task.createdAt,
+      updatedAt: task.updatedAt,
+      creatorName: creatorName,
+      userId: task.userId,
+      xpAwarded: task.xpAwarded,
+    );
+  }
+
+  Future<void> _showSuccessDialog() async {
+    if (!mounted) return;
+    await showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, animation, secondaryAnimation) {
+        return const SizedBox.shrink();
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final scale = Tween<double>(begin: 0.85, end: 1.0).animate(
+          CurvedAnimation(parent: animation, curve: const Cubic(0.34, 1.56, 0.64, 1.0)),
+        );
+        final opacity = CurvedAnimation(parent: animation, curve: Curves.easeOut);
+        
+        return GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          behavior: HitTestBehavior.opaque,
+          child: BackdropFilter(
+            filter: ImageFilter.blur(
+              sigmaX: 12.0 * animation.value,
+              sigmaY: 12.0 * animation.value,
+            ),
+            child: ScaleTransition(
+              scale: scale,
+              child: FadeTransition(
+                opacity: opacity,
+                child: Dialog(
+                  backgroundColor: Colors.transparent,
+                  elevation: 0,
+                  insetPadding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: Center(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(28),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Container(
+                          width: 300,
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF090D1A).withValues(alpha: 0.82),
+                            borderRadius: BorderRadius.circular(28),
+                            border: Border.all(
+                              color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                blurRadius: 24,
+                                spreadRadius: 3,
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const _SuccessCheckmarkWidget(),
+                              const SizedBox(height: 20),
+                              const Text(
+                                'Cập nhật thành công!',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.2,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Mọi thay đổi của công việc đã được đồng bộ hóa thành công.',
+                                style: TextStyle(
+                                  color: DashboardColors.onSurfaceVariant.withValues(alpha: 0.7),
+                                  fontSize: 12,
+                                  height: 1.4,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                              const SizedBox(height: 24),
+                              const _BlinkingTextPrompt(),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 
   void _handleBack() {
@@ -394,6 +615,9 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
     if (confirmed == true && mounted) {
       try {
         await ref.read(taskRepositoryProvider).deleteTask(widget.item.id);
+        ref.invalidate(userTasksProvider);
+        ref.invalidate(userAttachmentTaskIdsProvider);
+        ref.invalidate(userSubtasksByTaskProvider);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Đã xóa công việc thành công'), backgroundColor: DashboardColors.success),
@@ -413,13 +637,7 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
   @override
   void dispose() {
     _titleController.removeListener(_onTextChanged);
-    _descController.removeListener(_onTextChanged);
-    _estimateController.removeListener(_onTextChanged);
-    _actualController.removeListener(_onTextChanged);
     _titleController.dispose();
-    _descController.dispose();
-    _estimateController.dispose();
-    _actualController.dispose();
     super.dispose();
   }
 
@@ -445,7 +663,17 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
         final overviewWidget = StaggeredEntrance(
           delayIndex: 1,
           child: TaskOverviewCards(
-            item: widget.item,
+            priority: _selectedPriority,
+            status: _selectedStatus,
+            categoryId: _selectedCategoryId,
+            categories: categories,
+            dueDate: _dueDate,
+            subtasks: _subtasks,
+            estimateMinutes: _estimateHour * 60 + _estimateMinute,
+            actualMinutes: _actualHour * 60 + _actualMinute,
+            attachmentsCount: _attachments.length + _newAttachments.length,
+            hasDescription: parseDescriptionToPlainText(_currentDescription).isNotEmpty,
+            tagsCount: _selectedTagIds.length,
             isMobile: isMobile,
           ),
         );
@@ -454,9 +682,19 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           delayIndex: 2,
           child: TaskGeneralInfoCard(
             titleController: _titleController,
-            descController: _descController,
-            estimateController: _estimateController,
-            actualController: _actualController,
+            taskId: widget.item.id,
+            initialDescription: _currentDescription ?? '',
+            onDescriptionChanged: (val) {
+              setState(() {
+                _currentDescription = val;
+              });
+            },
+            estimateHour: _estimateHour,
+            estimateMinute: _estimateMinute,
+            onEstimateChanged: (h, m) => setState(() { _estimateHour = h; _estimateMinute = m; }),
+            actualHour: _actualHour,
+            actualMinute: _actualMinute,
+            onActualChanged: (h, m) => setState(() { _actualHour = h; _actualMinute = m; }),
             categories: categories,
             tags: tags,
             selectedCategoryId: _selectedCategoryId,
@@ -468,6 +706,29 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
             selectedTagIds: _selectedTagIds,
             onAddTag: (tid) => setState(() => _selectedTagIds.add(tid)),
             onRemoveTag: (tid) => setState(() => _selectedTagIds.remove(tid)),
+            selectedPriority: _selectedPriority,
+            onPriorityChanged: (newPriority) => setState(() => _selectedPriority = newPriority),
+            onCreateTag: (name, colorHex) async {
+              final user = ref.read(authControllerProvider).valueOrNull;
+              if (user == null) throw Exception('User is not signed in');
+              return ref.read(tagDataSourceProvider).createTag(TagModel(
+                    id: '',
+                    userId: user.id,
+                    name: name,
+                    color: colorHex,
+                  ));
+            },
+            onCreateCategory: (name, colorHex, iconName) async {
+              final user = ref.read(authControllerProvider).valueOrNull;
+              if (user == null) throw Exception('User is not signed in');
+              return ref.read(categoryDataSourceProvider).createCategory(CategoryModel(
+                    id: '',
+                    userId: user.id,
+                    name: name,
+                    color: colorHex,
+                    icon: iconName,
+                  ));
+            },
           ),
         );
 
@@ -551,6 +812,21 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           child: _ActivityTimelineCard(taskId: widget.item.id),
         );
 
+        final productivityBoosterCard = StaggeredEntrance(
+          delayIndex: 8,
+          child: const TaskProductivityBoosterCard(),
+        );
+
+        final focusTimerCard = StaggeredEntrance(
+          delayIndex: 9,
+          child: const TaskFocusTimerCard(),
+        );
+
+        final achievementsCard = StaggeredEntrance(
+          delayIndex: 10,
+          child: const TaskAchievementsCard(),
+        );
+
         final headerWidget = TaskHeaderSection(
           item: widget.item,
           onBack: _handleBack,
@@ -590,6 +866,9 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
             activityTimelineCard: activityTimelineCard,
             healthCard: healthCard,
             smartSchedule: smartScheduleCard,
+            productivityBoosterCard: productivityBoosterCard,
+            focusTimerCard: focusTimerCard,
+            achievementsCard: achievementsCard,
           );
         }
 
@@ -607,6 +886,9 @@ class _EditTaskPageV2State extends ConsumerState<EditTaskPageV2> {
           activityTimelineCard: activityTimelineCard,
           healthCard: healthCard,
           smartSchedule: smartScheduleCard,
+          productivityBoosterCard: productivityBoosterCard,
+          focusTimerCard: focusTimerCard,
+          achievementsCard: achievementsCard,
         );
       },
     );
@@ -923,6 +1205,252 @@ class _ActivityTimelineCard extends ConsumerWidget {
             },
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SuccessCheckmarkPainter extends CustomPainter {
+  final double circleScale;
+  final double checkmarkProgress;
+  final double rippleProgress;
+  final double particleProgress;
+
+  _SuccessCheckmarkPainter({
+    required this.circleScale,
+    required this.checkmarkProgress,
+    required this.rippleProgress,
+    required this.particleProgress,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
+    final baseRadius = 32.0;
+
+    // 1. Draw expanding ripples/halos (behind the main circle)
+    if (rippleProgress > 0) {
+      final ripplePaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2.0
+        ..color = const Color(0xFF10B981).withValues(alpha: (1.0 - rippleProgress) * 0.4);
+
+      // Inner ripple
+      final radius1 = baseRadius * (1.0 + rippleProgress * 0.6);
+      canvas.drawCircle(center, radius1, ripplePaint);
+
+      // Outer ripple
+      if (rippleProgress > 0.3) {
+        final ripplePaint2 = Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 1.0
+          ..color = const Color(0xFF10B981).withValues(alpha: (1.0 - rippleProgress) * 0.2);
+        final radius2 = baseRadius * (1.0 + rippleProgress * 1.3);
+        canvas.drawCircle(center, radius2, ripplePaint2);
+      }
+    }
+
+    // 2. Draw bursting particles
+    if (particleProgress > 0) {
+      final particlePaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFF34D399).withValues(alpha: (1.0 - particleProgress) * 0.8);
+
+      final numParticles = 8;
+      final distance = baseRadius * (1.1 + particleProgress * 1.5);
+      for (int i = 0; i < numParticles; i++) {
+        final angle = (i * 2 * 3.141592653589793) / numParticles + (particleProgress * 0.2);
+        final px = center.dx + distance * cos(angle);
+        final py = center.dy + distance * sin(angle);
+        final radius = 3.0 * (1.0 - particleProgress * 0.5);
+        canvas.drawCircle(Offset(px, py), radius, particlePaint);
+      }
+    }
+
+    // 3. Draw the main background circle
+    if (circleScale > 0) {
+      final bgPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFF10B981).withValues(alpha: 0.12 * circleScale);
+      
+      final borderPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = const Color(0xFF10B981).withValues(alpha: 0.35 * circleScale);
+
+      // Shadow/Glow
+      final glowPaint = Paint()
+        ..style = PaintingStyle.fill
+        ..color = const Color(0xFF10B981).withValues(alpha: 0.2 * circleScale)
+        ..imageFilter = ImageFilter.blur(sigmaX: 10, sigmaY: 10);
+      
+      canvas.drawCircle(center, baseRadius * circleScale, glowPaint);
+      canvas.drawCircle(center, baseRadius * circleScale, bgPaint);
+      canvas.drawCircle(center, baseRadius * circleScale, borderPaint);
+    }
+
+    // 4. Draw the drawing checkmark
+    if (checkmarkProgress > 0) {
+      final checkPaint = Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3.5
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..color = const Color(0xFF10B981);
+
+      final w = size.width;
+      final h = size.height;
+      final p0 = Offset(0.35 * w, 0.50 * h);
+      final p1 = Offset(0.47 * w, 0.62 * h);
+      final p2 = Offset(0.68 * w, 0.38 * h);
+
+      final path = Path();
+      if (checkmarkProgress <= 0.36) {
+        final t = checkmarkProgress / 0.36;
+        final current = Offset.lerp(p0, p1, t)!;
+        path.moveTo(p0.dx, p0.dy);
+        path.lineTo(current.dx, current.dy);
+      } else {
+        final t = (checkmarkProgress - 0.36) / 0.64;
+        final current = Offset.lerp(p1, p2, t)!;
+        path.moveTo(p0.dx, p0.dy);
+        path.lineTo(p1.dx, p1.dy);
+        path.lineTo(current.dx, current.dy);
+      }
+      canvas.drawPath(path, checkPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SuccessCheckmarkPainter oldDelegate) {
+    return oldDelegate.circleScale != circleScale ||
+        oldDelegate.checkmarkProgress != checkmarkProgress ||
+        oldDelegate.rippleProgress != rippleProgress ||
+        oldDelegate.particleProgress != particleProgress;
+  }
+}
+
+class _SuccessCheckmarkWidget extends StatefulWidget {
+  const _SuccessCheckmarkWidget();
+
+  @override
+  State<_SuccessCheckmarkWidget> createState() => _SuccessCheckmarkWidgetState();
+}
+
+class _SuccessCheckmarkWidgetState extends State<_SuccessCheckmarkWidget>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _circleScale;
+  late Animation<double> _checkmarkProgress;
+  late Animation<double> _rippleProgress;
+  late Animation<double> _particleProgress;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    );
+
+    _circleScale = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.4, curve: Curves.elasticOut),
+      ),
+    );
+
+    _checkmarkProgress = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.3, 0.8, curve: Curves.easeInOut),
+      ),
+    );
+
+    _rippleProgress = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _particleProgress = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 1.0, curve: Curves.easeOutCubic),
+      ),
+    );
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          size: const Size(120, 120),
+          painter: _SuccessCheckmarkPainter(
+            circleScale: _circleScale.value,
+            checkmarkProgress: _checkmarkProgress.value,
+            rippleProgress: _rippleProgress.value,
+            particleProgress: _particleProgress.value,
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _BlinkingTextPrompt extends StatefulWidget {
+  const _BlinkingTextPrompt();
+
+  @override
+  State<_BlinkingTextPrompt> createState() => _BlinkingTextPromptState();
+}
+
+class _BlinkingTextPromptState extends State<_BlinkingTextPrompt>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _opacity;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 1),
+    )..repeat(reverse: true);
+    _opacity = Tween<double>(begin: 0.25, end: 0.75).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _opacity,
+      child: const Text(
+        'Chạm bất kỳ đâu để quay lại',
+        style: TextStyle(
+          color: DashboardColors.onSurfaceVariant,
+          fontSize: 10.5,
+          fontWeight: FontWeight.bold,
+          letterSpacing: 0.5,
+        ),
       ),
     );
   }
