@@ -12,7 +12,6 @@ import 'package:to_do_app/screens/support/support_screen.dart';
 import 'package:to_do_app/screens/home.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
 import 'package:to_do_app/screens/sign_up_page.dart';
-import 'package:to_do_app/screens/task_details/task_detail_from_id_screen.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final client = ref.watch(supabaseClientProvider);
@@ -62,10 +61,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder: (_, __) => const DashboardScreen(initialIndex: 7),
       ),
       GoRoute(
+        path: '/notifications',
+        builder: (_, __) => const DashboardScreen(initialIndex: 11),
+      ),
+      GoRoute(
         path: '/task-detail/:id',
         builder:
             (_, state) =>
-                TaskDetailFromIdScreen(taskId: state.pathParameters['id']!),
+                DashboardScreen(
+                  initialIndex: 0,
+                  taskId: state.pathParameters['id'],
+                ),
       ),
     ],
   );

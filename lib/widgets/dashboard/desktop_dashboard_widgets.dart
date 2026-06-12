@@ -25,11 +25,18 @@ import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_but
 import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/pages/edit_task_page_v2.dart';
 import 'package:to_do_app/widgets/profile/premium_profile_dropdown.dart';
+import 'package:to_do_app/features/notifications/presentation/widgets/notification_bell_button.dart';
+import 'package:to_do_app/features/notifications/presentation/screens/notifications_screen.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/domain/entities/task.dart';
+import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
-  const DesktopDashboardLayout({super.key, this.initialIndex = 0});
+  const DesktopDashboardLayout({super.key, this.initialIndex = 0, this.taskId});
 
   final int initialIndex;
+  final String? taskId;
 
   @override
   ConsumerState<DesktopDashboardLayout> createState() => _DesktopDashboardLayoutState();
@@ -41,6 +48,12 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
   TaskBoardItem? _detailsItemBeforeEdit;
 
   @override
+  void initState() {
+    super.initState();
+    _checkAndLoadTaskFromId();
+  }
+
+  @override
   void didUpdateWidget(covariant DesktopDashboardLayout oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.initialIndex != widget.initialIndex) {
@@ -50,15 +63,157 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
         ref.read(editingTaskProvider.notifier).state = null;
       });
     }
+    if (oldWidget.taskId != widget.taskId) {
+      _checkAndLoadTaskFromId();
+    }
   }
 
   void _openTaskDetails(TaskBoardItem item) =>
       setState(() => _detailsItem = item);
 
-  void _closeTaskDetails() => setState(() => _detailsItem = null);
+  void _closeTaskDetails() {
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go('/home');
+    }
+  }
+
+  void _checkAndLoadTaskFromId() {
+    final taskId = widget.taskId;
+    if (taskId != null && taskId.isNotEmpty) {
+      final tasksAsync = ref.read(userTasksProvider);
+      tasksAsync.whenData((tasks) {
+        final matching = tasks.where((t) => t.id == taskId);
+        if (matching.isNotEmpty) {
+          final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
+          final item = _toTaskBoardItem(matching.first, allUsers);
+          setState(() {
+            _detailsItem = item;
+          });
+        }
+      });
+    } else {
+      if (_detailsItem != null) {
+        setState(() {
+          _detailsItem = null;
+        });
+      }
+    }
+  }
+
+  TaskBoardItem _toTaskBoardItem(NexusTask t, List<UserProfileModel> allUsers) {
+    TaskBoardStatus status;
+    switch (t.status.toLowerCase()) {
+      case 'in_progress':
+      case 'inprogress':
+        status = TaskBoardStatus.inProgress;
+        break;
+      case 'completed':
+      case 'done':
+        status = TaskBoardStatus.completed;
+        break;
+      case 'draft':
+        status = TaskBoardStatus.draft;
+        break;
+      default:
+        status = TaskBoardStatus.todo;
+    }
+
+    TaskBoardPriority priority;
+    switch (t.priority.toLowerCase()) {
+      case 'urgent':
+        priority = TaskBoardPriority.urgent;
+        break;
+      case 'high':
+        priority = TaskBoardPriority.high;
+        break;
+      case 'low':
+        priority = TaskBoardPriority.low;
+        break;
+      default:
+        priority = TaskBoardPriority.medium;
+    }
+
+    final estMin = t.estimatedMinutes;
+    final estimate = estMin != null
+        ? estMin >= 60
+            ? '${estMin ~/ 60}h${estMin % 60 > 0 ? ' ${estMin % 60}m' : ''}'
+            : '${estMin}m'
+        : '–';
+
+    String resolvedAssigneeName = 'Unassigned';
+    final assigneeIds = t.assigneeIds;
+    if (assigneeIds.isNotEmpty) {
+      final assigneeId = assigneeIds.first;
+      final user = allUsers.firstWhere(
+        (u) => u.id == assigneeId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (user.fullName != null && user.fullName!.trim().isNotEmpty) {
+        resolvedAssigneeName = user.fullName!;
+      } else if (user.username != null && user.username!.isNotEmpty) {
+        resolvedAssigneeName = user.username!;
+      } else if (user.email.isNotEmpty) {
+        resolvedAssigneeName = user.email;
+      }
+    }
+    
+    String? resolvedCreatorName;
+    final userId = t.userId;
+    if (userId.isNotEmpty) {
+      final creatorUser = allUsers.firstWhere(
+        (u) => u.id == userId,
+        orElse: () => UserProfileModel(id: '', email: ''),
+      );
+      if (creatorUser.fullName != null && creatorUser.fullName!.trim().isNotEmpty) {
+        resolvedCreatorName = creatorUser.fullName;
+      } else if (creatorUser.username != null && creatorUser.username!.isNotEmpty) {
+        resolvedCreatorName = creatorUser.username;
+      } else if (creatorUser.email.isNotEmpty) {
+        resolvedCreatorName = creatorUser.email;
+      }
+    }
+
+    return TaskBoardItem(
+      id: t.id,
+      title: t.title,
+      description: t.description ?? '',
+      status: status,
+      priority: priority,
+      estimate: estimate,
+      assignee: resolvedAssigneeName,
+      progress: status == TaskBoardStatus.completed ? 1.0 : (status == TaskBoardStatus.inProgress ? 0.5 : 0.0),
+      tags: const [],
+      dueDate: t.dueDate,
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+      userId: userId,
+      creatorName: resolvedCreatorName,
+      xpAwarded: t.xpAwarded,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<AsyncValue<List<NexusTask>>>(userTasksProvider, (previous, next) {
+      next.whenData((tasks) {
+        final taskId = widget.taskId;
+        if (taskId != null && taskId.isNotEmpty) {
+          final matching = tasks.where((t) => t.id == taskId);
+          if (matching.isNotEmpty) {
+            final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
+            final item = _toTaskBoardItem(matching.first, allUsers);
+            if (_detailsItem?.id != item.id || _detailsItem?.updatedAt != item.updatedAt) {
+              setState(() {
+                _detailsItem = item;
+              });
+            }
+          }
+        }
+      });
+    });
+
     final editingItem = ref.watch(editingTaskProvider);
     return Row(
       children: [
@@ -183,6 +338,10 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                           onClose: () => setState(() => _selectedIndex = 0),
                         ),
                         9 => const ArchivedScreen(key: ValueKey('archived')),
+                        11 => const NotificationsScreen(
+                          key: ValueKey('notifications'),
+                          embeddedInDashboard: true,
+                        ),
                         _ => _DashboardSectionPlaceholder(
                           index: _selectedIndex,
                         ),
@@ -750,10 +909,7 @@ class DesktopTopbar extends StatelessWidget {
                           const SizedBox(width: 12),
                           const XPLevelCard(),
                           const SizedBox(width: 12),
-                          const _TopIcon(
-                            icon: Icons.notifications_none_rounded,
-                            badge: true,
-                          ),
+                          const NotificationBellButton(),
                           const SizedBox(width: 12),
                           const PremiumProfileCapsuleDropdown(),
                         ],
@@ -983,46 +1139,7 @@ class _SearchSuggestionTile extends StatelessWidget {
   }
 }
 
-class _TopIcon extends StatelessWidget {
-  const _TopIcon({required this.icon, this.badge = false});
 
-  final IconData icon;
-  final bool badge;
-
-  @override
-  Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: () {},
-            child: SizedBox(
-              width: 42,
-              height: 42,
-              child: Icon(icon, color: DashboardColors.onSurface),
-            ),
-          ),
-        ),
-        if (badge)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: Container(
-              width: 8,
-              height: 8,
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: DashboardColors.error,
-              ),
-            ),
-          ),
-      ],
-    );
-  }
-}
 
 class FocusScoreCard extends ConsumerWidget {
   const FocusScoreCard({super.key});
