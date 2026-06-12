@@ -8,7 +8,6 @@ import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen
 import 'package:to_do_app/features/tasks/presentation/screens/tasks_screen.dart';
 import 'package:to_do_app/screens/analytics/analytics_screen.dart';
 import 'package:to_do_app/screens/dashboard/dashboard_screen.dart';
-import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/support/support_screen.dart';
 import 'package:to_do_app/screens/home.dart';
 import 'package:to_do_app/screens/sign_in_page.dart';
@@ -53,7 +52,10 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/ai', builder: (_, __) => const AiScreen()),
       GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
       GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
-      GoRoute(path: '/settings', builder: (_, __) => const SettingsScreen()),
+      GoRoute(
+        path: '/settings',
+        builder: (_, __) => const DashboardScreen(initialIndex: 5),
+      ),
       GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
       GoRoute(
         path: '/profile',

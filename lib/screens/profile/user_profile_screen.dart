@@ -2547,44 +2547,6 @@ class _DesktopLevelCard extends StatelessWidget {
   }
 }
 
-/// Section 3 — a single rank pill; the current rank is highlighted.
-class _RankBadge extends StatelessWidget {
-  const _RankBadge({required this.label, required this.active});
-  final String label;
-  final bool active;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        gradient:
-            active
-                ? const LinearGradient(
-                  colors: [Color(0xFF9D7CFF), Color(0xFF6C63FF)],
-                )
-                : null,
-        color: active ? null : Colors.white.withValues(alpha: 0.04),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(
-          color:
-              active
-                  ? Colors.transparent
-                  : Colors.white.withValues(alpha: 0.08),
-        ),
-      ),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: active ? Colors.white : NexusColors.onSurfaceVariant,
-          fontSize: 12,
-          fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-          fontFamily: 'JetBrains Mono',
-        ),
-      ),
-    );
-  }
-}
 
 class _AnimatedCounter extends StatelessWidget {
   const _AnimatedCounter({

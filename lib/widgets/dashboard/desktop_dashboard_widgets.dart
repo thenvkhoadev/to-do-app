@@ -24,6 +24,7 @@ import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/edit_task_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/pages/edit_task_page_v2.dart';
+import 'package:to_do_app/widgets/profile/premium_profile_dropdown.dart';
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
   const DesktopDashboardLayout({super.key, this.initialIndex = 0});
@@ -60,7 +61,28 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
         ),
         Expanded(
           child: ProfileNavigationScope(
-            onProfileSelected: () => setState(() => _selectedIndex = 7),
+            onProfileSelected: () {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _detailsItem = null;
+                _selectedIndex = 7;
+              });
+            },
+            onSettingsSelected: () {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _detailsItem = null;
+                _selectedIndex = 5;
+              });
+            },
+            onAchievementsSelected: () {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _detailsItem = null;
+                _selectedIndex = 10;
+              });
+            },
+            onSignOut: () => signOutDashboard(context),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 240),
               switchInCurve: Curves.easeOutCubic,
@@ -283,6 +305,7 @@ class _DashboardSectionPlaceholder extends StatelessWidget {
     4 => 'Analytics',
     5 => 'Settings',
     6 => 'Support',
+    10 => 'Achievements',
     _ => 'Dashboard',
   };
 
@@ -293,6 +316,7 @@ class _DashboardSectionPlaceholder extends StatelessWidget {
     4 => Icons.query_stats_rounded,
     5 => Icons.settings_rounded,
     6 => Icons.help_outline_rounded,
+    10 => Icons.military_tech_rounded,
     _ => Icons.dashboard_rounded,
   };
 
@@ -601,19 +625,11 @@ class DesktopSidebar extends StatelessWidget {
                     ),
                     const SizedBox(height: 12),
                     _SidebarItem(
-                      icon: Icons.settings_rounded,
-                      label: 'Settings',
-                      active: selectedIndex == 5,
-                      onTap: () => onSelected(5),
-                    ),
-                    _SidebarItem(
                       icon: Icons.help_outline_rounded,
                       label: 'Support',
                       active: selectedIndex == 6,
                       onTap: () => onSelected(6),
                     ),
-                    const SizedBox(height: 4),
-                    _SignOutButton(onTap: () => signOutDashboard(context)),
                   ],
                 ),
               ),
@@ -682,87 +698,7 @@ class _SidebarItem extends StatelessWidget {
   }
 }
 
-/// Premium glass Sign Out button with hover glow + pressed states.
-class _SignOutButton extends StatefulWidget {
-  const _SignOutButton({required this.onTap});
-  final VoidCallback onTap;
 
-  @override
-  State<_SignOutButton> createState() => _SignOutButtonState();
-}
-
-class _SignOutButtonState extends State<_SignOutButton> {
-  bool _hover = false;
-  bool _pressed = false;
-
-  static const _pink = Color(0xFFFF788C); // rgba(255,120,140)
-
-  @override
-  Widget build(BuildContext context) {
-    final bgAlpha = _pressed ? 0.28 : (_hover ? 0.20 : 0.12);
-    final borderAlpha = _pressed ? 0.55 : (_hover ? 0.45 : 0.28);
-    final textColor =
-        _pressed
-            ? Colors.white
-            : (_hover ? const Color(0xFFFFF4F7) : const Color(0xFFFFD6E0));
-    final iconColor =
-        _pressed
-            ? Colors.white
-            : (_hover ? const Color(0xFFFFD6E0) : const Color(0xFFFFB7C8));
-    return MouseRegion(
-      onEnter: (_) => setState(() => _hover = true),
-      onExit: (_) => setState(() => _hover = false),
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTapDown: (_) => setState(() => _pressed = true),
-        onTapUp: (_) => setState(() => _pressed = false),
-        onTapCancel: () => setState(() => _pressed = false),
-        onTap: widget.onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          decoration: BoxDecoration(
-            color: _pink.withValues(alpha: bgAlpha),
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: _pink.withValues(alpha: borderAlpha)),
-            boxShadow:
-                _pressed
-                    ? [
-                      BoxShadow(
-                        color: _pink.withValues(alpha: 0.15),
-                        blurRadius: 12,
-                      ),
-                    ]
-                    : _hover
-                    ? [
-                      BoxShadow(
-                        color: _pink.withValues(alpha: 0.20),
-                        blurRadius: 24,
-                      ),
-                    ]
-                    : null,
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.logout_rounded, color: iconColor, size: 20),
-              const SizedBox(width: 12),
-              Text(
-                'Sign Out',
-                style: TextStyle(
-                  color: textColor,
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class DesktopTopbar extends StatelessWidget {
   const DesktopTopbar({this.onProfileTap, super.key});
@@ -807,10 +743,7 @@ class DesktopTopbar extends StatelessWidget {
                             badge: true,
                           ),
                           const SizedBox(width: 12),
-                          ProfileAvatar(
-                            onTap: onProfileTap ?? () => context.go('/profile'),
-                            showUsername: true,
-                          ),
+                          const PremiumProfileCapsuleDropdown(),
                         ],
                       ),
                     ],

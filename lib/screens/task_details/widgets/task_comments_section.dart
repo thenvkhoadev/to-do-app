@@ -2259,7 +2259,7 @@ class _VoicePlayerState extends State<_VoicePlayer> {
       try {
         final uri = Uri.parse(url);
         if (uri.scheme == 'http' || uri.scheme == 'https') {
-          cleanUrl = uri.replace(queryParameters: {}).toString();
+          cleanUrl = url.split('?').first;
         }
       } catch (_) {}
 
@@ -2367,7 +2367,7 @@ class _VoicePlayerState extends State<_VoicePlayer> {
         try {
           final uri = Uri.parse(url);
           if (uri.scheme == 'http' || uri.scheme == 'https') {
-            cleanUrl = uri.replace(queryParameters: {}).toString();
+            cleanUrl = url.split('?').first;
           }
         } catch (_) {}
 

@@ -562,7 +562,7 @@ class MobileBottomNavBar extends StatelessWidget {
                 icon: Icons.person_rounded,
                 label: 'Profile',
                 onTap:
-                    ProfileNavigationScope.maybeOf(context) ??
+                    ProfileNavigationScope.maybeOf(context)?.onProfileSelected ??
                     () => context.go('/profile'),
               ),
             ],

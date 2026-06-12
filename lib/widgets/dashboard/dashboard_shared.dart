@@ -406,21 +406,28 @@ class SectionTitle extends StatelessWidget {
 class ProfileNavigationScope extends InheritedWidget {
   const ProfileNavigationScope({
     required this.onProfileSelected,
+    this.onSettingsSelected,
+    this.onAchievementsSelected,
+    this.onSignOut,
     required super.child,
     super.key,
   });
 
   final VoidCallback onProfileSelected;
+  final VoidCallback? onSettingsSelected;
+  final VoidCallback? onAchievementsSelected;
+  final VoidCallback? onSignOut;
 
-  static VoidCallback? maybeOf(BuildContext context) {
-    return context
-        .dependOnInheritedWidgetOfExactType<ProfileNavigationScope>()
-        ?.onProfileSelected;
+  static ProfileNavigationScope? maybeOf(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<ProfileNavigationScope>();
   }
 
   @override
   bool updateShouldNotify(ProfileNavigationScope oldWidget) =>
-      onProfileSelected != oldWidget.onProfileSelected;
+      onProfileSelected != oldWidget.onProfileSelected ||
+      onSettingsSelected != oldWidget.onSettingsSelected ||
+      onAchievementsSelected != oldWidget.onAchievementsSelected ||
+      onSignOut != oldWidget.onSignOut;
 }
 
 /// Lets embedded panes (e.g. the profile) switch dashboard sections
@@ -540,7 +547,7 @@ class ProfileAvatar extends ConsumerWidget {
         child: GestureDetector(
           onTap:
               onTap ??
-              ProfileNavigationScope.maybeOf(context) ??
+              ProfileNavigationScope.maybeOf(context)?.onProfileSelected ??
               () => context.go('/profile'),
           child: content,
         ),

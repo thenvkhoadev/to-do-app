@@ -75,6 +75,7 @@ class _TaskDetailPanelState extends ConsumerState<TaskDetailPanel> {
             TaskCompleteSuccessDialog.show(context, widget.task.title);
           }
         }
+        widget.onClose?.call();
       }
     } catch (e) {
       if (mounted) {
