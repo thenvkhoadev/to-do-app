@@ -12,6 +12,7 @@ const _kToastHeight = 112.0; // normal toast rendered height
 const _kToastHeightBonus = 134.0; // toast with lucky bonus row
 const _kNavbarHeight = 64.0; // top navbar height
 const _kTopPad = 16.0; // padding below navbar
+const _kMaxVisibleToasts = 4;
 
 // ── Single XP toast tile ──────────────────────────────────────────────────────
 
@@ -130,7 +131,7 @@ class XpNotificationOverlay extends ConsumerStatefulWidget {
 }
 
 class _XpNotificationOverlayState extends ConsumerState<XpNotificationOverlay> {
-  // Active toasts currently visible on screen (max 5).
+  // Active toasts currently visible on screen.
   final List<_ActiveToast> _active = [];
 
   void _onToastDone(String id, bool swiped) {
@@ -152,27 +153,21 @@ class _XpNotificationOverlayState extends ConsumerState<XpNotificationOverlay> {
   Widget build(BuildContext context) {
     final queue = ref.watch(xpNotificationQueueProvider);
 
-    // Add any queued items not yet active (cap at 5 visible; oldest evicted).
-    // Lifetime = 5s × (position when arriving). New ones inherit a longer
-    // deadline; existing toasts keep their original deadline (no reset).
+    // Add queued items only while there is room on screen.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final activeIds = _active.map((t) => t.notification.id).toSet();
       bool changed = false;
       for (final n in queue) {
-        if (!activeIds.contains(n.id)) {
-          final position = _active.length + 1;
-          _active.add(
-            _ActiveToast(
-              notification: n,
-              expiresAt: DateTime.now().add(Duration(seconds: 5 * position)),
-            ),
-          );
-          changed = true;
-        }
-      }
-      while (_active.length > 5) {
-        _active.removeAt(0);
+        if (_active.length >= _kMaxVisibleToasts) break;
+        if (activeIds.contains(n.id)) continue;
+
+        _active.add(
+          _ActiveToast(
+            notification: n,
+            expiresAt: DateTime.now().add(const Duration(seconds: 5)),
+          ),
+        );
         changed = true;
       }
       if (changed && mounted) setState(() {});
