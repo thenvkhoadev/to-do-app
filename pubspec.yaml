@@ -61,6 +61,8 @@ dependencies:
   emoji_picker_flutter: ^4.4.0
   record: ^7.1.0
   audioplayers: ^6.7.1
+  flutter_inappwebview: ^6.0.0
+  webview_windows: ^0.4.0
 
 dev_dependencies:
   flutter_test:
@@ -99,6 +101,9 @@ flutter:
   # included with your application, so that you can use the icons in
   # the material Icons class.
   uses-material-design: true
+
+  shaders:
+    - shaders/stitch_shader.frag
 
   assets:
     - .env

@@ -1,3 +1,4 @@
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:to_do_app/core/router/auth_refresh_listenable.dart';
@@ -36,47 +37,121 @@ final appRouterProvider = Provider<GoRouter>((ref) {
     },
     routes: [
       GoRoute(path: '/splash', builder: (_, __) => const SplashScreen()),
-      GoRoute(path: '/', builder: (_, __) => const Home()),
-      GoRoute(path: '/login', builder: (_, __) => const SignInPage()),
-      GoRoute(path: '/signup', builder: (_, __) => const SignUpPage()),
-      GoRoute(path: '/home', builder: (_, __) => const DashboardScreen()),
+      GoRoute(
+        path: '/',
+        pageBuilder: (_, state) => _transitionPage(state, const Home()),
+      ),
+      GoRoute(
+        path: '/login',
+        pageBuilder: (_, state) => _transitionPage(state, const SignInPage()),
+      ),
+      GoRoute(
+        path: '/signup',
+        pageBuilder: (_, state) => _transitionPage(state, const SignUpPage()),
+      ),
+      GoRoute(
+        path: '/home',
+        pageBuilder:
+            (_, state) => _transitionPage(state, const DashboardScreen()),
+      ),
       GoRoute(
         path: '/tasks',
-        builder:
-            (_, state) => TasksScreen(
-              openNewTask: state.uri.queryParameters['newTask'] == '1',
-              searchQuery: state.uri.queryParameters['search'],
+        pageBuilder:
+            (_, state) => _transitionPage(
+              state,
+              TasksScreen(
+                openNewTask: state.uri.queryParameters['newTask'] == '1',
+                searchQuery: state.uri.queryParameters['search'],
+              ),
             ),
       ),
-      GoRoute(path: '/ai', builder: (_, __) => const AiScreen()),
-      GoRoute(path: '/calendar', builder: (_, __) => const CalendarScreen()),
-      GoRoute(path: '/analytics', builder: (_, __) => const AnalyticsScreen()),
+      GoRoute(
+        path: '/ai',
+        pageBuilder: (_, state) => _transitionPage(state, const AiScreen()),
+      ),
+      GoRoute(
+        path: '/calendar',
+        pageBuilder:
+            (_, state) => _transitionPage(state, const CalendarScreen()),
+      ),
+      GoRoute(
+        path: '/analytics',
+        pageBuilder:
+            (_, state) => _transitionPage(state, const AnalyticsScreen()),
+      ),
       GoRoute(
         path: '/settings',
-        builder: (_, __) => const DashboardScreen(initialIndex: 5),
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 5)),
       ),
-      GoRoute(path: '/support', builder: (_, __) => const SupportScreen()),
+      GoRoute(
+        path: '/support',
+        pageBuilder:
+            (_, state) => _transitionPage(state, const SupportScreen()),
+      ),
       GoRoute(
         path: '/profile',
-        builder: (_, __) => const DashboardScreen(initialIndex: 7),
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 7)),
       ),
       GoRoute(
         path: '/notifications',
-        builder: (_, __) => const DashboardScreen(initialIndex: 11),
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 11)),
       ),
       GoRoute(
         path: '/achievements',
-        builder: (_, __) => const DashboardScreen(initialIndex: 10),
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 10)),
       ),
       GoRoute(
         path: '/task-detail/:id',
-        builder:
-            (_, state) =>
-                DashboardScreen(
-                  initialIndex: -1,
-                  taskId: state.pathParameters['id'],
-                ),
+        pageBuilder:
+            (_, state) => _transitionPage(
+              state,
+              DashboardScreen(
+                initialIndex: -1,
+                taskId: state.pathParameters['id'],
+              ),
+            ),
       ),
     ],
   );
 });
+
+CustomTransitionPage<void> _transitionPage(GoRouterState state, Widget child) {
+  return CustomTransitionPage<void>(
+    key: state.pageKey,
+    child: child,
+    transitionDuration: const Duration(milliseconds: 260),
+    reverseTransitionDuration: const Duration(milliseconds: 210),
+    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+      final curvedAnimation = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+        reverseCurve: Curves.easeInCubic,
+      );
+
+      return FadeTransition(
+        opacity: curvedAnimation,
+        child: SlideTransition(
+          position: Tween<Offset>(
+            begin: const Offset(0.018, 0.0),
+            end: Offset.zero,
+          ).animate(curvedAnimation),
+          child: ScaleTransition(
+            scale: Tween<double>(
+              begin: 0.992,
+              end: 1.0,
+            ).animate(curvedAnimation),
+            child: child,
+          ),
+        ),
+      );
+    },
+  );
+}

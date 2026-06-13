@@ -1,0 +1,600 @@
+import 'dart:ui';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+
+// Color Constants matching the HTML visual design rules
+class RegisterColors {
+  static const Color background = Color(0xFF0D1322);
+  static const Color primary = Color(0xFFE1DFFF);
+  static const Color secondary = Color(0xFFC0C1FF);
+  static const Color text = Color(0xFFDDE2F7);
+  static const Color onSurfaceVariant = Color(0xFFC7C5D0);
+  static const Color surfaceContainer = Color(0xFF191F2F);
+  static const Color glassStroke = Color(0x1FFFFFFF); // rgba(255,255,255,0.12)
+  static const Color errorRed = Color(0xFFFF3B30);
+  static const Color successGreen = Color(0xFFE4F222);
+  static const Color warningOrange = Color(0xFFFEE089);
+}
+
+// Geist font styling helpers with robust system fallbacks
+TextStyle getGeistStyle({
+  required double fontSize,
+  required FontWeight fontWeight,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) {
+  try {
+    return GoogleFonts.getFont(
+      'Geist',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? RegisterColors.text,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  } catch (_) {
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? RegisterColors.text,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  }
+}
+
+TextStyle getGeistMonoStyle({
+  required double fontSize,
+  required FontWeight fontWeight,
+  Color? color,
+  double? height,
+  double? letterSpacing,
+}) {
+  try {
+    return GoogleFonts.getFont(
+      'Geist Mono',
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? RegisterColors.text,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  } catch (_) {
+    return GoogleFonts.jetBrainsMono(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      color: color ?? RegisterColors.text,
+      height: height,
+      letterSpacing: letterSpacing,
+    );
+  }
+}
+
+class GlassCard extends StatelessWidget {
+  const GlassCard({
+    required this.child,
+    this.radius = 28.0,
+    this.padding,
+    super.key,
+  });
+
+  final Widget child;
+  final double radius;
+  final EdgeInsetsGeometry? padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(radius),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 30.0, sigmaY: 30.0),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: const Color(0x66191F2F), // rgba(25, 31, 47, 0.4)
+            borderRadius: BorderRadius.circular(radius),
+            border: Border.all(
+              color: RegisterColors.glassStroke,
+              width: 1.0,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class GlassInputField extends StatefulWidget {
+  const GlassInputField({
+    required this.controller,
+    required this.hintText,
+    this.labelText,
+    this.prefixIcon,
+    this.isPassword = false,
+    this.keyboardType,
+    this.textInputAction,
+    this.autofillHints,
+    this.onChanged,
+    super.key,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final String? labelText;
+  final IconData? prefixIcon;
+  final bool isPassword;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+  final Iterable<String>? autofillHints;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  State<GlassInputField> createState() => _GlassInputFieldState();
+}
+
+class _GlassInputFieldState extends State<GlassInputField> {
+  bool _obscureText = true;
+  bool _isFocused = false;
+  final FocusNode _focusNode = FocusNode();
+
+  @override
+  void initState() {
+    super.initState();
+    _obscureText = widget.isPassword;
+    _focusNode.addListener(() {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.labelText != null) ...[
+          Padding(
+            padding: const EdgeInsets.only(left: 4.0, bottom: 8.0),
+            child: Text(
+              widget.labelText!,
+              style: getGeistStyle(
+                fontSize: 12.0,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+                color: RegisterColors.onSurfaceVariant,
+              ),
+            ),
+          ),
+        ],
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            boxShadow: _isFocused
+                ? [
+                    BoxShadow(
+                      color: RegisterColors.secondary.withValues(alpha: 0.15),
+                      blurRadius: 12.0,
+                      spreadRadius: 2.0,
+                    )
+                  ]
+                : [],
+          ),
+          child: TextField(
+            controller: widget.controller,
+            focusNode: _focusNode,
+            obscureText: widget.isPassword && _obscureText,
+            keyboardType: widget.keyboardType,
+            textInputAction: widget.textInputAction,
+            autofillHints: widget.autofillHints,
+            onChanged: widget.onChanged,
+            style: getGeistStyle(fontSize: 15.0, fontWeight: FontWeight.w400),
+            decoration: InputDecoration(
+              hintText: widget.hintText,
+              hintStyle: getGeistStyle(
+                fontSize: 15.0,
+                fontWeight: FontWeight.w400,
+                color: RegisterColors.onSurfaceVariant.withValues(alpha: 0.3),
+              ),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              prefixIcon: widget.prefixIcon != null
+                  ? Icon(
+                      widget.prefixIcon,
+                      size: 20,
+                      color: _isFocused ? RegisterColors.secondary : RegisterColors.onSurfaceVariant,
+                    )
+                  : null,
+              suffixIcon: widget.isPassword
+                  ? IconButton(
+                      icon: Icon(
+                        _obscureText ? Icons.visibility : Icons.visibility_off,
+                        size: 20,
+                        color: RegisterColors.onSurfaceVariant,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _obscureText = !_obscureText;
+                        });
+                      },
+                    )
+                  : null,
+              filled: true,
+              fillColor: const Color(0x990D1322), // rgba(13, 19, 34, 0.6)
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: RegisterColors.glassStroke, width: 1.0),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12.0),
+                borderSide: const BorderSide(color: RegisterColors.secondary, width: 1.0),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class GlassCheckbox extends StatelessWidget {
+  const GlassCheckbox({
+    required this.value,
+    required this.onChanged,
+    required this.label,
+    super.key,
+  });
+
+  final bool value;
+  final ValueChanged<bool?> onChanged;
+  final Widget label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Theme(
+          data: ThemeData(
+            unselectedWidgetColor: RegisterColors.glassStroke,
+          ),
+          child: Checkbox(
+            value: value,
+            onChanged: onChanged,
+            activeColor: RegisterColors.secondary,
+            checkColor: const Color(0xFF131449),
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(4.0),
+            ),
+            side: const BorderSide(color: RegisterColors.glassStroke, width: 1.0),
+          ),
+        ),
+        const SizedBox(width: 8.0),
+        Expanded(child: label),
+      ],
+    );
+  }
+}
+
+class GradientPrimaryButton extends StatelessWidget {
+  const GradientPrimaryButton({
+    required this.label,
+    required this.onPressed,
+    this.trailingIcon,
+    this.loading = false,
+    super.key,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? trailingIcon;
+  final bool loading;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      height: 56.0,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.0),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFE1DFFF), Color(0xFFC0C1FF)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12.0),
+          onTap: loading ? null : onPressed,
+          child: Center(
+            child: loading
+                ? const SizedBox(
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF131449)),
+                    ),
+                  )
+                : Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        label,
+                        style: getGeistStyle(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF131449),
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      if (trailingIcon != null) ...[
+                        const SizedBox(width: 8.0),
+                        Icon(trailingIcon, color: const Color(0xFF131449), size: 20),
+                      ],
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class SocialLoginButton extends StatelessWidget {
+  const SocialLoginButton({
+    required this.label,
+    required this.onPressed,
+    required this.type,
+    super.key,
+  });
+
+  final String label;
+  final VoidCallback onPressed;
+  final String type; // 'google', 'facebook', 'github'
+
+  Widget _getIcon() {
+    switch (type.toLowerCase()) {
+      case 'google':
+        return const _GoogleMark();
+      case 'facebook':
+        return const _FacebookMark();
+      case 'github':
+        return const _GithubMark();
+      default:
+        return const Icon(Icons.login);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0x66191F2F),
+        borderRadius: BorderRadius.circular(12.0),
+        border: Border.all(color: RegisterColors.glassStroke, width: 1.0),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(12.0),
+          onTap: onPressed,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              _getIcon(),
+              const SizedBox(width: 8.0),
+              Text(
+                label,
+                style: getGeistMonoStyle(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w500,
+                  color: RegisterColors.text,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class DividerWithText extends StatelessWidget {
+  const DividerWithText({required this.text, super.key});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        const Expanded(
+          child: Divider(color: RegisterColors.glassStroke, height: 1.0),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Text(
+            text,
+            style: getGeistStyle(
+              fontSize: 12.0,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.2,
+              color: RegisterColors.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+          ),
+        ),
+        const Expanded(
+          child: Divider(color: RegisterColors.glassStroke, height: 1.0),
+        ),
+      ],
+    );
+  }
+}
+
+class PasswordStrengthWidget extends StatelessWidget {
+  const PasswordStrengthWidget({
+    required this.password,
+    super.key,
+  });
+
+  final String password;
+
+  @override
+  Widget build(BuildContext context) {
+    final checks = {
+      'len': password.length >= 8,
+      'upper': RegExp(r'[A-Z]').hasMatch(password),
+      'num': RegExp(r'[0-9]').hasMatch(password),
+      'special': RegExp(r'[^A-Za-z0-9]').hasMatch(password),
+    };
+
+    int score = 0;
+    checks.forEach((key, matched) {
+      if (matched) score++;
+    });
+
+    Color getStrengthColor() {
+      if (score <= 2) return RegisterColors.errorRed;
+      if (score == 3) return RegisterColors.warningOrange;
+      return RegisterColors.successGreen;
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Strength Indicator Bars
+        Row(
+          children: List.generate(4, (index) {
+            final active = index < score;
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                child: Container(
+                  height: 4.0,
+                  decoration: BoxDecoration(
+                    color: active ? getStrengthColor() : Colors.white.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(2.0),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+        const SizedBox(height: 12.0),
+        // Password Rules List
+        GridView.count(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisCount: 2,
+          childAspectRatio: 5.0,
+          children: [
+            _buildRuleItem('8+ characters', checks['len']!),
+            _buildRuleItem('Uppercase', checks['upper']!),
+            _buildRuleItem('Number', checks['num']!),
+            _buildRuleItem('Special char', checks['special']!),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRuleItem(String text, bool met) {
+    return Row(
+      children: [
+        Icon(
+          met ? Icons.check_circle : Icons.circle_outlined,
+          size: 14.0,
+          color: met ? RegisterColors.successGreen : RegisterColors.onSurfaceVariant,
+        ),
+        const SizedBox(width: 8.0),
+        Text(
+          text,
+          style: getGeistMonoStyle(
+            fontSize: 11.0,
+            fontWeight: FontWeight.w500,
+            color: met ? RegisterColors.successGreen : RegisterColors.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// Official SVG Logos
+const String _googleSvg = '''
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
+  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
+  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" fill="#FBBC05"/>
+  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" fill="#EA4335"/>
+</svg>
+''';
+
+const String _facebookSvg = '''
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2"/>
+</svg>
+''';
+
+const String _githubSvg = '''
+<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+  <path d="M12 0C5.37 0 0 5.37 0 12c0 5.3 3.438 9.8 8.205 11.385.6.11.82-.26.82-.577v-2.234c-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22v3.293c0 .319.2.694.8.576C20.565 21.795 24 17.3 24 12c0-6.63-5.37-12-12-12z" fill="currentColor"/>
+</svg>
+''';
+
+class _GoogleMark extends StatelessWidget {
+  const _GoogleMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.string(
+      _googleSvg,
+      width: 20,
+      height: 20,
+    );
+  }
+}
+
+class _FacebookMark extends StatelessWidget {
+  const _FacebookMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.string(
+      _facebookSvg,
+      width: 20,
+      height: 20,
+    );
+  }
+}
+
+class _GithubMark extends StatelessWidget {
+  const _GithubMark();
+
+  @override
+  Widget build(BuildContext context) {
+    return SvgPicture.string(
+      _githubSvg,
+      width: 20,
+      height: 20,
+      colorFilter: ColorFilter.mode(
+        RegisterColors.text.withValues(alpha: 0.8),
+        BlendMode.srcIn,
+      ),
+    );
+  }
+}

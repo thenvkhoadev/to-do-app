@@ -39,10 +39,27 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
   int? _lastKnownStreak;
   String? _lastKnownUserId;
   Timer? _levelUpTimer;
+  bool _isLoginCooldown = true;
+  Timer? _cooldownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startLoginCooldown();
+  }
+
+  void _startLoginCooldown() {
+    _isLoginCooldown = true;
+    _cooldownTimer?.cancel();
+    _cooldownTimer = Timer(const Duration(seconds: 5), () {
+      _isLoginCooldown = false;
+    });
+  }
 
   @override
   void dispose() {
     _levelUpTimer?.cancel();
+    _cooldownTimer?.cancel();
     super.dispose();
   }
 
@@ -205,6 +222,7 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
         ref.read(levelDownProvider.notifier).dismiss();
         ref.read(pendingStreakProvider.notifier).dismiss();
         ref.read(showStreakOverlayProvider.notifier).state = false;
+        _startLoginCooldown();
       }
     });
 
@@ -257,10 +275,17 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
         if (achievement.isUnlocked && !_seenAchievements.contains(achievement.id)) {
           _seenAchievements.add(achievement.id);
 
-          // Queue the achievement celebration modal
+          final isStreakAchievement = achievement.id.startsWith('streak_count') ||
+              achievement.id.startsWith('longest_streak') ||
+              achievement.category.toLowerCase() == 'streak';
+          final reachedExactTarget = achievement.currentValue == achievement.targetValue;
+
+          if (!reachedExactTarget || (_isLoginCooldown && !isStreakAchievement)) {
+            continue;
+          }
+
           ref.read(achievementNotificationProvider.notifier).queue(achievement);
 
-          // Award the XP in the database
           final xpReward = 200 + achievement.rarity.index * 100;
           ref.read(xpRemoteDataSourceProvider).awardXp(
                 userId: user.id,

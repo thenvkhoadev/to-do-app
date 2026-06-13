@@ -3,6 +3,7 @@ import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/notifications/data/datasource/notification_remote_datasource.dart';
 import 'package:to_do_app/features/notifications/data/models/notification_model.dart';
+import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 
 final notificationRemoteDataSourceProvider = Provider<NotificationRemoteDataSource>((ref) {
   return NotificationRemoteDataSource(ref.watch(supabaseClientProvider));
@@ -58,6 +59,26 @@ class NotificationsActions {
   /// Deletes a single notification.
   Future<void> deleteNotification(String id) async {
     await _dataSource.deleteNotification(id);
+  }
+
+  /// Declines task assignment by deleting user from task_assignees and deleting the notification.
+  Future<void> declineTaskAssignment({required String taskId, required String notificationId}) async {
+    final userId = _currentUserId;
+    if (userId == null) return;
+
+    final supabase = _ref.read(supabaseClientProvider);
+    // Delete the assignee row
+    await supabase
+        .from('task_assignees')
+        .delete()
+        .eq('task_id', taskId)
+        .eq('user_id', userId);
+
+    // Delete the notification
+    await deleteNotification(notificationId);
+
+    // Invalidate userTasksProvider to refresh the task list immediately
+    _ref.invalidate(userTasksProvider);
   }
 
   /// Utility method to generate various mock notifications for developer testing.

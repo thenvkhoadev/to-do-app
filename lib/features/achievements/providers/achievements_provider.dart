@@ -4,6 +4,7 @@ import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/achievements/domain/achievement.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
@@ -69,11 +70,10 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
   if (profile == null) return const [];
 
   final completedTasks = profile.completedTasks;
-  final streakDays = profile.streakCount;
+  final streakDays = displayStreakCount(profile.streakCount, profile.lastActivityDate);
   final completedTasksList = tasks.where((t) => t.status == 'done').toList();
   final realFocusMinutes = completedTasksList.fold<int>(0, (sum, t) => sum + (t.estimatedMinutes ?? 25));
   final realFocusSessions = completedTasksList.length;
-  final focusHours = (realFocusMinutes / 60).round();
   final totalXp = profile.totalXp;
   final level = profile.level;
   final projectsCount = categories.length;

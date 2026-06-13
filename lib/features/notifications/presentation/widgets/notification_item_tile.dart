@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:to_do_app/features/notifications/data/models/notification_model.dart';
 import 'package:to_do_app/features/notifications/presentation/providers/notifications_provider.dart';
+import 'package:to_do_app/features/notifications/presentation/widgets/notification_action_dialog.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
@@ -128,7 +129,7 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
     // Build quick actions row if applicable
     Widget? quickActions;
     if (!n.read) {
-      if (n.type == 'task_completed' || n.type == 'task_assigned') {
+      if (n.type == 'task_completed') {
         quickActions = Row(
           children: [
             _QuickActionButton(
@@ -157,6 +158,48 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
                     scope.onTaskSelected?.call(n.taskId!);
                   } else {
                     context.go('/task-detail/${n.taskId}');
+                  }
+                }
+              },
+            ),
+          ],
+        );
+      } else if (n.type == 'task_assigned') {
+        quickActions = Row(
+          children: [
+            _QuickActionButton(
+              label: 'Đồng ý',
+              onPressed: () async {
+                widget.onTap?.call();
+                await actions.deleteNotification(n.id);
+                if (context.mounted) {
+                  NotificationActionDialog.show(
+                    context: context,
+                    title: 'Đã Đồng Ý',
+                    message: 'Bạn đã đồng ý tham gia và làm việc chung trên nhiệm vụ này.',
+                    isDecline: false,
+                  );
+                }
+              },
+            ),
+            const SizedBox(width: 8),
+            _QuickActionButton(
+              label: 'Từ chối',
+              isSecondary: true,
+              onPressed: () async {
+                if (n.taskId != null && n.taskId!.isNotEmpty) {
+                  widget.onTap?.call();
+                  await actions.declineTaskAssignment(
+                    taskId: n.taskId!,
+                    notificationId: n.id,
+                  );
+                  if (context.mounted) {
+                    NotificationActionDialog.show(
+                      context: context,
+                      title: 'Đã Từ Chối',
+                      message: 'Bạn đã từ chối tham gia và đã được gỡ khỏi danh sách phân công nhiệm vụ này.',
+                      isDecline: true,
+                    );
                   }
                 }
               },
