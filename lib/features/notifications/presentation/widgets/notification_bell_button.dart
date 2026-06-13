@@ -6,6 +6,7 @@ import 'package:to_do_app/features/notifications/presentation/providers/notifica
 import 'package:to_do_app/features/notifications/presentation/widgets/facebook_notification_dropdown.dart';
 import 'package:to_do_app/features/notifications/presentation/widgets/notification_list_view.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class NotificationBellButton extends ConsumerStatefulWidget {
   const NotificationBellButton({super.key});
@@ -112,6 +113,7 @@ class _NotificationBellButtonState extends ConsumerState<NotificationBellButton>
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth >= 600 && screenWidth < 1000;
     final width = isTablet ? 380.0 : 440.0;
+    final parentScope = ProfileNavigationScope.maybeOf(context);
 
     return OverlayEntry(
       builder: (context) => Stack(
@@ -132,10 +134,23 @@ class _NotificationBellButtonState extends ConsumerState<NotificationBellButton>
               targetAnchor: Alignment.bottomRight,
               followerAnchor: Alignment.topRight,
               offset: const Offset(0, 12),
-              child: FacebookNotificationDropdown(
-                width: width,
-                onClose: _closeDropdown,
-              ),
+              child: parentScope != null
+                  ? ProfileNavigationScope(
+                      onProfileSelected: parentScope.onProfileSelected,
+                      onSettingsSelected: parentScope.onSettingsSelected,
+                      onAchievementsSelected: parentScope.onAchievementsSelected,
+                      onNotificationsSelected: parentScope.onNotificationsSelected,
+                      onTaskSelected: parentScope.onTaskSelected,
+                      onSignOut: parentScope.onSignOut,
+                      child: FacebookNotificationDropdown(
+                        width: width,
+                        onClose: _closeDropdown,
+                      ),
+                    )
+                  : FacebookNotificationDropdown(
+                      width: width,
+                      onClose: _closeDropdown,
+                    ),
             ),
           ),
         ],
@@ -187,27 +202,41 @@ class _NotificationBellButtonState extends ConsumerState<NotificationBellButton>
                       customBorder: const CircleBorder(),
                       onTap: () {
                         if (isMobile) {
+                          final parentScope = ProfileNavigationScope.maybeOf(context);
                           showModalBottomSheet(
                             context: context,
                             isScrollControlled: true,
                             backgroundColor: Colors.transparent,
-                            builder: (context) => Container(
-                              height: MediaQuery.of(context).size.height * 0.9,
-                              decoration: const BoxDecoration(
-                                color: Color(0xff0F172A),
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(28),
-                                  topRight: Radius.circular(28),
+                            builder: (context) {
+                              final bottomSheet = Container(
+                                height: MediaQuery.of(context).size.height * 0.9,
+                                decoration: const BoxDecoration(
+                                  color: Color(0xff0F172A),
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(28),
+                                    topRight: Radius.circular(28),
+                                  ),
                                 ),
-                              ),
-                              child: const ClipRRect(
-                                borderRadius: BorderRadius.only(
-                                  topLeft: Radius.circular(28),
-                                  topRight: Radius.circular(28),
+                                child: const ClipRRect(
+                                  borderRadius: BorderRadius.only(
+                                    topLeft: Radius.circular(28),
+                                    topRight: Radius.circular(28),
+                                  ),
+                                  child: NotificationListView(isFullScreen: false),
                                 ),
-                                child: NotificationListView(isFullScreen: false),
-                              ),
-                            ),
+                              );
+                              return parentScope != null
+                                  ? ProfileNavigationScope(
+                                      onProfileSelected: parentScope.onProfileSelected,
+                                      onSettingsSelected: parentScope.onSettingsSelected,
+                                      onAchievementsSelected: parentScope.onAchievementsSelected,
+                                      onNotificationsSelected: parentScope.onNotificationsSelected,
+                                      onTaskSelected: parentScope.onTaskSelected,
+                                      onSignOut: parentScope.onSignOut,
+                                      child: bottomSheet,
+                                    )
+                                  : bottomSheet;
+                            },
                           );
                         } else {
                           _toggleDropdown();

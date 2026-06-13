@@ -14,6 +14,9 @@ import 'package:to_do_app/features/streak/presentation/widgets/streak_celebratio
 import 'package:to_do_app/features/streak/presentation/widgets/streak_fire_bar.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/achievements/domain/achievement.dart';
+import 'package:to_do_app/features/achievements/providers/achievements_provider.dart';
+import 'package:to_do_app/features/achievements/widgets/achievement_unlocked_modal.dart';
 
 /// Wraps authenticated content. Listens to [xpLogsProvider] for new inserts,
 /// queues XP toast notifications, and shows the level-up modal when the user's
@@ -30,6 +33,8 @@ class XpOverlayShell extends ConsumerStatefulWidget {
 class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
   // Track the IDs we have already processed so we don't fire twice on rebuild.
   final Set<String> _seen = {};
+  final Set<String> _seenAchievements = {};
+  bool _achievementsInitialized = false;
   int? _lastKnownLevel;
   int? _lastKnownStreak;
   String? _lastKnownUserId;
@@ -48,6 +53,9 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
 
       final age = DateTime.now().toUtc().difference(log.createdAt.toUtc());
       if (age.inSeconds > 60) continue;
+
+      // Skip top-right toast notifications for achievement unlocks to avoid duplicates
+      if (log.reason.startsWith('Unlocked: ')) continue;
 
       final hasLucky = log.hasLuckyBonus;
       const tierValues = [100, 50, 20, 10];
@@ -176,6 +184,8 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
         _lastKnownStreak = null;
         _lastKnownUserId = null;
         _seen.clear();
+        _seenAchievements.clear();
+        _achievementsInitialized = false;
         ref.read(levelUpProvider.notifier).dismiss();
         ref.read(levelDownProvider.notifier).dismiss();
         ref.read(pendingStreakProvider.notifier).dismiss();
@@ -189,6 +199,8 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
         _lastKnownStreak = null;
         _lastKnownUserId = null;
         _seen.clear();
+        _seenAchievements.clear();
+        _achievementsInitialized = false;
         ref.read(levelUpProvider.notifier).dismiss();
         ref.read(levelDownProvider.notifier).dismiss();
         ref.read(pendingStreakProvider.notifier).dismiss();
@@ -213,10 +225,57 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
       }
     });
 
+    // Listen to achievements changes to detect newly unlocked achievements
+    ref.listen<List<Achievement>>(achievementsProvider, (previousList, nextList) {
+      final user = ref.read(authControllerProvider).valueOrNull;
+      if (user == null || nextList.isEmpty) return;
+
+      if (!_achievementsInitialized) {
+        for (final achievement in nextList) {
+          if (achievement.isUnlocked) {
+            _seenAchievements.add(achievement.id);
+          }
+        }
+
+        final initialized = ref.read(userTasksProvider).hasValue &&
+            ref.read(userProfileProvider).hasValue &&
+            ref.read(userCategoriesProvider).hasValue &&
+            ref.read(userCommentsCountProvider).hasValue &&
+            ref.read(userAttachmentsCountProvider).hasValue &&
+            ref.read(userCompletedSubtasksCountProvider).hasValue &&
+            ref.read(userArchivedTasksCountProvider).hasValue &&
+            ref.read(xpLogsProvider).hasValue;
+
+        if (initialized) {
+          _achievementsInitialized = true;
+        }
+        return;
+      }
+
+      // Check for achievements that transitioned from locked to unlocked
+      for (final achievement in nextList) {
+        if (achievement.isUnlocked && !_seenAchievements.contains(achievement.id)) {
+          _seenAchievements.add(achievement.id);
+
+          // Queue the achievement celebration modal
+          ref.read(achievementNotificationProvider.notifier).queue(achievement);
+
+          // Award the XP in the database
+          final xpReward = 200 + achievement.rarity.index * 100;
+          ref.read(xpRemoteDataSourceProvider).awardXp(
+                userId: user.id,
+                xpGained: xpReward,
+                reason: 'Unlocked: ${achievement.name}',
+              );
+        }
+      }
+    });
+
     final pendingLevelUp = ref.watch(levelUpProvider);
     final pendingLevelDown = ref.watch(levelDownProvider);
     final pendingStreak = ref.watch(pendingStreakProvider);
     final showStreak = ref.watch(showStreakOverlayProvider);
+    final pendingAchievements = ref.watch(achievementNotificationProvider);
 
     return Stack(
       children: [
@@ -261,6 +320,16 @@ class _XpOverlayShellState extends ConsumerState<XpOverlayShell> {
         if (pendingLevelUp != null)
           Positioned.fill(
             child: LevelUpModal(newLevel: pendingLevelUp),
+          ),
+        if (pendingAchievements.isNotEmpty)
+          Positioned.fill(
+            child: AchievementUnlockedModal(
+              key: ValueKey(pendingAchievements.first.id),
+              achievement: pendingAchievements.first,
+              onContinue: () {
+                ref.read(achievementNotificationProvider.notifier).dismissCurrent();
+              },
+            ),
           ),
       ],
     );

@@ -6,6 +6,7 @@ import 'package:to_do_app/features/notifications/data/models/notification_model.
 import 'package:to_do_app/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:to_do_app/features/notifications/presentation/widgets/notification_item_tile.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class NotificationListView extends ConsumerStatefulWidget {
   const NotificationListView({
@@ -382,7 +383,12 @@ class _NotificationListViewState extends ConsumerState<NotificationListView> {
                 child: TextButton(
                   onPressed: () {
                     if (widget.onClose != null) widget.onClose!();
-                    context.go('/notifications');
+                    final scope = ProfileNavigationScope.maybeOf(context);
+                    if (scope != null) {
+                      scope.onNotificationsSelected?.call();
+                    } else {
+                      context.go('/notifications');
+                    }
                   },
                   child: const Center(
                     child: Text(
@@ -553,7 +559,12 @@ class _NotificationListViewState extends ConsumerState<NotificationListView> {
                 _showOptions = false;
               });
               if (widget.onClose != null) widget.onClose!();
-              context.go('/settings');
+              final scope = ProfileNavigationScope.maybeOf(context);
+              if (scope != null) {
+                scope.onSettingsSelected?.call();
+              } else {
+                context.go('/settings');
+              }
             },
           ),
         ],

@@ -21,6 +21,7 @@ class DesktopTaskHeader extends StatelessWidget {
     required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
+    this.showBackButton = true,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class DesktopTaskHeader extends StatelessWidget {
   final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -59,6 +61,7 @@ class DesktopTaskHeader extends StatelessWidget {
           onArchiveTask: onArchiveTask,
           isPaused: isPaused,
           isCreator: isCreator,
+          showBackButton: showBackButton,
         ),
       ],
     );
@@ -79,6 +82,7 @@ class _HeaderBody extends StatelessWidget {
     required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
+    required this.showBackButton,
   });
 
   final TaskBoardItem item;
@@ -93,6 +97,7 @@ class _HeaderBody extends StatelessWidget {
   final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -114,14 +119,16 @@ class _HeaderBody extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  IconButton(
-                    onPressed: onBack,
-                    icon: const Icon(Icons.arrow_back_rounded,
-                        color: DashboardColors.onSurfaceVariant),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
-                  ),
-                  const SizedBox(width: 16),
+                  if (showBackButton) ...[
+                    IconButton(
+                      onPressed: onBack,
+                      icon: const Icon(Icons.arrow_back_rounded,
+                          color: DashboardColors.onSurfaceVariant),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
                   Expanded(
                     child: Text(
                       item.title,

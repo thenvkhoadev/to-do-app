@@ -408,6 +408,8 @@ class ProfileNavigationScope extends InheritedWidget {
     required this.onProfileSelected,
     this.onSettingsSelected,
     this.onAchievementsSelected,
+    this.onNotificationsSelected,
+    this.onTaskSelected,
     this.onSignOut,
     required super.child,
     super.key,
@@ -416,6 +418,8 @@ class ProfileNavigationScope extends InheritedWidget {
   final VoidCallback onProfileSelected;
   final VoidCallback? onSettingsSelected;
   final VoidCallback? onAchievementsSelected;
+  final VoidCallback? onNotificationsSelected;
+  final ValueChanged<String>? onTaskSelected;
   final VoidCallback? onSignOut;
 
   static ProfileNavigationScope? maybeOf(BuildContext context) {
@@ -427,6 +431,8 @@ class ProfileNavigationScope extends InheritedWidget {
       onProfileSelected != oldWidget.onProfileSelected ||
       onSettingsSelected != oldWidget.onSettingsSelected ||
       onAchievementsSelected != oldWidget.onAchievementsSelected ||
+      onNotificationsSelected != oldWidget.onNotificationsSelected ||
+      onTaskSelected != oldWidget.onTaskSelected ||
       onSignOut != oldWidget.onSignOut;
 }
 

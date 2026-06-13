@@ -36,16 +36,29 @@ class WeeklyChallengesCard extends ConsumerWidget {
       );
     }
 
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final weekStart = today.subtract(Duration(days: today.weekday - 1));
+
+    // Get weekly completed tasks to calculate focus hours
+    final weekCompletedTasksList = dashboardStats.tasks.where((t) =>
+      t.status == 'done' &&
+      t.completedAt != null &&
+      !t.completedAt!.isBefore(weekStart)
+    ).toList();
+
+    final weekFocusMinutes = weekCompletedTasksList.fold<int>(0, (sum, t) => sum + (t.estimatedMinutes ?? 25));
+    final weekFocusHours = (weekFocusMinutes / 60).round();
+
     // Real weekly completed tasks count
     final weekCompletedTasks = dashboardStats.weeklyCompletedCounts.fold<int>(0, (a, b) => a + b);
 
     // Calculate dynamic targets so they're tailored to the user's progress:
-    final int focusTarget = profile.focusHours < 15 ? 15 : profile.focusHours < 50 ? 50 : profile.focusHours < 100 ? 100 : 250;
+    final int focusTarget = weekFocusHours < 2 ? 2 : weekFocusHours < 5 ? 5 : weekFocusHours < 10 ? 10 : weekFocusHours < 20 ? 20 : 40;
     final int taskTarget = weekCompletedTasks < 5 ? 5 : weekCompletedTasks < 10 ? 10 : weekCompletedTasks < 30 ? 30 : weekCompletedTasks < 50 ? 50 : 100;
     final int streakTarget = profile.streakCount < 3 ? 3 : profile.streakCount < 7 ? 7 : profile.streakCount < 14 ? 14 : profile.streakCount < 30 ? 30 : profile.streakCount < 100 ? 100 : 365;
 
     // Time left until next Monday (Sunday 23:59:59 reset)
-    final now = DateTime.now();
     final daysToMonday = 8 - now.weekday;
     final nextMonday = DateTime(now.year, now.month, now.day + daysToMonday);
     final difference = nextMonday.difference(now);
@@ -58,7 +71,7 @@ class WeeklyChallengesCard extends ConsumerWidget {
       _ChallengeItem(
         title: 'Focus Marathon',
         description: 'Log $focusTarget hours of deep work sessions',
-        current: profile.focusHours,
+        current: weekFocusHours,
         target: focusTarget,
         unit: 'hrs',
         xpReward: focusTarget * 20,
@@ -591,7 +604,7 @@ class DailyBoostersCard extends ConsumerWidget {
     const urgentTarget = 1;
 
     // 3. Deep Focus session booster
-    final hasFocusToday = (dashboardStats.focusHours > 0) ? 1 : 0;
+    final hasFocusToday = (completedToday > 0) ? 1 : 0;
     const focusTarget = 1;
 
     final boosters = [

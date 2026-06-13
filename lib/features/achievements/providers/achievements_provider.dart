@@ -1,9 +1,64 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/achievements/domain/achievement.dart';
+import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
+
+/// Provider for streaming the count of comments written by the current user.
+final userCommentsCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null) return Stream.value(0);
+  final supabase = ref.watch(supabaseClientProvider);
+  return supabase
+      .from('comments')
+      .stream(primaryKey: ['id'])
+      .eq('user_id', user.id)
+      .map((rows) => rows.length);
+});
+
+/// Provider for streaming the count of attachments added to the user's tasks.
+final userAttachmentsCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null) return Stream.value(0);
+  final tasks = ref.watch(userTasksProvider).valueOrNull ?? const <NexusTask>[];
+  if (tasks.isEmpty) return Stream.value(0);
+  final taskIds = tasks.map((t) => t.id).toSet();
+  final supabase = ref.watch(supabaseClientProvider);
+  return supabase
+      .from('task_attachments')
+      .stream(primaryKey: ['id'])
+      .map((rows) => rows.where((row) => taskIds.contains(row['task_id'].toString())).length);
+});
+
+/// Provider for streaming the count of completed checklist subtasks under the user's tasks.
+final userCompletedSubtasksCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null) return Stream.value(0);
+  final tasks = ref.watch(userTasksProvider).valueOrNull ?? const <NexusTask>[];
+  if (tasks.isEmpty) return Stream.value(0);
+  final taskIds = tasks.map((t) => t.id).toSet();
+  final supabase = ref.watch(supabaseClientProvider);
+  return supabase
+      .from('task_subtasks')
+      .stream(primaryKey: ['id'])
+      .map((rows) => rows.where((row) => row['is_done'] == true && taskIds.contains(row['task_id'].toString())).length);
+});
+
+/// Provider for streaming the count of archived tasks for the user.
+final userArchivedTasksCountProvider = StreamProvider<int>((ref) {
+  final user = ref.watch(authControllerProvider).valueOrNull;
+  if (user == null) return Stream.value(0);
+  final supabase = ref.watch(supabaseClientProvider);
+  return supabase
+      .from('archived_tasks')
+      .stream(primaryKey: ['id'])
+      .eq('user_id', user.id)
+      .map((rows) => rows.length);
+});
 
 /// Provider for raw achievements list, dynamically derived from the profile and categories.
 final achievementsProvider = Provider<List<Achievement>>((ref) {
@@ -15,7 +70,10 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
 
   final completedTasks = profile.completedTasks;
   final streakDays = profile.streakCount;
-  final focusHours = profile.focusHours;
+  final completedTasksList = tasks.where((t) => t.status == 'done').toList();
+  final realFocusMinutes = completedTasksList.fold<int>(0, (sum, t) => sum + (t.estimatedMinutes ?? 25));
+  final realFocusSessions = completedTasksList.length;
+  final focusHours = (realFocusMinutes / 60).round();
   final totalXp = profile.totalXp;
   final level = profile.level;
   final projectsCount = categories.length;
@@ -24,6 +82,14 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
   final collabTasksCompleted = tasks.where((t) => t.status == 'done' && t.assigneeIds.isNotEmpty).length;
 
   final baseUnlockDate = profile.createdAt ?? DateTime.now().subtract(const Duration(days: 7));
+
+  // Watch real counts providers
+  final commentsCount = ref.watch(userCommentsCountProvider).valueOrNull ?? 0;
+  final attachmentsCount = ref.watch(userAttachmentsCountProvider).valueOrNull ?? 0;
+  final subtasksCompletedFromTable = ref.watch(userCompletedSubtasksCountProvider).valueOrNull ?? 0;
+  final archivedTasksCount = ref.watch(userArchivedTasksCountProvider).valueOrNull ?? 0;
+  final xpLogs = ref.watch(xpLogsProvider).valueOrNull ?? const [];
+  final tagsList = ref.watch(userTagsProvider).valueOrNull ?? const [];
 
   final list = <Achievement>[];
 
@@ -125,14 +191,15 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
     }
   }
 
-  int getCurrentValue(String type) {
+  int getCurrentValue(String type, int specialMilestoneCount) {
     switch (type) {
       case 'tasks_completed':
         return completedTasks;
       case 'tasks_created':
         return tasks.length;
       case 'subtasks_completed':
-        return tasks.where((t) => t.status == 'done' && t.parentTaskId != null).length;
+        final nestedSubtasks = tasks.where((t) => t.status == 'done' && t.parentTaskId != null).length;
+        return subtasksCompletedFromTable + nestedSubtasks;
       case 'total_xp':
         return totalXp;
       case 'level':
@@ -142,16 +209,16 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
       case 'streak_count':
         return streakDays;
       case 'longest_streak':
-        return streakDays;
+        return profile.longestStreak;
       case 'projects_created':
       case 'categories_created':
         return projectsCount;
       case 'focus_sessions':
-        return (focusHours * 1.5).round();
+        return realFocusSessions;
       case 'focus_minutes':
-        return (focusHours * 60).round();
+        return realFocusMinutes;
       case 'comments_created':
-        return (completedTasks * 0.4).round();
+        return commentsCount;
       case 'assigned_tasks':
         return collabTasksCompleted;
       case 'ai_tasks_created':
@@ -161,43 +228,49 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
         final done = tasks.where((t) => t.status == 'done').length;
         return ((done / tasks.length) * 100).round();
       case 'perfect_tasks':
-        return (completedTasks * 0.6).round();
+        return tasks.where((t) => t.status == 'done' && (t.dueDate == null || t.completedAt == null || !t.completedAt!.isAfter(t.dueDate!))).length;
       case 'night_task':
         return tasks.where((t) => t.status == 'done' && t.completedAt != null && (t.completedAt!.hour >= 23 || t.completedAt!.hour < 5)).length;
       case 'early_task':
         return tasks.where((t) => t.status == 'done' && t.completedAt != null && (t.completedAt!.hour >= 5 && t.completedAt!.hour < 9)).length;
       case 'fast_completion':
-        return (completedTasks * 0.2).round();
+        return tasks.where((t) => t.status == 'done' && t.completedAt != null && t.createdAt != null && t.completedAt!.difference(t.createdAt!).inMinutes < 5).length;
       case 'tags_created':
-        return tasks.expand((t) => t.tagIds).toSet().length;
+        return tagsList.length;
       case 'archived_tasks':
-        return tasks.where((t) => t.status == 'done' && t.deletedAt != null).length;
+        return archivedTasksCount;
       case 'restored_tasks':
-        return (completedTasks * 0.05).round();
+        return xpLogs.where((log) => log.reason == 'Task Restored').length;
       case 'high_priority_tasks':
         return tasks.where((t) => t.status == 'done' && t.priority == 'high').length;
       case 'urgent_tasks':
         return tasks.where((t) => t.status == 'done' && t.priority == 'urgent').length;
       case 'due_date_completed':
-        return tasks.where((t) => t.status == 'done' && t.completedAt != null && t.dueDate != null && !t.completedAt!.isBefore(t.dueDate!)).length;
+        return tasks.where((t) => t.status == 'done' && t.completedAt != null && t.dueDate != null && !t.completedAt!.isAfter(t.dueDate!)).length;
       case 'overdue_avoided':
-        return tasks.where((t) => t.status == 'done' && t.completedAt != null && t.dueDate != null && !t.completedAt!.isBefore(t.dueDate!)).length;
+        return tasks.where((t) => t.status == 'done' && t.completedAt != null && t.dueDate != null && !t.completedAt!.isAfter(t.dueDate!)).length;
       case 'attachments_added':
-        return (completedTasks * 0.3).round();
+        return attachmentsCount;
       case 'special_milestone':
-        return (completedTasks / 25).floor().clamp(0, 12);
+        return specialMilestoneCount;
       default:
         return 0;
     }
   }
 
+  // First pass: Build all achievements except special_milestone
+  int specialMilestoneCount = 0;
   for (final entry in typeMetadata.entries) {
     final type = entry.key;
+    if (type == 'special_milestone') continue;
     final meta = entry.value;
     for (final rarity in AchievementRarity.values) {
       final target = getTargetValue(type, rarity);
-      final current = getCurrentValue(type);
+      final current = getCurrentValue(type, 0);
       final isUnlocked = current >= target;
+      if (isUnlocked) {
+        specialMilestoneCount++;
+      }
 
       list.add(
         Achievement(
@@ -208,7 +281,7 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
           svgName: meta.$4,
           category: meta.$5,
           rarity: rarity,
-          xpReward: (rarity.index + 1) * 200,
+          xpReward: 200 + rarity.index * 100,
           currentValue: current,
           targetValue: target,
           isUnlocked: isUnlocked,
@@ -216,6 +289,31 @@ final achievementsProvider = Provider<List<Achievement>>((ref) {
         ),
       );
     }
+  }
+
+  // Second pass: Build special_milestone achievements using final milestone count
+  final milestoneMeta = typeMetadata['special_milestone']!;
+  for (final rarity in AchievementRarity.values) {
+    final target = getTargetValue('special_milestone', rarity);
+    final current = getCurrentValue('special_milestone', specialMilestoneCount);
+    final isUnlocked = current >= target;
+
+    list.add(
+      Achievement(
+        id: 'special_milestone_${rarity.name}',
+        name: '${milestoneMeta.$1} (${rarity.label})',
+        description: milestoneMeta.$2.replaceAll('{target}', target.toString()),
+        icon: milestoneMeta.$3,
+        svgName: milestoneMeta.$4,
+        category: milestoneMeta.$5,
+        rarity: rarity,
+        xpReward: 200 + rarity.index * 100,
+        currentValue: current,
+        targetValue: target,
+        isUnlocked: isUnlocked,
+        unlockedAt: isUnlocked ? baseUnlockDate.add(Duration(hours: rarity.index * 6)) : null,
+      ),
+    );
   }
 
   return list;

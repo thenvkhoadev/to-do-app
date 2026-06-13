@@ -47,12 +47,14 @@ class TaskDetailPage extends ConsumerWidget {
     required this.item,
     required this.onBack,
     this.onEditTask,
+    this.showBackButton = true,
     super.key,
   });
 
   final TaskBoardItem item;
   final VoidCallback onBack;
   final VoidCallback? onEditTask;
+  final bool showBackButton;
 
   TaskBoardItem _mapTaskToBoardItem(
     NexusTask task,
@@ -477,6 +479,7 @@ class TaskDetailPage extends ConsumerWidget {
             onArchiveTask: () => _archiveTask(context, ref, taskItem),
             isPaused: isPaused,
             isCreator: isCreator,
+            showBackButton: showBackButton,
           );
         }
         return _MobileLayout(
@@ -503,6 +506,7 @@ class TaskDetailPage extends ConsumerWidget {
           onArchiveTask: () => _archiveTask(context, ref, taskItem),
           isPaused: isPaused,
           isCreator: isCreator,
+          showBackButton: showBackButton,
         );
       },
     );
@@ -525,6 +529,7 @@ class _DesktopLayout extends StatelessWidget {
     required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
+    required this.showBackButton,
   });
 
   final TaskBoardItem item;
@@ -539,6 +544,7 @@ class _DesktopLayout extends StatelessWidget {
   final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -559,6 +565,7 @@ class _DesktopLayout extends StatelessWidget {
             onArchiveTask: onArchiveTask,
             isPaused: isPaused,
             isCreator: isCreator,
+            showBackButton: showBackButton,
           ),
           Expanded(
             child: LayoutBuilder(
@@ -663,6 +670,7 @@ class _MobileLayout extends StatelessWidget {
     required this.onArchiveTask,
     required this.isPaused,
     required this.isCreator,
+    required this.showBackButton,
   });
 
   final TaskBoardItem item;
@@ -677,6 +685,7 @@ class _MobileLayout extends StatelessWidget {
   final VoidCallback onArchiveTask;
   final bool isPaused;
   final bool isCreator;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -691,11 +700,14 @@ class _MobileLayout extends StatelessWidget {
                 pinned: true,
                 backgroundColor: DashboardColors.surface.withValues(alpha: .85),
                 elevation: 0,
-                leading: IconButton(
-                  icon: const Icon(Icons.arrow_back_rounded,
-                      color: DashboardColors.onSurface),
-                  onPressed: onBack,
-                ),
+                leading: showBackButton
+                    ? IconButton(
+                        icon: const Icon(Icons.arrow_back_rounded,
+                            color: DashboardColors.onSurface),
+                        onPressed: onBack,
+                      )
+                    : null,
+                automaticallyImplyLeading: showBackButton,
                 title: const Text(
                   'Task Detail',
                   style: TextStyle(

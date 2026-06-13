@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:to_do_app/features/notifications/data/models/notification_model.dart';
 import 'package:to_do_app/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
 class NotificationItemTile extends ConsumerStatefulWidget {
   const NotificationItemTile({
@@ -135,7 +136,12 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
               onPressed: () {
                 actions.markAsRead(n.id);
                 if (n.taskId != null && n.taskId!.isNotEmpty) {
-                  context.go('/task-detail/${n.taskId}');
+                  final scope = ProfileNavigationScope.maybeOf(context);
+                  if (scope != null) {
+                    scope.onTaskSelected?.call(n.taskId!);
+                  } else {
+                    context.go('/task-detail/${n.taskId}');
+                  }
                 }
               },
             ),
@@ -146,7 +152,12 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
               onPressed: () {
                 actions.markAsRead(n.id);
                 if (n.taskId != null && n.taskId!.isNotEmpty) {
-                  context.go('/task-detail/${n.taskId}');
+                  final scope = ProfileNavigationScope.maybeOf(context);
+                  if (scope != null) {
+                    scope.onTaskSelected?.call(n.taskId!);
+                  } else {
+                    context.go('/task-detail/${n.taskId}');
+                  }
                 }
               },
             ),
@@ -196,7 +207,12 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
                 isSecondary: true,
                 onPressed: () {
                   actions.markAsRead(n.id);
-                  context.go('/task-detail/${n.taskId}');
+                  final scope = ProfileNavigationScope.maybeOf(context);
+                  if (scope != null) {
+                    scope.onTaskSelected?.call(n.taskId!);
+                  } else {
+                    context.go('/task-detail/${n.taskId}');
+                  }
                 },
               ),
             ],
@@ -209,7 +225,12 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
               label: 'View Progress',
               onPressed: () {
                 actions.markAsRead(n.id);
-                context.go('/profile');
+                final scope = ProfileNavigationScope.maybeOf(context);
+                if (scope != null) {
+                  scope.onProfileSelected();
+                } else {
+                  context.go('/profile');
+                }
               },
             ),
           ],
@@ -229,10 +250,19 @@ class _NotificationItemTileState extends ConsumerState<NotificationItemTile> {
           if (widget.onTap != null) {
             widget.onTap!();
           }
-          if (n.taskId != null && n.taskId!.isNotEmpty) {
-            context.go('/task-detail/${n.taskId}');
-          } else if (n.type == 'xp_earned' || n.type == 'level_up') {
-            context.go('/profile');
+          final scope = ProfileNavigationScope.maybeOf(context);
+          if (scope != null) {
+            if (n.taskId != null && n.taskId!.isNotEmpty) {
+              scope.onTaskSelected?.call(n.taskId!);
+            } else if (n.type == 'xp_earned' || n.type == 'level_up') {
+              scope.onProfileSelected();
+            }
+          } else {
+            if (n.taskId != null && n.taskId!.isNotEmpty) {
+              context.go('/task-detail/${n.taskId}');
+            } else if (n.type == 'xp_earned' || n.type == 'level_up') {
+              context.go('/profile');
+            }
           }
         },
         child: AnimatedContainer(

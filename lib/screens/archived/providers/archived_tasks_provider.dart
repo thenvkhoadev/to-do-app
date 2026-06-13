@@ -105,6 +105,18 @@ class ArchivedTasksRepository {
 
     // Step 5: Remove from archived_tasks
     await _client.from('archived_tasks').delete().eq('id', task.id);
+
+    // Step 6: Log restoration in xp_logs to track restored tasks for achievements
+    try {
+      await _client.from('xp_logs').insert({
+        'user_id': task.userId,
+        'task_id': task.id,
+        'xp_gained': 0,
+        'reason': 'Task Restored',
+      });
+    } catch (e) {
+      // Ignore logger errors so restoration itself is not blocked
+    }
   }
 
   Future<void> deletePermanently(String id) async {

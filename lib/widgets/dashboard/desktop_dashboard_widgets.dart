@@ -44,7 +44,7 @@ class DesktopDashboardLayout extends ConsumerStatefulWidget {
 }
 
 class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout> {
-  late int _selectedIndex = widget.initialIndex;
+  late int _selectedIndex = (widget.taskId != null && widget.taskId!.isNotEmpty) ? -1 : widget.initialIndex;
   TaskBoardItem? _detailsItem;
   TaskBoardItem? _detailsItemBeforeEdit;
 
@@ -65,6 +65,11 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
       });
     }
     if (oldWidget.taskId != widget.taskId) {
+      if (widget.taskId != null && widget.taskId!.isNotEmpty) {
+        setState(() {
+          _selectedIndex = -1;
+        });
+      }
       _checkAndLoadTaskFromId();
     }
   }
@@ -73,16 +78,17 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
       setState(() => _detailsItem = item);
 
   void _closeTaskDetails() {
-    if (context.canPop()) {
-      context.pop();
-    } else {
+    setState(() {
+      _detailsItem = null;
+      ref.read(editingTaskProvider.notifier).state = null;
+    });
+    if (widget.taskId != null && widget.taskId!.isNotEmpty) {
       context.go('/home');
     }
   }
 
-  void _checkAndLoadTaskFromId() {
-    final taskId = widget.taskId;
-    if (taskId != null && taskId.isNotEmpty) {
+  void _openTaskDetailsFromId(String taskId) {
+    if (taskId.isNotEmpty) {
       final tasksAsync = ref.read(userTasksProvider);
       tasksAsync.whenData((tasks) {
         final matching = tasks.where((t) => t.id == taskId);
@@ -94,6 +100,13 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
           });
         }
       });
+    }
+  }
+
+  void _checkAndLoadTaskFromId() {
+    final taskId = widget.taskId;
+    if (taskId != null && taskId.isNotEmpty) {
+      _openTaskDetailsFromId(taskId);
     } else {
       if (_detailsItem != null) {
         setState(() {
@@ -250,6 +263,21 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                 _selectedIndex = 10;
               });
             },
+            onNotificationsSelected: () {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _detailsItem = null;
+                _selectedIndex = 11;
+              });
+            },
+            onTaskSelected: (taskId) {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _selectedIndex = -1;
+                _detailsItem = null;
+              });
+              _openTaskDetailsFromId(taskId);
+            },
             onSignOut: () => signOutDashboard(context),
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 240),
@@ -284,6 +312,7 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                             ),
                             item: _detailsItem!,
                             onBack: _closeTaskDetails,
+                            showBackButton: _selectedIndex != -1,
                             onEditTask: () {
                               final itemToEdit = _detailsItem;
                               _detailsItemBeforeEdit = _detailsItem;

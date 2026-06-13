@@ -73,7 +73,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         builder:
             (_, state) =>
                 DashboardScreen(
-                  initialIndex: 0,
+                  initialIndex: -1,
                   taskId: state.pathParameters['id'],
                 ),
       ),
