@@ -8,10 +8,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:to_do_app/features/achievements/domain/achievement.dart';
+import 'package:to_do_app/features/achievements/providers/achievements_provider.dart';
+import 'package:to_do_app/features/achievements/widgets/badge_widget.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:to_do_app/features/profile/presentation/widgets/achievement_plus_button.dart';
+import 'package:to_do_app/features/profile/presentation/widgets/achievement_selector_dialog.dart';
 import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
 import 'package:to_do_app/features/xp/presentation/widgets/xp_level_card.dart'
     as xp_card;
@@ -2828,13 +2833,15 @@ class _WeeklyBarPair extends StatelessWidget {
 }
 
 // ── Desktop Achievements (Section 9) ──
-class _DesktopAchievementsSection extends StatelessWidget {
+class _DesktopAchievementsSection extends ConsumerWidget {
   const _DesktopAchievementsSection({required this.vm});
   final _ProfileVM vm;
 
   @override
-  Widget build(BuildContext context) {
-    final achievements = vm.achievements;
+  Widget build(BuildContext context, WidgetRef ref) {
+    final achievements = ref.watch(achievementsProvider);
+    final selectedAchievements = _selectedAchievements(achievements);
+
     return _GlassPanel(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -2865,16 +2872,223 @@ class _DesktopAchievementsSection extends StatelessWidget {
                   spacing: spacing,
                   runSpacing: 24,
                   children: [
-                    for (final a in achievements)
+                    for (final achievement in selectedAchievements)
                       SizedBox(
                         width: itemW,
-                        child: _AchievementBadge(achievement: a),
+                        child: _PremiumAchievementBadge(achievement: achievement),
                       ),
+                    SizedBox(
+                      width: itemW,
+                      child: _PremiumAchievementAddTile(
+                        onTap: () => _openSelector(context, ref, achievements, selectedAchievements),
+                      ),
+                    ),
                   ],
                 );
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  List<Achievement> _selectedAchievements(List<Achievement> achievements) {
+    final savedIds = vm.model?.showcaseAchievementIds ?? const <String>[];
+    final selected = <Achievement>[];
+    if (savedIds.isNotEmpty) {
+      for (final id in savedIds) {
+        for (final achievement in achievements) {
+          if (achievement.id == id && achievement.isUnlocked) {
+            selected.add(achievement);
+            break;
+          }
+        }
+      }
+      return selected;
+    }
+    return achievements.where((achievement) => achievement.isUnlocked).take(5).toList();
+  }
+
+  Future<void> _openSelector(
+    BuildContext context,
+    WidgetRef ref,
+    List<Achievement> achievements,
+    List<Achievement> selectedAchievements,
+  ) async {
+    final selected = await showAchievementMultiSelectorDialog(
+      context: context,
+      achievements: achievements,
+      selectedAchievementIds: selectedAchievements.map((a) => a.id).toList(),
+    );
+    if (selected == null || !context.mounted) return;
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      await ref
+          .read(profileRemoteDataSourceProvider)
+          .updateShowcaseAchievements(userId, selected.map((a) => a.id).toList());
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update achievements: $e')),
+      );
+    }
+  }
+}
+
+class _PremiumAchievementBadge extends StatelessWidget {
+  const _PremiumAchievementBadge({required this.achievement});
+
+  final Achievement achievement;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: achievement.description,
+      child: _PremiumAchievementItemFrame(
+        badge: BadgeWidget(
+          rarity: achievement.rarity,
+          icon: achievement.icon,
+          svgName: achievement.svgName,
+          size: 80,
+          isLocked: false,
+        ),
+        title: achievement.name,
+        subtitle: achievement.rarity.label.toUpperCase(),
+        subtitleColor: achievement.rarity.color,
+      ),
+    );
+  }
+}
+
+class _PremiumAchievementItemFrame extends StatelessWidget {
+  const _PremiumAchievementItemFrame({
+    required this.badge,
+    required this.title,
+    required this.subtitle,
+    required this.subtitleColor,
+  });
+
+  final Widget badge;
+  final String title;
+  final String subtitle;
+  final Color subtitleColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 148,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(width: 80, height: 80, child: Center(child: badge)),
+          const SizedBox(height: 16),
+          SizedBox(
+            height: 34,
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: NexusColors.onSurface,
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            subtitle,
+            style: TextStyle(
+              color: subtitleColor,
+              fontSize: 9,
+              letterSpacing: 1,
+              fontFamily: 'JetBrains Mono',
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PremiumAchievementAddTile extends StatefulWidget {
+  const _PremiumAchievementAddTile({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  State<_PremiumAchievementAddTile> createState() => _PremiumAchievementAddTileState();
+}
+
+class _PremiumAchievementAddTileState extends State<_PremiumAchievementAddTile> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final scale = _hovered ? 1.05 : 1.0;
+    return Tooltip(
+      message: 'Add achievements',
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: InkWell(
+          onTap: widget.onTap,
+          borderRadius: BorderRadius.circular(999),
+          child: _PremiumAchievementItemFrame(
+            badge: AnimatedScale(
+              scale: scale,
+              duration: const Duration(milliseconds: 250),
+              curve: Curves.easeOutCubic,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                width: 80,
+                height: 80,
+                padding: const EdgeInsets.all(2),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFFC084FC), Color(0xFF7C3AED)],
+                  ),
+                  border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: _hovered ? 0.9 : 0.45)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF8B5CF6).withValues(alpha: _hovered ? 0.45 : 0.22),
+                      blurRadius: _hovered ? 28 : 18,
+                    ),
+                  ],
+                ),
+                child: Container(
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Color(0xFF0F172A),
+                  ),
+                  child: AnimatedRotation(
+                    turns: _hovered ? 0.25 : 0,
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutCubic,
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Color(0xFFC084FC),
+                      size: 34,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            title: 'Add Badge',
+            subtitle: 'ADD NEW',
+            subtitleColor: NexusColors.primary,
+          ),
         ),
       ),
     );
@@ -9176,123 +9390,345 @@ class _ComparisonRow extends StatelessWidget {
   }
 }
 
-class _BadgeCollectionShowcaseCard extends StatelessWidget {
+class _BadgeCollectionShowcaseCard extends ConsumerWidget {
   const _BadgeCollectionShowcaseCard({required this.vm});
   final _ProfileVM vm;
 
   @override
-  Widget build(BuildContext context) {
-    final badges = <(IconData, String, bool, Color)>[
-      (
-        Icons.wb_sunny_rounded,
-        'Early Bird',
-        vm.bestFocusWindow.startsWith('08'),
-        NexusColors.primary,
-      ),
-      (
-        Icons.nights_stay_rounded,
-        'Night Owl',
-        vm.focusHours >= 40,
-        NexusColors.secondary,
-      ),
-      (
-        Icons.center_focus_strong_rounded,
-        'Deep Worker',
-        vm.deepWorkPercent >= 50,
-        NexusColors.primary,
-      ),
-      (
-        Icons.speed_rounded,
-        'Sprint Master',
-        vm.tasksThisWeek >= 10,
-        const Color(0xFF4ADE80),
-      ),
-      (
-        Icons.workspace_premium_rounded,
-        'Focus Champion',
-        vm.focusScore >= 80,
-        NexusColors.secondary,
-      ),
-      (
-        Icons.task_alt_rounded,
-        'Task Crusher',
-        vm.completedTasks >= 100,
-        NexusColors.primary,
-      ),
-    ];
+  Widget build(BuildContext context, WidgetRef ref) {
+    final achievements = ref.watch(achievementsProvider);
+    final unlocked = achievements.where((a) => a.isUnlocked).toList();
+    final savedId = vm.model?.showcaseAchievementId;
+    final selected = _resolveShowcaseAchievement(achievements, savedId);
+    final isMobile = MediaQuery.of(context).size.width < 600;
+
     return _MetricPanel(
-      title: 'BADGE COLLECTION',
+      title: 'ACHIEVEMENT SHOWCASE',
       icon: Icons.emoji_events_rounded,
-      child: SizedBox(
-        height: 132,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          itemCount: badges.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 12),
-          itemBuilder:
-              (context, i) => _ShowcaseBadge(
-                icon: badges[i].$1,
-                label: badges[i].$2,
-                unlocked: badges[i].$3,
-                color: badges[i].$4,
+      child: _AchievementShowcaseContent(
+        achievement: selected,
+        unlockedCount: unlocked.length,
+        totalCount: achievements.length,
+        isMobile: isMobile,
+        onSelect: () => _openAchievementSelector(context, ref, achievements, selected?.id),
+      ),
+    );
+  }
+
+  Achievement? _resolveShowcaseAchievement(
+    List<Achievement> achievements,
+    String? savedId,
+  ) {
+    if (savedId != null) {
+      for (final achievement in achievements) {
+        if (achievement.id == savedId && achievement.isUnlocked) {
+          return achievement;
+        }
+      }
+    }
+    for (final achievement in achievements) {
+      if (achievement.isUnlocked) return achievement;
+    }
+    return null;
+  }
+
+  Future<void> _openAchievementSelector(
+    BuildContext context,
+    WidgetRef ref,
+    List<Achievement> achievements,
+    String? selectedId,
+  ) async {
+    final selected = await showAchievementSelectorDialog(
+      context: context,
+      achievements: achievements,
+      selectedAchievementId: selectedId,
+    );
+    if (selected == null || !context.mounted) return;
+
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    if (userId == null) return;
+
+    try {
+      await ref
+          .read(profileRemoteDataSourceProvider)
+          .updateShowcaseAchievement(userId, selected.id);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to update showcase: $e')),
+      );
+    }
+  }
+}
+
+class _AchievementShowcaseContent extends StatelessWidget {
+  const _AchievementShowcaseContent({
+    required this.achievement,
+    required this.unlockedCount,
+    required this.totalCount,
+    required this.isMobile,
+    required this.onSelect,
+  });
+
+  final Achievement? achievement;
+  final int unlockedCount;
+  final int totalCount;
+  final bool isMobile;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final achievement = this.achievement;
+    final color = achievement?.rarity.color ?? NexusColors.primary;
+
+    return Container(
+      padding: EdgeInsets.all(isMobile ? 18 : 22),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.04),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: achievement == null ? 0.08 : 0.18),
+            blurRadius: 34,
+          ),
+        ],
+      ),
+      child: isMobile ? _mobileLayout(achievement, color) : _desktopLayout(achievement, color),
+    );
+  }
+
+  Widget _desktopLayout(Achievement? achievement, Color color) {
+    return Row(
+      children: [
+        _ShowcaseBadgeStage(
+          achievement: achievement,
+          compact: false,
+          onSelect: onSelect,
+        ),
+        const SizedBox(width: 24),
+        Expanded(child: _ShowcaseDetails(achievement: achievement, color: color)),
+        const SizedBox(width: 16),
+        _ShowcaseStats(unlockedCount: unlockedCount, totalCount: totalCount),
+      ],
+    );
+  }
+
+  Widget _mobileLayout(Achievement? achievement, Color color) {
+    return Column(
+      children: [
+        _ShowcaseBadgeStage(
+          achievement: achievement,
+          compact: true,
+          onSelect: onSelect,
+        ),
+        const SizedBox(height: 18),
+        _ShowcaseDetails(achievement: achievement, color: color, centered: true),
+        const SizedBox(height: 14),
+        _ShowcaseStats(unlockedCount: unlockedCount, totalCount: totalCount),
+      ],
+    );
+  }
+}
+
+class _ShowcaseBadgeStage extends StatelessWidget {
+  const _ShowcaseBadgeStage({
+    required this.achievement,
+    required this.compact,
+    required this.onSelect,
+  });
+
+  final Achievement? achievement;
+  final bool compact;
+  final VoidCallback onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final selectedAchievement = achievement;
+    final size = compact ? 108.0 : 132.0;
+    final badgeSize = compact ? 78.0 : 92.0;
+    final color = selectedAchievement?.rarity.color ?? NexusColors.primary;
+
+    return SizedBox(
+      width: size,
+      height: size,
+      child: Stack(
+        clipBehavior: Clip.none,
+        alignment: Alignment.center,
+        children: [
+          Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: RadialGradient(
+                colors: [
+                  color.withValues(alpha: 0.22),
+                  color.withValues(alpha: 0.06),
+                  Colors.transparent,
+                ],
               ),
+              border: Border.all(color: color.withValues(alpha: 0.24)),
+            ),
+          ),
+          Hero(
+            tag: 'profile-showcase-achievement-${selectedAchievement?.id ?? 'empty'}',
+            child: selectedAchievement == null
+                ? Icon(
+                    Icons.emoji_events_outlined,
+                    color: NexusColors.onSurfaceVariant.withValues(alpha: 0.6),
+                    size: badgeSize * 0.68,
+                  )
+                : BadgeWidget(
+                    rarity: selectedAchievement.rarity,
+                    icon: selectedAchievement.icon,
+                    svgName: selectedAchievement.svgName,
+                    size: badgeSize,
+                    isLocked: false,
+                  ),
+          ),
+          Positioned(
+            top: -6,
+            right: -6,
+            child: AchievementPlusButton(onTap: onSelect, compact: compact),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ShowcaseDetails extends StatelessWidget {
+  const _ShowcaseDetails({
+    required this.achievement,
+    required this.color,
+    this.centered = false,
+  });
+
+  final Achievement? achievement;
+  final Color color;
+  final bool centered;
+
+  @override
+  Widget build(BuildContext context) {
+    final achievement = this.achievement;
+    final align = centered ? CrossAxisAlignment.center : CrossAxisAlignment.start;
+    final textAlign = centered ? TextAlign.center : TextAlign.start;
+
+    return Column(
+      crossAxisAlignment: align,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          achievement?.name ?? 'Choose Your Badge',
+          textAlign: textAlign,
+          style: const TextStyle(
+            color: NexusColors.onSurface,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+            fontFamily: 'Geist',
+          ),
+        ),
+        const SizedBox(height: 7),
+        Wrap(
+          alignment: centered ? WrapAlignment.center : WrapAlignment.start,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            _ShowcasePill(
+              label: achievement == null ? 'NO BADGE SELECTED' : 'UNLOCKED',
+              color: color,
+            ),
+            if (achievement != null)
+              _ShowcasePill(label: achievement.rarity.label.toUpperCase(), color: color),
+            if (achievement != null)
+              _ShowcasePill(label: achievement.category.toUpperCase(), color: NexusColors.secondary),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          achievement?.description ?? 'Pick one unlocked achievement from your collection to feature on your profile.',
+          textAlign: textAlign,
+          maxLines: 3,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: NexusColors.onSurfaceVariant,
+            fontSize: 13,
+            height: 1.45,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _ShowcasePill extends StatelessWidget {
+  const _ShowcasePill({required this.label, required this.color});
+
+  final String label;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: color.withValues(alpha: 0.28)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: color,
+          fontSize: 10,
+          fontWeight: FontWeight.w800,
+          fontFamily: 'JetBrains Mono',
+          letterSpacing: 0.6,
         ),
       ),
     );
   }
 }
 
-class _ShowcaseBadge extends StatelessWidget {
-  const _ShowcaseBadge({
-    required this.icon,
-    required this.label,
-    required this.unlocked,
-    required this.color,
-  });
-  final IconData icon;
-  final String label;
-  final bool unlocked;
-  final Color color;
+class _ShowcaseStats extends StatelessWidget {
+  const _ShowcaseStats({required this.unlockedCount, required this.totalCount});
+
+  final int unlockedCount;
+  final int totalCount;
 
   @override
   Widget build(BuildContext context) {
-    final effective = unlocked ? color : NexusColors.onSurfaceVariant;
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 112,
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: effective.withValues(alpha: unlocked ? 0.12 : 0.06),
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: effective.withValues(alpha: 0.28)),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              unlocked ? icon : Icons.lock_outline_rounded,
-              color: effective,
-              size: 30,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            '$unlockedCount / $totalCount',
+            style: const TextStyle(
+              color: NexusColors.onSurface,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              fontFamily: 'JetBrains Mono',
             ),
-            const SizedBox(height: 12),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color:
-                    unlocked
-                        ? NexusColors.onSurface
-                        : NexusColors.onSurfaceVariant,
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-              ),
+          ),
+          const SizedBox(height: 4),
+          const Text(
+            'UNLOCKED',
+            style: TextStyle(
+              color: NexusColors.onSurfaceVariant,
+              fontSize: 9,
+              letterSpacing: 1.1,
+              fontFamily: 'JetBrains Mono',
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

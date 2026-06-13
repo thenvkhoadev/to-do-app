@@ -49,6 +49,26 @@ class ProfileRemoteDataSource {
     await _client.from('users').update(patch).eq('id', userId);
   }
 
+  Future<void> updateShowcaseAchievement(
+    String userId,
+    String achievementId,
+  ) async {
+    await _client.from('users').update({
+      'showcase_achievement_id': achievementId,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', userId);
+  }
+
+  Future<void> updateShowcaseAchievements(
+    String userId,
+    List<String> achievementIds,
+  ) async {
+    await _client.from('users').update({
+      'showcase_achievement_ids': achievementIds,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', userId);
+  }
+
   Future<void> updateProfileInfo(
     String userId, {
     String? fullName,

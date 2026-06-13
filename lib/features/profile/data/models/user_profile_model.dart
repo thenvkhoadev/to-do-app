@@ -35,6 +35,8 @@ class UserProfileModel {
     this.rankName = 'Rookie',
     this.rankDivision = 'V',
     this.rankTitle = 'Rookie V',
+    this.showcaseAchievementId,
+    this.showcaseAchievementIds = const [],
   });
 
   final String id;
@@ -72,6 +74,15 @@ class UserProfileModel {
   final String rankName;
   final String rankDivision;
   final String rankTitle;
+  final String? showcaseAchievementId;
+  final List<String> showcaseAchievementIds;
+
+  static List<String> _stringList(dynamic value) {
+    if (value is List) {
+      return value.map((item) => item.toString()).where((item) => item.isNotEmpty).toList();
+    }
+    return const [];
+  }
 
   factory UserProfileModel.fromJson(Map<String, dynamic> json) {
     return UserProfileModel(
@@ -120,6 +131,8 @@ class UserProfileModel {
       rankName: json['rank_name']?.toString() ?? 'Rookie',
       rankDivision: json['rank_division']?.toString() ?? 'V',
       rankTitle: json['rank_title']?.toString() ?? 'Rookie V',
+      showcaseAchievementId: json['showcase_achievement_id']?.toString(),
+      showcaseAchievementIds: _stringList(json['showcase_achievement_ids']),
     );
   }
 
