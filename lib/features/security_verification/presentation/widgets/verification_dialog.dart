@@ -17,7 +17,7 @@ class VerificationDialog extends ConsumerStatefulWidget {
       context: context,
       useRootNavigator: true,
       barrierColor: Colors.black.withValues(alpha: 0.72),
-      barrierDismissible: true,
+      barrierDismissible: false,
       builder: (_) => const VerificationDialog(),
     );
   }
@@ -36,6 +36,7 @@ class _VerificationDialogState extends ConsumerState<VerificationDialog>
   double _puzzleDy = 0;
   double _rotation = math.pi;
   bool _memoryVisible = true;
+  bool _submittingChallenge = false;
   Timer? _memoryTimer;
   Timer? _closeTimer;
 
@@ -61,12 +62,18 @@ class _VerificationDialogState extends ConsumerState<VerificationDialog>
     _selected.clear();
     _sortValues.clear();
     _sliderValue = 0;
-    _puzzleDx = 0;
-    _puzzleDy = 0;
     _rotation = math.pi;
     _memoryVisible = true;
+    _submittingChallenge = false;
     _memoryTimer?.cancel();
     final challenge = ref.read(challengeControllerProvider).currentChallenge;
+    if (challenge?.type == ChallengeType.imagePuzzle) {
+      _puzzleDx = -120.0 - math.Random().nextInt(20);
+      _puzzleDy = 0.0;
+    } else {
+      _puzzleDx = 0.0;
+      _puzzleDy = 0.0;
+    }
     if (challenge?.mode == ChallengeAnswerMode.memory) {
       _memoryTimer = Timer(const Duration(seconds: 3), () {
         if (mounted) setState(() => _memoryVisible = false);
@@ -75,6 +82,8 @@ class _VerificationDialogState extends ConsumerState<VerificationDialog>
   }
 
   void _submit(Object? answer) {
+    if (_submittingChallenge) return;
+    _submittingChallenge = true;
     final passed = ref.read(challengeControllerProvider.notifier).submit(answer);
     final state = ref.read(challengeControllerProvider);
     if (state.status == ChallengeFlowStatus.completed && state.result != null) {
@@ -166,7 +175,6 @@ class _VerificationDialogState extends ConsumerState<VerificationDialog>
                                         _puzzleDx = dx;
                                         _puzzleDy = dy;
                                       });
-                                      if (dx.abs() < 18 && dy.abs() < 18) _submit('complete');
                                     },
                                     onRotationChanged: (v) {
                                       setState(() => _rotation = v);
@@ -234,30 +242,38 @@ class _ChallengeView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Hero(
-              tag: 'security-verification-shield',
-              child: Container(
-                width: 46,
-                height: 46,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8FF).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF1B2A44)),
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Hero(
+                  tag: 'security-verification-shield',
+                  child: Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE2E8FF).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFF1B2A44)),
+                    ),
+                    child: const Icon(Icons.security_rounded, color: Color(0xFFE2E8FF)),
+                  ),
                 ),
-                child: const Icon(Icons.security_rounded, color: Color(0xFFE2E8FF)),
-              ),
+                const SizedBox(width: 14),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('SECURITY CHECK', style: getGeistStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.4, color: const Color(0xFFE2E8FF))),
+                    const SizedBox(height: 4),
+                    Text('Challenge $step of $total', style: getGeistStyle(fontSize: 13, fontWeight: FontWeight.w500, color: RegisterColors.onSurfaceVariant)),
+                  ],
+                ),
+              ],
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('SECURITY CHECK', style: getGeistStyle(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 1.4, color: const Color(0xFFE2E8FF))),
-                  const SizedBox(height: 4),
-                  Text('Challenge $step of $total', style: getGeistStyle(fontSize: 13, fontWeight: FontWeight.w500, color: RegisterColors.onSurfaceVariant)),
-                ],
-              ),
+            IconButton(
+              icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 20.0),
+              onPressed: () => Navigator.of(context, rootNavigator: true).pop(null),
             ),
           ],
         ),
@@ -286,7 +302,13 @@ class _ChallengeView extends StatelessWidget {
       ChallengeAnswerMode.singleChoice => _ChoiceGrid(challenge: challenge, selected: selected, multi: false, onChanged: onChanged, onSubmit: onSubmit),
       ChallengeAnswerMode.multiChoice => _ChoiceGrid(challenge: challenge, selected: selected, multi: true, onChanged: onChanged, onSubmit: onSubmit),
       ChallengeAnswerMode.slider => _SliderAnswer(value: sliderValue, onChanged: onSliderChanged),
-      ChallengeAnswerMode.puzzle => _PuzzleAnswer(dx: puzzleDx, dy: puzzleDy, onChanged: onPuzzleChanged),
+      ChallengeAnswerMode.puzzle => _PuzzleAnswer(
+          challenge: challenge,
+          dx: puzzleDx,
+          dy: puzzleDy,
+          onChanged: onPuzzleChanged,
+          onSubmit: onSubmit,
+        ),
       ChallengeAnswerMode.sort => _SortAnswer(challenge: challenge, values: sortValues, onSubmit: onSubmit),
       ChallengeAnswerMode.rotate => _RotateAnswer(rotation: rotation, onChanged: onRotationChanged),
     };
@@ -415,7 +437,15 @@ class _ChoiceGrid extends StatelessWidget {
                     ? Container(width: 34, height: 34, decoration: BoxDecoration(color: option.color, borderRadius: BorderRadius.circular(10)))
                     : option.icon != null
                         ? Icon(option.icon, color: const Color(0xFFE2E8FF), size: 28)
-                        : Container(width: 36, height: 36, decoration: BoxDecoration(color: const Color(0xFFE2E8FF), shape: option.shape)),
+                        : Text(
+                            option.label,
+                            textAlign: TextAlign.center,
+                            style: getGeistStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFFE2E8FF),
+                            ),
+                          ),
               ),
             );
           }).toList(),
@@ -449,46 +479,220 @@ class _SliderAnswer extends StatelessWidget {
           ),
           child: Slider(value: value, onChanged: onChanged),
         ),
-        Text('Slide all the way to unlock', style: getGeistStyle(fontSize: 13, fontWeight: FontWeight.w600, color: RegisterColors.onSurfaceVariant)),
+        Text('Kéo hết thanh để mở khóa', style: getGeistStyle(fontSize: 13, fontWeight: FontWeight.w600, color: RegisterColors.onSurfaceVariant)),
       ],
     );
   }
 }
 
 class _PuzzleAnswer extends StatelessWidget {
-  const _PuzzleAnswer({required this.dx, required this.dy, required this.onChanged});
+  const _PuzzleAnswer({
+    required this.challenge,
+    required this.dx,
+    required this.dy,
+    required this.onChanged,
+    required this.onSubmit,
+  });
 
+  final Challenge challenge;
   final double dx;
   final double dy;
   final void Function(double dx, double dy) onChanged;
+  final ValueChanged<Object?> onSubmit;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 180,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(width: 86, height: 86, decoration: BoxDecoration(borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFF22C55E), width: 2))),
-          Positioned(
-            left: 40 + dx,
-            top: 52 + dy,
-            child: GestureDetector(
-              onPanUpdate: (details) => onChanged(dx + details.delta.dx, dy + details.delta.dy),
-              child: Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8FF).withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(22),
-                  boxShadow: [BoxShadow(color: const Color(0xFFE2E8FF).withValues(alpha: 0.28), blurRadius: 24)],
-                ),
-                child: const Icon(Icons.extension_rounded, color: Color(0xFF081120)),
+    // Generate a stable nature photo using picsum.photos with challenge prompt hash seed.
+    final imageUrl = 'https://picsum.photos/seed/${challenge.prompt.hashCode.abs()}/280/156';
+
+    const targetX = 180.0;
+    final pieceLeft = targetX + dx;
+    final dragProgress = ((dx + 140.0) / 140.0).clamp(0.0, 1.0);
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Center(
+          child: Container(
+            width: 280,
+            height: 156,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFF1B2A44), width: 1.5),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(14),
+              child: Stack(
+                children: [
+                  Positioned.fill(
+                    child: Image.network(
+                      imageUrl,
+                      fit: BoxFit.cover,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Container(
+                          color: const Color(0xFF081120),
+                          child: const Center(
+                            child: CircularProgressIndicator(strokeWidth: 2.5),
+                          ),
+                        );
+                      },
+                      errorBuilder: (context, error, stackTrace) => Container(
+                        color: const Color(0xFF1B2A44),
+                        child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: targetX,
+                    top: 50,
+                    child: Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: const Color(0xFF22C55E).withValues(alpha: 0.8),
+                          width: 1.5,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: pieceLeft,
+                    top: 50,
+                    child: GestureDetector(
+                      onPanUpdate: (details) {
+                        final newDx = (dx + details.delta.dx).clamp(-140.0, 0.0);
+                        onChanged(newDx, 0.0);
+                      },
+                      child: Container(
+                        width: 42,
+                        height: 42,
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE2E8FF), width: 2),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.5),
+                              blurRadius: 6,
+                              offset: const Offset(1, 1),
+                            ),
+                          ],
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: SizedBox(
+                            width: 42,
+                            height: 42,
+                            child: OverflowBox(
+                              alignment: Alignment.topLeft,
+                              minWidth: 280,
+                              maxWidth: 280,
+                              minHeight: 156,
+                              maxHeight: 156,
+                              child: Transform.translate(
+                                offset: const Offset(-targetX, -50),
+                                child: Image.network(
+                                  imageUrl,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (context, error, stackTrace) => Container(
+                                    color: const Color(0xFF1B2A44),
+                                    child: const Icon(Icons.broken_image_rounded, color: Colors.grey),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 16),
+        Center(
+          child: Container(
+            width: 280,
+            height: 40,
+            decoration: BoxDecoration(
+              color: const Color(0xFF1B2A44).withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: const Color(0xFF1B2A44).withValues(alpha: 0.8),
+                width: 1.2,
+              ),
+            ),
+            child: Stack(
+              alignment: Alignment.centerLeft,
+              children: [
+                Center(
+                  child: Text(
+                    'Kéo slider để xếp hình',
+                    style: getGeistStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withValues(alpha: 0.55),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: Container(
+                    width: 42 + dragProgress * (280 - 42),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A73E8).withValues(alpha: 0.22),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: dragProgress * (280 - 42),
+                  top: 2,
+                  bottom: 2,
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: (details) {
+                      final newDx = (dx + details.delta.dx).clamp(-140.0, 0.0);
+                      onChanged(newDx, 0.0);
+                    },
+                    child: Container(
+                      width: 38,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8FF),
+                        borderRadius: BorderRadius.circular(18),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.28),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.arrow_forward_ios_rounded,
+                          color: Color(0xFF081120),
+                          size: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
+        _PrimaryButton(
+          label: dx.abs() <= 2 ? 'Submit puzzle' : 'Kéo mảnh ghép vào ô trước',
+          onTap: dx.abs() <= 2 ? () => onSubmit('complete') : null,
+        ),
+      ],
     );
   }
 }
@@ -581,12 +785,29 @@ class _FailedView extends StatelessWidget {
     return Column(
       key: const ValueKey('failed'),
       mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        Align(
+          alignment: Alignment.topRight,
+          child: IconButton(
+            icon: const Icon(Icons.close_rounded, color: Colors.white54, size: 20.0),
+            onPressed: () => Navigator.of(context, rootNavigator: true).pop(null),
+          ),
+        ),
         const Icon(Icons.error_outline_rounded, color: Color(0xFFEF4444), size: 54),
         const SizedBox(height: 16),
-        Text('Verification failed', style: getGeistStyle(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFFEF4444))),
+        Center(
+          child: Text(
+            'Verification failed',
+            style: getGeistStyle(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFFEF4444)),
+          ),
+        ),
         const SizedBox(height: 10),
-        Text('The challenge response did not match. Try a new sequence.', textAlign: TextAlign.center, style: getGeistStyle(fontSize: 14, fontWeight: FontWeight.w500, color: RegisterColors.onSurfaceVariant)),
+        Text(
+          'The challenge response did not match. Try a new sequence.',
+          textAlign: TextAlign.center,
+          style: getGeistStyle(fontSize: 14, fontWeight: FontWeight.w500, color: RegisterColors.onSurfaceVariant),
+        ),
         const SizedBox(height: 22),
         _PrimaryButton(label: 'Try Again', onTap: onRetry),
       ],

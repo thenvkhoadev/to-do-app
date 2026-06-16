@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
+import 'package:to_do_app/screens/auth/login/widgets/security_footer.dart';
 import 'package:to_do_app/shared/widgets/stitch_shader_background.dart';
 import 'package:to_do_app/screens/auth/login/desktop/achievement_card.dart';
 
@@ -203,6 +204,8 @@ class _DesktopBrandPanelState extends State<DesktopBrandPanel>
                   },
                 ),
               ),
+              const SizedBox(height: 56.0),
+              const SecurityFooter(),
             ],
           ),
         ),

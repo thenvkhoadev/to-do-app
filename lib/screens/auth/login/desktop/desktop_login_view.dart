@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
 import 'package:to_do_app/screens/auth/login/desktop/desktop_brand_panel.dart';
 import 'package:to_do_app/screens/auth/login/desktop/desktop_auth_panel.dart';
 
@@ -15,6 +16,7 @@ class DesktopLoginView extends StatelessWidget {
     required this.onSocialLogin,
     required this.onRequestAccess,
     required this.onForgotPassword,
+    required this.onVerificationChanged,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class DesktopLoginView extends StatelessWidget {
   final ValueChanged<String> onSocialLogin;
   final VoidCallback onRequestAccess;
   final VoidCallback onForgotPassword;
+  final ValueChanged<ChallengeResult?> onVerificationChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -52,6 +55,7 @@ class DesktopLoginView extends StatelessWidget {
             onSocialLogin: onSocialLogin,
             onRequestAccess: onRequestAccess,
             onForgotPassword: onForgotPassword,
+            onVerificationChanged: onVerificationChanged,
           ),
         ),
       ],

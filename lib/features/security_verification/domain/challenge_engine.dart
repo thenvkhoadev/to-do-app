@@ -18,6 +18,23 @@ enum ChallengeType {
   humanLogic,
   captchaText,
   rotateObject,
+  division,
+  oddEven,
+  wordMatch,
+  countIcons,
+  selectLargest,
+  selectSmallest,
+  synonym,
+  dayOrder,
+  tapTarget,
+  reverseText,
+  missingVowel,
+  monthOrder,
+  clockReading,
+  selectWarmColor,
+  selectColdColor,
+  primeNumber,
+  sumDigits,
 }
 
 extension ChallengeTypeLabel on ChallengeType {
@@ -37,6 +54,23 @@ extension ChallengeTypeLabel on ChallengeType {
         ChallengeType.humanLogic => 'human_logic',
         ChallengeType.captchaText => 'captcha_text',
         ChallengeType.rotateObject => 'rotate_object',
+        ChallengeType.division => 'division',
+        ChallengeType.oddEven => 'odd_even',
+        ChallengeType.wordMatch => 'word_match',
+        ChallengeType.countIcons => 'count_icons',
+        ChallengeType.selectLargest => 'select_largest',
+        ChallengeType.selectSmallest => 'select_smallest',
+        ChallengeType.synonym => 'synonym',
+        ChallengeType.dayOrder => 'day_order',
+        ChallengeType.tapTarget => 'tap_target',
+        ChallengeType.reverseText => 'reverse_text',
+        ChallengeType.missingVowel => 'missing_vowel',
+        ChallengeType.monthOrder => 'month_order',
+        ChallengeType.clockReading => 'clock_reading',
+        ChallengeType.selectWarmColor => 'select_warm_color',
+        ChallengeType.selectColdColor => 'select_cold_color',
+        ChallengeType.primeNumber => 'prime_number',
+        ChallengeType.sumDigits => 'sum_digits',
       };
 }
 
@@ -104,13 +138,25 @@ class Challenge {
 }
 
 class ChallengeEngine {
-  ChallengeEngine({Random? random}) : _random = random ?? Random();
+  ChallengeEngine({Random? random}) : _random = random ?? Random.secure();
 
   final Random _random;
 
   List<Challenge> generateSequence(int count) {
     final types = ChallengeType.values.toList()..shuffle(_random);
-    return List.generate(count, (index) => generate(types[index % types.length]));
+    return types.take(count.clamp(0, types.length)).map(generate).toList();
+  }
+
+  List<ChallengeOption> _shuffledOptions(List<ChallengeOption> options) {
+    return [...options]..shuffle(_random);
+  }
+
+  List<int> _uniqueNumbers(int count, {int min = 10, int max = 99}) {
+    final values = <int>{};
+    while (values.length < count) {
+      values.add(min + _random.nextInt(max - min + 1));
+    }
+    return values.toList()..shuffle(_random);
   }
 
   Challenge generate(ChallengeType type) {
@@ -130,6 +176,23 @@ class ChallengeEngine {
       ChallengeType.humanLogic => _humanLogic(),
       ChallengeType.captchaText => _captchaText(),
       ChallengeType.rotateObject => _rotateObject(),
+      ChallengeType.division => _division(),
+      ChallengeType.oddEven => _oddEven(),
+      ChallengeType.wordMatch => _wordMatch(),
+      ChallengeType.countIcons => _countIcons(),
+      ChallengeType.selectLargest => _selectLargest(),
+      ChallengeType.selectSmallest => _selectSmallest(),
+      ChallengeType.synonym => _synonym(),
+      ChallengeType.dayOrder => _dayOrder(),
+      ChallengeType.tapTarget => _tapTarget(),
+      ChallengeType.reverseText => _reverseText(),
+      ChallengeType.missingVowel => _missingVowel(),
+      ChallengeType.monthOrder => _monthOrder(),
+      ChallengeType.clockReading => _clockReading(),
+      ChallengeType.selectWarmColor => _selectWarmColor(),
+      ChallengeType.selectColdColor => _selectColdColor(),
+      ChallengeType.primeNumber => _primeNumber(),
+      ChallengeType.sumDigits => _sumDigits(),
     };
   }
 
@@ -202,7 +265,7 @@ class ChallengeEngine {
       prompt: 'Select ${target.label}',
       mode: ChallengeAnswerMode.singleChoice,
       correctAnswers: {target.id},
-      options: options,
+      options: _shuffledOptions(options),
     );
   }
 
@@ -219,23 +282,24 @@ class ChallengeEngine {
       prompt: 'Select the ${target.label.toLowerCase()}',
       mode: ChallengeAnswerMode.singleChoice,
       correctAnswers: {target.id},
-      options: options,
+      options: _shuffledOptions(options),
     );
   }
 
   Challenge _shapeRecognition() {
+    final targetCircles = _random.nextBool();
     const options = [
       ChallengeOption(id: 'circle_1', label: 'Circle', shape: BoxShape.circle),
       ChallengeOption(id: 'square_1', label: 'Square'),
       ChallengeOption(id: 'circle_2', label: 'Circle', shape: BoxShape.circle),
       ChallengeOption(id: 'square_2', label: 'Square'),
     ];
-    return const Challenge(
+    return Challenge(
       type: ChallengeType.shapeRecognition,
-      prompt: 'Select all circles',
+      prompt: targetCircles ? 'Select all circles' : 'Select all squares',
       mode: ChallengeAnswerMode.multiChoice,
-      correctAnswers: {'circle_1', 'circle_2'},
-      options: options,
+      correctAnswers: targetCircles ? {'circle_1', 'circle_2'} : {'square_1', 'square_2'},
+      options: _shuffledOptions(options),
     );
   }
 
@@ -273,7 +337,7 @@ class ChallengeEngine {
     final sorted = [...values]..sort();
     return Challenge(
       type: ChallengeType.sortNumbers,
-      prompt: 'Arrange: ${values.join('  ')}',
+      prompt: 'Arrange numbers from smallest to largest',
       mode: ChallengeAnswerMode.sort,
       correctAnswers: {sorted.join(',')},
       payload: {'values': values.join(',')},
@@ -281,18 +345,45 @@ class ChallengeEngine {
   }
 
   Challenge _humanLogic() {
-    const options = [
-      ChallengeOption(id: 'dog', label: 'Dog'),
-      ChallengeOption(id: 'fish', label: 'Fish'),
-      ChallengeOption(id: 'bird', label: 'Bird'),
-      ChallengeOption(id: 'cow', label: 'Cow'),
+    final prompts = [
+      (
+        'Which animal barks?',
+        'dog',
+        const [
+          ChallengeOption(id: 'dog', label: 'Dog'),
+          ChallengeOption(id: 'fish', label: 'Fish'),
+          ChallengeOption(id: 'bird', label: 'Bird'),
+          ChallengeOption(id: 'cow', label: 'Cow'),
+        ],
+      ),
+      (
+        'Which one can fly?',
+        'bird',
+        const [
+          ChallengeOption(id: 'cat', label: 'Cat'),
+          ChallengeOption(id: 'bird', label: 'Bird'),
+          ChallengeOption(id: 'horse', label: 'Horse'),
+          ChallengeOption(id: 'fish', label: 'Fish'),
+        ],
+      ),
+      (
+        'Which one is used to write?',
+        'pen',
+        const [
+          ChallengeOption(id: 'cup', label: 'Cup'),
+          ChallengeOption(id: 'pen', label: 'Pen'),
+          ChallengeOption(id: 'shoe', label: 'Shoe'),
+          ChallengeOption(id: 'plate', label: 'Plate'),
+        ],
+      ),
     ];
-    return const Challenge(
+    final selected = prompts[_random.nextInt(prompts.length)];
+    return Challenge(
       type: ChallengeType.humanLogic,
-      prompt: 'Which animal barks?',
+      prompt: selected.$1,
       mode: ChallengeAnswerMode.singleChoice,
-      correctAnswers: {'dog'},
-      options: options,
+      correctAnswers: {selected.$2},
+      options: _shuffledOptions(selected.$3),
     );
   }
 
@@ -315,6 +406,320 @@ class ChallengeEngine {
       mode: ChallengeAnswerMode.rotate,
       correctAnswers: {'complete'},
       payload: {'target': 0.0, 'tolerance': 0.18},
+    );
+  }
+
+  Challenge _division() {
+    final answer = _random.nextInt(8) + 2;
+    final divisor = _random.nextInt(7) + 2;
+    final dividend = answer * divisor;
+    return Challenge(
+      type: ChallengeType.division,
+      prompt: 'What is $dividend ÷ $divisor?',
+      mode: ChallengeAnswerMode.text,
+      correctAnswers: {'$answer'},
+    );
+  }
+
+  Challenge _oddEven() {
+    final number = _random.nextInt(80) + 11;
+    final target = number.isEven ? 'even' : 'odd';
+    return Challenge(
+      type: ChallengeType.oddEven,
+      prompt: 'Is $number odd or even?',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {target},
+      options: _shuffledOptions(const [
+        ChallengeOption(id: 'odd', label: 'Odd'),
+        ChallengeOption(id: 'even', label: 'Even'),
+      ]),
+    );
+  }
+
+  Challenge _wordMatch() {
+    const pairs = {
+      'SKY': 'sky',
+      'OCEAN': 'ocean',
+      'FOREST': 'forest',
+      'ROBOT': 'robot',
+    };
+    final target = pairs.keys.elementAt(_random.nextInt(pairs.length));
+    return Challenge(
+      type: ChallengeType.wordMatch,
+      prompt: 'Select $target',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {pairs[target]!},
+      options: _shuffledOptions(const [
+        ChallengeOption(id: 'sky', label: 'Sky', icon: Icons.cloud_rounded),
+        ChallengeOption(id: 'ocean', label: 'Ocean', icon: Icons.water_rounded),
+        ChallengeOption(id: 'forest', label: 'Forest', icon: Icons.park_rounded),
+        ChallengeOption(id: 'robot', label: 'Robot', icon: Icons.smart_toy_rounded),
+      ]),
+    );
+  }
+
+  Challenge _countIcons() {
+    final count = _random.nextInt(3) + 3;
+    return Challenge(
+      type: ChallengeType.countIcons,
+      prompt: 'How many stars are shown? ${List.filled(count, '★').join(' ')}',
+      mode: ChallengeAnswerMode.text,
+      correctAnswers: {'$count'},
+    );
+  }
+
+  Challenge _selectLargest() {
+    final values = _uniqueNumbers(4);
+    final largest = values.reduce(max);
+    return Challenge(
+      type: ChallengeType.selectLargest,
+      prompt: 'Select the largest number',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {'$largest'},
+      options: values.map((value) => ChallengeOption(id: '$value', label: '$value')).toList(),
+    );
+  }
+
+  Challenge _selectSmallest() {
+    final values = _uniqueNumbers(4);
+    final smallest = values.reduce(min);
+    return Challenge(
+      type: ChallengeType.selectSmallest,
+      prompt: 'Select the smallest number',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {'$smallest'},
+      options: values.map((value) => ChallengeOption(id: '$value', label: '$value')).toList(),
+    );
+  }
+
+  Challenge _synonym() {
+    final prompts = [
+      (
+        'Which word means quick?',
+        'fast',
+        const [
+          ChallengeOption(id: 'fast', label: 'Fast'),
+          ChallengeOption(id: 'cold', label: 'Cold'),
+          ChallengeOption(id: 'quiet', label: 'Quiet'),
+          ChallengeOption(id: 'heavy', label: 'Heavy'),
+        ],
+      ),
+      (
+        'Which word means silent?',
+        'quiet',
+        const [
+          ChallengeOption(id: 'bright', label: 'Bright'),
+          ChallengeOption(id: 'quiet', label: 'Quiet'),
+          ChallengeOption(id: 'rough', label: 'Rough'),
+          ChallengeOption(id: 'rapid', label: 'Rapid'),
+        ],
+      ),
+      (
+        'Which word means large?',
+        'big',
+        const [
+          ChallengeOption(id: 'tiny', label: 'Tiny'),
+          ChallengeOption(id: 'soft', label: 'Soft'),
+          ChallengeOption(id: 'big', label: 'Big'),
+          ChallengeOption(id: 'late', label: 'Late'),
+        ],
+      ),
+    ];
+    final selected = prompts[_random.nextInt(prompts.length)];
+    return Challenge(
+      type: ChallengeType.synonym,
+      prompt: selected.$1,
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {selected.$2},
+      options: _shuffledOptions(selected.$3),
+    );
+  }
+
+  Challenge _dayOrder() {
+    const days = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
+    final index = _random.nextInt(days.length - 1);
+    final current = days[index];
+    final answer = days[index + 1];
+    final distractors = days.where((day) => day != answer).toList()..shuffle(_random);
+    final options = [answer, ...distractors.take(3)]..shuffle(_random);
+    return Challenge(
+      type: ChallengeType.dayOrder,
+      prompt: 'Which day comes after ${current[0].toUpperCase()}${current.substring(1)}?',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {answer},
+      options: options
+          .map((day) => ChallengeOption(
+                id: day,
+                label: '${day[0].toUpperCase()}${day.substring(1)}',
+              ))
+          .toList(),
+    );
+  }
+
+  Challenge _tapTarget() {
+    const options = [
+      ChallengeOption(id: 'shield', label: 'Shield', icon: Icons.shield_rounded),
+      ChallengeOption(id: 'key', label: 'Key', icon: Icons.vpn_key_rounded),
+      ChallengeOption(id: 'bell', label: 'Bell', icon: Icons.notifications_rounded),
+      ChallengeOption(id: 'flag', label: 'Flag', icon: Icons.flag_rounded),
+    ];
+    final target = options[_random.nextInt(options.length)];
+    return Challenge(
+      type: ChallengeType.tapTarget,
+      prompt: 'Tap the ${target.label.toLowerCase()}',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {target.id},
+      options: _shuffledOptions(options),
+    );
+  }
+
+  Challenge _reverseText() {
+    const words = ['nexus', 'focus', 'human', 'secure', 'verify', 'signal'];
+    final word = words[_random.nextInt(words.length)];
+    return Challenge(
+      type: ChallengeType.reverseText,
+      prompt: 'Type this word backwards: $word',
+      mode: ChallengeAnswerMode.text,
+      correctAnswers: {word.split('').reversed.join()},
+    );
+  }
+
+  Challenge _missingVowel() {
+    const words = ['planet', 'rocket', 'silver', 'window', 'market', 'forest'];
+    final word = words[_random.nextInt(words.length)];
+    final vowelIndexes = <int>[];
+    for (var i = 0; i < word.length; i++) {
+      if ('aeiou'.contains(word[i])) vowelIndexes.add(i);
+    }
+    final missingIndex = vowelIndexes[_random.nextInt(vowelIndexes.length)];
+    final masked = '${word.substring(0, missingIndex)}_${word.substring(missingIndex + 1)}';
+    return Challenge(
+      type: ChallengeType.missingVowel,
+      prompt: 'Missing letter: $masked',
+      mode: ChallengeAnswerMode.text,
+      correctAnswers: {word[missingIndex]},
+    );
+  }
+
+  Challenge _monthOrder() {
+    const months = [
+      'january',
+      'february',
+      'march',
+      'april',
+      'may',
+      'june',
+      'july',
+      'august',
+      'september',
+      'october',
+      'november',
+      'december',
+    ];
+    final index = _random.nextInt(months.length - 1);
+    final current = months[index];
+    final answer = months[index + 1];
+    final distractors = months.where((month) => month != answer).toList()..shuffle(_random);
+    final options = [answer, ...distractors.take(3)]..shuffle(_random);
+    return Challenge(
+      type: ChallengeType.monthOrder,
+      prompt: 'Which month comes after ${current[0].toUpperCase()}${current.substring(1)}?',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {answer},
+      options: options
+          .map((month) => ChallengeOption(
+                id: month,
+                label: '${month[0].toUpperCase()}${month.substring(1)}',
+              ))
+          .toList(),
+    );
+  }
+
+  Challenge _clockReading() {
+    final hour = _random.nextInt(12) + 1;
+    final minute = [0, 15, 30, 45][_random.nextInt(4)];
+    final answer = '$hour:${minute.toString().padLeft(2, '0')}';
+    final options = <String>{answer};
+    while (options.length < 4) {
+      final h = _random.nextInt(12) + 1;
+      final m = [0, 15, 30, 45][_random.nextInt(4)];
+      options.add('$h:${m.toString().padLeft(2, '0')}');
+    }
+    final optionList = options.toList()..shuffle(_random);
+    return Challenge(
+      type: ChallengeType.clockReading,
+      prompt: 'Select the time $answer',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {answer},
+      options: optionList.map((time) => ChallengeOption(id: time, label: time)).toList(),
+    );
+  }
+
+  Challenge _selectWarmColor() {
+    const options = [
+      ChallengeOption(id: 'red', label: 'Red', color: Color(0xFFEF4444)),
+      ChallengeOption(id: 'orange', label: 'Orange', color: Color(0xFFF97316)),
+      ChallengeOption(id: 'blue', label: 'Blue', color: Color(0xFF3B82F6)),
+      ChallengeOption(id: 'green', label: 'Green', color: Color(0xFF22C55E)),
+    ];
+    final targets = _random.nextBool() ? {'red'} : {'orange'};
+    return Challenge(
+      type: ChallengeType.selectWarmColor,
+      prompt: 'Select a warm color',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: targets,
+      options: _shuffledOptions(options),
+    );
+  }
+
+  Challenge _selectColdColor() {
+    const options = [
+      ChallengeOption(id: 'blue', label: 'Blue', color: Color(0xFF3B82F6)),
+      ChallengeOption(id: 'cyan', label: 'Cyan', color: Color(0xFF06B6D4)),
+      ChallengeOption(id: 'red', label: 'Red', color: Color(0xFFEF4444)),
+      ChallengeOption(id: 'yellow', label: 'Yellow', color: Color(0xFFFACC15)),
+    ];
+    final targets = _random.nextBool() ? {'blue'} : {'cyan'};
+    return Challenge(
+      type: ChallengeType.selectColdColor,
+      prompt: 'Select a cool color',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: targets,
+      options: _shuffledOptions(options),
+    );
+  }
+
+  Challenge _primeNumber() {
+    const primes = [2, 3, 5, 7, 11, 13, 17, 19, 23, 29];
+    const nonPrimes = [4, 6, 8, 9, 10, 12, 14, 15, 21, 25];
+    final answer = primes[_random.nextInt(primes.length)];
+    final distractors = [...nonPrimes]..shuffle(_random);
+    final options = [answer, ...distractors.take(3)]..shuffle(_random);
+    return Challenge(
+      type: ChallengeType.primeNumber,
+      prompt: 'Select the prime number',
+      mode: ChallengeAnswerMode.singleChoice,
+      correctAnswers: {'$answer'},
+      options: options.map((value) => ChallengeOption(id: '$value', label: '$value')).toList(),
+    );
+  }
+
+  Challenge _sumDigits() {
+    final number = _random.nextInt(800) + 120;
+    final sum = number.toString().split('').fold<int>(0, (total, digit) => total + int.parse(digit));
+    return Challenge(
+      type: ChallengeType.sumDigits,
+      prompt: 'Add the digits: $number',
+      mode: ChallengeAnswerMode.text,
+      correctAnswers: {'$sum'},
     );
   }
 }

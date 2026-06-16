@@ -122,21 +122,27 @@ class _SecurityVerificationCardState extends State<SecurityVerificationCard> {
                       child: AnimatedDefaultTextStyle(
                         duration: const Duration(milliseconds: 180),
                         style: getGeistStyle(
-                          fontSize: 20,
+                          fontSize: 16,
                           fontWeight: FontWeight.w500,
                           color: RegisterColors.text,
                           height: 1.15,
                         ),
-                        child: const Text(
-                          "I'm not a robot",
-                          maxLines: 1,
+                        child: Text(
+                          verified
+                              ? "Tôi không phải là người máy"
+                              : failed
+                                  ? "Xác minh thất bại. Thử lại"
+                                  : _state == VerificationCheckboxState.loading
+                                      ? "Đang xác minh..."
+                                      : "Tôi không phải là người máy",
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
-                  const _SecureVerifyBranding(),
+                  const _RecaptchaBranding(),
                 ],
               ),
             ),
@@ -147,38 +153,51 @@ class _SecurityVerificationCardState extends State<SecurityVerificationCard> {
   }
 }
 
-class _SecureVerifyBranding extends StatelessWidget {
-  const _SecureVerifyBranding();
+class _RecaptchaBranding extends StatelessWidget {
+  const _RecaptchaBranding();
 
   @override
   Widget build(BuildContext context) {
-    return Opacity(
-      opacity: 0.65,
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.end,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          Text(
-            'SecureVerify',
-            style: getGeistStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: RegisterColors.text,
-              height: 1.1,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            const Icon(
+              Icons.cached_rounded,
+              color: Color(0xFF4A90E2),
+              size: 26,
             ),
-          ),
-          const SizedBox(height: 3),
-          Text(
-            'Privacy • Terms',
-            style: getGeistStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w400,
-              color: RegisterColors.onSurfaceVariant,
-              height: 1.1,
+            const Icon(
+              Icons.lock_rounded,
+              color: Colors.white,
+              size: 10,
             ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'reCAPTCHA',
+          style: getGeistStyle(
+            fontSize: 9,
+            fontWeight: FontWeight.w700,
+            color: Colors.white.withValues(alpha: 0.55),
+            height: 1.1,
           ),
-        ],
-      ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Bảo mật - Điều khoản',
+          style: getGeistStyle(
+            fontSize: 7.5,
+            fontWeight: FontWeight.w400,
+            color: Colors.white.withValues(alpha: 0.35),
+            height: 1.1,
+          ),
+        ),
+      ],
     );
   }
 }

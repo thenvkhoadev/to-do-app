@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
 import 'package:to_do_app/screens/auth/login/desktop/desktop_login_view.dart';
 import 'package:to_do_app/screens/auth/login/mobile/mobile_login_view.dart';
@@ -19,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isPasswordHidden = true;
   bool _rememberMe = false;
   bool _isLoading = false;
+  ChallengeResult? _verificationResult;
 
   @override
   void dispose() {
@@ -39,12 +41,24 @@ class _LoginScreenState extends State<LoginScreen> {
     });
   }
 
+  void _handleVerificationChanged(ChallengeResult? result) {
+    setState(() {
+      _verificationResult = result;
+    });
+  }
+
   Future<void> _handleSignIn() async {
     final email = _emailController.text.trim();
     final password = _passwordController.text;
 
     if (email.isEmpty || password.isEmpty) {
       _showMessage('Please enter email and password.');
+      return;
+    }
+
+    final verificationResult = _verificationResult;
+    if (verificationResult == null || !verificationResult.verified) {
+      _showMessage('Please complete the security check.');
       return;
     }
 
@@ -104,6 +118,7 @@ class _LoginScreenState extends State<LoginScreen> {
               onSocialLogin: _handleSocialLogin,
               onRequestAccess: _handleSignUp,
               onForgotPassword: _handleForgotPassword,
+              onVerificationChanged: _handleVerificationChanged,
             );
           }
 
@@ -119,6 +134,7 @@ class _LoginScreenState extends State<LoginScreen> {
             onSignUp: _handleSignUp,
             onPrivacyPolicy: () => _showMessage('Privacy Policy opened.'),
             onTermsOfService: () => _showMessage('Terms of Service opened.'),
+            onVerificationChanged: _handleVerificationChanged,
           );
         },
       ),

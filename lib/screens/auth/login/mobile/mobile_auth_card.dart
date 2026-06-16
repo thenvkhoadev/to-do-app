@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
+import 'package:to_do_app/features/security_verification/presentation/widgets/security_verification_card.dart';
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
 import 'package:to_do_app/screens/auth/login/widgets/glass_card.dart';
 import 'package:to_do_app/screens/auth/login/widgets/glass_text_field.dart';
@@ -16,6 +18,7 @@ class MobileAuthCard extends StatelessWidget {
     required this.onSubmit,
     required this.onSocialLogin,
     required this.onForgotPassword,
+    required this.onVerificationChanged,
     super.key,
   });
 
@@ -28,6 +31,7 @@ class MobileAuthCard extends StatelessWidget {
   final VoidCallback onSubmit;
   final ValueChanged<String> onSocialLogin;
   final VoidCallback onForgotPassword;
+  final ValueChanged<ChallengeResult?> onVerificationChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -79,6 +83,10 @@ class MobileAuthCard extends StatelessWidget {
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 20.0),
+          SecurityVerificationCard(
+            onChanged: onVerificationChanged,
           ),
           const SizedBox(height: 24.0),
           // Sign In Button

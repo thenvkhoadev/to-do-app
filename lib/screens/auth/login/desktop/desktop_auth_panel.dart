@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
+import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
+import 'package:to_do_app/features/security_verification/presentation/widgets/security_verification_card.dart';
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
 import 'package:to_do_app/screens/auth/login/widgets/glass_card.dart';
 import 'package:to_do_app/screens/auth/login/widgets/glass_text_field.dart';
 import 'package:to_do_app/screens/auth/login/widgets/social_button.dart';
 import 'package:to_do_app/screens/auth/login/widgets/gradient_button.dart';
 import 'package:to_do_app/screens/auth/login/widgets/section_divider.dart';
-import 'package:to_do_app/screens/auth/login/widgets/security_footer.dart';
 
 class DesktopAuthPanel extends StatelessWidget {
   const DesktopAuthPanel({
@@ -21,6 +22,7 @@ class DesktopAuthPanel extends StatelessWidget {
     required this.onSocialLogin,
     required this.onRequestAccess,
     required this.onForgotPassword,
+    required this.onVerificationChanged,
     super.key,
   });
 
@@ -35,6 +37,7 @@ class DesktopAuthPanel extends StatelessWidget {
   final ValueChanged<String> onSocialLogin;
   final VoidCallback onRequestAccess;
   final VoidCallback onForgotPassword;
+  final ValueChanged<ChallengeResult?> onVerificationChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -69,11 +72,11 @@ class DesktopAuthPanel extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 0.0),
                   child: Column(
                     children: [
-                      const Spacer(flex: 2),
+                      const Spacer(),
                       Container(
-                        constraints: const BoxConstraints(maxWidth: 480.0),
+                        constraints: const BoxConstraints(maxWidth: 460.0),
                         child: GlassCard(
-                          padding: const EdgeInsets.all(40.0),
+                          padding: const EdgeInsets.all(32.0),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -127,7 +130,11 @@ class DesktopAuthPanel extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 16.0),
+                              const SizedBox(height: 20.0),
+                              SecurityVerificationCard(
+                                onChanged: onVerificationChanged,
+                              ),
+                              const SizedBox(height: 14.0),
                               // Remember Me
                               Row(
                                 children: [
@@ -162,7 +169,7 @@ class DesktopAuthPanel extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 24.0),
+                              const SizedBox(height: 22.0),
                               // Submit Button
                               GradientButton(
                                 label: 'Sign In',
@@ -170,10 +177,10 @@ class DesktopAuthPanel extends StatelessWidget {
                                 onPressed: onSubmit,
                                 loading: isLoading,
                               ),
-                              const SizedBox(height: 32.0),
+                              const SizedBox(height: 24.0),
                               // Divider
                               const SectionDivider(text: 'OR CONTINUE WITH'),
-                              const SizedBox(height: 32.0),
+                              const SizedBox(height: 24.0),
                               // Social Row
                               Row(
                                 children: [
@@ -199,7 +206,7 @@ class DesktopAuthPanel extends StatelessWidget {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 32.0),
+                              const SizedBox(height: 24.0),
                               // Sign up link (Moved inside GlassCard to avoid footer overlaps)
                               Center(
                                 child: RichText(
@@ -228,12 +235,7 @@ class DesktopAuthPanel extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const Expanded(
-                        flex: 2,
-                        child: Center(
-                          child: SecurityFooter(),
-                        ),
-                      ),
+                      const Spacer(),
                     ],
                   ),
                 ),
