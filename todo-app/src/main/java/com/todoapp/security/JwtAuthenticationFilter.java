@@ -23,6 +23,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final com.todoapp.repository.UserRepository userRepository;
+    private final com.todoapp.repository.UserSessionRepository userSessionRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -33,6 +34,15 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         String token = parseJwt(request);
 
         if (token != null && jwtTokenProvider.validateToken(token)) {
+            java.util.Optional<com.todoapp.entity.UserSession> sessionOpt = userSessionRepository.findByAccessToken(token);
+            if (sessionOpt.isPresent()) {
+                if (!sessionOpt.get().getIsActive()) {
+                    log.warn("JWT token is inactive/revoked in database: {}", token);
+                    filterChain.doFilter(request, response);
+                    return;
+                }
+            }
+
             String subject = jwtTokenProvider.getSubjectFromToken(token);
             String email = jwtTokenProvider.getEmailFromToken(token);
 
@@ -52,6 +62,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             // If user is not found, provision them (social registration)
             if (user == null) {
                 user = provisionUser(subject, email, jwtTokenProvider.getUserMetadata(token));
+            }
+
+            // Save the session if not present in DB
+            if (sessionOpt.isEmpty()) {
+                com.todoapp.entity.UserSession session = com.todoapp.entity.UserSession.builder()
+                        .user(user)
+                        .accessToken(token)
+                        .isActive(true)
+                        .deviceName(request.getHeader("User-Agent"))
+                        .ipAddress(request.getRemoteAddr())
+                        .build();
+                userSessionRepository.save(session);
             }
 
             UsernamePasswordAuthenticationToken authentication =

@@ -1,5 +1,9 @@
+import 'dart:convert';
+import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:to_do_app/core/config/env.dart';
+import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -8,6 +12,9 @@ import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.d
 import 'package:to_do_app/screens/auth/components/shared_components.dart';
 import 'package:to_do_app/screens/auth/components/desktop_components.dart';
 import 'package:to_do_app/screens/auth/components/mobile_components.dart';
+import 'package:to_do_app/widgets/auth/email_verification_dialog.dart';
+import 'package:to_do_app/widgets/auth/security_code_dialog.dart';
+import 'package:to_do_app/widgets/auth/verification_success_dialog.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -34,35 +41,160 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         return;
       }
 
-      final response = await Supabase.instance.client.auth.signUp(
-        email: email,
-        password: password,
-        data: {'full_name': fullName, 'username': username},
+      // Reset loading state on form since we transition to dialog workflow
+      setState(() => _loading = false);
+
+      // Step 1: Open EmailVerificationDialog
+      showDialog(
+        context: context,
+        barrierColor: Colors.black.withOpacity(0.72),
+        builder: (dialogContext) => EmailVerificationDialog(
+          onNext: () {
+            // Close EmailVerificationDialog immediately
+            Navigator.of(dialogContext).pop();
+
+            // Step 2: Open SecurityCodeDialog immediately
+            showDialog(
+              context: context,
+              barrierColor: Colors.black.withOpacity(0.72),
+              builder: (otpContext) => SecurityCodeDialog(
+                email: email,
+                onVerified: (code) async {
+                  try {
+                    final dio = Dio();
+                    final verifyResponse = await dio.post(
+                      '${Env.javaApiUrl}/api/auth/verify-otp',
+                      data: {
+                        'email': email,
+                        'otp': code,
+                        'purpose': 'SIGNUP',
+                        'deviceName': 'Flutter Client',
+                        'deviceOs': Theme.of(otpContext).platform.name,
+                        'ipAddress': '127.0.0.1',
+                        'fullName': fullName,
+                        'username': username,
+                        'password': password,
+                      },
+                    );
+
+                    final data = verifyResponse.data;
+                    final accessToken = data['accessToken'] as String?;
+                    final refreshToken = data['refreshToken'] as String?;
+                    final userMap = data['user'];
+                    final userId = userMap != null ? userMap['id'] as String? : null;
+
+                    if (accessToken == null || refreshToken == null) {
+                      return "Invalid verification response from server.";
+                    }
+
+                    // Recover Supabase session using the token returned by the Java backend
+                    final sessionJson = jsonEncode({
+                      'access_token': accessToken,
+                      'refresh_token': refreshToken,
+                      'expires_in': data['expiresIn'] ?? 86400,
+                      'token_type': 'bearer',
+                      'user': {
+                        'id': userId,
+                        'email': email,
+                      },
+                    });
+
+                    final supabaseResponse = await Supabase.instance.client.auth.recoverSession(sessionJson);
+                    final session = supabaseResponse.session;
+                    if (session != null) {
+                      await ref.read(sessionStorageProvider).saveSession(session);
+                    }
+
+                    if (userId != null) {
+                      await _reportHumanVerification(userId, verificationResult);
+                      await ref.read(taskCreationProvider.notifier).seedUserData(userId);
+                    }
+
+                    if (!otpContext.mounted) return null;
+
+                    // Close SecurityCodeDialog
+                    Navigator.of(otpContext).pop();
+
+                    // Step 3: Open VerificationSuccessDialog
+                    showDialog(
+                      context: context,
+                      barrierColor: Colors.black.withOpacity(0.72),
+                      builder: (successContext) => VerificationSuccessDialog(
+                        onContinue: () {
+                          Navigator.of(successContext).pop();
+                          context.go('/home');
+                        },
+                      ),
+                    );
+
+                    return null;
+                  } on DioException catch (dioError) {
+                    final responseMessage = dioError.response?.data is Map
+                        ? (dioError.response?.data['message'] ?? dioError.message)
+                        : dioError.message;
+                    return responseMessage ?? "Authentication failed. Try again.";
+                  } catch (e) {
+                    return e.toString();
+                  }
+                },
+                onBack: () {
+                  Navigator.of(otpContext).pop();
+                },
+                onResendOtp: () async {
+                  final dio = Dio();
+                  try {
+                    await dio.post(
+                      '${Env.javaApiUrl}/api/auth/send-otp',
+                      data: {
+                        'email': email,
+                        'purpose': 'SIGNUP',
+                      },
+                    );
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text("A new security code has been sent."),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      _showError("Failed to resend security code.");
+                    }
+                  }
+                },
+              ),
+            );
+
+            // Trigger OTP send in the background (fire-and-forget)
+            final dio = Dio();
+            dio.post(
+              '${Env.javaApiUrl}/api/auth/send-otp',
+              data: {
+                'email': email,
+                'purpose': 'SIGNUP',
+              },
+            ).catchError((e) {
+              if (mounted) {
+                String errorMsg = "Failed to send verification key.";
+                if (e is DioException) {
+                  errorMsg = e.response?.data is Map
+                      ? (e.response?.data['message'] ?? e.message ?? errorMsg)
+                      : (e.message ?? errorMsg);
+                }
+                _showError(errorMsg);
+              }
+            });
+          },
+          onChangeEmail: () {
+            Navigator.of(dialogContext).pop();
+          },
+        ),
       );
-      final userId = response.user?.id;
-      if (userId != null) {
-        await _reportHumanVerification(userId, verificationResult);
-        await ref.read(taskCreationProvider.notifier).seedUserData(userId);
-      }
-      await Supabase.instance.client.auth.signOut();
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đăng ký thành công! Vui lòng đăng nhập.'),
-            backgroundColor: RegisterColors.successGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        context.go('/login');
-      }
-    } on AuthException catch (error) {
-      _showError(error.message);
     } catch (error) {
       _showError(error.toString());
-    } finally {
-      if (mounted) {
-        setState(() => _loading = false);
-      }
+      setState(() => _loading = false);
     }
   }
 

@@ -95,6 +95,10 @@ public class User implements UserDetails {
         updatedAt = OffsetDateTime.now();
     }
 
+    public String getCustomUsername() {
+        return this.username;
+    }
+
     // ===== Spring Security UserDetails Implementation =====
 
     @Override

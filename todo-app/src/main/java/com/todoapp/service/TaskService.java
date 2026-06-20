@@ -1,15 +1,19 @@
 package com.todoapp.service;
 
 import com.todoapp.dto.TaskRequest;
+import com.todoapp.entity.Tag;
 import com.todoapp.entity.Task;
 import com.todoapp.entity.User;
+import com.todoapp.repository.TagRepository;
 import com.todoapp.repository.TaskRepository;
 import com.todoapp.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 @Service
@@ -18,6 +22,7 @@ public class TaskService {
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
+    private final TagRepository tagRepository;
 
     // Get all tasks for user
     public List<Task> getUserTasks(String email) {
@@ -43,7 +48,7 @@ public class TaskService {
                 .status(request.getStatus())
                 .priority(request.getPriority())
                 .dueDate(request.getDueDate())
-                .tags(request.getTags())
+                .tags(resolveTags(user, request.getTags()))
                 .build();
 
         return taskRepository.save(task);
@@ -62,7 +67,7 @@ public class TaskService {
         task.setStatus(request.getStatus());
         task.setPriority(request.getPriority());
         task.setDueDate(request.getDueDate());
-        task.setTags(request.getTags());
+        task.setTags(resolveTags(user, request.getTags()));
 
         return taskRepository.save(task);
     }
@@ -86,6 +91,26 @@ public class TaskService {
                 "in_progress", taskRepository.countByUserIdAndStatus(user.getId(), "in_progress"),
                 "done",        taskRepository.countByUserIdAndStatus(user.getId(), "done")
         );
+    }
+
+    // Convert tag names (String[]) into managed Tag entities, creating new ones if needed
+    private Set<Tag> resolveTags(User user, String[] tagNames) {
+        Set<Tag> tags = new HashSet<>();
+        if (tagNames == null) {
+            return tags;
+        }
+        for (String name : tagNames) {
+            if (name == null || name.isBlank()) continue;
+            Tag tag = tagRepository.findByUserIdAndName(user.getId(), name)
+                    .orElseGet(() -> tagRepository.save(
+                            Tag.builder()
+                                    .user(user)
+                                    .name(name)
+                                    .build()
+                    ));
+            tags.add(tag);
+        }
+        return tags;
     }
 
     private User getUserByEmail(String email) {

@@ -6,6 +6,8 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.OffsetDateTime;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 @Entity
@@ -42,11 +44,12 @@ public class Task {
     @Column(name = "due_date")
     private OffsetDateTime dueDate;
 
-    // Tags mapped via Hibernate 6 Array support
-    @JdbcTypeCode(SqlTypes.ARRAY)
-    @Column(name = "tags", columnDefinition = "text[]")
-    @Builder.Default
-    private String[] tags = new String[0];
+    @ManyToMany
+@JoinTable(
+        name = "task_tags",
+        joinColumns = @JoinColumn(name = "task_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id"))
+    private Set<Tag> tags = new HashSet<>();
 
     @Column(name = "created_at", updatable = false)
     private OffsetDateTime createdAt;

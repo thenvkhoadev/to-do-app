@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:dio/dio.dart';
+import 'package:to_do_app/core/config/env.dart';
 import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
 import 'package:to_do_app/screens/auth/login/desktop/desktop_login_view.dart';
@@ -64,8 +66,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() => _isLoading = true);
     try {
+      String resolvedEmail = email;
+      if (!email.contains('@')) {
+        final dio = Dio();
+        final response = await dio.get(
+          '${Env.javaApiUrl}/api/auth/resolve-email',
+          queryParameters: {'identifier': email},
+        );
+        if (response.data != null && response.data['email'] != null) {
+          resolvedEmail = response.data['email'] as String;
+        }
+      }
+
       await Supabase.instance.client.auth.signInWithPassword(
-        email: email,
+        email: resolvedEmail,
         password: password,
       );
       // Removed manual Navigator.pushReplacement. GoRouter will automatically

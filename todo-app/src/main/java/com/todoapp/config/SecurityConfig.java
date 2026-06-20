@@ -38,6 +38,7 @@ public class SecurityConfig {
                 // Public endpoints
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/actuator/health").permitAll()
+                .requestMatchers("/error").permitAll()
                 // Admin only
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 // All other requests need authentication

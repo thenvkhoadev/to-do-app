@@ -27,7 +27,7 @@ public class UserController {
         return ResponseEntity.ok(UserProfileResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .username(user.getUsername())
+                .username(user.getCustomUsername())
                 .fullName(user.getFullName())
                 .avatarUrl(user.getAvatarUrl())
                 .tier(user.getTier())

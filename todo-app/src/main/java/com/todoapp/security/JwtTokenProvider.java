@@ -34,6 +34,8 @@ public class JwtTokenProvider {
         // Check if the userPrincipal is our User entity, and use its ID
         if (userPrincipal instanceof com.todoapp.entity.User user) {
             java.util.Map<String, Object> metadata = new java.util.HashMap<>();
+            metadata.put("username", user.getCustomUsername());
+            metadata.put("user_name", user.getCustomUsername());
             metadata.put("full_name", user.getFullName());
             metadata.put("avatar_url", user.getAvatarUrl());
             return generateToken(user.getId().toString(), user.getEmail(), metadata);
@@ -47,7 +49,7 @@ public class JwtTokenProvider {
                 .claim("email", email)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -58,7 +60,7 @@ public class JwtTokenProvider {
                 .claim("user_metadata", userMetadata)
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
@@ -69,7 +71,7 @@ public class JwtTokenProvider {
                 .issuedAt(new Date())
                 .expiration(new Date(System.currentTimeMillis() + refreshExpiration))
                 .claim("type", "refresh")
-                .signWith(getSigningKey())
+                .signWith(getSigningKey(), Jwts.SIG.HS256)
                 .compact();
     }
 
