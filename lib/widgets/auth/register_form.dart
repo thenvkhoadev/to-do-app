@@ -13,6 +13,7 @@ import 'package:to_do_app/widgets/auth/gradient_button.dart';
 import 'package:to_do_app/widgets/auth/email_verification_dialog.dart';
 import 'package:to_do_app/widgets/auth/security_code_dialog.dart';
 import 'package:to_do_app/widgets/auth/verification_success_dialog.dart';
+import 'package:to_do_app/widgets/auth/auth_message_dialog.dart';
 
 class RegisterForm extends ConsumerStatefulWidget {
   const RegisterForm({super.key, required this.isDesktop});
@@ -64,7 +65,7 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
           try {
             final dio = Dio();
             await dio.post(
-              '${Env.javaApiUrl}/api/auth/send-otp',
+              '${Env.javaApiUrl}/api/otp/send',
               data: {
                 'email': email,
                 'purpose': 'SIGNUP',
@@ -86,49 +87,38 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                   // Verify OTP via Java backend
                   try {
                     final verifyResponse = await dio.post(
-                      '${Env.javaApiUrl}/api/auth/verify-otp',
+                      '${Env.javaApiUrl}/api/otp/verify',
                       data: {
                         'email': email,
                         'otp': code,
                         'purpose': 'SIGNUP',
-                        'deviceName': 'Flutter Client',
-                        'deviceOs': Theme.of(context).platform.name,
-                        'ipAddress': '127.0.0.1',
-                        'fullName': fullName,
-                        'username': username,
-                        'password': password,
                       },
                     );
 
                     final data = verifyResponse.data;
-                    final accessToken = data['accessToken'] as String?;
-                    final refreshToken = data['refreshToken'] as String?;
-                    final userMap = data['user'];
-                    final userId = userMap != null ? userMap['id'] as String? : null;
+                    final isVerified = data['verified'] == true;
 
-                    if (accessToken == null || refreshToken == null) {
+                    if (!isVerified) {
                       return "Invalid verification response from server.";
                     }
 
-                    // Recover Supabase session using the token returned by the Java backend
-                    final sessionJson = jsonEncode({
-                      'access_token': accessToken,
-                      'refresh_token': refreshToken,
-                      'expires_in': data['expiresIn'] ?? 86400,
-                      'token_type': 'bearer',
-                      'user': {
-                        'id': userId,
-                        'email': email,
+                    // OTP is valid. Now sign up via Supabase directly.
+                    final authResponse = await Supabase.instance.client.auth.signUp(
+                      email: email,
+                      password: password,
+                      data: {
+                        'username': username,
+                        'full_name': fullName,
                       },
-                    });
+                    );
 
-                    final supabaseResponse = await Supabase.instance.client.auth.recoverSession(sessionJson);
-                    final session = supabaseResponse.session;
+                    final session = authResponse.session;
                     if (session != null) {
                       // Save to secure local storage session keys
                       await ref.read(sessionStorageProvider).saveSession(session);
                     }
 
+                    final userId = authResponse.user?.id;
                     // Seed user database task items
                     if (userId != null) {
                       await ref.read(taskCreationProvider.notifier).seedUserData(userId);
@@ -146,8 +136,8 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                       builder: (successContext) => VerificationSuccessDialog(
                         onContinue: () {
                           Navigator.of(successContext).pop();
-                          // Navigate to home dashboard
-                          context.go('/home');
+                          // Navigate to login/sign-in screen
+                          context.go('/login');
                         },
                       ),
                     );
@@ -157,7 +147,9 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                     final responseMessage = dioError.response?.data is Map
                         ? (dioError.response?.data['message'] ?? dioError.message)
                         : dioError.message;
-                    return responseMessage ?? "Authentication failed. Try again.";
+                    return responseMessage ?? "Verification failed. Try again.";
+                  } on AuthException catch (authError) {
+                    return authError.message;
                   } catch (e) {
                     return e.toString();
                   }
@@ -169,18 +161,18 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
                   final dio = Dio();
                   try {
                     await dio.post(
-                      '${Env.javaApiUrl}/api/auth/send-otp',
+                      '${Env.javaApiUrl}/api/otp/send',
                       data: {
                         'email': email,
                         'purpose': 'SIGNUP',
                       },
                     );
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("A new security code has been sent."),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      AuthMessageDialog.show(
+                        context: context,
+                        message: "A new security code has been sent.",
+                        title: "OTP Sent",
+                        isError: false,
                       );
                     }
                   } catch (e) {
@@ -207,10 +199,13 @@ class _RegisterFormState extends ConsumerState<RegisterForm> {
     );
   }
 
-  void _showMessage(String message) {
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+  void _showMessage(String message, {bool isError = true}) {
+    AuthMessageDialog.show(
+      context: context,
+      message: message,
+      title: isError ? 'Error' : 'Notice',
+      isError: isError,
+    );
   }
 
   @override

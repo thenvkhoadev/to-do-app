@@ -36,6 +36,10 @@ jwt:
   expiration: 86400000 # 24 hours (ms)
   refresh-expiration: 604800000 # 7 days (ms)
 
+supabase:
+  jwt:
+    secret: ${SUPABASE_JWT_SECRET:${JWT_SECRET}}
+
 # Server
 server:
   port: 8080

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -7,6 +8,8 @@ import 'package:to_do_app/features/security_verification/domain/challenge_result
 import 'package:to_do_app/screens/auth/login/theme/login_theme.dart';
 import 'package:to_do_app/screens/auth/login/desktop/desktop_login_view.dart';
 import 'package:to_do_app/screens/auth/login/mobile/mobile_login_view.dart';
+import 'package:to_do_app/widgets/auth/privacy_policy_dialog.dart';
+import 'package:to_do_app/widgets/auth/auth_message_dialog.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -95,18 +98,49 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _showMessage(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg)),
+  void _showMessage(String msg, {bool isError = true}) {
+    AuthMessageDialog.show(
+      context: context,
+      message: msg,
+      title: isError ? 'Error' : 'Notice',
+      isError: isError,
     );
   }
 
-  void _handleSocialLogin(String provider) {
-    _showMessage('Social login with $provider selected.');
+  Future<void> _handleSocialLogin(String provider) async {
+    setState(() => _isLoading = true);
+    try {
+      OAuthProvider oAuthProvider;
+      if (provider == 'google') {
+        oAuthProvider = OAuthProvider.google;
+      } else if (provider == 'github') {
+        oAuthProvider = OAuthProvider.github;
+      } else if (provider == 'facebook') {
+        oAuthProvider = OAuthProvider.facebook;
+      } else {
+        throw Exception('Unsupported OAuth provider: $provider');
+      }
+
+      await Supabase.instance.client.auth.signInWithOAuth(
+        oAuthProvider,
+        redirectTo: kIsWeb 
+            ? null 
+            : 'com.example.to_do_app://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } on AuthException catch (error) {
+      _showMessage(error.message);
+    } catch (error) {
+      _showMessage(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   void _handleForgotPassword() {
-    _showMessage('Password recovery link requested.');
+    _showMessage('Password recovery link requested.', isError: false);
   }
 
   void _handleSignUp() {
@@ -146,8 +180,14 @@ class _LoginScreenState extends State<LoginScreen> {
             onSocialLogin: _handleSocialLogin,
             onForgotPassword: _handleForgotPassword,
             onSignUp: _handleSignUp,
-            onPrivacyPolicy: () => _showMessage('Privacy Policy opened.'),
-            onTermsOfService: () => _showMessage('Terms of Service opened.'),
+            onPrivacyPolicy: () {
+              showDialog(
+                context: context,
+                barrierColor: Colors.black.withOpacity(0.72),
+                builder: (context) => const PrivacyPolicyDialog(),
+              );
+            },
+            onTermsOfService: () => _showMessage('Terms of Service opened.', isError: false),
             onVerificationChanged: _handleVerificationChanged,
           );
         },

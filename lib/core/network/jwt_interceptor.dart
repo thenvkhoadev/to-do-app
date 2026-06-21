@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/core/config/env.dart';
@@ -13,6 +14,8 @@ class JwtInterceptor extends Interceptor {
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
       options.headers['apikey'] = Env.supabaseAnonKey;
+      options.headers['X-Device-Name'] = 'Flutter Client';
+      options.headers['X-Device-OS'] = defaultTargetPlatform.name.toLowerCase();
     }
     handler.next(options);
   }
@@ -39,6 +42,8 @@ class JwtInterceptor extends Interceptor {
       final request = err.requestOptions;
       request.extra['retried'] = true;
       request.headers['Authorization'] = 'Bearer $token';
+      request.headers['X-Device-Name'] = 'Flutter Client';
+      request.headers['X-Device-OS'] = defaultTargetPlatform.name.toLowerCase();
       final response = await Dio().fetch<dynamic>(request);
       handler.resolve(response);
     } catch (_) {

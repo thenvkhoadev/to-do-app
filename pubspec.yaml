@@ -63,6 +63,8 @@ dependencies:
   audioplayers: ^6.7.1
   flutter_inappwebview: ^6.0.0
   webview_windows: ^0.4.0
+  app_links: ^6.1.1
+  win32_registry: ^2.1.0
 
 dev_dependencies:
   flutter_test:

@@ -4,8 +4,9 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/app.dart';
+import 'package:to_do_app/core/services/deep_link_service.dart';
 
-Future<void> main() async {
+Future<void> main(List<String> args) async {
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
@@ -26,6 +27,17 @@ Future<void> main() async {
   }
 
   await Supabase.initialize(url: supabaseUrl, anonKey: supabaseAnonKey);
+
+  // Khởi tạo dịch vụ Deep Link và bắt đầu lắng nghe
+  final deepLinkService = DeepLinkService()..init();
+
+  // Xử lý tham số dòng lệnh khi chạy từ Cold Start trên Windows/Linux
+  if (args.isNotEmpty) {
+    final uri = Uri.tryParse(args.first);
+    if (uri != null) {
+      deepLinkService.handleUri(uri);
+    }
+  }
 
   runApp(const ProviderScope(child: NexusApp()));
 }

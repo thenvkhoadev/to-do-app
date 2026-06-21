@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/auth_theme.dart';
+import 'package:to_do_app/widgets/auth/privacy_policy_dialog.dart';
 
 class FooterLinks extends StatelessWidget {
   const FooterLinks({super.key, required this.onLogin});
@@ -69,7 +70,15 @@ class _FooterLink extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: () {},
+      onTap: () {
+        if (label == 'Privacy Policy') {
+          showDialog(
+            context: context,
+            barrierColor: Colors.black.withOpacity(0.72),
+            builder: (context) => const PrivacyPolicyDialog(),
+          );
+        }
+      },
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12),

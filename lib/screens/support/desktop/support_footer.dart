@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
 import 'package:to_do_app/theme/dashboard_theme.dart';
+import 'package:to_do_app/widgets/auth/privacy_policy_dialog.dart';
 
 class SupportFooter extends StatelessWidget {
   const SupportFooter({super.key});
@@ -14,13 +15,13 @@ class SupportFooter extends StatelessWidget {
           top: BorderSide(color: Colors.white.withValues(alpha: .06)),
         ),
       ),
-      child: const Wrap(
+      child: Wrap(
         alignment: WrapAlignment.spaceBetween,
         crossAxisAlignment: WrapCrossAlignment.center,
         spacing: 24,
         runSpacing: 18,
         children: [
-          Row(
+          const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.task_alt_rounded, color: DashboardColors.primary),
@@ -38,16 +39,28 @@ class SupportFooter extends StatelessWidget {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Text('Status', style: _FooterStyle()),
-              SizedBox(width: 22),
-              Text('Terms', style: _FooterStyle()),
-              SizedBox(width: 22),
-              Text('Privacy', style: _FooterStyle()),
-              SizedBox(width: 22),
-              Text('Contact', style: _FooterStyle()),
+              const Text('Status', style: _FooterStyle()),
+              const SizedBox(width: 22),
+              const Text('Terms', style: _FooterStyle()),
+              const SizedBox(width: 22),
+              GestureDetector(
+                onTap: () {
+                  showDialog(
+                    context: context,
+                    barrierColor: Colors.black.withOpacity(0.72),
+                    builder: (context) => const PrivacyPolicyDialog(),
+                  );
+                },
+                child: const MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: Text('Privacy', style: _FooterStyle()),
+                ),
+              ),
+              const SizedBox(width: 22),
+              const Text('Contact', style: _FooterStyle()),
             ],
           ),
-          Text(
+          const Text(
             '© 2024 NEXUS AI. Precision productivity.',
             style: TextStyle(
               color: DashboardColors.onSurfaceVariant,

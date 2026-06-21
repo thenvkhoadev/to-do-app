@@ -1,10 +1,13 @@
 import 'dart:math' as math;
 
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:to_do_app/features/security_verification/domain/challenge_result.dart';
 import 'package:to_do_app/features/security_verification/presentation/widgets/security_verification_card.dart';
 import 'package:to_do_app/screens/auth/components/shared_components.dart';
 import 'package:to_do_app/shared/widgets/stitch_shader_background.dart';
+import 'package:to_do_app/widgets/auth/privacy_policy_dialog.dart';
+import 'package:to_do_app/widgets/auth/auth_message_dialog.dart';
 
 class DesktopInsightCard extends StatefulWidget {
   const DesktopInsightCard({super.key});
@@ -296,6 +299,7 @@ class DesktopRegisterForm extends StatefulWidget {
   const DesktopRegisterForm({
     required this.onRegister,
     required this.onLogin,
+    required this.onSocialLogin,
     this.loading = false,
     super.key,
   });
@@ -309,6 +313,7 @@ class DesktopRegisterForm extends StatefulWidget {
   })
   onRegister;
   final VoidCallback onLogin;
+  final ValueChanged<String> onSocialLogin;
   final bool loading;
 
   @override
@@ -325,9 +330,17 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
 
   ChallengeResult? _verificationResult;
   bool _agreeTerms = false;
+  late final TapGestureRecognizer _privacyRecognizer;
+
+  @override
+  void initState() {
+    super.initState();
+    _privacyRecognizer = TapGestureRecognizer();
+  }
 
   @override
   void dispose() {
+    _privacyRecognizer.dispose();
     _firstNameController.dispose();
     _lastNameController.dispose();
     _usernameController.dispose();
@@ -400,7 +413,11 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
   }
 
   void _showSnack(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    AuthMessageDialog.show(
+      context: context,
+      message: msg,
+      title: 'Alert',
+    );
   }
 
   @override
@@ -551,6 +568,14 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
                             fontWeight: FontWeight.w400,
                             color: RegisterColors.primary,
                           ).copyWith(decoration: TextDecoration.underline),
+                          recognizer: _privacyRecognizer
+                            ..onTap = () {
+                              showDialog(
+                                context: context,
+                                barrierColor: Colors.black.withOpacity(0.72),
+                                builder: (context) => const PrivacyPolicyDialog(),
+                              );
+                            },
                         ),
                         const TextSpan(text: '.'),
                       ],
@@ -573,7 +598,7 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
                       child: SocialLoginButton(
                         label: 'Google',
                         type: 'google',
-                        onPressed: () {},
+                        onPressed: () => widget.onSocialLogin('google'),
                       ),
                     ),
                     const SizedBox(width: 16.0),
@@ -581,7 +606,7 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
                       child: SocialLoginButton(
                         label: 'Facebook',
                         type: 'facebook',
-                        onPressed: () {},
+                        onPressed: () => widget.onSocialLogin('facebook'),
                       ),
                     ),
                     const SizedBox(width: 16.0),
@@ -589,7 +614,7 @@ class _DesktopRegisterFormState extends State<DesktopRegisterForm> {
                       child: SocialLoginButton(
                         label: 'GitHub',
                         type: 'github',
-                        onPressed: () {},
+                        onPressed: () => widget.onSocialLogin('github'),
                       ),
                     ),
                   ],

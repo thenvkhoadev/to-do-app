@@ -69,7 +69,7 @@ class VerificationSuccessDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 24),
                     _ContinueGradientButton(
-                      label: "Continue to Home",
+                      label: "Continue to Sign In",
                       icon: Icons.arrow_forward,
                       onPressed: onContinue,
                     ),

@@ -21,9 +21,10 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
+    private final SupabaseJwtValidator supabaseJwtValidator;
     private final com.todoapp.repository.UserRepository userRepository;
     private final com.todoapp.repository.UserSessionRepository userSessionRepository;
+    private final com.todoapp.repository.AuditLogRepository auditLogRepository;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
@@ -33,63 +34,110 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String token = parseJwt(request);
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            java.util.Optional<com.todoapp.entity.UserSession> sessionOpt = userSessionRepository.findByAccessToken(token);
-            if (sessionOpt.isPresent()) {
-                if (!sessionOpt.get().getIsActive()) {
-                    log.warn("JWT token is inactive/revoked in database: {}", token);
-                    filterChain.doFilter(request, response);
-                    return;
-                }
-            }
-
-            String subject = jwtTokenProvider.getSubjectFromToken(token);
-            String email = jwtTokenProvider.getEmailFromToken(token);
-
-            com.todoapp.entity.User user = null;
+        if (token != null) {
             try {
-                if (subject != null && !subject.contains("@")) {
-                    user = userRepository.findById(java.util.UUID.fromString(subject)).orElse(null);
+                String subject = supabaseJwtValidator.getUserId(token);
+                String email = supabaseJwtValidator.getEmail(token);
+
+                com.todoapp.entity.User user = null;
+                try {
+                    if (subject != null && !subject.contains("@")) {
+                        user = userRepository.findById(java.util.UUID.fromString(subject)).orElse(null);
+                    }
+                } catch (IllegalArgumentException e) {
+                    // Subject is not a UUID
                 }
-            } catch (IllegalArgumentException e) {
-                // Subject is not a UUID
-            }
 
-            if (user == null && email != null) {
-                user = userRepository.findByEmail(email).orElse(null);
-            }
+                if (user == null && email != null) {
+                    user = userRepository.findByEmail(email).orElse(null);
+                }
 
-            // If user is not found, provision them (social registration)
-            if (user == null) {
-                user = provisionUser(subject, email, jwtTokenProvider.getUserMetadata(token));
-            }
+                // If user is not found, provision them (social registration)
+                if (user == null) {
+                    user = provisionUser(subject, email, supabaseJwtValidator.getUserMetadata(token));
+                }
 
-            // Save the session if not present in DB
-            if (sessionOpt.isEmpty()) {
-                com.todoapp.entity.UserSession session = com.todoapp.entity.UserSession.builder()
-                        .user(user)
-                        .accessToken(token)
-                        .isActive(true)
-                        .deviceName(request.getHeader("User-Agent"))
-                        .ipAddress(request.getRemoteAddr())
-                        .build();
-                userSessionRepository.save(session);
-            }
+                if (user != null) {
+                    handleUserSession(user, token, request);
 
-            UsernamePasswordAuthenticationToken authentication =
-                    new UsernamePasswordAuthenticationToken(
-                            user,
-                            null,
-                            user.getAuthorities()
+                    UsernamePasswordAuthenticationToken authentication =
+                            new UsernamePasswordAuthenticationToken(
+                                    user,
+                                    null,
+                                    user.getAuthorities()
+                            );
+                    authentication.setDetails(
+                            new WebAuthenticationDetailsSource().buildDetails(request)
                     );
-            authentication.setDetails(
-                    new WebAuthenticationDetailsSource().buildDetails(request)
-            );
 
-            SecurityContextHolder.getContext().setAuthentication(authentication);
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
+            } catch (Exception e) {
+                log.error("Could not set user authentication in security context", e);
+            }
         }
 
         filterChain.doFilter(request, response);
+    }
+
+    private void handleUserSession(com.todoapp.entity.User user, String token, HttpServletRequest request) {
+        try {
+            java.util.Optional<com.todoapp.entity.UserSession> sessionOpt = userSessionRepository.findByAccessToken(token);
+
+            if (sessionOpt.isPresent()) {
+                com.todoapp.entity.UserSession session = sessionOpt.get();
+                session.setLastActiveAt(java.time.OffsetDateTime.now());
+                userSessionRepository.save(session);
+            } else {
+                String deviceName = request.getHeader("X-Device-Name");
+                if (deviceName == null || deviceName.trim().isEmpty()) {
+                    deviceName = request.getHeader("User-Agent");
+                }
+                if (deviceName == null || deviceName.trim().isEmpty()) {
+                    deviceName = "Unknown Device";
+                }
+
+                String deviceOs = request.getHeader("X-Device-OS");
+                if (deviceOs == null || deviceOs.trim().isEmpty()) {
+                    deviceOs = "unknown";
+                }
+
+                String ipAddress = request.getRemoteAddr();
+
+                java.util.Optional<com.todoapp.entity.UserSession> existingSessionOpt =
+                        userSessionRepository.findFirstByUserAndDeviceNameAndDeviceOs(user, deviceName, deviceOs);
+
+                if (existingSessionOpt.isPresent()) {
+                    com.todoapp.entity.UserSession existingSession = existingSessionOpt.get();
+                    existingSession.setAccessToken(token);
+                    existingSession.setIpAddress(ipAddress);
+                    existingSession.setIsActive(true);
+                    existingSession.setLastActiveAt(java.time.OffsetDateTime.now());
+                    userSessionRepository.save(existingSession);
+                    log.info("Updated existing user session for user={} on device={} ({})", user.getEmail(), deviceName, deviceOs);
+                } else {
+                    com.todoapp.entity.UserSession newSession = com.todoapp.entity.UserSession.builder()
+                            .user(user)
+                            .deviceName(deviceName)
+                            .deviceOs(deviceOs)
+                            .ipAddress(ipAddress)
+                            .accessToken(token)
+                            .isActive(true)
+                            .build();
+                    userSessionRepository.save(newSession);
+                    log.info("Created new user session for user={} on device={} ({})", user.getEmail(), deviceName, deviceOs);
+                }
+
+                com.todoapp.entity.AuditLog auditLog = com.todoapp.entity.AuditLog.builder()
+                        .user(user)
+                        .action("LOGIN")
+                        .description("User logged in successfully via Supabase JWT on " + deviceName + " (" + deviceOs + ").")
+                        .build();
+                auditLogRepository.save(auditLog);
+            }
+        } catch (Exception e) {
+            log.error("Failed to handle user session and audit logging", e);
+        }
     }
 
     private com.todoapp.entity.User provisionUser(String subject, String email, java.util.Map<String, Object> metadata) {

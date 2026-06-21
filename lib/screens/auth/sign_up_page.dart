@@ -15,6 +15,7 @@ import 'package:to_do_app/screens/auth/components/mobile_components.dart';
 import 'package:to_do_app/widgets/auth/email_verification_dialog.dart';
 import 'package:to_do_app/widgets/auth/security_code_dialog.dart';
 import 'package:to_do_app/widgets/auth/verification_success_dialog.dart';
+import 'package:to_do_app/widgets/auth/auth_message_dialog.dart';
 
 class SignUpPage extends ConsumerStatefulWidget {
   const SignUpPage({super.key});
@@ -63,48 +64,37 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   try {
                     final dio = Dio();
                     final verifyResponse = await dio.post(
-                      '${Env.javaApiUrl}/api/auth/verify-otp',
+                      '${Env.javaApiUrl}/api/otp/verify',
                       data: {
                         'email': email,
                         'otp': code,
                         'purpose': 'SIGNUP',
-                        'deviceName': 'Flutter Client',
-                        'deviceOs': Theme.of(otpContext).platform.name,
-                        'ipAddress': '127.0.0.1',
-                        'fullName': fullName,
-                        'username': username,
-                        'password': password,
                       },
                     );
 
                     final data = verifyResponse.data;
-                    final accessToken = data['accessToken'] as String?;
-                    final refreshToken = data['refreshToken'] as String?;
-                    final userMap = data['user'];
-                    final userId = userMap != null ? userMap['id'] as String? : null;
+                    final isVerified = data['verified'] == true;
 
-                    if (accessToken == null || refreshToken == null) {
+                    if (!isVerified) {
                       return "Invalid verification response from server.";
                     }
 
-                    // Recover Supabase session using the token returned by the Java backend
-                    final sessionJson = jsonEncode({
-                      'access_token': accessToken,
-                      'refresh_token': refreshToken,
-                      'expires_in': data['expiresIn'] ?? 86400,
-                      'token_type': 'bearer',
-                      'user': {
-                        'id': userId,
-                        'email': email,
+                    // OTP is valid. Now sign up via Supabase directly.
+                    final authResponse = await Supabase.instance.client.auth.signUp(
+                      email: email,
+                      password: password,
+                      data: {
+                        'username': username,
+                        'full_name': fullName,
                       },
-                    });
+                    );
 
-                    final supabaseResponse = await Supabase.instance.client.auth.recoverSession(sessionJson);
-                    final session = supabaseResponse.session;
+                    final session = authResponse.session;
                     if (session != null) {
                       await ref.read(sessionStorageProvider).saveSession(session);
                     }
 
+                    final userId = authResponse.user?.id;
                     if (userId != null) {
                       await _reportHumanVerification(userId, verificationResult);
                       await ref.read(taskCreationProvider.notifier).seedUserData(userId);
@@ -122,7 +112,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                       builder: (successContext) => VerificationSuccessDialog(
                         onContinue: () {
                           Navigator.of(successContext).pop();
-                          context.go('/home');
+                          context.go('/login');
                         },
                       ),
                     );
@@ -132,7 +122,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     final responseMessage = dioError.response?.data is Map
                         ? (dioError.response?.data['message'] ?? dioError.message)
                         : dioError.message;
-                    return responseMessage ?? "Authentication failed. Try again.";
+                    return responseMessage ?? "Verification failed. Try again.";
+                  } on AuthException catch (authError) {
+                    return authError.message;
                   } catch (e) {
                     return e.toString();
                   }
@@ -144,18 +136,18 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                   final dio = Dio();
                   try {
                     await dio.post(
-                      '${Env.javaApiUrl}/api/auth/send-otp',
+                      '${Env.javaApiUrl}/api/otp/send',
                       data: {
                         'email': email,
                         'purpose': 'SIGNUP',
                       },
                     );
                     if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text("A new security code has been sent."),
-                          behavior: SnackBarBehavior.floating,
-                        ),
+                      AuthMessageDialog.show(
+                        context: context,
+                        message: "A new security code has been sent.",
+                        title: "OTP Sent",
+                        isError: false,
                       );
                     }
                   } catch (e) {
@@ -170,7 +162,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             // Trigger OTP send in the background (fire-and-forget)
             final dio = Dio();
             dio.post(
-              '${Env.javaApiUrl}/api/auth/send-otp',
+              '${Env.javaApiUrl}/api/otp/send',
               data: {
                 'email': email,
                 'purpose': 'SIGNUP',
@@ -219,17 +211,48 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: RegisterColors.errorRed,
-        behavior: SnackBarBehavior.floating,
-      ),
+    AuthMessageDialog.show(
+      context: context,
+      message: message,
+      title: 'Error',
+      isError: true,
     );
   }
 
   void _navigateToLogin() {
     context.go('/login');
+  }
+
+  Future<void> _handleSocialLogin(String provider) async {
+    setState(() => _loading = true);
+    try {
+      OAuthProvider oAuthProvider;
+      if (provider == 'google') {
+        oAuthProvider = OAuthProvider.google;
+      } else if (provider == 'github') {
+        oAuthProvider = OAuthProvider.github;
+      } else if (provider == 'facebook') {
+        oAuthProvider = OAuthProvider.facebook;
+      } else {
+        throw Exception('Unsupported OAuth provider: $provider');
+      }
+
+      await Supabase.instance.client.auth.signInWithOAuth(
+        oAuthProvider,
+        redirectTo: kIsWeb 
+            ? null 
+            : 'com.example.to_do_app://login-callback',
+        authScreenLaunchMode: LaunchMode.externalApplication,
+      );
+    } on AuthException catch (error) {
+      _showError(error.message);
+    } catch (error) {
+      _showError(error.toString());
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
+    }
   }
 
   @override
@@ -242,6 +265,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             return DesktopRegisterLayout(
               onRegister: _handleRegister,
               onLogin: _navigateToLogin,
+              onSocialLogin: _handleSocialLogin,
               loading: _loading,
             );
           }
@@ -249,6 +273,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
           return MobileRegisterLayout(
             onRegister: _handleRegister,
             onLogin: _navigateToLogin,
+            onSocialLogin: _handleSocialLogin,
             loading: _loading,
           );
         },
@@ -261,6 +286,7 @@ class DesktopRegisterLayout extends StatelessWidget {
   const DesktopRegisterLayout({
     required this.onRegister,
     required this.onLogin,
+    required this.onSocialLogin,
     this.loading = false,
     super.key,
   });
@@ -274,6 +300,7 @@ class DesktopRegisterLayout extends StatelessWidget {
   })
   onRegister;
   final VoidCallback onLogin;
+  final ValueChanged<String> onSocialLogin;
   final bool loading;
 
   @override
@@ -289,6 +316,7 @@ class DesktopRegisterLayout extends StatelessWidget {
             child: DesktopRegisterForm(
               onRegister: onRegister,
               onLogin: onLogin,
+              onSocialLogin: onSocialLogin,
               loading: loading,
             ),
           ),
@@ -302,6 +330,7 @@ class MobileRegisterLayout extends StatelessWidget {
   const MobileRegisterLayout({
     required this.onRegister,
     required this.onLogin,
+    required this.onSocialLogin,
     this.loading = false,
     super.key,
   });
@@ -315,6 +344,7 @@ class MobileRegisterLayout extends StatelessWidget {
   })
   onRegister;
   final VoidCallback onLogin;
+  final ValueChanged<String> onSocialLogin;
   final bool loading;
 
   @override
@@ -341,6 +371,7 @@ class MobileRegisterLayout extends StatelessWidget {
                     MobileRegisterCard(
                       onRegister: onRegister,
                       onLogin: onLogin,
+                      onSocialLogin: onSocialLogin,
                       loading: loading,
                     ),
                     const SizedBox(height: 48.0),

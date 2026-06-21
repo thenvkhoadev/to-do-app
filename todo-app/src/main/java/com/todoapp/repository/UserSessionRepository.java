@@ -13,5 +13,6 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
     List<UserSession> findByUserIdAndIsActiveTrue(UUID userId);
     Optional<UserSession> findByRefreshToken(String refreshToken);
     Optional<UserSession> findByAccessToken(String accessToken);
+    Optional<UserSession> findFirstByUserAndDeviceNameAndDeviceOs(com.todoapp.entity.User user, String deviceName, String deviceOs);
 }
 
