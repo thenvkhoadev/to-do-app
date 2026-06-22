@@ -119,6 +119,8 @@ class ActivityCommentModel {
   final String content;
   final DateTime createdAt;
   final Map<String, String> reactions; // userId -> reactionType (e.g. 'like', 'heart')
+  final String? parentCommentId;
+  final List<ActivityCommentModel> replies;
 
   ActivityCommentModel({
     required this.id,
@@ -129,6 +131,8 @@ class ActivityCommentModel {
     required this.content,
     required this.createdAt,
     this.reactions = const {},
+    this.parentCommentId,
+    this.replies = const [],
   });
 
   factory ActivityCommentModel.fromJson(
@@ -136,6 +140,7 @@ class ActivityCommentModel {
     required String authorName,
     required String authorAvatarUrl,
     Map<String, String> reactions = const {},
+    List<ActivityCommentModel> replies = const [],
   }) {
     return ActivityCommentModel(
       id: json['id'] as String,
@@ -146,6 +151,8 @@ class ActivityCommentModel {
       content: json['content'] as String? ?? '',
       createdAt: DateTime.parse(json['created_at'] as String).toLocal(),
       reactions: reactions,
+      parentCommentId: json['parent_comment_id'] as String?,
+      replies: replies,
     );
   }
 
@@ -154,6 +161,7 @@ class ActivityCommentModel {
       'post_id': postId,
       'user_id': userId,
       'content': content,
+      'parent_comment_id': parentCommentId,
       'created_at': createdAt.toUtc().toIso8601String(),
     };
   }
@@ -167,6 +175,8 @@ class ActivityCommentModel {
     String? content,
     DateTime? createdAt,
     Map<String, String>? reactions,
+    String? parentCommentId,
+    List<ActivityCommentModel>? replies,
   }) {
     return ActivityCommentModel(
       id: id ?? this.id,
@@ -177,6 +187,8 @@ class ActivityCommentModel {
       content: content ?? this.content,
       createdAt: createdAt ?? this.createdAt,
       reactions: reactions ?? this.reactions,
+      parentCommentId: parentCommentId ?? this.parentCommentId,
+      replies: replies ?? this.replies,
     );
   }
 }

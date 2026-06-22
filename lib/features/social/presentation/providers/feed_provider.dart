@@ -69,7 +69,7 @@ class FeedService {
           // Fetch comments
           final commentsData = await _client
               .from('activity_post_comments')
-              .select('id, post_id, user_id, content, created_at')
+              .select('id, post_id, user_id, content, created_at, parent_comment_id')
               .inFilter('post_id', postIds)
               .order('created_at', ascending: true);
 
@@ -108,6 +108,10 @@ class FeedService {
 
           // Group comments by postId
           final commentsMap = <String, List<ActivityCommentModel>>{};
+          final visualRepliesMap = <String, List<ActivityCommentModel>>{};
+          final visualParentIdMap = <String, String>{};
+          final authorIdMap = <String, String>{};
+
           for (final row in commentsData) {
             final postId = row['post_id'] as String;
             final commentId = row['id'] as String;
@@ -116,14 +120,53 @@ class FeedService {
             final authorName = cAuthor['full_name']?.toString() ?? cAuthor['username']?.toString() ?? 'Người dùng';
             final authorAvatar = cAuthor['avatar_url']?.toString() ?? '';
             final cReactions = commentReactionsMap[commentId] ?? {};
+            final parentId = row['parent_comment_id'] as String?;
 
-            final comment = ActivityCommentModel.fromJson(
-              row,
-              authorName: authorName,
-              authorAvatarUrl: authorAvatar,
-              reactions: cReactions,
-            );
-            commentsMap.putIfAbsent(postId, () => []).add(comment);
+            final replies = visualRepliesMap.putIfAbsent(commentId, () => []);
+
+            if (parentId == null) {
+              // Main comment
+              final comment = ActivityCommentModel.fromJson(
+                row,
+                authorName: authorName,
+                authorAvatarUrl: authorAvatar,
+                reactions: cReactions,
+                replies: replies,
+              );
+              commentsMap.putIfAbsent(postId, () => []).add(comment);
+              authorIdMap[commentId] = cAuthorId;
+            } else {
+              // Reply
+              final dbParentId = parentId;
+              String visualParentId = dbParentId;
+
+              // Determine visualParentId:
+              // If the DB parent is not a main comment (its ID is not in authorIdMap or has a visual parent itself)
+              final isDbParentMainComment = authorIdMap.containsKey(dbParentId) && !visualParentIdMap.containsKey(dbParentId);
+              if (!isDbParentMainComment) {
+                // DB parent is a reply
+                final parentAuthorId = authorIdMap[dbParentId];
+                if (cAuthorId == parentAuthorId) {
+                  // Same author, so visual parent is the visual parent of the DB parent
+                  visualParentId = visualParentIdMap[dbParentId] ?? dbParentId;
+                } else {
+                  // Different author, so visual parent is the DB parent (indented)
+                  visualParentId = dbParentId;
+                }
+              }
+
+              final reply = ActivityCommentModel.fromJson(
+                row,
+                authorName: authorName,
+                authorAvatarUrl: authorAvatar,
+                reactions: cReactions,
+                replies: replies,
+              );
+
+              visualRepliesMap.putIfAbsent(visualParentId, () => []).add(reply);
+              visualParentIdMap[commentId] = visualParentId;
+              authorIdMap[commentId] = cAuthorId;
+            }
           }
 
           return filteredRows.map((row) {
@@ -218,6 +261,16 @@ class FeedService {
     await _client.from('activity_post_comments').insert({
       'post_id': postId,
       'user_id': userId,
+      'content': content,
+    });
+  }
+
+  // Add reply to comment
+  Future<void> addReply(String postId, String userId, String parentCommentId, String content) async {
+    await _client.from('activity_post_comments').insert({
+      'post_id': postId,
+      'user_id': userId,
+      'parent_comment_id': parentCommentId,
       'content': content,
     });
   }

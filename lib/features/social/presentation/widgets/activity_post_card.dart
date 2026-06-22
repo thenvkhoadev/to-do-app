@@ -21,6 +21,7 @@ class ActivityPostCard extends ConsumerStatefulWidget {
 }
 
 class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
+  final LayerLink _likeButtonLink = LayerLink();
   bool _showComments = false;
   bool _showReactionPicker = false;
   final TextEditingController _commentController = TextEditingController();
@@ -31,6 +32,8 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
 
   String? _justClickedPostId;
   String? _justClickedCommentId;
+  String? _replyingToCommentId;
+  String? _replyingToAuthorName;
 
   int _pendingPostOperations = 0;
   final Map<String, int> _pendingCommentOperations = {};
@@ -110,8 +113,16 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
 
     try {
       final feedService = ref.read(feedServiceProvider);
-      await feedService.addComment(widget.post.id, currentUser.id, text);
+      if (_replyingToCommentId != null) {
+        await feedService.addReply(widget.post.id, currentUser.id, _replyingToCommentId!, text);
+      } else {
+        await feedService.addComment(widget.post.id, currentUser.id, text);
+      }
       _commentController.clear();
+      setState(() {
+        _replyingToCommentId = null;
+        _replyingToAuthorName = null;
+      });
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -613,9 +624,12 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       padding: const EdgeInsets.only(bottom: 16),
       child: GlassCard(
         padding: const EdgeInsets.all(16),
-        child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
           // Author Header
           Row(
             children: [
@@ -706,14 +720,10 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           const Divider(color: DesignTokens.borderSubtle, height: 1),
           const SizedBox(height: 8),
 
-          // Likes / Comments Count Info, Divider, and Actions Row in a Stack to support floating reactions overlay
-          Stack(
-            clipBehavior: Clip.none,
+          // Likes / Comments Count Info, Divider, and Actions Row
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Main child defining stack bounds
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
                   // Likes / Comments Count Info
                   Row(
                     children: [
@@ -747,17 +757,36 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                       ],
                       Builder(
                         builder: (context) {
+                          int countCommentAndReplies(ActivityCommentModel comment) {
+                            int count = 1;
+                            for (final r in comment.replies) {
+                              count += countCommentAndReplies(r);
+                            }
+                            return count;
+                          }
+
+                          int totalComments = 0;
+                          for (final c in widget.post.comments) {
+                            totalComments += countCommentAndReplies(c);
+                          }
+
                           final sharesCount = widget.post.metaData?['sharesCount'] as int? ?? 0;
                           return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              if (widget.post.comments.isNotEmpty)
-                                Text(
-                                  '${widget.post.comments.length} bình luận',
-                                  style: const TextStyle(
-                                    color: Colors.white60,
-                                    fontSize: 12.5,
-                                    fontFamily: 'Segoe UI',
+                              if (totalComments > 0)
+                                MouseRegion(
+                                  cursor: SystemMouseCursors.click,
+                                  child: GestureDetector(
+                                    onTap: _toggleComments,
+                                    child: Text(
+                                      '$totalComments bình luận',
+                                      style: const TextStyle(
+                                        color: Colors.white60,
+                                        fontSize: 12.5,
+                                        fontFamily: 'Segoe UI',
+                                      ),
+                                    ),
                                   ),
                                 ),
                               if (sharesCount > 0) ...[
@@ -786,56 +815,54 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
                       // Like Button with custom reaction layout
-                      MouseRegion(
-                        onEnter: (event) {
-                          if (event.kind == PointerDeviceKind.touch) return;
-                          // if (currentUser != null && _justClickedPostId != widget.post.id) {
-                          //   setState(() {
-                          //     _showReactionPicker = true;
-                          //   });
-                          // }
-                          if (currentUser != null) {
-                            setState(() {
-                              _showReactionPicker = true;
-                            });
-                          }
-                        },
-                        child: Builder(
-                          builder: (context) {
-                            final postReactions = displayReactions;
-                            final myReaction = currentUser != null ? postReactions[currentUser.id] : null;
-                            final hasReacted = myReaction != null;
+                      CompositedTransformTarget(
+                        link: _likeButtonLink,
+                        child: MouseRegion(
+                          onEnter: (event) {
+                            if (event.kind == PointerDeviceKind.touch) return;
+                            if (currentUser != null) {
+                              setState(() {
+                                _showReactionPicker = true;
+                              });
+                            }
+                          },
+                          child: Builder(
+                            builder: (context) {
+                              final postReactions = displayReactions;
+                              final myReaction = currentUser != null ? postReactions[currentUser.id] : null;
+                              final hasReacted = myReaction != null;
 
-                            String label = 'Thích';
-                            Color btnColor = const Color(0xFFE4E6EB);
-                            Widget iconWidget = const Icon(Icons.thumb_up_outlined, size: 22, color: Color(0xFFE4E6EB));
+                              String label = 'Thích';
+                              Color btnColor = const Color(0xFFE4E6EB);
+                              Widget iconWidget = const Icon(Icons.thumb_up_outlined, size: 22, color: Color(0xFFE4E6EB));
 
-                            if (hasReacted) {
-                              label = _getReactionLabel(myReaction);
-                              btnColor = _getReactionColor(myReaction);
-                              iconWidget = Text(
-                                _getReactionEmoji(myReaction),
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  color: _getReactionColor(myReaction),
-                                ),
+                              if (hasReacted) {
+                                label = _getReactionLabel(myReaction);
+                                btnColor = _getReactionColor(myReaction);
+                                iconWidget = Text(
+                                  _getReactionEmoji(myReaction),
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    color: _getReactionColor(myReaction),
+                                  ),
+                                );
+                              }
+
+                              return _buildActionButton(
+                                iconWidget: iconWidget,
+                                label: label,
+                                color: btnColor,
+                                onTap: _toggleLike,
+                                onLongPress: () {
+                                  if (currentUser != null) {
+                                    setState(() {
+                                      _showReactionPicker = !_showReactionPicker;
+                                    });
+                                  }
+                                },
                               );
                             }
-
-                            return _buildActionButton(
-                              iconWidget: iconWidget,
-                              label: label,
-                              color: btnColor,
-                              onTap: _toggleLike,
-                              onLongPress: () {
-                                if (currentUser != null) {
-                                  setState(() {
-                                    _showReactionPicker = !_showReactionPicker;
-                                  });
-                                }
-                              },
-                            );
-                          }
+                          ),
                         ),
                       ),
                       _buildActionButton(
@@ -858,27 +885,24 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                   ),
                 ],
               ),
-
-              // Absolute overlay of Reaction Picker (floats above, does not shift layout)
-              if (_showReactionPicker && currentUser != null)
-                Positioned(
-                  left: 12,
-                  bottom: 46, // Sits above the action buttons row, overlaying the likes count and divider
-                  child: TapRegion(
-                    onTapOutside: (event) {
-                      setState(() {
-                        _showReactionPicker = false;
-                      });
-                    },
-                    child: _buildReactionPicker(currentUser.id),
-                  ),
-                ),
-            ],
-          ),
           // Expandable Comments Section
           if (_showComments) _buildCommentsSection(currentUser?.id),
         ],
       ),
+      if (_showReactionPicker && currentUser != null)
+        CompositedTransformFollower(
+          link: _likeButtonLink,
+          showWhenUnlinked: false,
+          targetAnchor: Alignment.topCenter,
+          followerAnchor: Alignment.bottomLeft,
+          offset: const Offset(-40.0, -8.0),
+          child: TapRegion(
+            onTapOutside: (_) => setState(() => _showReactionPicker = false),
+            child: _buildReactionPicker(currentUser.id),
+          ),
+        ),
+    ],
+  ),
     ),
   );
 }
@@ -1231,6 +1255,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           )
         else
           ListView.builder(
+            padding: EdgeInsets.zero,
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             clipBehavior: Clip.none,
@@ -1239,25 +1264,15 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
               final comment = widget.post.comments[index];
               final reactions = _localCommentReactions?[comment.id] ?? comment.reactions;
               final hasReactions = reactions.isNotEmpty;
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12.0),
-                child: MouseRegion(
-                  onExit: (_) {
-                    if (_activeCommentReactionPickerId == comment.id) {
-                      setState(() {
-                        _activeCommentReactionPickerId = null;
-                      });
-                    }
-                  },
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      // Main layout Column defining Stack bounds
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          // Left: Avatar + vertical connection line
+                          Column(
                             children: [
                               CircleAvatar(
                                 radius: 14,
@@ -1269,193 +1284,299 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                                     ? const Icon(Icons.person, size: 14, color: Colors.white54)
                                     : null,
                               ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Stack(
-                                  clipBehavior: Clip.none,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(alpha: .03),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                              if (comment.replies.isNotEmpty)
+                                Expanded(
+                                  child: Center(
+                                    child: Container(
+                                      width: 1.5,
+                                      color: Colors.white.withValues(alpha: 0.15),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                          const SizedBox(width: 10),
+                          // Right: Comment bubble and Actions Row inside Stack to overlay reaction picker
+                          Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(bottom: comment.replies.isEmpty ? 12 : 10),
+                              child: MouseRegion(
+                                onExit: (_) {
+                                if (_activeCommentReactionPickerId == comment.id) {
+                                  setState(() {
+                                    _activeCommentReactionPickerId = null;
+                                  });
+                                }
+                              },
+                              child: Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      // Bubble Container
+                                      Stack(
+                                        clipBehavior: Clip.none,
                                         children: [
-                                          Text(
-                                            comment.authorName,
-                                            style: const TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 12.5,
+                                          Container(
+                                            padding: const EdgeInsets.fromLTRB(10, 10, 10, 14),
+                                            decoration: BoxDecoration(
+                                              color: Colors.white.withValues(alpha: .03),
+                                              borderRadius: BorderRadius.circular(12),
+                                            ),
+                                            child: Column(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  comment.authorName,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 12.5,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 4),
+                                                Text(
+                                                  comment.content,
+                                                  style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          const SizedBox(height: 4),
+                                          if (hasReactions)
+                                            Positioned(
+                                              bottom: -6,
+                                              right: 8,
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF1E1E2E),
+                                                  borderRadius: BorderRadius.circular(12),
+                                                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                                ),
+                                                child: Row(
+                                                  mainAxisSize: MainAxisSize.min,
+                                                  children: [
+                                                    Row(
+                                                      children: reactions.values.toSet().take(3).map((rType) {
+                                                        return Padding(
+                                                          padding: const EdgeInsets.only(right: 1.0),
+                                                          child: Text(
+                                                            _getReactionEmoji(rType),
+                                                            style: TextStyle(
+                                                              fontSize: 13,
+                                                              color: _getReactionColor(rType),
+                                                            ),
+                                                          ),
+                                                        );
+                                                      }).toList(),
+                                                    ),
+                                                    const SizedBox(width: 4),
+                                                    Text(
+                                                      '${reactions.length}',
+                                                      style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 4),
+                                      // Actions Row (Time, Like, Reply, Emoji)
+                                      Row(
+                                        children: [
                                           Text(
-                                            comment.content,
-                                            style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 13),
+                                            _timeAgo(comment.createdAt),
+                                            style: const TextStyle(color: Colors.white38, fontSize: 11),
+                                          ),
+                                          const SizedBox(width: 14),
+                                          MouseRegion(
+                                            onEnter: (event) {
+                                              if (event.kind == PointerDeviceKind.touch) return;
+                                              if (currentUserId != null) {
+                                                setState(() {
+                                                  _activeCommentReactionPickerId = comment.id;
+                                                });
+                                              }
+                                            },
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (currentUserId != null) {
+                                                  setState(() {
+                                                    _activeCommentReactionPickerId = null;
+                                                  });
+                                                  final myReaction = reactions[currentUserId];
+                                                  if (myReaction != null) {
+                                                    _submitCommentReaction(comment.id, currentUserId, myReaction);
+                                                  } else {
+                                                    _submitCommentReaction(comment.id, currentUserId, 'like');
+                                                  }
+                                                }
+                                              },
+                                              onLongPress: () {
+                                                if (currentUserId != null) {
+                                                  setState(() {
+                                                    _activeCommentReactionPickerId =
+                                                        _activeCommentReactionPickerId == comment.id ? null : comment.id;
+                                                  });
+                                                }
+                                              },
+                                              child: Builder(
+                                                builder: (context) {
+                                                  final myReaction = currentUserId != null ? reactions[currentUserId] : null;
+                                                  final hasReacted = myReaction != null;
+                                                  final text = hasReacted ? _getReactionLabel(myReaction) : 'Thích';
+                                                  final textColor = hasReacted ? _getReactionColor(myReaction) : Colors.white54;
+                                                  return Text(
+                                                    text,
+                                                    style: TextStyle(
+                                                      color: textColor,
+                                                      fontWeight: FontWeight.bold,
+                                                      fontSize: 11.5,
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          GestureDetector(
+                                            onTap: () {
+                                              setState(() {
+                                                _replyingToCommentId = comment.id;
+                                                _replyingToAuthorName = comment.authorName;
+                                                final isSelf = comment.userId == currentUserId;
+                                                if (!isSelf) {
+                                                  final mentionString = '@${comment.authorName} ';
+                                                  if (!_commentController.text.startsWith(mentionString)) {
+                                                    _commentController.text = '$mentionString${_commentController.text}';
+                                                  }
+                                                }
+                                                _commentController.selection = TextSelection.fromPosition(
+                                                  TextPosition(offset: _commentController.text.length),
+                                                );
+                                              });
+                                            },
+                                            child: const Text(
+                                              'Phản hồi',
+                                              style: TextStyle(
+                                                color: Colors.white54,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 11.5,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          MouseRegion(
+                                            onEnter: (event) {
+                                              if (event.kind == PointerDeviceKind.touch) return;
+                                              if (currentUserId != null && _justClickedCommentId != comment.id) {
+                                                setState(() {
+                                                  _activeCommentReactionPickerId = comment.id;
+                                                });
+                                              }
+                                            },
+                                            child: GestureDetector(
+                                              onTap: () {
+                                                if (currentUserId != null) {
+                                                  setState(() {
+                                                    _activeCommentReactionPickerId =
+                                                        _activeCommentReactionPickerId == comment.id ? null : comment.id;
+                                                  });
+                                                }
+                                              },
+                                              child: const Icon(
+                                                Icons.emoji_emotions_outlined,
+                                                size: 14,
+                                                color: Colors.white38,
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
-                                    ),
-                                    if (hasReactions)
-                                      Positioned(
-                                        bottom: -6,
-                                        right: 8,
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF1E1E2E),
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Row(
-                                                children: reactions.values.toSet().take(3).map((rType) {
-                                                  return Padding(
-                                                    padding: const EdgeInsets.only(right: 1.0),
-                                                    child: Text(
-                                                      _getReactionEmoji(rType),
-                                                      style: TextStyle(
-                                                        fontSize: 13,
-                                                        color: _getReactionColor(rType),
-                                                      ),
-                                                    ),
-                                                  );
-                                                }).toList(),
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                '${reactions.length}',
-                                                style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
+                                    ],
+                                  ),
+                                  // Floating Reaction Picker Overlay (floats above, does not shift layout)
+                                  if (_activeCommentReactionPickerId == comment.id && currentUserId != null)
+                                    Positioned(
+                                      left: 48,
+                                      bottom: 24, // Positions it directly above the action row
+                                      child: TapRegion(
+                                        onTapOutside: (event) {
+                                          setState(() {
+                                            _activeCommentReactionPickerId = null;
+                                          });
+                                        },
+                                        child: _buildCommentReactionPicker(comment.id, currentUserId),
                                       ),
-                                  ],
-                                ),
+                                    ),
+                                ],
                               ),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Row(
-                            children: [
-                              const SizedBox(width: 38), // Align with comment card
-                              Text(
-                                _timeAgo(comment.createdAt),
-                                style: const TextStyle(color: Colors.white38, fontSize: 11),
-                              ),
-                              const SizedBox(width: 14),
-                              MouseRegion(
-                                onEnter: (event) {
-                                  if (event.kind == PointerDeviceKind.touch) return;
-                                  // if (currentUserId != null && _justClickedCommentId != comment.id) {
-                                  //   setState(() {
-                                  //     _activeCommentReactionPickerId = comment.id;
-                                  //   });
-                                  // }
-                                  if (currentUserId != null) {
-                                    setState(() {
-                                      _activeCommentReactionPickerId = comment.id;
-                                    });
-                                  }
-                                },
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (currentUserId != null) {
-                                      setState(() {
-                                        _activeCommentReactionPickerId = null;
-                                      });
-                                      final myReaction = reactions[currentUserId];
-                                      if (myReaction != null) {
-                                        _submitCommentReaction(comment.id, currentUserId, myReaction);
-                                      } else {
-                                        _submitCommentReaction(comment.id, currentUserId, 'like');
-                                      }
-                                    }
-                                  },
-                                  onLongPress: () {
-                                    if (currentUserId != null) {
-                                      setState(() {
-                                        _activeCommentReactionPickerId =
-                                            _activeCommentReactionPickerId == comment.id ? null : comment.id;
-                                      });
-                                    }
-                                  },
-                                  child: Builder(
-                                    builder: (context) {
-                                      final myReaction = currentUserId != null ? reactions[currentUserId] : null;
-                                      final hasReacted = myReaction != null;
-                                      final text = hasReacted ? _getReactionLabel(myReaction) : 'Thích';
-                                      final textColor = hasReacted ? _getReactionColor(myReaction) : Colors.white54;
-                                      return Text(
-                                        text,
-                                        style: TextStyle(
-                                          color: textColor,
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 11.5,
-                                        ),
-                                      );
-                                    },
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              MouseRegion(
-                                onEnter: (event) {
-                                  if (event.kind == PointerDeviceKind.touch) return;
-                                  if (currentUserId != null && _justClickedCommentId != comment.id) {
-                                    setState(() {
-                                      _activeCommentReactionPickerId = comment.id;
-                                    });
-                                  }
-                                },
-                                child: GestureDetector(
-                                  onTap: () {
-                                    if (currentUserId != null) {
-                                      setState(() {
-                                        _activeCommentReactionPickerId =
-                                            _activeCommentReactionPickerId == comment.id ? null : comment.id;
-                                      });
-                                    }
-                                  },
-                                  child: const Icon(
-                                    Icons.emoji_emotions_outlined,
-                                    size: 14,
-                                    color: Colors.white38,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-
-                      // Floating Reaction Picker Overlay (floats above, does not shift layout)
-                      if (_activeCommentReactionPickerId == comment.id && currentUserId != null)
-                        Positioned(
-                          left: 48,
-                          bottom: 20, // Positions it directly above the action row, overlaying the comment bubble
-                          child: TapRegion(
-                            onTapOutside: (event) {
-                              setState(() {
-                                _activeCommentReactionPickerId = null;
-                              });
-                            },
-                            child: _buildCommentReactionPicker(comment.id, currentUserId),
+                            ),
                           ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
-                ),
+                  // Render Indented Replies
+                  if (comment.replies.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(left: 14, bottom: 12),
+                      padding: const EdgeInsets.only(left: 30),
+                      child: ListView.builder(
+                        padding: EdgeInsets.zero,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        clipBehavior: Clip.none,
+                        itemCount: comment.replies.length,
+                        itemBuilder: (context, rIdx) {
+                          return _buildReplyItem(
+                            comment,
+                            comment.replies[rIdx],
+                            isLast: rIdx == comment.replies.length - 1,
+                            currentUserId: currentUserId,
+                            startX: -30.0,
+                          );
+                        },
+                      ),
+                    ),
+                ],
               );
             },
           ),
         const SizedBox(height: 8),
+        // Replying indicator
+        if (_replyingToCommentId != null)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFA78BFA).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFA78BFA).withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                children: [
+                  Text(
+                    'Đang trả lời $_replyingToAuthorName',
+                    style: const TextStyle(color: Color(0xFFA78BFA), fontSize: 11.5, fontWeight: FontWeight.bold),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _replyingToCommentId = null;
+                        _replyingToAuthorName = null;
+                      });
+                    },
+                    child: const Icon(Icons.close_rounded, color: Color(0xFFA78BFA), size: 14),
+                  ),
+                ],
+              ),
+            ),
+          ),
         // Comment Input
         Row(
           children: [
@@ -1498,6 +1619,304 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     } else {
       return 'Vừa xong';
     }
+  }
+
+  Widget _buildReplyItem(
+    ActivityCommentModel mainComment,
+    ActivityCommentModel reply, {
+    required bool isLast,
+    required String? currentUserId,
+    required double startX,
+  }) {
+    final reactions = _localCommentReactions?[reply.id] ?? reply.reactions;
+    final hasReactions = reactions.isNotEmpty;
+
+    return CustomPaint(
+      painter: _ReplyConnectionPainter(
+        isLast: isLast,
+        lineColor: Colors.white.withValues(alpha: 0.15),
+        startX: startX,
+      ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 12),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left: Avatar + vertical connection line
+              Column(
+                children: [
+                  CircleAvatar(
+                    radius: 12,
+                    backgroundImage: reply.authorAvatarUrl.isNotEmpty
+                        ? NetworkImage(reply.authorAvatarUrl)
+                        : null,
+                    backgroundColor: Colors.grey.shade900,
+                    child: reply.authorAvatarUrl.isEmpty
+                        ? const Icon(Icons.person, size: 12, color: Colors.white54)
+                        : null,
+                  ),
+                  if (reply.replies.isNotEmpty)
+                    Expanded(
+                      child: Center(
+                        child: Container(
+                          width: 1.5,
+                          color: Colors.white.withValues(alpha: 0.15),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 10),
+              // Right: Comment bubble and Actions Row inside Stack to overlay reaction picker
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    MouseRegion(
+                      onExit: (_) {
+                        if (_activeCommentReactionPickerId == reply.id) {
+                          setState(() {
+                            _activeCommentReactionPickerId = null;
+                          });
+                        }
+                      },
+                      child: Stack(
+                        clipBehavior: Clip.none,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Bubble Container
+                              Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.fromLTRB(10, 8, 10, 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: .03),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          reply.authorName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          reply.content,
+                                          style: TextStyle(color: Colors.white.withValues(alpha: 0.9), fontSize: 12.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  if (hasReactions)
+                                    Positioned(
+                                      bottom: -6,
+                                      right: 8,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF1E1E2E),
+                                          borderRadius: BorderRadius.circular(12),
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Row(
+                                              children: reactions.values.toSet().take(3).map((rType) {
+                                                return Padding(
+                                                  padding: const EdgeInsets.only(right: 1.0),
+                                                  child: Text(
+                                                    _getReactionEmoji(rType),
+                                                    style: TextStyle(
+                                                      fontSize: 12,
+                                                      color: _getReactionColor(rType),
+                                                    ),
+                                                  ),
+                                                );
+                                              }).toList(),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              '${reactions.length}',
+                                              style: const TextStyle(color: Colors.white70, fontSize: 10, fontWeight: FontWeight.bold),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                              const SizedBox(height: 4),
+                              // Actions Row (Time, Like, Reply, Emoji)
+                              Row(
+                                children: [
+                                  Text(
+                                    _timeAgo(reply.createdAt),
+                                    style: const TextStyle(color: Colors.white38, fontSize: 10.5),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  MouseRegion(
+                                    onEnter: (event) {
+                                      if (event.kind == PointerDeviceKind.touch) return;
+                                      if (currentUserId != null) {
+                                        setState(() {
+                                          _activeCommentReactionPickerId = reply.id;
+                                        });
+                                      }
+                                    },
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (currentUserId != null) {
+                                          setState(() {
+                                            _activeCommentReactionPickerId = null;
+                                          });
+                                          final myReaction = reactions[currentUserId];
+                                          if (myReaction != null) {
+                                            _submitCommentReaction(reply.id, currentUserId, myReaction);
+                                          } else {
+                                            _submitCommentReaction(reply.id, currentUserId, 'like');
+                                          }
+                                        }
+                                      },
+                                      onLongPress: () {
+                                        if (currentUserId != null) {
+                                          setState(() {
+                                            _activeCommentReactionPickerId =
+                                                _activeCommentReactionPickerId == reply.id ? null : reply.id;
+                                          });
+                                        }
+                                      },
+                                      child: Builder(
+                                        builder: (context) {
+                                          final myReaction = currentUserId != null ? reactions[currentUserId] : null;
+                                          final hasReacted = myReaction != null;
+                                          final text = hasReacted ? _getReactionLabel(myReaction) : 'Thích';
+                                          final textColor = hasReacted ? _getReactionColor(myReaction) : Colors.white54;
+                                          return Text(
+                                            text,
+                                            style: TextStyle(
+                                              color: textColor,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 10.5,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _replyingToCommentId = reply.id;
+                                        _replyingToAuthorName = reply.authorName;
+                                        final isSelf = reply.userId == currentUserId;
+                                        if (!isSelf) {
+                                          final mentionString = '@${reply.authorName} ';
+                                          if (!_commentController.text.startsWith(mentionString)) {
+                                            _commentController.text = '$mentionString${_commentController.text}';
+                                          }
+                                        }
+                                        _commentController.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: _commentController.text.length),
+                                        );
+                                      });
+                                    },
+                                    child: const Text(
+                                      'Phản hồi',
+                                      style: TextStyle(
+                                        color: Colors.white54,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 10.5,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  MouseRegion(
+                                    onEnter: (event) {
+                                      if (event.kind == PointerDeviceKind.touch) return;
+                                      if (currentUserId != null && _justClickedCommentId != reply.id) {
+                                        setState(() {
+                                          _activeCommentReactionPickerId = reply.id;
+                                        });
+                                      }
+                                    },
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        if (currentUserId != null) {
+                                          setState(() {
+                                            _activeCommentReactionPickerId =
+                                                _activeCommentReactionPickerId == reply.id ? null : reply.id;
+                                          });
+                                        }
+                                      },
+                                      child: const Icon(
+                                        Icons.emoji_emotions_outlined,
+                                        size: 13,
+                                        color: Colors.white38,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                          // Floating Reaction Picker Overlay (floats above, does not shift layout)
+                          if (_activeCommentReactionPickerId == reply.id && currentUserId != null)
+                            Positioned(
+                              left: 48,
+                              bottom: 24, // Positions it directly above the action row
+                              child: TapRegion(
+                                onTapOutside: (event) {
+                                  setState(() {
+                                    _activeCommentReactionPickerId = null;
+                                  });
+                                },
+                                child: _buildCommentReactionPicker(reply.id, currentUserId),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (reply.replies.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.only(left: 30),
+                        child: ListView.builder(
+                          padding: EdgeInsets.zero,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          clipBehavior: Clip.none,
+                          itemCount: reply.replies.length,
+                          itemBuilder: (context, rIdx) {
+                            return _buildReplyItem(
+                              mainComment,
+                              reply.replies[rIdx],
+                              isLast: rIdx == reply.replies.length - 1,
+                              currentUserId: currentUserId,
+                              startX: -52.0,
+                            );
+                          },
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -1897,5 +2316,53 @@ Color _getReactionColor(String type) {
       return Colors.pinkAccent;
     default:
       return const Color(0xFF0866FF);
+  }
+}
+
+class _ReplyConnectionPainter extends CustomPainter {
+  final bool isLast;
+  final Color lineColor;
+  final double startX;
+
+  _ReplyConnectionPainter({
+    required this.isLast,
+    required this.lineColor,
+    required this.startX,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = lineColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.5
+      ..strokeCap = StrokeCap.round;
+
+    final path = Path();
+    const double endX = -4.0;
+    const double targetY = 13.0;
+
+    if (isLast) {
+      path.moveTo(startX, 0);
+      path.lineTo(startX, targetY - 8);
+      path.quadraticBezierTo(startX, targetY, startX + 8, targetY);
+      path.lineTo(endX, targetY);
+    } else {
+      path.moveTo(startX, 0);
+      path.lineTo(startX, size.height);
+      
+      path.moveTo(startX, targetY - 8);
+      path.quadraticBezierTo(startX, targetY, startX + 8, targetY);
+      path.lineTo(endX, targetY);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _ReplyConnectionPainter oldDelegate) {
+    return oldDelegate.isLast != isLast ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.startX != startX;
   }
 }
