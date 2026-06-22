@@ -126,6 +126,7 @@ flutter:
     - assets/badges/legend/
     - assets/badges/immortal/
     - assets/badges/mythic/
+    - assets/images/reactions/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

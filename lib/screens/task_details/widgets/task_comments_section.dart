@@ -102,6 +102,8 @@ class CommentModel {
 }
 
 class TaskCommentsNotifier extends FamilyNotifier<List<CommentModel>, String> {
+  final Map<String, Future<void>> _locks = {};
+
   @override
   List<CommentModel> build(String arg) {
     _loadComments(arg);
@@ -539,38 +541,146 @@ class TaskCommentsNotifier extends FamilyNotifier<List<CommentModel>, String> {
   }
 
   Future<void> toggleReaction(String commentId, String emoji) async {
-    try {
-      final supabase = Supabase.instance.client;
-      final currentUserId = supabase.auth.currentUser?.id;
-      if (currentUserId == null) return;
+    final supabase = Supabase.instance.client;
+    final currentUserId = supabase.auth.currentUser?.id;
+    if (currentUserId == null) return;
 
-      final existing = await supabase
-          .from('comment_reactions')
-          .select()
-          .eq('comment_id', commentId)
-          .eq('user_id', currentUserId)
-          .eq('reaction', emoji)
-          .maybeSingle();
+    // 1. Optimistic update
+    state = _mutateReactionInState(state, commentId, emoji);
 
-      if (existing != null) {
-        await supabase
+    // 2. Queue DB operation
+    final currentLock = _locks[commentId] ?? Future.value();
+    _locks[commentId] = currentLock.then((_) async {
+      try {
+        final existing = await supabase
             .from('comment_reactions')
-            .delete()
+            .select()
             .eq('comment_id', commentId)
             .eq('user_id', currentUserId)
-            .eq('reaction', emoji);
-      } else {
-        await supabase.from('comment_reactions').insert({
-          'comment_id': commentId,
-          'user_id': currentUserId,
-          'reaction': emoji,
-        });
-      }
+            .eq('reaction', emoji)
+            .maybeSingle();
 
-      await _loadComments(arg);
-    } catch (e) {
-      debugPrint('Error toggling reaction: $e');
-    }
+        if (existing != null) {
+          await supabase
+              .from('comment_reactions')
+              .delete()
+              .eq('comment_id', commentId)
+              .eq('user_id', currentUserId)
+              .eq('reaction', emoji);
+        } else {
+          await supabase.from('comment_reactions').insert({
+            'comment_id': commentId,
+            'user_id': currentUserId,
+            'reaction': emoji,
+          });
+        }
+      } catch (e) {
+        debugPrint('Error toggling reaction: $e');
+        await _loadComments(arg);
+      }
+    });
+  }
+
+  List<CommentModel> _mutateReactionInState(List<CommentModel> list, String targetId, String emoji) {
+    return list.map((comment) {
+      if (comment.id == targetId) {
+        final reacted = List<String>.from(comment.reactedEmojis);
+        final reacts = Map<String, int>.from(comment.reactions);
+        if (reacted.contains(emoji)) {
+          reacted.remove(emoji);
+          if (reacts.containsKey(emoji)) {
+            reacts[emoji] = reacts[emoji]! - 1;
+            if (reacts[emoji]! <= 0) {
+              reacts.remove(emoji);
+            }
+          }
+        } else {
+          reacted.add(emoji);
+          reacts[emoji] = (reacts[emoji] ?? 0) + 1;
+        }
+        return CommentModel(
+          id: comment.id,
+          authorInitials: comment.authorInitials,
+          authorName: comment.authorName,
+          authorAvatarUrl: comment.authorAvatarUrl,
+          text: comment.text,
+          timestamp: comment.timestamp,
+          attachment: comment.attachment,
+          voiceNote: comment.voiceNote,
+          reactions: reacts,
+          reactedEmojis: reacted,
+          replies: comment.replies,
+          isTaskCreator: comment.isTaskCreator,
+        );
+      } else {
+        final updatedReplies = _mutateReactionInReplies(comment.replies, targetId, emoji);
+        return CommentModel(
+          id: comment.id,
+          authorInitials: comment.authorInitials,
+          authorName: comment.authorName,
+          authorAvatarUrl: comment.authorAvatarUrl,
+          text: comment.text,
+          timestamp: comment.timestamp,
+          attachment: comment.attachment,
+          voiceNote: comment.voiceNote,
+          reactions: comment.reactions,
+          reactedEmojis: comment.reactedEmojis,
+          replies: updatedReplies,
+          isTaskCreator: comment.isTaskCreator,
+        );
+      }
+    }).toList();
+  }
+
+  List<ReplyModel> _mutateReactionInReplies(List<ReplyModel> list, String targetId, String emoji) {
+    return list.map((reply) {
+      if (reply.id == targetId) {
+        final reacted = List<String>.from(reply.reactedEmojis);
+        final reacts = Map<String, int>.from(reply.reactions);
+        if (reacted.contains(emoji)) {
+          reacted.remove(emoji);
+          if (reacts.containsKey(emoji)) {
+            reacts[emoji] = reacts[emoji]! - 1;
+            if (reacts[emoji]! <= 0) {
+              reacts.remove(emoji);
+            }
+          }
+        } else {
+          reacted.add(emoji);
+          reacts[emoji] = (reacts[emoji] ?? 0) + 1;
+        }
+        return ReplyModel(
+          id: reply.id,
+          authorInitials: reply.authorInitials,
+          authorName: reply.authorName,
+          authorAvatarUrl: reply.authorAvatarUrl,
+          text: reply.text,
+          timestamp: reply.timestamp,
+          attachment: reply.attachment,
+          voiceNote: reply.voiceNote,
+          reactions: reacts,
+          reactedEmojis: reacted,
+          replies: reply.replies,
+          isTaskCreator: reply.isTaskCreator,
+        );
+      } else {
+        final updatedReplies = _mutateReactionInReplies(reply.replies, targetId, emoji);
+        return ReplyModel(
+          id: reply.id,
+          authorInitials: reply.authorInitials,
+          authorName: reply.authorName,
+          authorAvatarUrl: reply.authorAvatarUrl,
+          text: reply.text,
+          timestamp: reply.timestamp,
+          attachment: reply.attachment,
+          voiceNote: reply.voiceNote,
+          reactions: reply.reactions,
+          reactedEmojis: reply.reactedEmojis,
+          replies: updatedReplies,
+          isTaskCreator: reply.isTaskCreator,
+        );
+      }
+    }).toList();
   }
 }
 
@@ -608,6 +718,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
   int _mentionIndex = -1;
 
   String? _activeEmojiPickerCommentId;
+  String? _justClickedCommentId;
   bool _isReactionCapsuleExpanded = false;
   bool _isSubmitting = false;
 
@@ -1002,137 +1113,179 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              reply.authorName,
-                              style: const TextStyle(
-                                color: DashboardColors.onSurface,
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            if (reply.isTaskCreator) ...[
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                decoration: BoxDecoration(
-                                  color: DashboardColors.primary.withValues(alpha: 0.15),
-                                  borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(color: DashboardColors.primary.withValues(alpha: 0.3), width: 0.5),
-                                ),
-                                child: const Text(
-                                  'Author',
-                                  style: TextStyle(
-                                    color: DashboardColors.primary,
-                                    fontSize: 8.5,
-                                    fontWeight: FontWeight.bold,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ],
-                        ),
-                        Text(
-                          rAgo,
-                          style: const TextStyle(
-                            color: DashboardColors.onSurfaceVariant,
-                            fontSize: 10,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 3),
-                    _buildFormattedCommentText(reply.text),
-                    if (reply.attachment != null) ...[
-                      const SizedBox(height: 6),
-                      _buildAttachmentCard(reply.attachment!),
-                    ],
-                    if (reply.voiceNote != null) ...[
-                      const SizedBox(height: 6),
-                      _VoicePlayer(voiceNote: reply.voiceNote!),
-                    ],
-                    const SizedBox(height: 6),
                     MouseRegion(
                       onExit: (_) {
-                        setState(() {
-                          if (_activeEmojiPickerCommentId == reply.id) {
+                        if (_activeEmojiPickerCommentId == reply.id) {
+                          setState(() {
                             _activeEmojiPickerCommentId = null;
                             _isReactionCapsuleExpanded = false;
-                          }
-                        });
+                          });
+                        }
                       },
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Stack(
+                        clipBehavior: Clip.none,
                         children: [
-                          Wrap(
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            spacing: 16,
-                            runSpacing: 4,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              MouseRegion(
-                                onEnter: (_) {
-                                  setState(() {
-                                    _activeEmojiPickerCommentId = reply.id;
-                                  });
-                                },
-                                child: GestureDetector(
-                                  onTap: () {
-                                    setState(() {
-                                      _activeEmojiPickerCommentId = (_activeEmojiPickerCommentId == reply.id) ? null : reply.id;
-                                    });
-                                  },
-                                  child: Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
-                                    child: Icon(
-                                      Icons.thumb_up_outlined,
-                                      color: isReactionPickerActive ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
-                                      size: 13,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(
+                                        reply.authorName,
+                                        style: const TextStyle(
+                                          color: DashboardColors.onSurface,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      if (reply.isTaskCreator) ...[
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                          decoration: BoxDecoration(
+                                            color: DashboardColors.primary.withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: DashboardColors.primary.withValues(alpha: 0.3), width: 0.5),
+                                          ),
+                                          child: const Text(
+                                            'Author',
+                                            style: TextStyle(
+                                              color: DashboardColors.primary,
+                                              fontSize: 8.5,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  Text(
+                                    rAgo,
+                                    style: const TextStyle(
+                                      color: DashboardColors.onSurfaceVariant,
+                                      fontSize: 10,
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
-                              GestureDetector(
-                                onTap: () {
-                                  setState(() {
-                                    _replyingToCommentId = reply.id;
-                                    _replyingToAuthorName = reply.authorName;
-                                    final isSelf = reply.authorName == actorName;
-                                    if (!isSelf) {
-                                      final mentionString = '@${reply.authorName} ';
-                                      if (!_controller.text.startsWith(mentionString)) {
-                                        _controller.text = '$mentionString${_controller.text}';
+                              const SizedBox(height: 3),
+                              _buildFormattedCommentText(reply.text),
+                              if (reply.attachment != null) ...[
+                                const SizedBox(height: 6),
+                                _buildAttachmentCard(reply.attachment!),
+                              ],
+                              if (reply.voiceNote != null) ...[
+                                const SizedBox(height: 6),
+                                _VoicePlayer(voiceNote: reply.voiceNote!),
+                              ],
+                              const SizedBox(height: 6),
+                              Wrap(
+                                crossAxisAlignment: WrapCrossAlignment.center,
+                                spacing: 16,
+                                runSpacing: 4,
+                                children: [
+                                  MouseRegion(
+                                    onEnter: (event) {
+                                      if (event.kind == PointerDeviceKind.touch) return;
+                                      if (_justClickedCommentId != reply.id) {
+                                        setState(() {
+                                          _activeEmojiPickerCommentId = reply.id;
+                                        });
                                       }
-                                    }
-                                    _controller.selection = TextSelection.fromPosition(
-                                      TextPosition(offset: _controller.text.length),
-                                    );
-                                  });
-                                  _focusNode.requestFocus();
-                                },
-                                child: const Text(
-                                  'Reply',
-                                  style: TextStyle(
-                                    color: DashboardColors.onSurfaceVariant,
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.bold,
+                                    },
+                                    child: GestureDetector(
+                                      onTap: () {
+                                        setState(() {
+                                          _justClickedCommentId = reply.id;
+                                          _activeEmojiPickerCommentId = null;
+                                        });
+                                        Future.delayed(const Duration(milliseconds: 2000), () {
+                                          if (mounted) {
+                                            setState(() {
+                                              _justClickedCommentId = null;
+                                            });
+                                          }
+                                        });
+ 
+                                        final notifier = ref.read(taskCommentsProvider(widget.taskId).notifier);
+                                        if (reply.reactedEmojis.isNotEmpty) {
+                                          for (final emoji in reply.reactedEmojis) {
+                                            notifier.toggleReaction(reply.id, emoji);
+                                          }
+                                        } else {
+                                          notifier.toggleReaction(reply.id, '👍');
+                                        }
+                                      },
+                                      onLongPress: () {
+                                        setState(() {
+                                          _activeEmojiPickerCommentId = (_activeEmojiPickerCommentId == reply.id) ? null : reply.id;
+                                        });
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                                        child: Icon(
+                                          Icons.thumb_up_outlined,
+                                          color: reply.reactedEmojis.isNotEmpty
+                                              ? DashboardColors.primary
+                                              : (isReactionPickerActive ? DashboardColors.primary : DashboardColors.onSurfaceVariant),
+                                          size: 13,
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                ),
-                              ),
-                              _buildReactionsBadgeList(
-                                commentId: reply.id,
-                                reactions: reply.reactions,
-                                reactedEmojis: reply.reactedEmojis,
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _replyingToCommentId = reply.id;
+                                        _replyingToAuthorName = reply.authorName;
+                                        final isSelf = reply.authorName == actorName;
+                                        if (!isSelf) {
+                                          final mentionString = '@${reply.authorName} ';
+                                          if (!_controller.text.startsWith(mentionString)) {
+                                            _controller.text = '$mentionString${_controller.text}';
+                                          }
+                                        }
+                                        _controller.selection = TextSelection.fromPosition(
+                                          TextPosition(offset: _controller.text.length),
+                                        );
+                                      });
+                                      _focusNode.requestFocus();
+                                    },
+                                    child: const Text(
+                                      'Reply',
+                                      style: TextStyle(
+                                        color: DashboardColors.onSurfaceVariant,
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  _buildReactionsBadgeList(
+                                    commentId: reply.id,
+                                    reactions: reply.reactions,
+                                    reactedEmojis: reply.reactedEmojis,
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                          if (_activeEmojiPickerCommentId == reply.id) ...[
-                            const SizedBox(height: 8),
-                            _buildFloatingReactionCapsule(reply.id),
-                          ],
+                          if (isReactionPickerActive)
+                            Positioned(
+                              left: 0,
+                              bottom: 24,
+                              child: TapRegion(
+                                onTapOutside: (event) {
+                                  setState(() {
+                                    _activeEmojiPickerCommentId = null;
+                                    _isReactionCapsuleExpanded = false;
+                                  });
+                                },
+                                child: _buildFloatingReactionCapsule(reply.id),
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -1143,6 +1296,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                         child: ListView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
+                          clipBehavior: Clip.none,
                           itemCount: reply.replies.length,
                           itemBuilder: (context, rIdx) {
                             return _buildReplyItem(
@@ -1254,6 +1408,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                 ListView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
+                  clipBehavior: Clip.none,
                   itemCount: comments.length,
                   itemBuilder: (context, idx) {
                     final comment = comments[idx];
@@ -1332,89 +1487,114 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                                 ),
                                 const SizedBox(width: 12),
                               Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Row(
-                                          children: [
-                                            Text(
-                                              comment.authorName,
-                                              style: const TextStyle(
-                                                color: DashboardColors.onSurface,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
-                                            if (comment.isTaskCreator) ...[
-                                              const SizedBox(width: 6),
-                                              Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                                decoration: BoxDecoration(
-                                                  color: DashboardColors.primary.withValues(alpha: 0.15),
-                                                  borderRadius: BorderRadius.circular(4),
-                                                  border: Border.all(color: DashboardColors.primary.withValues(alpha: 0.3), width: 0.5),
-                                                ),
-                                                child: const Text(
-                                                  'Author',
-                                                  style: TextStyle(
-                                                    color: DashboardColors.primary,
-                                                    fontSize: 8.5,
-                                                    fontWeight: FontWeight.bold,
+                                child: MouseRegion(
+                                  onExit: (_) {
+                                    if (_activeEmojiPickerCommentId == comment.id) {
+                                      setState(() {
+                                        _activeEmojiPickerCommentId = null;
+                                        _isReactionCapsuleExpanded = false;
+                                      });
+                                    }
+                                  },
+                                  child: Stack(
+                                    clipBehavior: Clip.none,
+                                    children: [
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Row(
+                                                children: [
+                                                  Text(
+                                                    comment.authorName,
+                                                    style: const TextStyle(
+                                                      color: DashboardColors.onSurface,
+                                                      fontSize: 13,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
                                                   ),
+                                                  if (comment.isTaskCreator) ...[
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                                      decoration: BoxDecoration(
+                                                        color: DashboardColors.primary.withValues(alpha: 0.15),
+                                                        borderRadius: BorderRadius.circular(4),
+                                                        border: Border.all(color: DashboardColors.primary.withValues(alpha: 0.3), width: 0.5),
+                                                      ),
+                                                      child: const Text(
+                                                        'Author',
+                                                        style: TextStyle(
+                                                          color: DashboardColors.primary,
+                                                          fontSize: 8.5,
+                                                          fontWeight: FontWeight.bold,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ],
+                                              ),
+                                              Text(
+                                                agoStr,
+                                                style: const TextStyle(
+                                                  color: DashboardColors.onSurfaceVariant,
+                                                  fontSize: 10.5,
                                                 ),
                                               ),
                                             ],
-                                          ],
-                                        ),
-                                        Text(
-                                          agoStr,
-                                          style: const TextStyle(
-                                            color: DashboardColors.onSurfaceVariant,
-                                            fontSize: 10.5,
                                           ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    if (comment.text.isNotEmpty)
-                                      _buildFormattedCommentText(comment.text),
-                                    if (comment.attachment != null) ...[
-                                      const SizedBox(height: 8),
-                                      _buildAttachmentCard(comment.attachment!),
-                                    ],
-                                    if (comment.voiceNote != null) ...[
-                                      const SizedBox(height: 8),
-                                      _VoicePlayer(voiceNote: comment.voiceNote!),
-                                    ],
-                                    const SizedBox(height: 8),
-                                    MouseRegion(
-                                      onExit: (_) {
-                                        setState(() {
-                                          if (_activeEmojiPickerCommentId == comment.id) {
-                                            _activeEmojiPickerCommentId = null;
-                                            _isReactionCapsuleExpanded = false;
-                                          }
-                                        });
-                                      },
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
+                                          const SizedBox(height: 4),
+                                          if (comment.text.isNotEmpty)
+                                            _buildFormattedCommentText(comment.text),
+                                          if (comment.attachment != null) ...[
+                                            const SizedBox(height: 8),
+                                            _buildAttachmentCard(comment.attachment!),
+                                          ],
+                                          if (comment.voiceNote != null) ...[
+                                            const SizedBox(height: 8),
+                                            _VoicePlayer(voiceNote: comment.voiceNote!),
+                                          ],
+                                          const SizedBox(height: 8),
                                           Wrap(
                                             crossAxisAlignment: WrapCrossAlignment.center,
                                             spacing: 16,
                                             runSpacing: 4,
                                             children: [
                                               MouseRegion(
-                                                onEnter: (_) {
-                                                  setState(() {
-                                                    _activeEmojiPickerCommentId = comment.id;
-                                                  });
+                                                onEnter: (event) {
+                                                  if (event.kind == PointerDeviceKind.touch) return;
+                                                  if (_justClickedCommentId != comment.id) {
+                                                    setState(() {
+                                                      _activeEmojiPickerCommentId = comment.id;
+                                                    });
+                                                  }
                                                 },
                                                 child: GestureDetector(
                                                   onTap: () {
+                                                    setState(() {
+                                                      _justClickedCommentId = comment.id;
+                                                      _activeEmojiPickerCommentId = null;
+                                                    });
+                                                    Future.delayed(const Duration(milliseconds: 2000), () {
+                                                      if (mounted) {
+                                                        setState(() {
+                                                          _justClickedCommentId = null;
+                                                        });
+                                                      }
+                                                    });
+
+                                                    final notifier = ref.read(taskCommentsProvider(widget.taskId).notifier);
+                                                    if (comment.reactedEmojis.isNotEmpty) {
+                                                      for (final emoji in comment.reactedEmojis) {
+                                                        notifier.toggleReaction(comment.id, emoji);
+                                                      }
+                                                    } else {
+                                                      notifier.toggleReaction(comment.id, '👍');
+                                                    }
+                                                  },
+                                                  onLongPress: () {
                                                     setState(() {
                                                       _activeEmojiPickerCommentId = isReactionPickerActive ? null : comment.id;
                                                     });
@@ -1423,7 +1603,9 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                                                     padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
                                                     child: Icon(
                                                       Icons.thumb_up_outlined,
-                                                      color: isReactionPickerActive ? DashboardColors.primary : DashboardColors.onSurfaceVariant,
+                                                      color: comment.reactedEmojis.isNotEmpty
+                                                          ? DashboardColors.primary
+                                                          : (isReactionPickerActive ? DashboardColors.primary : DashboardColors.onSurfaceVariant),
                                                       size: 14,
                                                     ),
                                                   ),
@@ -1463,14 +1645,24 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                                               ),
                                             ],
                                           ),
-                                          if (isReactionPickerActive) ...[
-                                            const SizedBox(height: 8),
-                                            _buildFloatingReactionCapsule(comment.id),
-                                          ],
                                         ],
                                       ),
-                                    ),
-                                  ],
+                                      if (isReactionPickerActive)
+                                        Positioned(
+                                          left: 0,
+                                          bottom: 26,
+                                          child: TapRegion(
+                                            onTapOutside: (event) {
+                                              setState(() {
+                                                _activeEmojiPickerCommentId = null;
+                                                _isReactionCapsuleExpanded = false;
+                                              });
+                                            },
+                                            child: _buildFloatingReactionCapsule(comment.id),
+                                          ),
+                                        ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -1485,6 +1677,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                             child: ListView.builder(
                               shrinkWrap: true,
                               physics: const NeverScrollableScrollPhysics(),
+                              clipBehavior: Clip.none,
                               itemCount: comment.replies.length,
                               itemBuilder: (context, rIdx) {
                                 return _buildReplyItem(
@@ -2009,7 +2202,7 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
 
   Widget _buildFloatingReactionCapsule(String commentId) {
     final commonEmojis = ['👍', '❤️', '🔥', '🚀', '👏'];
-    final otherEmojis = ['🎉', '😆', '😮', '😢', '😡'];
+    final otherEmojis = ['🎉', '😆', '😮', '😢', '😡', '🥰'];
 
     final List<Widget> children = [];
 
@@ -2017,20 +2210,22 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
       final list = _isReactionCapsuleExpanded ? [...commonEmojis, ...otherEmojis] : commonEmojis;
       for (final e in list) {
         children.add(
-          GestureDetector(
+          TaskReactionPickerItem(
+            emoji: e,
             onTap: () {
-              ref.read(taskCommentsProvider(widget.taskId).notifier).toggleReaction(commentId, e);
               setState(() {
+                _justClickedCommentId = commentId;
                 _activeEmojiPickerCommentId = null;
               });
+              Future.delayed(const Duration(milliseconds: 2000), () {
+                if (mounted) {
+                  setState(() {
+                    _justClickedCommentId = null;
+                  });
+                }
+              });
+              ref.read(taskCommentsProvider(widget.taskId).notifier).toggleReaction(commentId, e);
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                e,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
           ),
         );
       }
@@ -2043,13 +2238,19 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
                 _isReactionCapsuleExpanded = true;
               });
             },
-            child: Container(
-              padding: const EdgeInsets.all(4),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.08),
-                shape: BoxShape.circle,
+            child: Align(
+              alignment: Alignment.bottomCenter,
+              child: Padding(
+                padding: const EdgeInsets.only(bottom: 8.0, left: 6.0, right: 6.0),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.add_rounded, color: Colors.white70, size: 14),
+                ),
               ),
-              child: const Icon(Icons.add_rounded, color: Colors.white70, size: 14),
             ),
           ),
         );
@@ -2058,47 +2259,92 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
       final all = [...commonEmojis, ...otherEmojis];
       for (final e in all) {
         children.add(
-          GestureDetector(
+          TaskReactionPickerItem(
+            emoji: e,
             onTap: () {
-              ref.read(taskCommentsProvider(widget.taskId).notifier).toggleReaction(commentId, e);
               setState(() {
+                _justClickedCommentId = commentId;
                 _activeEmojiPickerCommentId = null;
               });
+              Future.delayed(const Duration(milliseconds: 2000), () {
+                if (mounted) {
+                  setState(() {
+                    _justClickedCommentId = null;
+                  });
+                }
+              });
+              ref.read(taskCommentsProvider(widget.taskId).notifier).toggleReaction(commentId, e);
             },
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
-              child: Text(
-                e,
-                style: const TextStyle(fontSize: 18),
-              ),
-            ),
           ),
         );
       }
     }
 
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.bottomCenter,
+      children: [
+        Positioned(
+          left: 0,
+          right: 0,
+          bottom: 0,
+          height: 44,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(24),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
           ),
-        ],
-      ),
-      child: Wrap(
-        spacing: 6,
-        runSpacing: 6,
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        children: children,
-      ),
+        ),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: children,
+            ),
+          ),
+        ),
+      ],
     );
+  }
+
+  Color _getReactionColor(String emoji) {
+    switch (emoji) {
+      case '❤️':
+        return Colors.red;
+      case '👍':
+        return const Color(0xFF0866FF);
+      case '🥰':
+      case '😆':
+      case '😂':
+      case '😮':
+      case '😢':
+        return const Color(0xFFF7B125);
+      case '😡':
+        return const Color(0xFFF15A36);
+      case '🚀':
+        return Colors.cyanAccent;
+      case '🔥':
+        return Colors.orangeAccent;
+      case '👏':
+        return Colors.yellowAccent;
+      case '🎉':
+        return Colors.pinkAccent;
+      default:
+        return Colors.white70;
+    }
   }
 
   Widget _buildReactionsBadgeList({
@@ -2118,6 +2364,16 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
       children.add(
         GestureDetector(
           onTap: () {
+            setState(() {
+              _justClickedCommentId = commentId;
+            });
+            Future.delayed(const Duration(milliseconds: 2000), () {
+              if (mounted) {
+                setState(() {
+                  _justClickedCommentId = null;
+                });
+              }
+            });
             ref.read(taskCommentsProvider(widget.taskId).notifier).toggleReaction(commentId, entry.key);
           },
           child: Container(
@@ -2136,7 +2392,14 @@ class _TaskCommentsSectionState extends ConsumerState<TaskCommentsSection> {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(entry.key, style: const TextStyle(fontSize: 10)),
+                Text(
+                  entry.key,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    height: 1.0,
+                    color: _getReactionColor(entry.key),
+                  ),
+                ),
                 const SizedBox(width: 2),
                 Text(
                   '${entry.value}',
@@ -2701,5 +2964,347 @@ class _ReplyConnectionPainter extends CustomPainter {
     return oldDelegate.isLast != isLast ||
         oldDelegate.lineColor != lineColor ||
         oldDelegate.startX != startX;
+  }
+}
+
+class TaskReactionPickerItem extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const TaskReactionPickerItem({
+    super.key,
+    required this.emoji,
+    required this.onTap,
+  });
+
+  @override
+  State<TaskReactionPickerItem> createState() => _TaskReactionPickerItemState();
+}
+
+class _TaskReactionPickerItemState extends State<TaskReactionPickerItem> with SingleTickerProviderStateMixin {
+  bool _isHovered = false;
+  late AnimationController _animationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    );
+  }
+
+  @override
+  void dispose() {
+    _animationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) {
+        setState(() {
+          _isHovered = true;
+        });
+        _animationController.repeat();
+      },
+      onExit: (_) {
+        setState(() {
+          _isHovered = false;
+        });
+        _animationController.stop();
+        _animationController.reset();
+      },
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: SizedBox(
+          width: 44,
+          height: 80,
+          child: Stack(
+            alignment: Alignment.bottomCenter,
+            clipBehavior: Clip.none,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOutBack,
+                transform: Matrix4.translationValues(0.0, _isHovered ? -12.0 : 0.0, 0.0)
+                  ..multiply(Matrix4.diagonal3Values(_isHovered ? 1.6 : 1.0, _isHovered ? 1.6 : 1.0, 1.0)),
+                transformAlignment: Alignment.center,
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 6.0),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2.0),
+                    child: AnimatedBuilder(
+                      animation: _animationController,
+                      builder: (context, child) {
+                        return _buildAnimatedEmoji(widget.emoji, _animationController.value);
+                      },
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                top: -14,
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _isHovered ? 1.0 : 0.0,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 150),
+                    transform: Matrix4.translationValues(0.0, _isHovered ? 0.0 : 5.0, 0.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      _getTooltipLabel(widget.emoji),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAnimatedEmoji(String emoji, double val) {
+    final emojiWidget = Text(
+      widget.emoji,
+      style: TextStyle(
+        fontSize: 30,
+        height: 1.0,
+        color: _getReactionColor(emoji),
+      ),
+    );
+
+    if (!_isHovered) return emojiWidget;
+
+    Matrix4 transform = Matrix4.identity();
+    Widget currentWidget = emojiWidget;
+
+    if (emoji == '👍') {
+      final double dy = -6.0 * math.sin(val * math.pi * 2).abs();
+      transform = Matrix4.translationValues(0.0, dy, 0.0);
+    } else if (emoji == '❤️') {
+      double scale = 1.0;
+      if (val < 0.3) {
+        scale += 0.20 * math.sin((val / 0.3) * math.pi);
+      } else if (val < 0.6) {
+        scale += 0.15 * math.sin(((val - 0.3) / 0.3) * math.pi);
+      }
+      transform = Matrix4.diagonal3Values(scale, scale, 1.0);
+    } else if (emoji == '🥰') {
+      final double angle = 0.12 * math.sin(val * math.pi * 2);
+      final double dx = 3.0 * math.sin(val * math.pi * 2);
+      transform = Matrix4.translationValues(dx, 0.0, 0.0)..rotateZ(angle);
+    } else if (emoji == '😆' || emoji == '😂') {
+      final double dy = -5.0 * math.sin(val * math.pi * 4).abs();
+      final double angle = 0.1 * math.sin(val * math.pi * 6);
+      transform = Matrix4.translationValues(0.0, dy, 0.0)..rotateZ(angle);
+    } else if (emoji == '😮') {
+      final double sy = 1.0 + 0.2 * math.sin(val * math.pi * 2);
+      final double sx = 1.0 - 0.1 * math.sin(val * math.pi * 2);
+      transform = Matrix4.diagonal3Values(sx, sy, 1.0);
+    } else if (emoji == '😢') {
+      final double angle = 0.06 * math.sin(val * math.pi * 2);
+      transform = Matrix4.rotationZ(angle);
+      currentWidget = CustomPaint(
+        foregroundPainter: _TearPainter(val),
+        child: emojiWidget,
+      );
+    } else if (emoji == '😡') {
+      final double dx = 1.5 * math.sin(val * math.pi * 28);
+      final double dy = 1.0 * math.cos(val * math.pi * 36);
+      transform = Matrix4.translationValues(dx, dy, 0.0);
+    } else if (emoji == '🚀') {
+      final double dx = 1.0 * math.sin(val * math.pi * 18);
+      final double dy = -6.0 * math.sin(val * math.pi * 2);
+      final double angle = 0.04 * math.sin(val * math.pi * 18);
+      transform = Matrix4.translationValues(dx, dy, 0.0)..rotateZ(angle);
+    } else if (emoji == '🔥') {
+      final double sy = 1.0 + 0.12 * math.sin(val * math.pi * 10);
+      final double sx = 1.0 - 0.06 * math.sin(val * math.pi * 10);
+      final double dy = -1.5 * math.sin(val * math.pi * 5);
+      transform = Matrix4.translationValues(0.0, dy, 0.0)..multiply(Matrix4.diagonal3Values(sx, sy, 1.0));
+    } else if (emoji == '👏') {
+      final double angle = 0.12 * math.cos(val * math.pi * 8);
+      final double scale = 1.0 + 0.08 * math.sin(val * math.pi * 8).abs();
+      transform = Matrix4.diagonal3Values(scale, scale, 1.0)..rotateZ(angle);
+    } else if (emoji == '🎉') {
+      final double angle = 0.08 * math.sin(val * math.pi * 4);
+      final double scale = 1.0 + 0.12 * math.sin(val * math.pi * 2).abs();
+      transform = Matrix4.diagonal3Values(scale, scale, 1.0)..rotateZ(angle);
+      currentWidget = CustomPaint(
+        foregroundPainter: _ConfettiPainter(val),
+        child: emojiWidget,
+      );
+    }
+
+    return Transform(
+      transform: transform,
+      alignment: Alignment.center,
+      child: currentWidget,
+    );
+  }
+
+  String _getTooltipLabel(String emoji) {
+    switch (emoji) {
+      case '👍':
+        return 'Thích';
+      case '❤️':
+        return 'Yêu thích';
+      case '🥰':
+        return 'Thương thương';
+      case '😂':
+      case '😆':
+        return 'Haha';
+      case '😮':
+        return 'Wow';
+      case '😢':
+        return 'Buồn';
+      case '😡':
+        return 'Phẫn nộ';
+      case '🚀':
+        return 'Bứt phá';
+      case '🔥':
+        return 'Cố lên';
+      case '👏':
+        return 'Vỗ tay';
+      case '🎉':
+        return 'Tiệc tùng';
+      default:
+        return '';
+    }
+  }
+}
+
+class _TearPainter extends CustomPainter {
+  final double progress;
+  _TearPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF29B6F6).withValues(alpha: 1.0 - progress)
+      ..style = PaintingStyle.fill;
+
+    double cx = size.width / 2;
+    double cy = size.height / 2 + 2;
+
+    double ly = cy + (size.height - cy) * progress;
+    double lx = cx - 6;
+    _drawTear(canvas, lx, ly, paint);
+
+    double rp = (progress + 0.5) % 1.0;
+    double ry = cy + (size.height - cy) * rp;
+    double rx = cx + 6;
+    final rightPaint = Paint()
+      ..color = const Color(0xFF29B6F6).withValues(alpha: 1.0 - rp)
+      ..style = PaintingStyle.fill;
+    _drawTear(canvas, rx, ry, rightPaint);
+  }
+
+  void _drawTear(Canvas canvas, double x, double y, Paint paint) {
+    final path = Path();
+    path.moveTo(x, y - 4);
+    path.quadraticBezierTo(x + 2, y - 2, x + 3, y);
+    path.arcToPoint(Offset(x - 3, y), radius: const Radius.circular(3), clockwise: true);
+    path.quadraticBezierTo(x - 2, y - 2, x, y - 4);
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TearPainter oldDelegate) => oldDelegate.progress != progress;
+}
+
+class _ConfettiPainter extends CustomPainter {
+  final double progress;
+  _ConfettiPainter(this.progress);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cx = size.width / 2;
+    final double cy = size.height / 2;
+
+    final colors = [
+      Colors.redAccent,
+      Colors.blueAccent,
+      Colors.greenAccent,
+      Colors.yellowAccent,
+      Colors.orangeAccent,
+      Colors.purpleAccent,
+      Colors.pinkAccent,
+    ];
+
+    const numParticles = 14;
+    for (int i = 0; i < numParticles; i++) {
+      final double angle = (i * (360 / numParticles)) * math.pi / 180;
+      final double speed = 12.0 + (i % 3) * 6.0;
+      double dist = progress * speed;
+      double dy = 0.5 * 9.8 * progress * progress * 8;
+
+      double px = cx + math.cos(angle) * dist;
+      double py = cy + math.sin(angle) * dist + dy;
+
+      final color = colors[i % colors.length].withValues(alpha: 1.0 - progress);
+      final paint = Paint()..color = color;
+
+      if (i % 3 == 0) {
+        canvas.drawCircle(Offset(px, py), 2.0 + (i % 2), paint);
+      } else if (i % 3 == 1) {
+        final rect = Rect.fromCenter(center: Offset(px, py), width: 3.5, height: 3.5);
+        canvas.drawRect(rect, paint);
+      } else {
+        final linePaint = Paint()
+          ..color = color
+          ..strokeWidth = 1.2
+          ..style = PaintingStyle.stroke;
+        canvas.drawLine(
+          Offset(px, py),
+          Offset(px - math.cos(angle) * 3, py - math.sin(angle) * 3),
+          linePaint,
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _ConfettiPainter oldDelegate) => oldDelegate.progress != progress;
+}
+
+Color _getReactionColor(String emoji) {
+  switch (emoji) {
+    case '❤️':
+      return Colors.red;
+    case '👍':
+      return const Color(0xFF0866FF);
+    case '🥰':
+    case '😆':
+    case '😂':
+    case '😮':
+    case '😢':
+      return const Color(0xFFF7B125);
+    case '😡':
+      return const Color(0xFFF15A36);
+    case '🚀':
+      return Colors.cyanAccent;
+    case '🔥':
+      return Colors.orangeAccent;
+    case '👏':
+      return Colors.yellowAccent;
+    case '🎉':
+      return Colors.pinkAccent;
+    default:
+      return Colors.white70;
   }
 }

@@ -431,6 +431,18 @@ class _DropdownContent extends ConsumerWidget {
                     }
                   },
                 ),
+                _ActionItem(
+                  icon: Icons.help_outline_rounded,
+                  label: 'Support',
+                  onTap: () {
+                    onClose();
+                    if (scope?.onSupportSelected != null) {
+                      scope!.onSupportSelected!();
+                    } else {
+                      context.go('/support');
+                    }
+                  },
+                ),
                 const SizedBox(height: 8),
                 Container(
                   height: 1,

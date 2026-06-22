@@ -87,8 +87,15 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/support',
-        pageBuilder:
-            (_, state) => _transitionPage(state, const SupportScreen()),
+        pageBuilder: (context, state) {
+          final isDesktop = MediaQuery.sizeOf(context).width >= 1200;
+          return _transitionPage(
+            state,
+            isDesktop
+                ? const DashboardScreen(initialIndex: 6)
+                : const SupportScreen(),
+          );
+        },
       ),
       GoRoute(
         path: '/profile',
@@ -107,6 +114,24 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder:
             (_, state) =>
                 _transitionPage(state, const DashboardScreen(initialIndex: 10)),
+      ),
+      GoRoute(
+        path: '/feed',
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 12)),
+      ),
+      GoRoute(
+        path: '/friends',
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 13)),
+      ),
+      GoRoute(
+        path: '/messages',
+        pageBuilder:
+            (_, state) =>
+                _transitionPage(state, const DashboardScreen(initialIndex: 14)),
       ),
       GoRoute(
         path: '/task-detail/:id',

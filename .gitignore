@@ -12,6 +12,8 @@
 .swiftpm/
 migrate_working_dir/
 
+lamviec.md
+
 supabase_schema.sql
 scratch/
 supabase/

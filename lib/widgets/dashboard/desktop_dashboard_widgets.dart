@@ -32,6 +32,11 @@ import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/achievements/achievements_page.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/social/presentation/screens/feed_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/friends_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/messages_screen.dart';
+import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
+import 'package:to_do_app/widgets/dashboard/social_dropdowns.dart';
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
   const DesktopDashboardLayout({super.key, this.initialIndex = 0, this.taskId});
@@ -270,6 +275,13 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                 _selectedIndex = 11;
               });
             },
+            onSupportSelected: () {
+              ref.read(editingTaskProvider.notifier).state = null;
+              setState(() {
+                _detailsItem = null;
+                _selectedIndex = 6;
+              });
+            },
             onTaskSelected: (taskId) {
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
@@ -372,9 +384,19 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                           key: ValueKey('achievements'),
                           embeddedInDashboard: true,
                         ),
-                        11 => const NotificationsScreen(
+                         11 => const NotificationsScreen(
                           key: ValueKey('notifications'),
                           embeddedInDashboard: true,
+                        ),
+                        12 => FeedScreen(
+                          key: const ValueKey('feed'),
+                          onFindFriends: () => setState(() => _selectedIndex = 13),
+                        ),
+                        13 => const FriendsScreen(
+                          key: ValueKey('friends'),
+                        ),
+                        14 => const MessagesScreen(
+                          key: ValueKey('messages'),
                         ),
                         _ => _DashboardSectionPlaceholder(
                           index: _selectedIndex,
@@ -721,7 +743,7 @@ class _DesktopDashboardContent extends StatelessWidget {
   }
 }
 
-class DesktopSidebar extends StatelessWidget {
+class DesktopSidebar extends ConsumerWidget {
   const DesktopSidebar({
     required this.selectedIndex,
     required this.onSelected,
@@ -732,13 +754,13 @@ class DesktopSidebar extends StatelessWidget {
   final ValueChanged<int> onSelected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
         child: Container(
           width: DashboardSpacing.sidebar,
-          padding: const EdgeInsets.fromLTRB(24, 32, 16, 20),
+          padding: const EdgeInsets.fromLTRB(22, 28, 14, 18),
           decoration: BoxDecoration(
             color: DashboardColors.surfaceLowest.withValues(alpha: .8),
             border: Border(
@@ -751,92 +773,119 @@ class DesktopSidebar extends StatelessWidget {
               ),
             ],
           ),
-          child: CustomScrollView(
-            slivers: [
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ShaderMask(
-                      shaderCallback:
-                          (rect) => const LinearGradient(
-                            colors: [
-                              DashboardColors.primary,
-                              DashboardColors.secondary,
-                            ],
-                          ).createShader(rect),
-                      child: const Text(
-                        'NEXUS AI',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 29,
-                          fontWeight: FontWeight.w900,
-                          letterSpacing: -.8,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      ShaderMask(
+                        shaderCallback:
+                            (rect) => const LinearGradient(
+                              colors: [
+                                DashboardColors.primary,
+                                DashboardColors.secondary,
+                              ],
+                            ).createShader(rect),
+                        child: const Text(
+                          'NEXUS AI',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 29,
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: -.8,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'Deep Work Mode',
-                      style: TextStyle(
-                        color: DashboardColors.onSurfaceVariant,
-                        fontSize: 12,
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Deep Work Mode',
+                        style: TextStyle(
+                          color: DashboardColors.onSurfaceVariant,
+                          fontSize: 12,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                    _SidebarItem(
-                      icon: Icons.dashboard_rounded,
-                      label: 'NEXUS AI',
-                      active: selectedIndex == 0,
-                      onTap: () => onSelected(0),
-                    ),
-                    _SidebarItem(
-                      icon: Icons.account_tree_rounded,
-                      label: 'Tasks',
-                      active: selectedIndex == 1,
-                      onTap: () => onSelected(1),
-                    ),
-                    _SidebarItem(
-                      icon: Icons.psychology_rounded,
-                      label: 'Intelligence',
-                      active: selectedIndex == 2,
-                      onTap: () => onSelected(2),
-                    ),
-                    _SidebarItem(
-                      icon: Icons.calendar_month_rounded,
-                      label: 'Calendar',
-                      active: selectedIndex == 3,
-                      onTap: () => onSelected(3),
-                    ),
-                    _SidebarItem(
-                      icon: Icons.archive_rounded,
-                      label: 'Archived',
-                      active: selectedIndex == 9,
-                      onTap: () => onSelected(9),
-                    ),
-                    _SidebarItem(
-                      icon: Icons.query_stats_rounded,
-                      label: 'Analytics',
-                      active: selectedIndex == 4,
-                      onTap: () => onSelected(4),
-                    ),
-                    const Spacer(),
-                    GradientButton(
-                      label: 'New Task',
-                      icon: Icons.add_rounded,
-                      expanded: true,
-                      onPressed: () => onSelected(8),
-                    ),
-                    const SizedBox(height: 12),
-                    _SidebarItem(
-                      icon: Icons.help_outline_rounded,
-                      label: 'Support',
-                      active: selectedIndex == 6,
-                      onTap: () => onSelected(6),
-                    ),
-                  ],
+                      const SizedBox(height: 28),
+                      _SidebarItem(
+                        icon: Icons.dashboard_rounded,
+                        label: 'NEXUS AI',
+                        active: selectedIndex == 0,
+                        onTap: () => onSelected(0),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.account_tree_rounded,
+                        label: 'Tasks',
+                        active: selectedIndex == 1,
+                        onTap: () => onSelected(1),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.psychology_rounded,
+                        label: 'Intelligence',
+                        active: selectedIndex == 2,
+                        onTap: () => onSelected(2),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.calendar_month_rounded,
+                        label: 'Calendar',
+                        active: selectedIndex == 3,
+                        onTap: () => onSelected(3),
+                      ),
+                      Divider(color: Colors.white.withValues(alpha: .04), height: 16),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
+                        child: Text(
+                          '🌐 SOCIAL',
+                          style: TextStyle(
+                            color: DashboardColors.outline.withValues(alpha: .5),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.dynamic_feed_rounded,
+                        label: 'Feed',
+                        active: selectedIndex == 12,
+                        onTap: () => onSelected(12),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.people_rounded,
+                        label: 'Friends',
+                        active: selectedIndex == 13,
+                        onTap: () => onSelected(13),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.forum_rounded,
+                        label: 'Messages',
+                        active: selectedIndex == 14,
+                        onTap: () => onSelected(14),
+                      ),
+                      Divider(color: Colors.white.withValues(alpha: .04), height: 16),
+                      _SidebarItem(
+                        icon: Icons.query_stats_rounded,
+                        label: 'Analytics',
+                        active: selectedIndex == 4,
+                        onTap: () => onSelected(4),
+                      ),
+                      _SidebarItem(
+                        icon: Icons.archive_rounded,
+                        label: 'Archived',
+                        active: selectedIndex == 9,
+                        onTap: () => onSelected(9),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+              const SizedBox(height: 16),
+              GradientButton(
+                label: 'New Task',
+                icon: Icons.add_rounded,
+                expanded: true,
+                onPressed: () => onSelected(8),
               ),
             ],
           ),
@@ -864,7 +913,7 @@ class _SidebarItem extends StatelessWidget {
     final fg =
         active ? DashboardColors.primary : DashboardColors.onSurfaceVariant;
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.only(bottom: 6),
       child: Material(
         color:
             active
@@ -876,7 +925,7 @@ class _SidebarItem extends StatelessWidget {
           mouseCursor: SystemMouseCursors.click,
           onTap: onTap,
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               border: Border(
@@ -942,6 +991,10 @@ class DesktopTopbar extends StatelessWidget {
                           const StreakTopbarButton(),
                           const SizedBox(width: 12),
                           const XPLevelCard(),
+                          const SizedBox(width: 12),
+                          const FriendRequestsTopbarButton(),
+                          const SizedBox(width: 12),
+                          const MessagesTopbarButton(),
                           const SizedBox(width: 12),
                           const NotificationBellButton(),
                           const SizedBox(width: 12),
@@ -1634,4 +1687,277 @@ class InsightCard extends StatelessWidget {
 Future<void> signOutDashboard(BuildContext context) async {
   await Supabase.instance.client.auth.signOut();
   if (context.mounted) context.go('/login');
+}
+
+class FriendRequestsTopbarButton extends ConsumerStatefulWidget {
+  const FriendRequestsTopbarButton({super.key});
+
+  @override
+  ConsumerState<FriendRequestsTopbarButton> createState() => _FriendRequestsTopbarButtonState();
+}
+
+class _FriendRequestsTopbarButtonState extends ConsumerState<FriendRequestsTopbarButton> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {
+      _isOpen = true;
+    });
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() {
+      _isOpen = false;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    const width = 380.0;
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closeDropdown,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            width: width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              targetAnchor: Alignment.bottomRight,
+              followerAnchor: Alignment.topRight,
+              offset: const Offset(0, 12),
+              child: FriendRequestsDropdown(
+                width: width,
+                onClose: _closeDropdown,
+                onViewAll: () => context.go('/friends'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final pending = ref.watch(pendingRequestsProvider);
+    final count = pending.received.length;
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _toggleDropdown,
+              child: SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(
+                  _isOpen ? Icons.people_rounded : Icons.people_outline_rounded,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          if (count > 0)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    colors: [DashboardColors.primary, DashboardColors.secondary],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DashboardColors.primary.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                alignment: Alignment.center,
+                child: Text(
+                  '$count',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class MessagesTopbarButton extends StatefulWidget {
+  const MessagesTopbarButton({super.key});
+
+  @override
+  State<MessagesTopbarButton> createState() => _MessagesTopbarButtonState();
+}
+
+class _MessagesTopbarButtonState extends State<MessagesTopbarButton> {
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  bool _isOpen = false;
+
+  @override
+  void dispose() {
+    _overlayEntry?.remove();
+    super.dispose();
+  }
+
+  void _toggleDropdown() {
+    if (_isOpen) {
+      _closeDropdown();
+    } else {
+      _openDropdown();
+    }
+  }
+
+  void _openDropdown() {
+    _overlayEntry = _createOverlayEntry();
+    Overlay.of(context).insert(_overlayEntry!);
+    setState(() {
+      _isOpen = true;
+    });
+  }
+
+  void _closeDropdown() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+    setState(() {
+      _isOpen = false;
+    });
+  }
+
+  OverlayEntry _createOverlayEntry() {
+    const width = 360.0;
+    return OverlayEntry(
+      builder: (context) => Stack(
+        children: [
+          Positioned.fill(
+            child: GestureDetector(
+              behavior: HitTestBehavior.translucent,
+              onTap: _closeDropdown,
+              child: const SizedBox.expand(),
+            ),
+          ),
+          Positioned(
+            width: width,
+            child: CompositedTransformFollower(
+              link: _layerLink,
+              showWhenUnlinked: false,
+              targetAnchor: Alignment.bottomRight,
+              followerAnchor: Alignment.topRight,
+              offset: const Offset(0, 12),
+              child: MessagesDropdown(
+                width: width,
+                onClose: _closeDropdown,
+                onViewAll: () => context.go('/messages'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const unreadCount = 1;
+
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Material(
+            color: Colors.transparent,
+            shape: const CircleBorder(),
+            child: InkWell(
+              customBorder: const CircleBorder(),
+              onTap: _toggleDropdown,
+              child: SizedBox(
+                width: 42,
+                height: 42,
+                child: Icon(
+                  _isOpen ? Icons.forum_rounded : Icons.forum_outlined,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+          if (unreadCount > 0)
+            Positioned(
+              top: 4,
+              right: 4,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  gradient: const LinearGradient(
+                    colors: [DashboardColors.primary, DashboardColors.secondary],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: DashboardColors.primary.withValues(alpha: 0.4),
+                      blurRadius: 6,
+                      spreadRadius: 1,
+                    ),
+                  ],
+                ),
+                constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                alignment: Alignment.center,
+                child: Text(
+                  '$unreadCount',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }

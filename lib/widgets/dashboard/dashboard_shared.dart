@@ -226,11 +226,15 @@ class GradientButton extends StatelessWidget {
                   Icon(icon, color: Colors.white, size: 20),
                   const SizedBox(width: 8),
                 ],
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                Flexible(
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
                   ),
                 ),
               ],
@@ -409,6 +413,7 @@ class ProfileNavigationScope extends InheritedWidget {
     this.onSettingsSelected,
     this.onAchievementsSelected,
     this.onNotificationsSelected,
+    this.onSupportSelected,
     this.onTaskSelected,
     this.onSignOut,
     required super.child,
@@ -419,6 +424,7 @@ class ProfileNavigationScope extends InheritedWidget {
   final VoidCallback? onSettingsSelected;
   final VoidCallback? onAchievementsSelected;
   final VoidCallback? onNotificationsSelected;
+  final VoidCallback? onSupportSelected;
   final ValueChanged<String>? onTaskSelected;
   final VoidCallback? onSignOut;
 
@@ -432,6 +438,7 @@ class ProfileNavigationScope extends InheritedWidget {
       onSettingsSelected != oldWidget.onSettingsSelected ||
       onAchievementsSelected != oldWidget.onAchievementsSelected ||
       onNotificationsSelected != oldWidget.onNotificationsSelected ||
+      onSupportSelected != oldWidget.onSupportSelected ||
       onTaskSelected != oldWidget.onTaskSelected ||
       onSignOut != oldWidget.onSignOut;
 }

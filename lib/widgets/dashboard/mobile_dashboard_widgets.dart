@@ -9,9 +9,16 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
+import 'package:to_do_app/features/social/presentation/screens/feed_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/friends_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/messages_screen.dart';
+import 'package:to_do_app/screens/settings/settings_screen.dart';
+import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 
 class MobileDashboardLayout extends StatelessWidget {
-  const MobileDashboardLayout({super.key});
+  const MobileDashboardLayout({super.key, this.initialIndex = 0});
+
+  final int initialIndex;
 
   @override
   Widget build(BuildContext context) {
@@ -19,18 +26,29 @@ class MobileDashboardLayout extends StatelessWidget {
 
     return Stack(
       children: [
-        const Positioned.fill(
+        Positioned.fill(
           child: CustomScrollView(
             slivers: [
-              SliverToBoxAdapter(child: SizedBox(height: 88)),
+              const SliverToBoxAdapter(child: SizedBox(height: 88)),
               SliverPadding(
-                padding: EdgeInsets.fromLTRB(
+                padding: const EdgeInsets.fromLTRB(
                   DashboardSpacing.md,
                   0,
                   DashboardSpacing.md,
                   132,
                 ),
-                sliver: SliverToBoxAdapter(child: MobileDashboardContent()),
+                sliver: SliverToBoxAdapter(
+                  child: switch (initialIndex) {
+                    12 => FeedScreen(
+                        onFindFriends: () => context.go('/friends'),
+                      ),
+                    13 => const FriendsScreen(),
+                    14 => const MessagesScreen(),
+                    5 => const SettingsScreen(embeddedInDashboard: true),
+                    7 => const UserProfileScreen(),
+                    _ => const MobileDashboardContent(),
+                  },
+                ),
               ),
             ],
           ),
@@ -522,6 +540,11 @@ class MobileBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    String location = '/home';
+    try {
+      location = GoRouterState.of(context).matchedLocation;
+    } catch (_) {}
+
     return ClipRRect(
       borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
       child: BackdropFilter(
@@ -539,28 +562,32 @@ class MobileBottomNavBar extends StatelessWidget {
             children: [
               _BottomNavItem(
                 icon: Icons.home_rounded,
-                label: 'Home',
-                active: true,
+                label: 'Dashboard',
+                active: location == '/home' || location == '/',
                 onTap: () => context.go('/home'),
-              ),
-              _BottomNavItem(
-                icon: Icons.calendar_month_rounded,
-                label: 'Calendar',
-                onTap: () => context.go('/calendar'),
               ),
               _BottomNavItem(
                 icon: Icons.assignment_rounded,
                 label: 'Tasks',
+                active: location == '/tasks',
                 onTap: () => context.go('/tasks'),
               ),
               _BottomNavItem(
-                icon: Icons.bar_chart_rounded,
-                label: 'Stats',
-                onTap: () => context.go('/analytics'),
+                icon: Icons.dynamic_feed_rounded,
+                label: 'Feed',
+                active: location == '/feed',
+                onTap: () => context.go('/feed'),
+              ),
+              _BottomNavItem(
+                icon: Icons.forum_rounded,
+                label: 'Messages',
+                active: location == '/messages',
+                onTap: () => context.go('/messages'),
               ),
               _BottomNavItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
+                active: location == '/profile',
                 onTap:
                     ProfileNavigationScope.maybeOf(context)?.onProfileSelected ??
                     () => context.go('/profile'),

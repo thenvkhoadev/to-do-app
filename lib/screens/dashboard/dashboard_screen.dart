@@ -33,7 +33,7 @@ class DashboardScreen extends StatelessWidget {
               return TaskDetailFromIdScreen(taskId: taskId!);
             }
 
-            return const MobileDashboardLayout();
+            return MobileDashboardLayout(initialIndex: initialIndex);
           },
         ),
       ),
