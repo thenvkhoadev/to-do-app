@@ -27,27 +27,33 @@ class MobileDashboardLayout extends StatelessWidget {
     return Stack(
       children: [
         Positioned.fill(
-          child: CustomScrollView(
-            slivers: [
-              const SliverToBoxAdapter(child: SizedBox(height: 88)),
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(
-                  DashboardSpacing.md,
-                  0,
-                  DashboardSpacing.md,
-                  132,
-                ),
-                sliver: SliverToBoxAdapter(
-                  child: switch (initialIndex) {
-                    12 => FeedScreen(
-                        onFindFriends: () => context.go('/friends'),
+          child: Overlay(
+            initialEntries: [
+              OverlayEntry(
+                builder: (overlayContext) => CustomScrollView(
+                  slivers: [
+                    const SliverToBoxAdapter(child: SizedBox(height: 88)),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(
+                        DashboardSpacing.md,
+                        0,
+                        DashboardSpacing.md,
+                        132,
                       ),
-                    13 => const FriendsScreen(),
-                    14 => const MessagesScreen(),
-                    5 => const SettingsScreen(embeddedInDashboard: true),
-                    7 => const UserProfileScreen(),
-                    _ => const MobileDashboardContent(),
-                  },
+                      sliver: SliverToBoxAdapter(
+                        child: switch (initialIndex) {
+                          12 => FeedScreen(
+                              onFindFriends: () => context.go('/friends'),
+                            ),
+                          13 => const FriendsScreen(),
+                          14 => const MessagesScreen(),
+                          5 => const SettingsScreen(embeddedInDashboard: true),
+                          7 => const UserProfileScreen(),
+                          _ => const MobileDashboardContent(),
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -1,13 +1,16 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/theme/design_tokens.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
+import 'package:to_do_app/features/tasks/data/datasource/attachment_datasource.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
@@ -25,8 +28,9 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
   late TabController _tabController;
   final TextEditingController _contentController = TextEditingController();
   
-  // Tab 0: Image Attachment
+  // Tab 0: Image/File Attachment
   XFile? _selectedImage;
+  PlatformFileInfo? _selectedFile;
   bool _isUploadingImage = false;
 
   // Tab 1: Task Attachment
@@ -66,11 +70,40 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
       if (image != null) {
         setState(() {
           _selectedImage = image;
+          _selectedFile = null;
         });
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Lỗi chọn ảnh: $e')),
+      );
+    }
+  }
+
+  Future<void> _pickFile() async {
+    try {
+      final result = await FilePicker.pickFiles(
+        allowMultiple: false,
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'pdf', 'zip', 'doc', 'docx', 'txt', 'csv', 'xlsx'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final file = result.files.first;
+        setState(() {
+          _selectedFile = PlatformFileInfo(
+            name: file.name,
+            sizeBytes: file.size,
+            extension: file.extension ?? '',
+            bytes: file.bytes,
+            filePath: kIsWeb ? null : file.path,
+          );
+          _selectedImage = null;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Lỗi chọn file: $e')),
       );
     }
   }
@@ -97,7 +130,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
     if (currentUser == null) return;
 
     final content = _contentController.text.trim();
-    if (content.isEmpty && _selectedImage == null && _selectedTask == null && _selectedAchievement == null) {
+    if (content.isEmpty && _selectedImage == null && _selectedFile == null && _selectedTask == null && _selectedAchievement == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng nhập nội dung bài viết')),
       );
@@ -122,12 +155,38 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
         final name = 'post_${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
         final path = '${currentUser.id}/$name';
         
-        await Supabase.instance.client.storage.from('avatars').uploadBinary(
+        await Supabase.instance.client.storage.from('post-attachments').uploadBinary(
           path,
           fileBytes,
           fileOptions: const FileOptions(upsert: true),
         );
-        mediaUrl = Supabase.instance.client.storage.from('avatars').getPublicUrl(path);
+        mediaUrl = Supabase.instance.client.storage.from('post-attachments').getPublicUrl(path);
+      }
+
+      // Handle File Upload
+      if (_selectedFile != null) {
+        type = 'file';
+        final name = 'post_file_${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.${_selectedFile!.extension}';
+        final path = '${currentUser.id}/$name';
+
+        final fileBytes = _selectedFile!.bytes ?? 
+            (kIsWeb ? null : await File(_selectedFile!.filePath!).readAsBytes());
+
+        if (fileBytes != null) {
+          await Supabase.instance.client.storage.from('post-attachments').uploadBinary(
+            path,
+            fileBytes,
+            fileOptions: const FileOptions(upsert: true),
+          );
+          mediaUrl = Supabase.instance.client.storage.from('post-attachments').getPublicUrl(path);
+          metaData = {
+            'fileName': _selectedFile!.name,
+            'fileSize': _selectedFile!.sizeBytes,
+            'fileExtension': _selectedFile!.extension,
+          };
+        } else {
+          throw Exception('Không thể đọc dữ liệu từ file đã chọn');
+        }
       }
 
       // Handle Task attachment
@@ -322,7 +381,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
                 unselectedLabelColor: Colors.white38,
                 labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 tabs: const [
-                  Tab(text: 'Ảnh'),
+                  Tab(text: 'Ảnh / File'),
                   Tab(text: 'Task'),
                   Tab(text: 'Thành tích'),
                   Tab(text: 'Khảo sát'),
@@ -392,37 +451,129 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
   }
 
   Widget _buildImageTab() {
-    return Center(
-      child: _selectedImage != null
-          ? Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Image.file(
-                    File(_selectedImage!.path),
-                    height: 180,
-                    fit: BoxFit.contain,
-                  ),
+    if (_selectedImage != null) {
+      return Center(
+        child: Stack(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.file(
+                File(_selectedImage!.path),
+                height: 180,
+                fit: BoxFit.contain,
+              ),
+            ),
+            Positioned(
+              top: 4,
+              right: 4,
+              child: CircleAvatar(
+                radius: 14,
+                backgroundColor: Colors.black.withValues(alpha: .8),
+                child: IconButton(
+                  icon: const Icon(Icons.close, size: 12, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      _selectedImage = null;
+                    });
+                  },
                 ),
-                Positioned(
-                  top: 4,
-                  right: 4,
-                  child: CircleAvatar(
-                    radius: 14,
-                    backgroundColor: Colors.black.withValues(alpha: .8),
-                    child: IconButton(
-                      icon: const Icon(Icons.close, size: 12, color: Colors.white),
-                      onPressed: () {
-                        setState(() {
-                          _selectedImage = null;
-                        });
-                      },
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_selectedFile != null) {
+      final ext = _selectedFile!.name.split('.').last.toLowerCase();
+      final icon = switch (ext) {
+        'pdf' => Icons.picture_as_pdf_rounded,
+        'png' || 'jpg' || 'jpeg' => Icons.image_rounded,
+        'zip' || 'rar' => Icons.folder_zip_rounded,
+        'doc' || 'docx' => Icons.description_rounded,
+        'xls' || 'xlsx' || 'csv' => Icons.table_chart_rounded,
+        _ => Icons.insert_drive_file_rounded,
+      };
+      
+      final sizeKb = _selectedFile!.sizeBytes / 1024;
+      final sizeStr = sizeKb < 1024 
+          ? '${sizeKb.toStringAsFixed(1)} KB' 
+          : '${(sizeKb / 1024).toStringAsFixed(1)} MB';
+
+      return Center(
+        child: Container(
+          width: 320,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color.fromRGBO(255, 255, 255, 0.08),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF7C5CFF).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: const Color(0xFF7C5CFF), size: 20),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      _selectedFile!.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 2),
+                    Text(
+                      sizeStr,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
                 ),
-              ],
-            )
-          : InkWell(
+              ),
+              const SizedBox(width: 8),
+              IconButton(
+                onPressed: () {
+                  setState(() {
+                    _selectedFile = null;
+                  });
+                },
+                icon: const Icon(Icons.close_rounded, size: 16, color: Colors.white30),
+                hoverColor: Colors.white12,
+                constraints: const BoxConstraints(),
+                padding: const EdgeInsets.all(6),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return Center(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Expanded(
+            child: InkWell(
               onTap: _pickImage,
               borderRadius: BorderRadius.circular(8),
               child: Container(
@@ -441,6 +592,31 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
                 ),
               ),
             ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: InkWell(
+              onTap: _pickFile,
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                decoration: BoxDecoration(
+                  border: Border.all(color: Colors.white12, style: BorderStyle.solid),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.insert_drive_file_rounded, size: 36, color: Colors.white.withValues(alpha: .5)),
+                    const SizedBox(height: 8),
+                    const Text('Chọn tệp tin/đồ thị', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

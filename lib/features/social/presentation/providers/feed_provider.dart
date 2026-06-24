@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
+import 'package:to_do_app/core/storage/secure_storage_service.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/social/data/models/activity_post_model.dart';
 import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
@@ -34,8 +35,37 @@ class FeedService {
 
           if (filteredRows.isEmpty) return [];
 
+          // Identify shared post IDs
+          final sharedPostIds = filteredRows
+              .where((r) => r['type'] == 'share' && r['reference_id'] != null)
+              .map((r) => r['reference_id'] as String)
+              .toSet()
+              .toList();
+
+          List<Map<String, dynamic>> sharedPostRows = [];
+          if (sharedPostIds.isNotEmpty) {
+            try {
+              sharedPostRows = await _client
+                  .from('activity_feed')
+                  .select()
+                  .inFilter('id', sharedPostIds);
+            } catch (e) {
+              debugPrint('Error fetching shared posts: $e');
+            }
+          }
+
+          // Combine main and shared posts to avoid duplicates and gather all relevant IDs
+          final allRowsMap = <String, Map<String, dynamic>>{};
+          for (final r in filteredRows) {
+            allRowsMap[r['id'] as String] = r;
+          }
+          for (final r in sharedPostRows) {
+            allRowsMap[r['id'] as String] = r;
+          }
+          final allRows = allRowsMap.values.toList();
+
           // Fetch author profiles
-          final authorIds = filteredRows.map((r) => r['user_id'] as String).toSet().toList();
+          final authorIds = allRows.map((r) => r['user_id'] as String).toSet().toList();
           final authorsData = await _client
               .from('users')
               .select('id, username, full_name, avatar_url, level')
@@ -46,15 +76,17 @@ class FeedService {
               row['id'].toString(): row
           };
 
+          final postIds = allRows.map((r) => r['id'] as String).toList();
+
           // Fetch likes / reactions
-          final postIds = filteredRows.map((r) => r['id'] as String).toList();
           final likesData = await _client
               .from('activity_post_likes')
-              .select('post_id, user_id, reaction_type, users:user_id(username, full_name)')
+              .select('post_id, user_id, reaction_type, users:user_id(username, full_name, avatar_url)')
               .inFilter('post_id', postIds);
 
           final reactionsMap = <String, Map<String, String>>{};
           final reactorNamesMap = <String, Map<String, String>>{};
+          final reactorAvatarsMap = <String, Map<String, String>>{};
           for (final row in likesData) {
             final postId = row['post_id'] as String;
             final userId = row['user_id'] as String;
@@ -64,12 +96,15 @@ class FeedService {
             final userMap = row['users'] as Map<String, dynamic>? ?? {};
             final reactorName = userMap['full_name']?.toString() ?? userMap['username']?.toString() ?? 'Người dùng';
             reactorNamesMap.putIfAbsent(postId, () => {})[userId] = reactorName;
+
+            final reactorAvatar = userMap['avatar_url']?.toString() ?? '';
+            reactorAvatarsMap.putIfAbsent(postId, () => {})[userId] = reactorAvatar;
           }
 
           // Fetch comments
           final commentsData = await _client
               .from('activity_post_comments')
-              .select('id, post_id, user_id, content, created_at, parent_comment_id')
+              .select('id, post_id, user_id, content, created_at, updated_at, parent_comment_id, is_pinned')
               .inFilter('post_id', postIds)
               .order('created_at', ascending: true);
 
@@ -99,7 +134,7 @@ class FeedService {
           if (commentAuthorIds.isNotEmpty) {
             final cAuthors = await _client
                 .from('users')
-                .select('id, username, full_name, avatar_url')
+                .select('id, username, full_name, avatar_url, level')
                 .inFilter('id', commentAuthorIds);
             for (final row in cAuthors) {
               commentAuthorsMap[row['id'].toString()] = row;
@@ -119,6 +154,8 @@ class FeedService {
             final cAuthor = commentAuthorsMap[cAuthorId] ?? {};
             final authorName = cAuthor['full_name']?.toString() ?? cAuthor['username']?.toString() ?? 'Người dùng';
             final authorAvatar = cAuthor['avatar_url']?.toString() ?? '';
+            final authorLevel = cAuthor['level'] as int? ?? 1;
+            final authorUsername = cAuthor['username']?.toString();
             final cReactions = commentReactionsMap[commentId] ?? {};
             final parentId = row['parent_comment_id'] as String?;
 
@@ -130,8 +167,10 @@ class FeedService {
                 row,
                 authorName: authorName,
                 authorAvatarUrl: authorAvatar,
+                authorLevel: authorLevel,
                 reactions: cReactions,
                 replies: replies,
+                authorUsername: authorUsername,
               );
               commentsMap.putIfAbsent(postId, () => []).add(comment);
               authorIdMap[commentId] = cAuthorId;
@@ -159,14 +198,43 @@ class FeedService {
                 row,
                 authorName: authorName,
                 authorAvatarUrl: authorAvatar,
+                authorLevel: authorLevel,
                 reactions: cReactions,
                 replies: replies,
+                authorUsername: authorUsername,
               );
 
               visualRepliesMap.putIfAbsent(visualParentId, () => []).add(reply);
               visualParentIdMap[commentId] = visualParentId;
               authorIdMap[commentId] = cAuthorId;
             }
+          }
+
+          // Construct shared posts map first
+          final Map<String, ActivityPostModel> sharedPostsMap = {};
+          for (final row in sharedPostRows) {
+            final authorId = row['user_id'] as String;
+            final author = authorsMap[authorId] ?? {};
+            final authorName = author['full_name']?.toString() ?? author['username']?.toString() ?? 'Người dùng';
+            final authorAvatar = author['avatar_url']?.toString() ?? '';
+            final authorLevel = author['level'] as int? ?? 1;
+
+            final postId = row['id'] as String;
+            final postReactions = reactionsMap[postId] ?? {};
+            final postReactorNames = reactorNamesMap[postId] ?? {};
+            final postReactorAvatars = reactorAvatarsMap[postId] ?? {};
+            final comments = commentsMap[postId] ?? [];
+
+            sharedPostsMap[postId] = ActivityPostModel.fromJson(
+              row,
+              authorName: authorName,
+              authorAvatarUrl: authorAvatar,
+              authorLevel: authorLevel,
+              reactions: postReactions,
+              reactorNames: postReactorNames,
+              reactorAvatars: postReactorAvatars,
+              comments: comments,
+            );
           }
 
           return filteredRows.map((row) {
@@ -179,7 +247,12 @@ class FeedService {
             final postId = row['id'] as String;
             final postReactions = reactionsMap[postId] ?? {};
             final postReactorNames = reactorNamesMap[postId] ?? {};
+            final postReactorAvatars = reactorAvatarsMap[postId] ?? {};
             final comments = commentsMap[postId] ?? [];
+
+            final sharedPost = row['type'] == 'share' && row['reference_id'] != null
+                ? sharedPostsMap[row['reference_id'] as String]
+                : null;
 
             return ActivityPostModel.fromJson(
               row,
@@ -188,8 +261,9 @@ class FeedService {
               authorLevel: authorLevel,
               reactions: postReactions,
               reactorNames: postReactorNames,
+              reactorAvatars: postReactorAvatars,
               comments: comments,
-            );
+            ).copyWith(sharedPost: sharedPost);
           }).toList();
         });
   }
@@ -211,6 +285,41 @@ class FeedService {
       'media_url': mediaUrl,
       'meta_data': metaData,
     });
+  }
+
+  // Share post
+  Future<void> sharePost({
+    required String userId,
+    required String originalPostId,
+    required String content,
+  }) async {
+    // 1. Create share post
+    await createPost(
+      userId: userId,
+      type: 'share',
+      referenceId: originalPostId,
+      content: content,
+    );
+
+    // 2. Increment shares count in original post
+    try {
+      final postData = await _client
+          .from('activity_feed')
+          .select('meta_data')
+          .eq('id', originalPostId)
+          .single();
+
+      final meta = Map<String, dynamic>.from(postData['meta_data'] as Map? ?? {});
+      final currentShares = meta['sharesCount'] as int? ?? 0;
+      meta['sharesCount'] = currentShares + 1;
+
+      await _client
+          .from('activity_feed')
+          .update({'meta_data': meta})
+          .eq('id', originalPostId);
+    } catch (e) {
+      debugPrint('Error incrementing shares count: $e');
+    }
   }
 
   // Toggle like/reaction
@@ -273,6 +382,30 @@ class FeedService {
       'parent_comment_id': parentCommentId,
       'content': content,
     });
+  }
+
+  // Toggle comment pin
+  Future<void> togglePinComment(String commentId, bool pin) async {
+    await _client.from('activity_post_comments').update({
+      'is_pinned': pin,
+    }).eq('id', commentId);
+  }
+
+  // Edit comment
+  Future<void> editComment(String commentId, String content) async {
+    final response = await _client.from('activity_post_comments').update({
+      'content': content,
+      'updated_at': DateTime.now().toUtc().toIso8601String(),
+    }).eq('id', commentId).select();
+
+    if (response.isEmpty) {
+      throw Exception('Không có quyền sửa hoặc bình luận không tồn tại (Lỗi RLS)');
+    }
+  }
+
+  // Delete comment
+  Future<void> deleteComment(String commentId) async {
+    await _client.from('activity_post_comments').delete().eq('id', commentId);
   }
 
   // Toggle specific comment reaction type
@@ -354,6 +487,9 @@ final feedPostsProvider = StreamProvider<List<ActivityPostModel>>((ref) {
   final isDiscover = ref.watch(isDiscoverFeedProvider);
   final service = ref.watch(feedServiceProvider);
 
+  final blockedUserIds = ref.watch(blockedUserIdsProvider);
+  final hiddenCommentIds = ref.watch(hiddenCommentIdsProvider);
+
   // Set up realtime subscriptions for likes, comments, and comment reactions
   final supabase = ref.watch(supabaseClientProvider);
 
@@ -394,5 +530,58 @@ final feedPostsProvider = StreamProvider<List<ActivityPostModel>>((ref) {
     currentUserId: currentUser.id,
     friendIds: friendIds,
     isDiscover: isDiscover,
-  );
+  ).map((posts) {
+    return posts
+        .where((post) => !blockedUserIds.contains(post.userId))
+        .map((post) {
+          final filteredComments = post.comments
+              .where((comment) => !blockedUserIds.contains(comment.userId) && !hiddenCommentIds.contains(comment.id))
+              .map((comment) {
+                final filteredReplies = comment.replies
+                    .where((reply) => !blockedUserIds.contains(reply.userId) && !hiddenCommentIds.contains(reply.id))
+                    .toList();
+                return comment.copyWith(replies: filteredReplies);
+              })
+              .toList();
+          return post.copyWith(comments: filteredComments);
+        })
+        .toList();
+  });
 });
+
+class BlockedUserIdsNotifier extends StateNotifier<Set<String>> {
+  BlockedUserIdsNotifier(this._storage) : super({}) {
+    _load();
+  }
+
+  final SecureStorageService _storage;
+  static const _key = 'blocked_user_ids';
+
+  Future<void> _load() async {
+    final value = await _storage.read(_key);
+    if (value != null && value.isNotEmpty) {
+      state = value.split(',').toSet();
+    }
+  }
+
+  Future<void> blockUser(String userId) async {
+    final newState = {...state, userId};
+    state = newState;
+    await _storage.write(_key, newState.toList().join(','));
+  }
+
+  Future<void> unblockUser(String userId) async {
+    final newState = {...state}..remove(userId);
+    state = newState;
+    await _storage.write(_key, newState.toList().join(','));
+  }
+}
+
+final blockedUserIdsProvider = StateNotifierProvider<BlockedUserIdsNotifier, Set<String>>((ref) {
+  final storage = ref.watch(secureStorageServiceProvider);
+  return BlockedUserIdsNotifier(storage);
+});
+
+final hiddenCommentIdsProvider = StateProvider<Set<String>>((ref) => {});
+
+final commentSortOptionProvider = StateProvider.family<String, String>((ref, postId) => 'newest');

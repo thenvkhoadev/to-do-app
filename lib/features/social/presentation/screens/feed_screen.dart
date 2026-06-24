@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:to_do_app/theme/design_tokens.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/social/data/models/story_model.dart';
@@ -113,39 +112,47 @@ class FeedScreen extends ConsumerWidget {
             children: [
               const DesktopTopbar(),
               Expanded(
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Center Content Scroll Area
-                    Expanded(
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                        child: Center(
-                          child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth: 680),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                _buildStoriesSection(context, ref),
-                                const SizedBox(height: 16),
-                                const PostComposerCard(),
-                                const SizedBox(height: 16),
-                                _buildFeedToggle(context, ref),
-                                const SizedBox(height: 16),
-                                _buildPostsList(context, ref),
-                              ],
+                child: ClipRect(
+                  child: Overlay(
+                    initialEntries: [
+                      OverlayEntry(
+                        builder: (overlayContext) => Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Center Content Scroll Area
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                                child: Center(
+                                  child: ConstrainedBox(
+                                    constraints: const BoxConstraints(maxWidth: 680),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        _buildStoriesSection(overlayContext, ref),
+                                        const SizedBox(height: 16),
+                                        const PostComposerCard(),
+                                        const SizedBox(height: 16),
+                                        _buildFeedToggle(overlayContext, ref),
+                                        const SizedBox(height: 16),
+                                        _buildPostsList(overlayContext, ref),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
                             ),
-                          ),
+                            // Right Sidebar (shown if width is wide enough)
+                            if (screenWidth >= 1280)
+                              const Padding(
+                                padding: EdgeInsets.only(top: 20),
+                                child: FeedRightSidebar(),
+                              ),
+                          ],
                         ),
                       ),
-                    ),
-                    // Right Sidebar (shown if width is wide enough)
-                    if (screenWidth >= 1280)
-                      const Padding(
-                        padding: EdgeInsets.only(top: 20),
-                        child: FeedRightSidebar(),
-                      ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             ],
