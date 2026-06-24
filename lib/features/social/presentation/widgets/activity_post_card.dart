@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math' as math;
@@ -22,6 +23,7 @@ import 'package:to_do_app/features/social/presentation/providers/feed_provider.d
 import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
+import 'package:dio/dio.dart';
 
 class ActivityPostCard extends ConsumerStatefulWidget {
   const ActivityPostCard({super.key, required this.post});
@@ -36,6 +38,10 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
   final LayerLink _likeButtonLink = LayerLink();
   final LayerLink _postMenuLink = LayerLink();
   final LayerLink _reactionAnchorLink = LayerLink();
+  final LayerLink _emojiLink = LayerLink();
+  final LayerLink _gifLink = LayerLink();
+  final LayerLink _stickerLink = LayerLink();
+  String? _activePickerTab;
   Timer? _reactionHoverTimer;
   Timer? _reactionAutoHideTimer;
   bool _showComments = false;
@@ -214,9 +220,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       });
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi gửi bình luận: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi gửi bình luận: $e', isError: true);
       }
     }
   }
@@ -239,9 +243,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     } catch (e) {
       debugPrint('Error uploading social comment file to Supabase: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi tải tệp lên: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi tải tệp lên: $e', isError: true);
       }
       return null;
     }
@@ -328,245 +330,59 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     }
   }
 
-  void _showEmojiPicker() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF151827),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SizedBox(
-          height: 320,
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              Expanded(
-                child: EmojiPicker(
-                  onEmojiSelected: (category, emoji) {
-                    _commentController.text += emoji.emoji;
-                    if (mounted) setState(() {});
-                  },
-                  config: Config(
-                    height: 256,
-                    checkPlatformCompatibility: true,
-                    categoryViewConfig: const CategoryViewConfig(
-                      backgroundColor: Color(0xFF151827),
-                      indicatorColor: Color(0xFFA78BFA),
-                      iconColor: Colors.white54,
-                      iconColorSelected: Color(0xFFA78BFA),
-                    ),
-                    bottomActionBarConfig: const BottomActionBarConfig(
-                      enabled: false,
-                    ),
-                    searchViewConfig: const SearchViewConfig(
-                      backgroundColor: Color(0xFF151827),
-                      buttonIconColor: Colors.white54,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showStickersPicker() {
-    final stickers = [
-      {'name': 'Lấp lánh', 'url': 'https://img.icons8.com/color/344/sparkling-star.png'},
-      {'name': 'Tên lửa', 'url': 'https://img.icons8.com/color/344/rocket.png'},
-      {'name': 'Cúp', 'url': 'https://img.icons8.com/color/344/trophy.png'},
-      {'name': 'Ngầu', 'url': 'https://img.icons8.com/color/344/cool.png'},
-      {'name': 'Cà phê', 'url': 'https://img.icons8.com/color/344/hot-cup.png'},
-      {'name': 'Ý tưởng', 'url': 'https://img.icons8.com/color/344/idea.png'},
-      {'name': 'Thành công', 'url': 'https://img.icons8.com/color/344/checked-laptop.png'},
-      {'name': 'Lửa', 'url': 'https://img.icons8.com/color/344/fire.png'},
-      {'name': 'Bắn tim', 'url': 'https://img.icons8.com/color/344/like--v1.png'},
-      {'name': 'Vỗ tay', 'url': 'https://img.icons8.com/color/344/clapping-hands.png'},
-      {'name': 'Đồng hồ', 'url': 'https://img.icons8.com/color/344/alarm-clock.png'},
-      {'name': 'Thư giãn', 'url': 'https://img.icons8.com/color/344/hammock.png'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF151827),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'Chọn Nhãn Dán',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ),
-              const Divider(color: Colors.white10, height: 1),
-              SizedBox(
-                height: 220,
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                  ),
-                  itemCount: stickers.length,
-                  itemBuilder: (context, index) {
-                    final item = stickers[index];
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          _selectedAttachment = {
-                            'url': item['url'],
-                            'type': 'sticker',
-                            'name': item['name'],
-                          };
-                        });
-                        Navigator.pop(context);
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.02),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
-                        ),
-                        child: CachedNetworkImage(
-                          imageUrl: item['url']!,
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  void _showGifsPicker() {
-    final gifs = [
-      {'name': 'Chúc mừng', 'url': 'https://media.giphy.com/media/3oz8xAFtqo0LGRBsKk/giphy.gif'},
-      {'name': 'Vỗ tay', 'url': 'https://media.giphy.com/media/l3q2XhfQ8oCkm1K76/giphy.gif'},
-      {'name': 'Cảm ơn', 'url': 'https://media.giphy.com/media/2wX0gLjH30b5IZWZRx/giphy.gif'},
-      {'name': 'Yêu thương', 'url': 'https://media.giphy.com/media/l4pTkaQXLXv18vQ52/giphy.gif'},
-      {'name': 'Làm việc', 'url': 'https://media.giphy.com/media/3oriff4xQ7Oq2TIgTu/giphy.gif'},
-      {'name': 'Lập trình', 'url': 'https://media.giphy.com/media/9Ai5dIk8xvYQs/giphy.gif'},
-      {'name': 'Yeah!', 'url': 'https://media.giphy.com/media/26xBI73gWquCBBCDe/giphy.gif'},
-      {'name': 'Tập trung', 'url': 'https://media.giphy.com/media/v1.Y2lkPTc5MGI3NjExMDRtZnVscWZxeDhkdnVlZXo3M3E4d2gzaTNydXNnc2dnc2Z1ZW5pbiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/3oriff4xQ7Oq2TIgTu/giphy.gif'},
-    ];
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF151827),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const SizedBox(height: 8),
-              Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white24,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12),
-                child: Text(
-                  'Chọn Ảnh Động GIF',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
-                ),
-              ),
-              const Divider(color: Colors.white10, height: 1),
-              SizedBox(
-                height: 220,
-                child: GridView.builder(
-                  padding: const EdgeInsets.all(12),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.5,
-                  ),
-                  itemCount: gifs.length,
-                  itemBuilder: (context, index) {
-                    final item = gifs[index];
-                    return InkWell(
-                      onTap: () {
-                        setState(() {
-                          _selectedAttachment = {
-                            'url': item['url'],
-                            'type': 'gif',
-                            'name': item['name'],
-                          };
-                        });
-                        Navigator.pop(context);
-                      },
-                      borderRadius: BorderRadius.circular(8),
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: Stack(
-                          fit: StackFit.expand,
-                          children: [
-                            CachedNetworkImage(
-                              imageUrl: item['url']!,
-                              fit: BoxFit.cover,
-                            ),
-                            Container(
-                              color: Colors.black26,
-                              alignment: Alignment.bottomLeft,
-                              padding: const EdgeInsets.all(6),
-                              child: Text(
-                                item['name']!,
-                                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
+  void _toggleMediaPicker(String tab) {
+    if (_activePickerTab == tab) {
+      CommentMediaPickerOverlay.close();
+      setState(() {
+        _activePickerTab = null;
+      });
+    } else {
+      setState(() {
+        _activePickerTab = tab;
+      });
+      CommentMediaPickerOverlay.show(
+        context: context,
+        triggerContext: context,
+        emojiLink: _emojiLink,
+        gifLink: _gifLink,
+        stickerLink: _stickerLink,
+        initialTab: tab,
+        onTabChanged: (newTab) {
+          setState(() {
+            _activePickerTab = newTab;
+          });
+        },
+        onEmojiSelected: (emoji) {
+          _commentController.text += emoji;
+          setState(() {});
+        },
+        onGifSelected: (gifUrl, gifName) {
+          setState(() {
+            _selectedAttachment = {
+              'url': gifUrl,
+              'type': 'gif',
+              'name': gifName,
+            };
+          });
+        },
+        onStickerSelected: (stickerUrl, stickerName) {
+          setState(() {
+            _selectedAttachment = {
+              'url': stickerUrl,
+              'type': 'sticker',
+              'name': stickerName,
+            };
+          });
+        },
+        onClose: () {
+          if (mounted) {
+            setState(() {
+              _activePickerTab = null;
+            });
+          }
+        },
+      );
+    }
   }
 
   void _showFileSelector() {
@@ -689,9 +505,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
             _localReactorNames = oldReactorNames;
             _hasUnsyncedPostUpdate = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi: $e', isError: true);
         }
       } finally {
         if (mounted) {
@@ -1064,9 +878,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           setState(() {
             _localCommentReactions?[commentId] = oldCommentReactions;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi: $e', isError: true);
         }
       } finally {
         if (mounted) {
@@ -1093,23 +905,17 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       if (status == FriendshipStatus.none) {
         await socialDs.sendFriendRequest(currentUser.id, widget.post.userId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã gửi yêu cầu kết bạn!')),
-          );
+          PremiumToast.show(context, 'Đã gửi yêu cầu kết bạn!');
         }
       } else if (status == FriendshipStatus.pendingReceived) {
         await socialDs.acceptFriendRequest(currentUser.id, widget.post.userId);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã đồng ý kết bạn!')),
-          );
+          PremiumToast.show(context, 'Đã đồng ý kết bạn!');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi kết bạn: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi kết bạn: $e', isError: true);
       }
     }
   }
@@ -1554,15 +1360,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         try {
           await client.from('activity_feed').delete().eq('id', widget.post.id);
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Đã xóa bài viết')),
-            );
+            PremiumToast.show(context, 'Đã xóa bài viết');
           }
         } catch (e) {
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text('Lỗi xóa bài viết: $e')),
-            );
+            PremiumToast.show(context, 'Lỗi xóa bài viết: $e', isError: true);
           }
         }
       }
@@ -1573,22 +1375,16 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         currentMeta['comments_disabled'] = newCommentsDisabled;
         await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(newCommentsDisabled ? 'Đã tắt bình luận bài viết' : 'Đã bật bình luận bài viết')),
-          );
+          PremiumToast.show(context, newCommentsDisabled ? 'Đã tắt bình luận bài viết' : 'Đã bật bình luận bài viết');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi thay đổi trạng thái bình luận: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi thay đổi trạng thái bình luận: $e', isError: true);
         }
       }
     } else if (action == 'edit') {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Chức năng chỉnh sửa bài viết đang được phát triển')),
-        );
+        PremiumToast.show(context, 'Chức năng chỉnh sửa bài viết đang được phát triển');
       }
     } else if (action == 'archive') {
       try {
@@ -1596,15 +1392,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         currentMeta['is_archived'] = true;
         await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã lưu trữ bài viết')),
-          );
+          PremiumToast.show(context, 'Đã lưu trữ bài viết');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi lưu trữ bài viết: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi lưu trữ bài viết: $e', isError: true);
         }
       }
     } else if (action == 'turn_off_notification') {
@@ -1614,15 +1406,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         currentMeta['is_notifications_disabled'] = !currentVal;
         await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(!currentVal ? 'Đã tắt thông báo bài viết này' : 'Đã bật thông báo bài viết này')),
-          );
+          PremiumToast.show(context, !currentVal ? 'Đã tắt thông báo bài viết này' : 'Đã bật thông báo bài viết này');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi thay đổi thông báo: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi thay đổi thông báo: $e', isError: true);
         }
       }
     } else if (action == 'save') {
@@ -1632,15 +1420,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         currentMeta['is_saved'] = !currentVal;
         await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text(!currentVal ? 'Đã lưu bài viết' : 'Đã bỏ lưu bài viết')),
-          );
+          PremiumToast.show(context, !currentVal ? 'Đã lưu bài viết' : 'Đã bỏ lưu bài viết');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi lưu bài viết: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi lưu bài viết: $e', isError: true);
         }
       }
     } else if (action == 'hide') {
@@ -1649,15 +1433,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         currentMeta['is_hidden'] = true;
         await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã ẩn bài viết này')),
-          );
+          PremiumToast.show(context, 'Đã ẩn bài viết này');
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Lỗi ẩn bài viết: $e')),
-          );
+          PremiumToast.show(context, 'Lỗi ẩn bài viết: $e', isError: true);
         }
       }
     }
@@ -1670,15 +1450,11 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       currentMeta['privacy'] = privacy;
       await client.from('activity_feed').update({'meta_data': currentMeta}).eq('id', widget.post.id);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Đã đổi quyền riêng tư thành: $privacy')),
-        );
+        PremiumToast.show(context, 'Đã đổi quyền riêng tư thành: $privacy');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi đổi quyền riêng tư: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi đổi quyền riêng tư: $e', isError: true);
       }
     }
   }
@@ -2437,39 +2213,41 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                       ],
                     ),
                   ],
-                  
-                  const SizedBox(height: 10),
-                  
-                  // Bottom bar: action icons + send button
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      // Emoji / Sticker / Photo / GIF triggers
-                      _buildCommentActionIcon(
-                        icon: Icons.face_retouching_natural_rounded,
-                        onTap: _showStickersPicker,
-                        tooltip: 'Nhãn dán memoji',
-                      ),
-                      _buildCommentActionIcon(
-                        icon: Icons.sentiment_satisfied_alt_rounded,
-                        onTap: _showEmojiPicker,
-                        tooltip: 'Biểu tượng cảm xúc',
+                      CompositedTransformTarget(
+                        link: _emojiLink,
+                        child: _buildCommentActionIcon(
+                          icon: Icons.sentiment_satisfied_alt_rounded,
+                          onTap: () => _toggleMediaPicker('emoji'),
+                          tooltip: 'Biểu tượng cảm xúc',
+                          isActive: _activePickerTab == 'emoji',
+                        ),
                       ),
                       _buildCommentActionIcon(
                         icon: Icons.camera_alt_outlined,
-                        onTap: _showFileSelector,
+                        onTap: _pickFile,
                         tooltip: 'Ảnh / Tài liệu',
                       ),
-                      _buildCommentActionIcon(
-                        icon: Icons.gif_box_outlined,
-                        onTap: _showGifsPicker,
-                        tooltip: 'Ảnh động GIF',
+                      CompositedTransformTarget(
+                        link: _gifLink,
+                        child: _buildCommentActionIcon(
+                          icon: Icons.gif_box_outlined,
+                          onTap: () => _toggleMediaPicker('gif'),
+                          tooltip: 'Ảnh động GIF',
+                          isActive: _activePickerTab == 'gif',
+                        ),
                       ),
-                      _buildCommentActionIcon(
-                        icon: Icons.sticky_note_2_outlined,
-                        onTap: _showStickersPicker,
-                        tooltip: 'Nhãn dán',
+                      CompositedTransformTarget(
+                        link: _stickerLink,
+                        child: _buildCommentActionIcon(
+                          icon: Icons.sticky_note_2_outlined,
+                          onTap: () => _toggleMediaPicker('sticker'),
+                          tooltip: 'Nhãn dán',
+                          isActive: _activePickerTab == 'sticker',
+                        ),
                       ),
-                      
                       const Spacer(),
                       
                       // Send arrow button
@@ -2550,15 +2328,27 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     required IconData icon,
     required VoidCallback onTap,
     required String tooltip,
+    bool isActive = false,
   }) {
+    final Color iconColor = isActive 
+        ? const Color(0xFFA78BFA) 
+        : Colors.white54;
+    final Color bgColor = isActive
+        ? const Color(0x267C5CFF)
+        : Colors.transparent;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
-      child: Padding(
+      child: Container(
+        decoration: BoxDecoration(
+          color: bgColor,
+          shape: BoxShape.circle,
+        ),
         padding: const EdgeInsets.all(6.0),
         child: Icon(
           icon,
-          color: Colors.white54,
+          color: iconColor,
           size: 18,
         ),
       ),
@@ -2638,9 +2428,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       ref.invalidate(feedPostsProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi sửa bình luận: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi sửa bình luận: $e', isError: true);
       }
     }
   }
@@ -2652,9 +2440,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       ref.invalidate(feedPostsProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi xóa bình luận: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi xóa bình luận: $e', isError: true);
       }
     }
   }
@@ -2666,9 +2452,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       ref.invalidate(feedPostsProvider);
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi ghim bình luận: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi ghim bình luận: $e', isError: true);
       }
     }
   }
@@ -2676,18 +2460,14 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
   void _handleHideComment(String commentId) {
     ref.read(hiddenCommentIdsProvider.notifier).update((state) => {...state, commentId});
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã ẩn bình luận này')),
-      );
+      PremiumToast.show(context, 'Đã ẩn bình luận này');
     }
   }
 
   void _handleBlockUser(String userId) {
     ref.read(blockedUserIdsProvider.notifier).blockUser(userId);
     if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Đã chặn người dùng này')),
-      );
+      PremiumToast.show(context, 'Đã chặn người dùng này');
     }
   }
 
@@ -3433,16 +3213,12 @@ class _CommentCardState extends State<CommentCard> with SingleTickerProviderStat
   }
 
   void _reportComment() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cảm ơn bạn đã báo cáo bình luận này')),
-    );
+    PremiumToast.show(context, 'Cảm ơn bạn đã báo cáo bình luận này');
   }
 
   void _copyCommentLink() {
     Clipboard.setData(ClipboardData(text: 'https://todo.app/comment/${widget.comment.id}'));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã sao chép liên kết bình luận!')),
-    );
+    PremiumToast.show(context, 'Đã sao chép liên kết bình luận!');
   }
 
   @override
@@ -3515,29 +3291,12 @@ class _CommentCardState extends State<CommentCard> with SingleTickerProviderStat
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text.rich(
-                                                TextSpan(
-                                                  children: [
-                                                    TextSpan(
-                                                      text: widget.comment.authorName,
-                                                      style: const TextStyle(
-                                                        color: Colors.white,
-                                                        fontWeight: FontWeight.bold,
-                                                        fontSize: 15,
-                                                      ),
-                                                    ),
-                                                    if (widget.comment.authorUsername != null && widget.comment.authorUsername!.isNotEmpty) ...[
-                                                      const TextSpan(text: ' '),
-                                                      TextSpan(
-                                                        text: '@${widget.comment.authorUsername}',
-                                                        style: const TextStyle(
-                                                          color: Colors.white54,
-                                                          fontWeight: FontWeight.normal,
-                                                          fontSize: 13,
-                                                        ),
-                                                      ),
-                                                    ],
-                                                  ],
+                                              Text(
+                                                widget.comment.authorName,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 15,
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
@@ -4127,16 +3886,12 @@ class _ReplyCardState extends State<ReplyCard> {
   }
 
   void _reportComment() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Cảm ơn bạn đã báo cáo trả lời này')),
-    );
+    PremiumToast.show(context, 'Cảm ơn bạn đã báo cáo trả lời này');
   }
 
   void _copyCommentLink() {
     Clipboard.setData(ClipboardData(text: 'https://todo.app/comment/${widget.reply.id}'));
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Đã sao chép liên kết trả lời!')),
-    );
+    PremiumToast.show(context, 'Đã sao chép liên kết trả lời!');
   }
 
   @override
@@ -4201,29 +3956,12 @@ class _ReplyCardState extends State<ReplyCard> {
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text.rich(
-                                              TextSpan(
-                                                children: [
-                                                  TextSpan(
-                                                    text: widget.reply.authorName,
-                                                    style: const TextStyle(
-                                                      color: Colors.white,
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 13,
-                                                    ),
-                                                  ),
-                                                  if (widget.reply.authorUsername != null && widget.reply.authorUsername!.isNotEmpty) ...[
-                                                    const TextSpan(text: ' '),
-                                                    TextSpan(
-                                                      text: '@${widget.reply.authorUsername}',
-                                                      style: const TextStyle(
-                                                        color: Colors.white54,
-                                                        fontWeight: FontWeight.normal,
-                                                        fontSize: 11,
-                                                      ),
-                                                    ),
-                                                  ],
-                                                ],
+                                            Text(
+                                              widget.reply.authorName,
+                                              style: const TextStyle(
+                                                color: Colors.white,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 13,
                                               ),
                                             ),
                                             const SizedBox(width: 6),
@@ -5243,3 +4981,792 @@ Widget _buildAttachmentPreviewWidget(Map attachment) {
     );
   }
 }
+
+// ==========================================
+// Custom Media Picker Overlay & Helpers
+// ==========================================
+
+class CommentMediaPickerOverlay {
+  static OverlayEntry? _entry;
+
+  static void show({
+    required BuildContext context,
+    required BuildContext triggerContext,
+    required LayerLink emojiLink,
+    required LayerLink gifLink,
+    required LayerLink stickerLink,
+    required String initialTab,
+    required ValueChanged<String> onTabChanged,
+    required ValueChanged<String> onEmojiSelected,
+    required Function(String url, String name) onGifSelected,
+    required Function(String url, String name) onStickerSelected,
+    required VoidCallback onClose,
+  }) {
+    close();
+
+    final overlayState = Overlay.of(context);
+    
+    _entry = OverlayEntry(
+      builder: (context) {
+        return _CommentMediaPickerOverlayWidget(
+          emojiLink: emojiLink,
+          gifLink: gifLink,
+          stickerLink: stickerLink,
+          initialTab: initialTab,
+          onTabChanged: onTabChanged,
+          onEmojiSelected: (emoji) {
+            onEmojiSelected(emoji);
+            close();
+            onClose();
+          },
+          onGifSelected: (gifUrl, gifName) {
+            onGifSelected(gifUrl, gifName);
+            close();
+            onClose();
+          },
+          onStickerSelected: (stickerUrl, stickerName) {
+            onStickerSelected(stickerUrl, stickerName);
+            close();
+            onClose();
+          },
+          onClose: () {
+            close();
+            onClose();
+          },
+        );
+      },
+    );
+
+    overlayState.insert(_entry!);
+  }
+
+  static void close() {
+    _entry?.remove();
+    _entry = null;
+  }
+}
+
+class _CommentMediaPickerOverlayWidget extends StatefulWidget {
+  final LayerLink emojiLink;
+  final LayerLink gifLink;
+  final LayerLink stickerLink;
+  final String initialTab;
+  final ValueChanged<String> onTabChanged;
+  final ValueChanged<String> onEmojiSelected;
+  final Function(String url, String name) onGifSelected;
+  final Function(String url, String name) onStickerSelected;
+  final VoidCallback onClose;
+
+  const _CommentMediaPickerOverlayWidget({
+    required this.emojiLink,
+    required this.gifLink,
+    required this.stickerLink,
+    required this.initialTab,
+    required this.onTabChanged,
+    required this.onEmojiSelected,
+    required this.onGifSelected,
+    required this.onStickerSelected,
+    required this.onClose,
+  });
+
+  @override
+  State<_CommentMediaPickerOverlayWidget> createState() => _CommentMediaPickerOverlayWidgetState();
+}
+
+class _CommentMediaPickerOverlayWidgetState extends State<_CommentMediaPickerOverlayWidget> {
+  late String _activeTab;
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedEmojiCategory = 'smileys';
+  
+  bool _isLoading = false;
+  List<dynamic> _mediaItems = [];
+  String _error = '';
+  final Dio _dio = Dio();
+  CancelToken? _cancelToken;
+  Timer? _debounceTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeTab = widget.initialTab;
+    _performSearch();
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    _cancelToken?.cancel();
+    _debounceTimer?.cancel();
+    super.dispose();
+  }
+
+  void _onSearchChanged(String val) {
+    if (_activeTab == 'emoji') {
+      setState(() {});
+      return;
+    }
+    
+    _debounceTimer?.cancel();
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _fetchGiphyData();
+    });
+  }
+
+  void _performSearch() {
+    _searchController.clear();
+    if (_activeTab == 'emoji') {
+      setState(() {
+        _mediaItems = [];
+        _isLoading = false;
+        _error = '';
+      });
+    } else {
+      _fetchGiphyData();
+    }
+  }
+
+  Future<void> _fetchGiphyData() async {
+    setState(() {
+      _isLoading = true;
+      _error = '';
+    });
+
+    _cancelToken?.cancel();
+    _cancelToken = CancelToken();
+
+    final query = _searchController.text.trim();
+    final isSearch = query.isNotEmpty;
+    
+    String url = '';
+    const apiKey = 'sXpGFDGZs0Dv1mmNFvYaGUvYwKX0PWIh';
+    
+    if (_activeTab == 'gif') {
+      url = isSearch
+          ? 'https://api.giphy.com/v1/gifs/search?api_key=$apiKey&q=${Uri.encodeComponent(query)}&limit=24&rating=g'
+          : 'https://api.giphy.com/v1/gifs/trending?api_key=$apiKey&limit=24&rating=g';
+    } else if (_activeTab == 'sticker') {
+      url = isSearch
+          ? 'https://api.giphy.com/v1/stickers/search?api_key=$apiKey&q=${Uri.encodeComponent(query)}&limit=24&rating=g'
+          : 'https://api.giphy.com/v1/stickers/trending?api_key=$apiKey&limit=24&rating=g';
+    }
+
+    try {
+      final response = await _dio.get(url, cancelToken: _cancelToken);
+      if (response.statusCode == 200) {
+        final data = response.data['data'] as List<dynamic>;
+        if (mounted) {
+          setState(() {
+            _mediaItems = data;
+            _isLoading = false;
+          });
+        }
+      } else {
+        throw Exception('Status code: ${response.statusCode}');
+      }
+    } catch (e) {
+      if (e is DioException && e.type == DioExceptionType.cancel) return;
+      if (mounted) {
+        setState(() {
+          _error = 'Lỗi tải dữ liệu';
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Alignment getTargetAnchor(String tab) {
+    if (tab == 'emoji') return Alignment.topLeft;
+    if (tab == 'sticker') return Alignment.topRight;
+    return Alignment.topCenter;
+  }
+
+  Alignment getFollowerAnchor(String tab) {
+    if (tab == 'emoji') return Alignment.bottomLeft;
+    if (tab == 'sticker') return Alignment.bottomRight;
+    return Alignment.bottomCenter;
+  }
+
+  Offset getOffset(String tab) {
+    if (tab == 'emoji') return const Offset(-12, -8);
+    if (tab == 'sticker') return const Offset(12, -8);
+    return const Offset(0, -8);
+  }
+
+  double getArrowX(String tab) {
+    if (tab == 'emoji') return 28.0;
+    if (tab == 'sticker') return 292.0;
+    return 160.0;
+  }
+
+  List<String> _getFilteredEmojis() {
+    final query = _searchController.text.trim().toLowerCase();
+    if (query.isEmpty) {
+      return emojiCategories[_selectedEmojiCategory] ?? [];
+    }
+
+    final List<String> results = [];
+    emojiNames.forEach((emoji, keywords) {
+      if (keywords.contains(query)) {
+        results.add(emoji);
+      }
+    });
+    return results;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final targetAnchor = getTargetAnchor(_activeTab);
+    final followerAnchor = getFollowerAnchor(_activeTab);
+    final offset = getOffset(_activeTab);
+    final arrowX = getArrowX(_activeTab);
+    
+    final currentLink = _activeTab == 'emoji'
+        ? widget.emojiLink
+        : (_activeTab == 'gif' ? widget.gifLink : widget.stickerLink);
+
+    return Positioned(
+      width: 320,
+      height: 400,
+      child: CompositedTransformFollower(
+        link: currentLink,
+        showWhenUnlinked: false,
+        targetAnchor: targetAnchor,
+        followerAnchor: followerAnchor,
+        offset: offset,
+        child: TapRegion(
+          onTapOutside: (event) {
+            widget.onClose();
+          },
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: CustomPaint(
+                  painter: _CommentPickerCardPainter(
+                    backgroundColor: const Color(0xFF151827),
+                    borderColor: const Color(0xFF7C5CFF).withOpacity(0.25),
+                    arrowX: arrowX,
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 1,
+                right: 1,
+                top: 1,
+                bottom: 9,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(15),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: Column(
+                      children: [
+                        _buildSearchBar(),
+                        _buildTabBar(),
+                        Expanded(
+                          child: _activeTab == 'emoji' ? _buildEmojiContent() : _buildMediaContent(),
+                        ),
+                        if (_activeTab == 'emoji' && _searchController.text.isEmpty)
+                          _buildEmojiCategoriesBar(),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      height: 36,
+      margin: const EdgeInsets.fromLTRB(12, 12, 12, 6),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.06),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: TextField(
+        controller: _searchController,
+        style: const TextStyle(color: Colors.white, fontSize: 13),
+        decoration: InputDecoration(
+          hintText: _activeTab == 'emoji'
+              ? 'Tìm kiếm biểu tượng...'
+              : (_activeTab == 'gif' ? 'Tìm kiếm ảnh động GIPHY...' : 'Tìm kiếm nhãn dán GIPHY...'),
+          hintStyle: TextStyle(color: Colors.white.withOpacity(0.3), fontSize: 12),
+          prefixIcon: Icon(Icons.search_rounded, color: Colors.white.withOpacity(0.4), size: 16),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    _onSearchChanged('');
+                  },
+                  child: Icon(Icons.close_rounded, color: Colors.white.withOpacity(0.4), size: 16),
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding: const EdgeInsets.symmetric(vertical: 8),
+        ),
+        onChanged: _onSearchChanged,
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      height: 32,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.04),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          _buildTabItem('emoji', 'Biểu cảm', Icons.sentiment_satisfied_alt_rounded),
+          _buildTabItem('gif', 'GIF', Icons.gif_box_outlined),
+          _buildTabItem('sticker', 'Sticker', Icons.sticky_note_2_outlined),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTabItem(String tab, String label, IconData icon) {
+    final isActive = _activeTab == tab;
+    return Expanded(
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _activeTab = tab;
+          });
+          widget.onTabChanged(tab);
+          _performSearch();
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            color: isActive ? const Color(0xFF7C5CFF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: isActive ? Colors.white : Colors.white60, size: 14),
+              const SizedBox(width: 4),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.white60,
+                  fontSize: 11.5,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmojiContent() {
+    final emojis = _getFilteredEmojis();
+    if (emojis.isEmpty) {
+      return const Center(
+        child: Text(
+          'Không tìm thấy biểu tượng phù hợp',
+          style: TextStyle(color: Colors.white30, fontSize: 13),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        crossAxisSpacing: 6,
+        mainAxisSpacing: 6,
+      ),
+      itemCount: emojis.length,
+      itemBuilder: (context, index) {
+        return _HoverableEmojiItem(
+          emoji: emojis[index],
+          onTap: widget.onEmojiSelected,
+        );
+      },
+    );
+  }
+
+  Widget _buildMediaContent() {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF7C5CFF),
+        ),
+      );
+    }
+
+    if (_error.isNotEmpty) {
+      return Center(
+        child: Text(
+          _error,
+          style: const TextStyle(color: Colors.white38, fontSize: 13),
+        ),
+      );
+    }
+
+    if (_mediaItems.isEmpty) {
+      return const Center(
+        child: Text(
+          'Không tìm thấy kết quả nào',
+          style: TextStyle(color: Colors.white30, fontSize: 13),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.all(12),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 8,
+        mainAxisSpacing: 8,
+        childAspectRatio: 1.3,
+      ),
+      itemCount: _mediaItems.length,
+      itemBuilder: (context, index) {
+        final item = _mediaItems[index];
+        return _HoverableMediaItem(
+          item: item,
+          onTap: () {
+            final images = item['images'] as Map<String, dynamic>?;
+            final fixedHeight = images?['fixed_height'] as Map<String, dynamic>?;
+            final url = fixedHeight?['url'] as String? ?? '';
+            final title = item['title'] as String? ?? 'Giphy';
+            if (url.isNotEmpty) {
+              if (_activeTab == 'gif') {
+                widget.onGifSelected(url, title);
+              } else {
+                widget.onStickerSelected(url, title);
+              }
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildEmojiCategoriesBar() {
+    return Container(
+      height: 38,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.02),
+        border: Border(
+          top: BorderSide(
+            color: Colors.white.withOpacity(0.04),
+            width: 0.5,
+          ),
+        ),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
+        children: [
+          _buildEmojiCategoryItem('smileys', Icons.sentiment_satisfied_alt_rounded),
+          _buildEmojiCategoryItem('gestures', Icons.front_hand_rounded),
+          _buildEmojiCategoryItem('animals', Icons.pets_rounded),
+          _buildEmojiCategoryItem('food', Icons.fastfood_rounded),
+          _buildEmojiCategoryItem('activities', Icons.sports_soccer_rounded),
+          _buildEmojiCategoryItem('travel', Icons.directions_car_rounded),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmojiCategoryItem(String category, IconData icon) {
+    final isActive = _selectedEmojiCategory == category;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedEmojiCategory = category;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(
+          color: isActive ? Colors.white.withOpacity(0.06) : Colors.transparent,
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Icon(
+          icon,
+          color: isActive ? const Color(0xFF7C5CFF) : Colors.white38,
+          size: 18,
+        ),
+      ),
+    );
+  }
+}
+
+class _HoverableEmojiItem extends StatefulWidget {
+  final String emoji;
+  final ValueChanged<String> onTap;
+
+  const _HoverableEmojiItem({required this.emoji, required this.onTap});
+
+  @override
+  State<_HoverableEmojiItem> createState() => _HoverableEmojiItemState();
+}
+
+class _HoverableEmojiItemState extends State<_HoverableEmojiItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () => widget.onTap(widget.emoji),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          decoration: BoxDecoration(
+            color: _isHovered ? Colors.white.withOpacity(0.12) : Colors.transparent,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(fontSize: 20),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _HoverableMediaItem extends StatefulWidget {
+  final dynamic item;
+  final VoidCallback onTap;
+
+  const _HoverableMediaItem({required this.item, required this.onTap});
+
+  @override
+  State<_HoverableMediaItem> createState() => _HoverableMediaItemState();
+}
+
+class _HoverableMediaItemState extends State<_HoverableMediaItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final images = widget.item['images'] as Map<String, dynamic>?;
+    final fixedHeight = images?['fixed_height'] as Map<String, dynamic>?;
+    final url = fixedHeight?['url'] as String? ?? '';
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isHovered ? 1.05 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOut,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isHovered ? const Color(0xFF7C5CFF) : Colors.transparent,
+                width: 2,
+              ),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: url.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: url,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.white10,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF7C5CFF),
+                            ),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => const Icon(Icons.broken_image, color: Colors.white24),
+                    )
+                  : Container(color: Colors.white10),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CommentPickerCardPainter extends CustomPainter {
+  final Color backgroundColor;
+  final Color borderColor;
+  final double arrowX;
+
+  _CommentPickerCardPainter({
+    required this.backgroundColor,
+    required this.borderColor,
+    required this.arrowX,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = backgroundColor
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = borderColor
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final rectWidth = size.width;
+    final rectHeight = size.height - 8;
+
+    final rrect = RRect.fromRectAndRadius(
+      Rect.fromLTWH(0, 0, rectWidth, rectHeight),
+      const Radius.circular(16),
+    );
+
+    final path = Path()..addRRect(rrect);
+
+    const arrowWidth = 16.0;
+    const arrowHeight = 8.0;
+
+    path.moveTo(arrowX - arrowWidth / 2, rectHeight);
+    path.lineTo(arrowX, rectHeight + arrowHeight);
+    path.lineTo(arrowX + arrowWidth / 2, rectHeight);
+    path.close();
+
+    canvas.drawShadow(path.shift(const Offset(0, 4)), Colors.black.withOpacity(0.3), 12.0, true);
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _CommentPickerCardPainter oldDelegate) {
+    return oldDelegate.backgroundColor != backgroundColor ||
+        oldDelegate.borderColor != borderColor ||
+        oldDelegate.arrowX != arrowX;
+  }
+}
+
+final Map<String, List<String>> emojiCategories = {
+  'smileys': [
+    '😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇',
+    '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚',
+    '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸',
+    '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️',
+    '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡',
+    '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓',
+  ],
+  'gestures': [
+    '👋', '🤚', '🖐️', '✋', '🖖', '👌', '🤌', '🤏', '✌️', '🤞',
+    '🤟', '🤘', '🤙', '👈', '👉', '👆', '🖕', '👇', '☝️', '👍',
+    '👎', '✊', '👊', '🤛', '🤜', '👏', '🙌', '👐', '🤲', '🤝',
+    '🙏', '✍️', '💅', '🤳', '💪', '🦾', '👂', '🦻', '👃', '🧠',
+  ],
+  'animals': [
+    '🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯',
+    '🦁', '🐮', '🐷', '🐽', '🐸', '🐵', '🙈', '🙉', '🙊', '🐒',
+    '🐔', '🐧', '🐦', '🐤', '🐣', '🐥', '🦆', '🦅', '🦉', '🦇',
+    '🐺', '🐗', '🐴', '🦄', '🐝', '🪱', '🐛', '🦋', '🐌', '🐞',
+  ],
+  'food': [
+    '🍏', '🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🫐',
+    '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑',
+    '🥦', '🥬', '🥒', '🌶️', '🫑', '🌽', '🥕', '🫒', '🧄', '🧅',
+    '🍄', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🥞', '🧇',
+  ],
+  'activities': [
+    '⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱',
+    '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🪃', '🥅', '⛳',
+    '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🛹', '🛼', '🛷',
+  ],
+  'travel': [
+    '🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐',
+    '🛻', '🚚', '🚛', '🚜', '🛵', '🚲', '🛴', '🛺', '🚂', '🚆',
+    '✈️', '🚁', '🚀', '🛸', '⛵', '🛟', '⚓', '🗺️', '🧭', '⛰️',
+  ],
+};
+
+const Map<String, String> emojiNames = {
+  '😀': 'smile cuoi cuoi_tuoi vui',
+  '😃': 'smile cuoi cuoi_tuoi vui',
+  '😄': 'smile cuoi cuoi_tuoi vui',
+  '😁': 'smile cuoi cuoi_tuoi vui',
+  '😆': 'smile cuoi cuoi_tuoi vui',
+  '😅': 'smile cuoi cuoi_tuoi vui ra_mo_hoi',
+  '😂': 'smile cuoi cuoi_ra_nuoc_mat vui',
+  '🤣': 'smile cuoi lan_lon vui',
+  '😊': 'smile cuoi vui hanh_phuc',
+  '😇': 'smile thien_than ngoan ngo_nghinh',
+  '🙂': 'smile cuoi_nhe nhin vui',
+  '🙃': 'smile cuoi_nguoc nguoc ngu_ngoc',
+  '😉': 'smile nhay_mat tinh_nghich',
+  '😌': 'smile nhe_nhom thoai_mai',
+  '😍': 'love thich yeu tim mat_tim',
+  '🥰': 'love thich yeu hanh_phuc om',
+  '😘': 'love thich yeu hon thom',
+  '😗': 'love hon thom',
+  '😙': 'love hon thom',
+  '😚': 'love hon thom nham_mat',
+  '😋': ' ngon ngon_mieng them le_luoi',
+  '😛': ' le_luoi tre_con vui',
+  '😝': ' le_luoi nham_mat tre_con vui',
+  '😜': ' le_luoi nhay_mat tre_con vui',
+  '🤪': ' le_luoi dien khung tinh_nghich',
+  '🤨': ' nghi_ngo nghi_ngai hoai_nghi',
+  '🧐': ' nghi_ngo kinh_mot_mat kham_pha',
+  '🤓': ' nerd mot_sach thong_minh',
+  '😎': ' cool ngau dep_trai kinh_ram',
+  '🥸': ' cai_trang mat_na gia_mao',
+  '🤩': ' star ngoi_sao ngac_nhien vui',
+  '🥳': ' party tiec_tung sinh_nhat vui',
+  '😏': ' kieu_ngao cuoi_deu khinh_buon',
+  '😒': ' khong_vui buon chan_nan',
+  '😞': ' buon that_vong bat_luc',
+  '😔': ' buon suy_tu tram_tu',
+  '😟': ' lo_lang ban_khoan boi_roi',
+  '😕': ' boi_roi hoang_mang nghi_ngo',
+  '🙁': ' buon hoi_buon',
+  '☹️': ' buon rat_buon',
+  '😣': ' dau_kho chiu_dung vat_va',
+  '😖': ' dau_kho chiu_dung vat_va',
+  '😫': ' met_moi kiet_suc nan_long',
+  '😩': ' met_moi kiet_suc nan_long',
+  '🥺': ' cau_xin nan_ni de_thuong khoc',
+  '😢': ' khoc buon roi_le',
+  '😭': ' khoc khoc_loc buon_qua',
+  '😤': ' gian_du buc_tuc kieu_ngao',
+  '😠': ' gian_du buc_tuc',
+  '😡': ' gian_du buc_tuc do_mat',
+  '🤬': ' chui_the gian_du buc_tuc',
+  '🤯': ' no_tung_dau ngac_nhien shock',
+  '😳': ' ngac_nhien nguong do_mat',
+  '🥵': ' nong buc do_mat mo_hoi',
+  '🥶': ' lanh run_ray lanh_gia',
+  '😱': ' shock ngac_nhien so_hai',
+  '😨': ' so_hai lo_lang',
+  '😰': ' so_hai lo_lang mo_hoi',
+  '😥': ' nhe_nhom lo_lang mo_hoi',
+  '😓': ' met_moi mo_hoi lo_lang',
+  '👋': ' hello chao vay_tay',
+  '👍': ' like tot dong_y duoc',
+  '👎': ' dislike khong_dong_y bad',
+  '👏': ' clap vo_tay khen_ngoi',
+  '🙏': ' pray cau_nguyen cam_on chao',
+  '❤️': ' love tim do yeu_thich',
+  '🔥': ' fire lua hot tuyet_voi',
+  '🎉': ' party tiec sinh_nhat chuc_mung',
+  '🚀': ' rocket ten_lua bay nhanh',
+};

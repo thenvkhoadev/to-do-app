@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:to_do_app/features/social/data/models/story_model.dart';
 
@@ -428,9 +429,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
                     widget.onSendReply!(text);
                   }
                   _replyController.clear();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Đã gửi phản hồi!')),
-                  );
+                  PremiumToast.show(context, 'Đã gửi phản hồi!');
                 }
               },
               style: const TextStyle(color: Colors.white, fontSize: 14),
@@ -454,9 +453,7 @@ class _StoryViewerState extends State<StoryViewer> with SingleTickerProviderStat
               if (widget.onSendReply != null) {
                 widget.onSendReply!('❤️');
               }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Đã thả tim!')),
-              );
+              PremiumToast.show(context, 'Đã thả tim!');
             },
           ),
         ],

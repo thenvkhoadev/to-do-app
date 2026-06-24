@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
@@ -22,15 +23,11 @@ class _FeedRightSidebarState extends ConsumerState<FeedRightSidebar> {
     try {
       await socialDs.sendFriendRequest(currentUserId, otherUserId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã gửi yêu cầu kết bạn!')),
-        );
+        PremiumToast.show(context, 'Đã gửi yêu cầu kết bạn!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Gửi yêu cầu thất bại: $e')),
-        );
+        PremiumToast.show(context, 'Gửi yêu cầu thất bại: $e', isError: true);
       }
     }
   }
@@ -40,15 +37,11 @@ class _FeedRightSidebarState extends ConsumerState<FeedRightSidebar> {
     try {
       await socialDs.acceptFriendRequest(currentUserId, otherUserId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã chấp nhận lời mời kết bạn!')),
-        );
+        PremiumToast.show(context, 'Đã chấp nhận lời mời kết bạn!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi: $e', isError: true);
       }
     }
   }
@@ -58,15 +51,11 @@ class _FeedRightSidebarState extends ConsumerState<FeedRightSidebar> {
     try {
       await socialDs.deleteFriendship(currentUserId, otherUserId);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đã từ chối lời mời kết bạn!')),
-        );
+        PremiumToast.show(context, 'Đã từ chối lời mời kết bạn!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi: $e', isError: true);
       }
     }
   }
@@ -155,17 +144,13 @@ class _FeedRightSidebarState extends ConsumerState<FeedRightSidebar> {
                           setState(() {
                             _mockAccepted = true;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã chấp nhận lời mời kết bạn từ Hùng Cityzens!')),
-                          );
+                          PremiumToast.show(context, 'Đã chấp nhận lời mời kết bạn từ Hùng Cityzens!');
                         },
                         onDelete: () {
                           setState(() {
                             _mockDeleted = true;
                           });
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Đã xóa lời mời kết bạn từ Hùng Cityzens!')),
-                          );
+                          PremiumToast.show(context, 'Đã xóa lời mời kết bạn từ Hùng Cityzens!');
                         },
                       ),
                   ],

@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
@@ -74,9 +75,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi chọn ảnh: $e')),
-      );
+      PremiumToast.show(context, 'Lỗi chọn ảnh: $e', isError: true);
     }
   }
 
@@ -102,9 +101,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
         });
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Lỗi chọn file: $e')),
-      );
+      PremiumToast.show(context, 'Lỗi chọn file: $e', isError: true);
     }
   }
 
@@ -131,9 +128,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
 
     final content = _contentController.text.trim();
     if (content.isEmpty && _selectedImage == null && _selectedFile == null && _selectedTask == null && _selectedAchievement == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Vui lòng nhập nội dung bài viết')),
-      );
+      PremiumToast.show(context, 'Vui lòng nhập nội dung bài viết');
       return;
     }
 
@@ -237,15 +232,11 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> with Sing
 
       if (mounted) {
         Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Đăng bài viết thành công!')),
-        );
+        PremiumToast.show(context, 'Đăng bài viết thành công!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi đăng bài: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi đăng bài: $e', isError: true);
       }
     } finally {
       if (mounted) {

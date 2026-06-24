@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -40,16 +41,12 @@ class StoryCreateSheet extends ConsumerWidget {
         if (context.mounted) {
           Navigator.pop(context); // Pop loading dialog
           Navigator.pop(context); // Pop bottom sheet
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Đã đăng tin hình ảnh thành công!')),
-          );
+          PremiumToast.show(context, 'Đã đăng tin hình ảnh thành công!');
         }
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Lỗi chọn ảnh: $e')),
-        );
+        PremiumToast.show(context, 'Lỗi chọn ảnh: $e', isError: true);
       }
     }
   }

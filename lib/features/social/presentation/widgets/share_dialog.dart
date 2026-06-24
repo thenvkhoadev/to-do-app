@@ -1,3 +1,4 @@
+import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -47,21 +48,11 @@ class _ShareDialogState extends ConsumerState<ShareDialog> {
 
       if (mounted) {
         Navigator.of(context).pop();
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Đã chia sẻ bài viết lên bảng feed thành công!'),
-            backgroundColor: Colors.green,
-          ),
-        );
+        PremiumToast.show(context, 'Đã chia sẻ bài viết lên bảng feed thành công!');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Lỗi chia sẻ bài viết: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
+        PremiumToast.show(context, 'Lỗi chia sẻ bài viết: $e', isError: true);
       }
     } finally {
       if (mounted) {
@@ -75,12 +66,7 @@ class _ShareDialogState extends ConsumerState<ShareDialog> {
     final mockLink = 'https://todoapp.social/posts/${widget.post.id}';
     Clipboard.setData(ClipboardData(text: mockLink));
     
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Đã sao chép liên kết bài viết!'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+    PremiumToast.show(context, 'Đã sao chép liên kết bài viết!');
   }
 
   Widget _buildShareOption({
@@ -348,12 +334,7 @@ class _ShareDialogState extends ConsumerState<ShareDialog> {
                                       setState(() {
                                         _sentFriends.add(friend.id);
                                       });
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('Đã gửi bài viết cho ${friend.fullName}!'),
-                                          duration: const Duration(seconds: 1),
-                                        ),
-                                      );
+                                      PremiumToast.show(context, 'Đã gửi bài viết cho ${friend.fullName}!');
                                     },
                                     child: Stack(
                                       children: [
@@ -437,27 +418,21 @@ class _ShareDialogState extends ConsumerState<ShareDialog> {
                             icon: Icons.chat_bubble_outline,
                             label: 'Messenger',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đang mở Messenger...')),
-                              );
+                              PremiumToast.show(context, 'Đang mở Messenger...');
                             },
                           ),
                           _buildShareOption(
                             icon: Icons.call,
                             label: 'WhatsApp',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đang mở WhatsApp...')),
-                              );
+                              PremiumToast.show(context, 'Đang mở WhatsApp...');
                             },
                           ),
                           _buildShareOption(
                             icon: Icons.chrome_reader_mode_outlined,
                             label: 'Tin của bạn',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đã chia sẻ lên Tin của bạn!')),
-                              );
+                              PremiumToast.show(context, 'Đã chia sẻ lên Tin của bạn!');
                             },
                           ),
                           _buildShareOption(
@@ -469,18 +444,14 @@ class _ShareDialogState extends ConsumerState<ShareDialog> {
                             icon: Icons.group_outlined,
                             label: 'Nhóm',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đang hiển thị danh sách nhóm...')),
-                              );
+                              PremiumToast.show(context, 'Đang hiển thị danh sách nhóm...');
                             },
                           ),
                           _buildShareOption(
                             icon: Icons.people_outline,
                             label: 'Trang cá nhân',
                             onTap: () {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Đang hiển thị danh sách bạn bè...')),
-                              );
+                              PremiumToast.show(context, 'Đang hiển thị danh sách bạn bè...');
                             },
                           ),
                         ],
