@@ -57,7 +57,7 @@ class PostComposerCard extends ConsumerWidget {
               const SizedBox(width: 12),
               Expanded(
                 child: GestureDetector(
-                  onTap: () => _openComposer(context, initialTab: 0),
+                  onTap: () => _openComposer(context, initialTab: -1),
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: BoxDecoration(

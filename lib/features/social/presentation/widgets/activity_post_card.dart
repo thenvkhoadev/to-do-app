@@ -24,6 +24,7 @@ import 'package:to_do_app/features/social/presentation/providers/social_provider
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:dio/dio.dart';
+import 'package:to_do_app/features/social/presentation/widgets/post_backgrounds.dart';
 
 class ActivityPostCard extends ConsumerStatefulWidget {
   const ActivityPostCard({super.key, required this.post});
@@ -1031,14 +1032,48 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           ),
           const SizedBox(height: 14),
 
-          // Post Text Content
-          if (widget.post.content.isNotEmpty) ...[
-            Text(
-              widget.post.content,
-              style: const TextStyle(color: Colors.white, fontSize: 14.5, height: 1.5),
-            ),
-            const SizedBox(height: 12),
-          ],
+          // Post Text Content & Background
+          Builder(
+            builder: (context) {
+              final backgroundId = widget.post.metaData?['background_id'] as String?;
+              if (backgroundId != null && widget.post.content.isNotEmpty) {
+                final bg = getPostBackgroundById(backgroundId);
+                if (bg != null) {
+                  return Container(
+                    width: double.infinity,
+                    height: 260,
+                    alignment: Alignment.center,
+                    padding: const EdgeInsets.all(24),
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: bg.getDecoration(),
+                    child: SingleChildScrollView(
+                      child: Text(
+                        widget.post.content,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: bg.textColor,
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  );
+                }
+              }
+
+              if (widget.post.content.isNotEmpty) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12.0),
+                  child: Text(
+                    widget.post.content,
+                    style: const TextStyle(color: Colors.white, fontSize: 14.5, height: 1.5),
+                  ),
+                );
+              }
+              return const SizedBox.shrink();
+            },
+          ),
 
           // Post Attachments (Photo, Task, Achievement, Poll)
           _buildPostAttachment(currentUser?.id),
@@ -2216,13 +2251,16 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                   const SizedBox(height: 8),
                   Row(
                     children: [
-                      CompositedTransformTarget(
-                        link: _emojiLink,
-                        child: _buildCommentActionIcon(
-                          icon: Icons.sentiment_satisfied_alt_rounded,
-                          onTap: () => _toggleMediaPicker('emoji'),
-                          tooltip: 'Biểu tượng cảm xúc',
-                          isActive: _activePickerTab == 'emoji',
+                      TapRegion(
+                        groupId: 'comment_media_picker',
+                        child: CompositedTransformTarget(
+                          link: _emojiLink,
+                          child: _buildCommentActionIcon(
+                            icon: Icons.sentiment_satisfied_alt_rounded,
+                            onTap: () => _toggleMediaPicker('emoji'),
+                            tooltip: 'Biểu tượng cảm xúc',
+                            isActive: _activePickerTab == 'emoji',
+                          ),
                         ),
                       ),
                       _buildCommentActionIcon(
@@ -2230,22 +2268,28 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                         onTap: _pickFile,
                         tooltip: 'Ảnh / Tài liệu',
                       ),
-                      CompositedTransformTarget(
-                        link: _gifLink,
-                        child: _buildCommentActionIcon(
-                          icon: Icons.gif_box_outlined,
-                          onTap: () => _toggleMediaPicker('gif'),
-                          tooltip: 'Ảnh động GIF',
-                          isActive: _activePickerTab == 'gif',
+                      TapRegion(
+                        groupId: 'comment_media_picker',
+                        child: CompositedTransformTarget(
+                          link: _gifLink,
+                          child: _buildCommentActionIcon(
+                            icon: Icons.gif_box_outlined,
+                            onTap: () => _toggleMediaPicker('gif'),
+                            tooltip: 'Ảnh động GIF',
+                            isActive: _activePickerTab == 'gif',
+                          ),
                         ),
                       ),
-                      CompositedTransformTarget(
-                        link: _stickerLink,
-                        child: _buildCommentActionIcon(
-                          icon: Icons.sticky_note_2_outlined,
-                          onTap: () => _toggleMediaPicker('sticker'),
-                          tooltip: 'Nhãn dán',
-                          isActive: _activePickerTab == 'sticker',
+                      TapRegion(
+                        groupId: 'comment_media_picker',
+                        child: CompositedTransformTarget(
+                          link: _stickerLink,
+                          child: _buildCommentActionIcon(
+                            icon: Icons.sticky_note_2_outlined,
+                            onTap: () => _toggleMediaPicker('sticker'),
+                            tooltip: 'Nhãn dán',
+                            isActive: _activePickerTab == 'sticker',
+                          ),
                         ),
                       ),
                       const Spacer(),
@@ -5234,6 +5278,7 @@ class _CommentMediaPickerOverlayWidgetState extends State<_CommentMediaPickerOve
         followerAnchor: followerAnchor,
         offset: offset,
         child: TapRegion(
+          groupId: 'comment_media_picker',
           onTapOutside: (event) {
             widget.onClose();
           },
