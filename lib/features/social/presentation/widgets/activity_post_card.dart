@@ -1494,7 +1494,176 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     }
   }
 
+  Widget _buildFacebookGrid(BuildContext context, List<String> urls) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final double gridHeight = isDesktop ? 460.0 : 300.0;
+    final count = urls.length;
+
+    if (count == 0) return const SizedBox.shrink();
+
+    Widget buildCell(int index, {bool showMoreOverlay = false, BoxFit fit = BoxFit.cover}) {
+      final url = urls[index];
+      final ext = url.split('?').first.split('.').last.toLowerCase();
+      final isVideoFile = ['mp4', 'mov', 'avi'].contains(ext);
+
+      Widget mediaWidget;
+      if (isVideoFile) {
+        mediaWidget = Container(
+          color: const Color(0xFF0D0B1A),
+          width: double.infinity,
+          height: fit == BoxFit.fitWidth ? 240.0 : double.infinity,
+          child: const Stack(
+            alignment: Alignment.center,
+            children: [
+              Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 48),
+            ],
+          ),
+        );
+      } else {
+        mediaWidget = CachedNetworkImage(
+          imageUrl: url,
+          fit: fit,
+          width: double.infinity,
+          height: fit == BoxFit.fitWidth ? null : double.infinity,
+          placeholder: (context, url) => Container(
+            color: const Color(0xFF0D0B1A),
+            height: fit == BoxFit.fitWidth ? 200 : double.infinity,
+            child: const Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Color(0xFF7C5CFF), strokeWidth: 2),
+              ),
+            ),
+          ),
+          errorWidget: (context, url, error) => Container(
+            color: const Color(0xFF0D0B1A),
+            height: fit == BoxFit.fitWidth ? 200 : double.infinity,
+            child: const Icon(Icons.broken_image_rounded, color: Colors.white24, size: 32),
+          ),
+        );
+      }
+
+      return Stack(
+        fit: fit == BoxFit.fitWidth ? StackFit.loose : StackFit.expand,
+        children: [
+          mediaWidget,
+          if (showMoreOverlay)
+            Container(
+              color: Colors.black.withOpacity(0.55),
+              alignment: Alignment.center,
+              child: Text(
+                '+${count - 4}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    Widget gridBody;
+
+    if (count == 1) {
+      gridBody = buildCell(0, fit: BoxFit.fitWidth);
+    } else if (count == 2) {
+      gridBody = Row(
+        children: [
+          Expanded(child: buildCell(0)),
+          const SizedBox(width: 2),
+          Expanded(child: buildCell(1)),
+        ],
+      );
+    } else if (count == 3) {
+      gridBody = Row(
+        children: [
+          Expanded(child: buildCell(0)),
+          const SizedBox(width: 2),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(child: buildCell(1)),
+                const SizedBox(height: 2),
+                Expanded(child: buildCell(2)),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else if (count == 4) {
+      gridBody = Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(0)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(1)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(2)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(3)),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      gridBody = Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(0)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(1)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(2)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(3)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(4, showMoreOverlay: count > 5)),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      height: count == 1 ? null : gridHeight,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0B1A),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: gridBody,
+    );
+  }
+
   Widget _buildAttachmentFor(ActivityPostModel post, String? currentUserId) {
+    // Multi-image/video support
+    final mediaUrls = post.metaData?['media_urls'] as List<dynamic>?;
+    if (mediaUrls != null && mediaUrls.isNotEmpty) {
+      return _buildFacebookGrid(context, mediaUrls.cast<String>());
+    }
+
     if (post.type == 'photo' && post.mediaUrl != null) {
       return ClipRRect(
         borderRadius: BorderRadius.circular(12),

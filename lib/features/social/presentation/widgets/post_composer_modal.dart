@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/theme/design_tokens.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
@@ -40,7 +41,9 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
   AttachmentType _activeAttachment = AttachmentType.none;
 
   // Tab 0: Image/File Attachment
-  XFile? _selectedImage;
+  final List<XFile> _selectedImages = [];
+  final List<String> _uploadedUrls = [];
+  bool _isUploading = false;
   PlatformFileInfo? _selectedFile;
 
   // Tab 1: Task Attachment
@@ -133,26 +136,105 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
   }
 
   Future<void> _pickImage() async {
-    final picker = ImagePicker();
     try {
-      final image = await picker.pickImage(source: ImageSource.gallery, imageQuality: 80);
-      if (image != null) {
-        setState(() {
-          _selectedImage = image;
-          _selectedFile = null;
-          _activeAttachment = AttachmentType.media;
-          _showEmojiPicker = false;
-        });
+      final result = await FilePicker.pickFiles(
+        allowMultiple: true,
+        type: FileType.custom,
+        allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'avi'],
+      );
+
+      if (result != null && result.files.isNotEmpty) {
+        final List<XFile> validFiles = [];
+        for (final file in result.files) {
+          if (file.path != null) {
+            // Check size <= 30MB (30 * 1024 * 1024 bytes)
+            if (file.size > 31457280) {
+              if (mounted) {
+                PremiumToast.show(context, 'Tệp "${file.name}" vượt quá 30MB.', isError: true);
+              }
+              continue;
+            }
+            validFiles.add(XFile(file.path!));
+          }
+        }
+
+        if (validFiles.isNotEmpty) {
+          // Check max 10 files limit
+          if (_selectedImages.length + validFiles.length > 10) {
+            if (mounted) {
+              PremiumToast.show(context, 'Tối đa 10 ảnh mỗi bài viết', isError: true);
+            }
+            return;
+          }
+
+          setState(() {
+            _selectedImages.addAll(validFiles);
+            _selectedFile = null;
+            _activeAttachment = AttachmentType.media;
+            _isUploading = true;
+            _showEmojiPicker = false;
+          });
+
+          final currentUser = ref.read(authControllerProvider).valueOrNull;
+          if (currentUser == null) {
+            setState(() {
+              _isUploading = false;
+            });
+            return;
+          }
+
+          try {
+            final supabase = Supabase.instance.client;
+            final List<String> newUrls = [];
+
+            for (final file in validFiles) {
+              final fileBytes = await file.readAsBytes();
+              final ext = file.path.split('.').last.toLowerCase();
+              final name = 'post_${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}_${newUrls.length}.$ext';
+              final path = '${currentUser.id}/$name';
+
+              await supabase.storage.from('post-attachments').uploadBinary(
+                path,
+                fileBytes,
+                fileOptions: const FileOptions(upsert: true),
+              );
+
+              final publicUrl = supabase.storage.from('post-attachments').getPublicUrl(path);
+              newUrls.add(publicUrl);
+            }
+
+            setState(() {
+              _uploadedUrls.addAll(newUrls);
+              _isUploading = false;
+            });
+          } catch (uploadError) {
+            debugPrint('Error uploading files: $uploadError');
+            setState(() {
+              _selectedImages.removeRange(
+                _selectedImages.length - validFiles.length,
+                _selectedImages.length,
+              );
+              _isUploading = false;
+              if (_selectedImages.isEmpty) {
+                _activeAttachment = AttachmentType.none;
+              }
+            });
+            if (mounted) {
+              PremiumToast.show(context, 'Không thể tải ảnh. Vui lòng thử lại.', isError: true);
+            }
+          }
+        }
       } else {
-        if (_selectedImage == null && _selectedFile == null) {
+        if (_selectedImages.isEmpty && _selectedFile == null) {
           setState(() {
             _activeAttachment = AttachmentType.none;
           });
         }
       }
     } catch (e) {
+      debugPrint('Error picking files: $e');
       if (mounted) {
-        PremiumToast.show(context, 'Lỗi chọn ảnh: $e', isError: true);
+        PremiumToast.show(context, 'Lỗi chọn ảnh/video: $e', isError: true);
       }
     }
   }
@@ -175,12 +257,13 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
             bytes: file.bytes,
             filePath: kIsWeb ? null : file.path,
           );
-          _selectedImage = null;
+          _selectedImages.clear();
+          _uploadedUrls.clear();
           _activeAttachment = AttachmentType.media;
           _showEmojiPicker = false;
         });
       } else {
-        if (_selectedImage == null && _selectedFile == null) {
+        if (_selectedImages.isEmpty && _selectedFile == null) {
           setState(() {
             _activeAttachment = AttachmentType.none;
           });
@@ -214,8 +297,13 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
     final currentUser = ref.read(authControllerProvider).valueOrNull;
     if (currentUser == null) return;
 
+    if (_isUploading) {
+      PremiumToast.show(context, 'Đang tải ảnh lên. Vui lòng đợi trong giây lát.');
+      return;
+    }
+
     final content = _contentController.text.trim();
-    if (content.isEmpty && _selectedImage == null && _selectedFile == null && _selectedTask == null && _selectedAchievement == null) {
+    if (content.isEmpty && _selectedImages.isEmpty && _selectedFile == null && _selectedTask == null && _selectedAchievement == null) {
       PremiumToast.show(context, 'Vui lòng nhập nội dung bài viết');
       return;
     }
@@ -232,19 +320,13 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
 
       // Handle media attachment
       if (_activeAttachment == AttachmentType.media) {
-        // Handle Image Upload
-        if (_selectedImage != null) {
+        // Handle Image/Video Upload (already uploaded during picker phase)
+        if (_uploadedUrls.isNotEmpty) {
           type = 'photo';
-          final fileBytes = await _selectedImage!.readAsBytes();
-          final name = 'post_${currentUser.id}_${DateTime.now().millisecondsSinceEpoch}.jpg';
-          final path = '${currentUser.id}/$name';
-          
-          await Supabase.instance.client.storage.from('post-attachments').uploadBinary(
-            path,
-            fileBytes,
-            fileOptions: const FileOptions(upsert: true),
-          );
-          mediaUrl = Supabase.instance.client.storage.from('post-attachments').getPublicUrl(path);
+          mediaUrl = _uploadedUrls.first; // For backward compatibility
+          metaData = {
+            'media_urls': _uploadedUrls,
+          };
         }
 
         // Handle File Upload
@@ -570,7 +652,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
                 // If media attachment is active, render photo/file preview/upload box
                 if (_activeAttachment == AttachmentType.media)
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: const EdgeInsets.only(left: 16.0, right: 16.0, bottom: 16.0),
                     child: _buildImageTab(),
                   ),
 
@@ -596,7 +678,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
             ),
             child: ElevatedButton(
               onPressed: (_contentController.text.trim().isEmpty &&
-                      _selectedImage == null &&
+                      _selectedImages.isEmpty &&
                       _selectedFile == null &&
                       _selectedTask == null &&
                       _selectedAchievement == null)
@@ -663,9 +745,15 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
     }
 
     final showEmojiInTextInput = _activeAttachment != AttachmentType.none;
+    final hasAttachment = _activeAttachment != AttachmentType.none;
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+      padding: EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        top: hasAttachment ? 12.0 : 24.0,
+        bottom: hasAttachment ? 8.0 : 24.0,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -673,7 +761,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
             child: TextField(
               controller: _contentController,
               maxLines: null,
-              minLines: 4,
+              minLines: hasAttachment ? 1 : 4,
               style: const TextStyle(color: Colors.white, fontSize: 18),
               decoration: InputDecoration(
                 hintText: '$firstName ơi, bạn đang nghĩ gì thế?',
@@ -809,7 +897,8 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
                                   _selectedBackgroundId = id;
                                   // Mutual exclusivity with attachments
                                   _activeAttachment = AttachmentType.none;
-                                  _selectedImage = null;
+                                  _selectedImages.clear();
+                                  _uploadedUrls.clear();
                                   _selectedFile = null;
                                   _selectedTask = null;
                                   _selectedAchievement = null;
@@ -1175,7 +1264,8 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
                   _selectedBackgroundId = bg.id;
                   // Clear attachments
                   _activeAttachment = AttachmentType.none;
-                  _selectedImage = null;
+                  _selectedImages.clear();
+                  _uploadedUrls.clear();
                   _selectedFile = null;
                   _selectedTask = null;
                   _selectedAchievement = null;
@@ -2192,72 +2282,28 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
     );
   }
 
+  void _deleteImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+      if (_uploadedUrls.length > index) {
+        _uploadedUrls.removeAt(index);
+      }
+      if (_selectedImages.isEmpty) {
+        _activeAttachment = AttachmentType.none;
+      }
+    });
+  }
+
   Widget _buildImageTab() {
-    if (_selectedImage != null) {
-      return Center(
-        child: Stack(
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Image.file(
-                File(_selectedImage!.path),
-                fit: BoxFit.fitWidth,
-                width: double.infinity,
-              ),
-            ),
-            Positioned(
-              top: 12,
-              left: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(Icons.edit_rounded, color: Colors.black87, size: 16),
-                    SizedBox(width: 6),
-                    Text(
-                      'Chỉnh sửa',
-                      style: TextStyle(
-                        color: Colors.black87,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedImage = null;
-                    _activeAttachment = AttachmentType.none;
-                  });
-                },
-                child: Container(
-                  padding: const EdgeInsets.all(6),
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.black.withOpacity(0.6),
-                    border: Border.all(color: Colors.white30, width: 1),
-                  ),
-                  child: const Icon(
-                    Icons.close_rounded,
-                    color: Colors.white,
-                    size: 18,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+    if (_selectedImages.isNotEmpty) {
+      final paths = _selectedImages.map((file) => file.path).toList();
+      return _buildFacebookGrid(
+        context: context,
+        paths: paths,
+        isLocal: true,
+        onAdd: _pickImage,
+        onDelete: _deleteImage,
+        isUploading: _isUploading,
       );
     }
 
@@ -2348,6 +2394,286 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
 
     return const SizedBox.shrink();
   }
+
+  Widget _buildFacebookGrid({
+    required BuildContext context,
+    required List<String> paths,
+    required bool isLocal,
+    VoidCallback? onAdd,
+    Function(int)? onDelete,
+    required bool isUploading,
+  }) {
+    final isDesktop = MediaQuery.of(context).size.width > 600;
+    final double gridHeight = isDesktop ? 460.0 : 300.0;
+    final count = paths.length;
+
+    if (count == 0) return const SizedBox.shrink();
+
+    if (isUploading) {
+      return Container(
+        height: gridHeight,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: const Color(0xFF0D0B1A),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            const ShimmerBox(width: double.infinity, height: double.infinity),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withOpacity(0.5),
+                shape: BoxShape.circle,
+              ),
+              child: const SizedBox(
+                width: 24,
+                height: 24,
+                child: CircularProgressIndicator(
+                  color: Color(0xFF7C5CFF),
+                  strokeWidth: 2.5,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    Widget buildCell(int index, {bool showMoreOverlay = false, BoxFit fit = BoxFit.cover}) {
+      final path = paths[index];
+      final ext = path.split('.').last.toLowerCase();
+      final isVideoFile = ['mp4', 'mov', 'avi'].contains(ext);
+
+      Widget mediaWidget;
+      if (isVideoFile) {
+        mediaWidget = Container(
+          color: const Color(0xFF0D0B1A),
+          width: double.infinity,
+          height: fit == BoxFit.fitWidth ? 240.0 : double.infinity,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              const Icon(Icons.play_circle_fill_rounded, color: Colors.white70, size: 48),
+              Positioned(
+                bottom: 8,
+                left: 8,
+                right: 8,
+                child: Text(
+                  path.split('/').last.split('\\').last,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white54, fontSize: 10),
+                ),
+              ),
+            ],
+          ),
+        );
+      } else {
+        mediaWidget = isLocal
+            ? Image.file(
+                File(path),
+                fit: fit,
+                width: double.infinity,
+                height: fit == BoxFit.fitWidth ? null : double.infinity,
+              )
+            : CachedNetworkImage(
+                imageUrl: path,
+                fit: fit,
+                width: double.infinity,
+                height: fit == BoxFit.fitWidth ? null : double.infinity,
+                placeholder: (context, url) => Container(
+                  color: const Color(0xFF0D0B1A),
+                  height: fit == BoxFit.fitWidth ? 200 : double.infinity,
+                  child: const Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(color: Color(0xFF7C5CFF), strokeWidth: 2),
+                    ),
+                  ),
+                ),
+                errorWidget: (context, url, error) => Container(
+                  color: const Color(0xFF0D0B1A),
+                  height: fit == BoxFit.fitWidth ? 200 : double.infinity,
+                  child: const Icon(Icons.broken_image_rounded, color: Colors.white24, size: 32),
+                ),
+              );
+      }
+
+      return Stack(
+        fit: fit == BoxFit.fitWidth ? StackFit.loose : StackFit.expand,
+        children: [
+          mediaWidget,
+          if (showMoreOverlay)
+            Container(
+              color: Colors.black.withOpacity(0.55),
+              alignment: Alignment.center,
+              child: Text(
+                '+${count - 4}',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          // Delete button (X) - only for composer
+          if (onDelete != null)
+            Positioned(
+              top: 10,
+              right: 10,
+              child: GestureDetector(
+                onTap: () => onDelete(index),
+                child: ClipOval(
+                  child: Container(
+                    width: 28,
+                    height: 28,
+                    color: Colors.black.withOpacity(0.55),
+                    child: const Center(
+                      child: Icon(
+                        Icons.close_rounded,
+                        color: Colors.white,
+                        size: 14,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+
+    Widget? buildAddButton() {
+      if (onAdd == null || count >= 10) return null;
+      return Positioned(
+        bottom: 10,
+        right: 10,
+        child: GestureDetector(
+          onTap: onAdd,
+          child: Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(50),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 0.5),
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 16,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Widget gridBody;
+
+    if (count == 1) {
+      gridBody = buildCell(0, fit: BoxFit.fitWidth);
+    } else if (count == 2) {
+      gridBody = Row(
+        children: [
+          Expanded(child: buildCell(0)),
+          const SizedBox(width: 2),
+          Expanded(child: buildCell(1)),
+        ],
+      );
+    } else if (count == 3) {
+      gridBody = Row(
+        children: [
+          Expanded(child: buildCell(0)),
+          const SizedBox(width: 2),
+          Expanded(
+            child: Column(
+              children: [
+                Expanded(child: buildCell(1)),
+                const SizedBox(height: 2),
+                Expanded(child: buildCell(2)),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else if (count == 4) {
+      gridBody = Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(0)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(1)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(2)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(3)),
+              ],
+            ),
+          ),
+        ],
+      );
+    } else {
+      // 5+ images
+      gridBody = Column(
+        children: [
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(0)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(1)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 2),
+          Expanded(
+            child: Row(
+              children: [
+                Expanded(child: buildCell(2)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(3)),
+                const SizedBox(width: 2),
+                Expanded(child: buildCell(4, showMoreOverlay: count > 5)),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Container(
+      height: count == 1 ? null : gridHeight,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color(0xFF0D0B1A),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        fit: count == 1 ? StackFit.loose : StackFit.expand,
+        children: [
+          gridBody,
+          if (buildAddButton() != null) buildAddButton()!,
+        ],
+      ),
+    );
+  }
+
+
 
   Widget _buildTaskTab(AsyncValue<List<NexusTask>> tasksAsync) {
     return tasksAsync.when(
@@ -2544,4 +2870,53 @@ class PremiumToggle extends StatelessWidget {
     );
   }
 }
+
+class ShimmerBox extends StatefulWidget {
+  final double width;
+  final double height;
+  const ShimmerBox({super.key, required this.width, required this.height});
+
+  @override
+  State<ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<ShimmerBox> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1500),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return Container(
+          width: widget.width,
+          height: widget.height,
+          decoration: BoxDecoration(
+            color: Color.lerp(
+              Colors.white.withOpacity(0.05),
+              Colors.white.withOpacity(0.12),
+              _controller.value,
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
 
