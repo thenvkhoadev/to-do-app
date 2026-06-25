@@ -1,12 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:to_do_app/theme/design_tokens.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/social/presentation/widgets/post_composer_modal.dart';
-import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 
-class PostComposerCard extends ConsumerWidget {
+class PostComposerCard extends ConsumerStatefulWidget {
   const PostComposerCard({super.key});
+
+  @override
+  ConsumerState<PostComposerCard> createState() => _PostComposerCardState();
+}
+
+class _PostComposerCardState extends ConsumerState<PostComposerCard> {
+  bool _isPlaceholderHovered = false;
 
   void _openComposer(BuildContext context, {int initialTab = 0}) {
     showGeneralDialog(
@@ -30,83 +37,160 @@ class PostComposerCard extends ConsumerWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(userProfileProvider);
+  String _getInitials(String name) {
+    if (name.isEmpty) return 'U';
+    final parts = name.trim().split(RegExp(r'\s+'));
+    if (parts.length > 1) {
+      final first = parts.first.isNotEmpty ? parts.first[0] : '';
+      final last = parts.last.isNotEmpty ? parts.last[0] : '';
+      return (first + last).toUpperCase();
+    }
+    return parts.first.isNotEmpty ? parts.first[0].toUpperCase() : 'U';
+  }
 
-    return GlassCard(
-      padding: const EdgeInsets.all(16),
-      child: Column(
+  Widget _buildFallbackAvatar(String name) {
+    return Container(
+      width: 36,
+      height: 36,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: LinearGradient(
+          colors: [Color(0xFF7C5CFF), Color(0xFFA78BFA)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Text(
+          _getInitials(name),
+          style: const TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 14,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAvatar(UserProfileModel? profile, String fullName) {
+    if (profile?.avatarUrl != null && profile!.avatarUrl!.isNotEmpty) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: CachedNetworkImage(
+          imageUrl: profile.avatarUrl!,
+          width: 36,
+          height: 36,
+          fit: BoxFit.cover,
+          placeholder: (context, url) => Container(
+            width: 36,
+            height: 36,
+            color: Colors.grey.shade900,
+          ),
+          errorWidget: (context, url, error) => _buildFallbackAvatar(fullName),
+        ),
+      );
+    }
+    return _buildFallbackAvatar(fullName);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final profileAsync = ref.watch(userProfileProvider);
+    final profile = profileAsync.valueOrNull;
+    final fullName = profile?.fullName ?? profile?.username ?? 'Bạn';
+    final firstName = fullName.split(' ').first;
+    final displayFirstName = firstName.isNotEmpty ? firstName : 'Bạn';
+
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isMobile = screenWidth < 768;
+
+    final EdgeInsetsGeometry padding = isMobile 
+        ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+        : const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+
+    final double actionBtnSize = isMobile ? 32 : 36;
+    final double innerIconSize = isMobile ? 18 : 20;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      height: 56,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Color.alphaBlend(
+          Colors.white.withOpacity(_isPlaceholderHovered ? 0.03 : 0.0),
+          const Color(0xFF12101F),
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: Colors.white.withOpacity(0.07),
+          width: 0.5,
+        ),
+      ),
+      child: Row(
         children: [
-          Row(
-            children: [
-              profileAsync.when(
-                data: (profile) => CircleAvatar(
-                  radius: 20,
-                  backgroundImage: profile?.avatarUrl != null && profile!.avatarUrl!.isNotEmpty
-                      ? NetworkImage(profile.avatarUrl!)
-                      : null,
-                  backgroundColor: Colors.grey.shade900,
-                  child: profile?.avatarUrl == null || profile!.avatarUrl!.isEmpty
-                      ? const Icon(Icons.person, color: Colors.white54)
-                      : null,
-                ),
-                loading: () => const CircleAvatar(radius: 20, backgroundColor: Colors.grey),
-                error: (_, __) => const CircleAvatar(radius: 20, backgroundColor: Colors.grey),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: GestureDetector(
-                  onTap: () => _openComposer(context, initialTab: -1),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: .04),
-                      border: Border.all(color: Colors.white.withValues(alpha: .06)),
-                      borderRadius: BorderRadius.circular(24),
+          // 1. Avatar
+          SizedBox(
+            width: 36,
+            height: 36,
+            child: _buildAvatar(profile, fullName),
+          ),
+          const SizedBox(width: 10),
+          // 2. Input placeholder (with hover state)
+          Expanded(
+            child: MouseRegion(
+              onEnter: (_) => setState(() => _isPlaceholderHovered = true),
+              onExit: (_) => setState(() => _isPlaceholderHovered = false),
+              cursor: SystemMouseCursors.text,
+              child: GestureDetector(
+                onTap: () => _openComposer(context, initialTab: -1),
+                child: Container(
+                  color: Colors.transparent, // Ensures hover/tap hits the whole area
+                  alignment: Alignment.centerLeft,
+                  child: AnimatedDefaultTextStyle(
+                    duration: const Duration(milliseconds: 150),
+                    style: TextStyle(
+                      color: _isPlaceholderHovered 
+                          ? Colors.white.withOpacity(0.55) 
+                          : Colors.white.withOpacity(0.35),
+                      fontSize: 14,
                     ),
-                    child: Text(
-                      'Bạn đang nghĩ gì? Chia sẻ tiến độ...',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: .5),
-                        fontSize: 14,
-                      ),
-                    ),
+                    child: Text('$displayFirstName ơi, bạn đang nghĩ gì thế?'),
                   ),
                 ),
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 12),
-          const Divider(color: DesignTokens.borderSubtle, height: 1),
-          const SizedBox(height: 10),
-          // Composer Action tabs
+          const SizedBox(width: 10),
+          // 3. Icon Actions
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _buildComposerTab(
-                icon: Icons.photo_rounded,
-                label: 'Ảnh',
-                color: const Color(0xFF8B5CF6),
-                onTap: () => _openComposer(context, initialTab: 0), // Image upload in tab 0 or custom flow
-              ),
-              _buildComposerTab(
-                icon: Icons.check_circle_outline_rounded,
-                label: 'Task',
-                color: const Color(0xFF3B82F6),
-                onTap: () => _openComposer(context, initialTab: 1),
-              ),
-              _buildComposerTab(
-                icon: Icons.military_tech_rounded,
-                label: 'Thành tích',
-                color: const Color(0xFF10B981),
-                onTap: () => _openComposer(context, initialTab: 2),
-              ),
-              _buildComposerTab(
-                icon: Icons.bar_chart_rounded,
-                label: 'Khảo sát',
+              ComposerActionButton(
+                icon: Icons.videocam_rounded,
                 color: const Color(0xFFEF4444),
-                onTap: () => _openComposer(context, initialTab: 3),
+                tooltip: 'Quay video',
+                buttonSize: actionBtnSize,
+                iconSize: innerIconSize,
+                onTap: () => _openComposer(context, initialTab: 4),
+              ),
+              const SizedBox(width: 4),
+              ComposerActionButton(
+                icon: Icons.image_rounded,
+                color: const Color(0xFF22C55E),
+                tooltip: 'Thêm ảnh',
+                buttonSize: actionBtnSize,
+                iconSize: innerIconSize,
+                onTap: () => _openComposer(context, initialTab: 0),
+              ),
+              const SizedBox(width: 4),
+              ComposerActionButton(
+                icon: Icons.assignment_rounded,
+                color: const Color(0xFFF97316),
+                tooltip: 'Tạo task',
+                buttonSize: actionBtnSize,
+                iconSize: innerIconSize,
+                onTap: () => _openComposer(context, initialTab: 1),
               ),
             ],
           ),
@@ -114,34 +198,75 @@ class PostComposerCard extends ConsumerWidget {
       ),
     );
   }
+}
 
-  Widget _buildComposerTab({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, color: color, size: 20),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 13,
-                  fontWeight: FontWeight.bold,
+class ComposerActionButton extends StatefulWidget {
+  const ComposerActionButton({
+    super.key,
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    required this.onTap,
+    required this.buttonSize,
+    required this.iconSize,
+  });
+
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback onTap;
+  final double buttonSize;
+  final double iconSize;
+
+  @override
+  State<ComposerActionButton> createState() => _ComposerActionButtonState();
+}
+
+class _ComposerActionButtonState extends State<ComposerActionButton> {
+  bool _isHovered = false;
+  bool _isPressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final double scale = _isPressed ? 0.92 : 1.0;
+    
+    return Tooltip(
+      message: widget.tooltip,
+      child: MouseRegion(
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        cursor: SystemMouseCursors.click,
+        child: GestureDetector(
+          onTapDown: (_) => setState(() => _isPressed = true),
+          onTapUp: (_) {
+            setState(() => _isPressed = false);
+            widget.onTap();
+          },
+          onTapCancel: () => setState(() => _isPressed = false),
+          child: AnimatedScale(
+            scale: scale,
+            duration: const Duration(milliseconds: 150),
+            curve: Curves.easeInOut,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: widget.buttonSize,
+              height: widget.buttonSize,
+              decoration: BoxDecoration(
+                color: _isHovered ? Colors.white.withOpacity(0.07) : Colors.transparent,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: SizedBox(
+                  width: widget.iconSize,
+                  height: widget.iconSize,
+                  child: Icon(
+                    widget.icon,
+                    color: widget.color,
+                    size: widget.iconSize,
+                  ),
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

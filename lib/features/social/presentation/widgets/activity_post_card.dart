@@ -27,9 +27,20 @@ import 'package:dio/dio.dart';
 import 'package:to_do_app/features/social/presentation/widgets/post_backgrounds.dart';
 
 class ActivityPostCard extends ConsumerStatefulWidget {
-  const ActivityPostCard({super.key, required this.post});
+  const ActivityPostCard({
+    super.key,
+    required this.post,
+    this.showCommentsByDefault = false,
+    this.hideCommentInput = false,
+    this.hideContainer = false,
+    this.onReplyPressed,
+  });
 
   final ActivityPostModel post;
+  final bool showCommentsByDefault;
+  final bool hideCommentInput;
+  final bool hideContainer;
+  final Function(String commentId, String authorName)? onReplyPressed;
 
   @override
   ConsumerState<ActivityPostCard> createState() => _ActivityPostCardState();
@@ -72,6 +83,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
   @override
   void initState() {
     super.initState();
+    _showComments = widget.showCommentsByDefault;
     _localReactions = widget.post.reactions;
     _localReactorNames = widget.post.reactorNames;
     _localCommentReactions = {};
@@ -933,14 +945,10 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         ? _localReactions!.keys.toList() 
         : widget.post.likedByUserIds;
 
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
-      child: GlassCard(
-        padding: const EdgeInsets.all(16),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Column(
+    final Widget cardBody = Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
           // Author Header
@@ -1279,7 +1287,17 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           ),
         ),
     ],
-  ),
+  );
+
+  if (widget.hideContainer) {
+    return cardBody;
+  }
+
+  return Padding(
+    padding: const EdgeInsets.only(bottom: 16),
+    child: GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: cardBody,
     ),
   );
 }
@@ -1544,24 +1562,35 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         );
       }
 
-      return Stack(
-        fit: fit == BoxFit.fitWidth ? StackFit.loose : StackFit.expand,
-        children: [
-          mediaWidget,
-          if (showMoreOverlay)
-            Container(
-              color: Colors.black.withOpacity(0.55),
-              alignment: Alignment.center,
-              child: Text(
-                '+${count - 4}',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+      return GestureDetector(
+        onTap: () {
+          ref.read(photoViewerStateProvider.notifier).state = PhotoViewerState(
+            postId: widget.post.id,
+            initialIndex: index,
+          );
+        },
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: Stack(
+            fit: fit == BoxFit.fitWidth ? StackFit.loose : StackFit.expand,
+            children: [
+              mediaWidget,
+              if (showMoreOverlay)
+                Container(
+                  color: Colors.black.withOpacity(0.55),
+                  alignment: Alignment.center,
+                  child: Text(
+                    '+${count - 4}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-        ],
+            ],
+          ),
+        ),
       );
     }
 
@@ -1665,20 +1694,31 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
     }
 
     if (post.type == 'photo' && post.mediaUrl != null) {
-      return ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          post.mediaUrl!,
-          width: double.infinity,
-          fit: BoxFit.fitWidth,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              height: 200,
-              color: Colors.white.withValues(alpha: .04),
-              child: const Center(child: CircularProgressIndicator(color: Colors.white24)),
-            );
-          },
+      return GestureDetector(
+        onTap: () {
+          ref.read(photoViewerStateProvider.notifier).state = PhotoViewerState(
+            postId: post.id,
+            initialIndex: 0,
+          );
+        },
+        child: MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: Image.network(
+              post.mediaUrl!,
+              width: double.infinity,
+              fit: BoxFit.fitWidth,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  height: 200,
+                  color: Colors.white.withValues(alpha: .04),
+                  child: const Center(child: CircularProgressIndicator(color: Colors.white24)),
+                );
+              },
+            ),
+          ),
         ),
       );
     }
@@ -2129,7 +2169,8 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
           _buildReplyingIndicator(),
           
         // Comment Input
-        _buildCommentInput(),
+        if (!widget.hideCommentInput)
+          _buildCommentInput(),
       ],
     );
   }
@@ -2366,6 +2407,9 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
                           : 'Bình luận dưới tên $displayName...',
                       hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.3)),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      filled: false,
                       isDense: true,
                       contentPadding: const EdgeInsets.symmetric(vertical: 4),
                     ),
@@ -2686,6 +2730,10 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
   }
 
   void _replyToComment(String commentId, String authorName, String authorId) {
+    if (widget.onReplyPressed != null) {
+      widget.onReplyPressed!(commentId, authorName);
+      return;
+    }
     setState(() {
       _replyingToCommentId = commentId;
       _replyingToAuthorName = authorName;
@@ -3505,12 +3553,15 @@ class _CommentCardState extends State<CommentCard> with SingleTickerProviderStat
                                           Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              Text(
-                                                widget.comment.authorName,
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 15,
+                                              Flexible(
+                                                child: Text(
+                                                  widget.comment.authorName,
+                                                  overflow: TextOverflow.ellipsis,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15,
+                                                  ),
                                                 ),
                                               ),
                                               const SizedBox(width: 6),
@@ -3580,6 +3631,9 @@ class _CommentCardState extends State<CommentCard> with SingleTickerProviderStat
                                                       isDense: true,
                                                       contentPadding: EdgeInsets.symmetric(vertical: 4),
                                                       border: InputBorder.none,
+                                                      enabledBorder: InputBorder.none,
+                                                      focusedBorder: InputBorder.none,
+                                                      filled: false,
                                                     ),
                                                     onSubmitted: (_) => _submitEdit(),
                                                   ),
@@ -4170,12 +4224,15 @@ class _ReplyCardState extends State<ReplyCard> {
                                         Row(
                                           mainAxisSize: MainAxisSize.min,
                                           children: [
-                                            Text(
-                                              widget.reply.authorName,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 13,
+                                            Flexible(
+                                              child: Text(
+                                                widget.reply.authorName,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 13,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(width: 6),
@@ -4227,6 +4284,9 @@ class _ReplyCardState extends State<ReplyCard> {
                                                     isDense: true,
                                                     contentPadding: EdgeInsets.symmetric(vertical: 4),
                                                     border: InputBorder.none,
+                                                    enabledBorder: InputBorder.none,
+                                                    focusedBorder: InputBorder.none,
+                                                    filled: false,
                                                   ),
                                                   onSubmitted: (_) => _submitEdit(),
                                                 ),
@@ -5215,6 +5275,7 @@ class CommentMediaPickerOverlay {
     required Function(String url, String name) onGifSelected,
     required Function(String url, String name) onStickerSelected,
     required VoidCallback onClose,
+    bool preferLeft = false,
   }) {
     close();
 
@@ -5247,6 +5308,7 @@ class CommentMediaPickerOverlay {
             close();
             onClose();
           },
+          preferLeft: preferLeft,
         );
       },
     );
@@ -5270,6 +5332,7 @@ class _CommentMediaPickerOverlayWidget extends StatefulWidget {
   final Function(String url, String name) onGifSelected;
   final Function(String url, String name) onStickerSelected;
   final VoidCallback onClose;
+  final bool preferLeft;
 
   const _CommentMediaPickerOverlayWidget({
     required this.emojiLink,
@@ -5281,6 +5344,7 @@ class _CommentMediaPickerOverlayWidget extends StatefulWidget {
     required this.onGifSelected,
     required this.onStickerSelected,
     required this.onClose,
+    this.preferLeft = false,
   });
 
   @override
@@ -5389,24 +5453,36 @@ class _CommentMediaPickerOverlayWidgetState extends State<_CommentMediaPickerOve
   }
 
   Alignment getTargetAnchor(String tab) {
+    if (widget.preferLeft) {
+      return Alignment.topRight;
+    }
     if (tab == 'emoji') return Alignment.topLeft;
     if (tab == 'sticker') return Alignment.topRight;
     return Alignment.topCenter;
   }
 
   Alignment getFollowerAnchor(String tab) {
+    if (widget.preferLeft) {
+      return Alignment.bottomRight;
+    }
     if (tab == 'emoji') return Alignment.bottomLeft;
     if (tab == 'sticker') return Alignment.bottomRight;
     return Alignment.bottomCenter;
   }
 
   Offset getOffset(String tab) {
+    if (widget.preferLeft) {
+      return const Offset(12, -8);
+    }
     if (tab == 'emoji') return const Offset(-12, -8);
     if (tab == 'sticker') return const Offset(12, -8);
     return const Offset(0, -8);
   }
 
   double getArrowX(String tab) {
+    if (widget.preferLeft) {
+      return 292.0;
+    }
     if (tab == 'emoji') return 28.0;
     if (tab == 'sticker') return 292.0;
     return 160.0;

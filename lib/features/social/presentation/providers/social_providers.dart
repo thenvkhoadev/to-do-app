@@ -108,3 +108,16 @@ final suggestedFriendsProvider = Provider<List<UserProfileModel>>((ref) {
 
   return suggestions;
 });
+
+class PhotoViewerState {
+  final String postId;
+  final int initialIndex;
+
+  const PhotoViewerState({
+    required this.postId,
+    required this.initialIndex,
+  });
+}
+
+final photoViewerStateProvider = StateProvider<PhotoViewerState?>((ref) => null);
+

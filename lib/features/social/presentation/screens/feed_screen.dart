@@ -129,9 +129,9 @@ class FeedScreen extends ConsumerWidget {
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.stretch,
                                       children: [
-                                        _buildStoriesSection(overlayContext, ref),
-                                        const SizedBox(height: 16),
                                         const PostComposerCard(),
+                                        const SizedBox(height: 16),
+                                        _buildStoriesSection(overlayContext, ref),
                                         const SizedBox(height: 16),
                                         _buildFeedToggle(overlayContext, ref),
                                         const SizedBox(height: 16),
@@ -162,9 +162,9 @@ class FeedScreen extends ConsumerWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildStoriesSection(context, ref),
-              const SizedBox(height: 16),
               const PostComposerCard(),
+              const SizedBox(height: 16),
+              _buildStoriesSection(context, ref),
               const SizedBox(height: 16),
               _buildFeedToggle(context, ref),
               const SizedBox(height: 16),

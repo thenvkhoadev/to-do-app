@@ -83,7 +83,13 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
       _activeAttachment = AttachmentType.media;
       // Trigger image picker immediately after layout build
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        _pickImage();
+        _pickImage(mediaType: 'image');
+      });
+    } else if (widget.initialTab == 4) {
+      _activeAttachment = AttachmentType.media;
+      // Trigger video picker immediately after layout build
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _pickImage(mediaType: 'video');
       });
     } else if (widget.initialTab == 1) {
       _activeAttachment = AttachmentType.task;
@@ -135,12 +141,21 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
     });
   }
 
-  Future<void> _pickImage() async {
+  Future<void> _pickImage({String mediaType = 'all'}) async {
     try {
+      final List<String> allowedExts;
+      if (mediaType == 'image') {
+        allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic'];
+      } else if (mediaType == 'video') {
+        allowedExts = ['mp4', 'mov', 'avi', 'mkv', 'webm', '3gp'];
+      } else {
+        allowedExts = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'avi'];
+      }
+
       final result = await FilePicker.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['jpg', 'jpeg', 'png', 'gif', 'webp', 'heic', 'mp4', 'mov', 'avi'],
+        allowedExtensions: allowedExts,
       );
 
       if (result != null && result.files.isNotEmpty) {
