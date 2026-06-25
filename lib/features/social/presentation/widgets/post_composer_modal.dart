@@ -2199,13 +2199,10 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
           children: [
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 360),
-                child: Image.file(
-                  File(_selectedImage!.path),
-                  fit: BoxFit.cover,
-                  width: double.infinity,
-                ),
+              child: Image.file(
+                File(_selectedImage!.path),
+                fit: BoxFit.fitWidth,
+                width: double.infinity,
               ),
             ),
             Positioned(

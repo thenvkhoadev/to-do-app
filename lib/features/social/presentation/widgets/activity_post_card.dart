@@ -1500,7 +1500,8 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         borderRadius: BorderRadius.circular(12),
         child: Image.network(
           post.mediaUrl!,
-          fit: BoxFit.cover,
+          width: double.infinity,
+          fit: BoxFit.fitWidth,
           loadingBuilder: (context, child, loadingProgress) {
             if (loadingProgress == null) return child;
             return Container(
