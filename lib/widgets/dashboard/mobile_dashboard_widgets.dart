@@ -10,18 +10,19 @@ import 'package:to_do_app/widgets/dashboard/dashboard_enhancement_widgets.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_stats_provider.dart';
 import 'package:to_do_app/features/social/presentation/screens/feed_screen.dart';
+import 'package:to_do_app/features/social/presentation/widgets/leave_confirmation_dialogs.dart';
 import 'package:to_do_app/features/social/presentation/screens/friends_screen.dart';
 import 'package:to_do_app/features/social/presentation/screens/messages_screen.dart';
 import 'package:to_do_app/screens/settings/settings_screen.dart';
 import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 
-class MobileDashboardLayout extends StatelessWidget {
+class MobileDashboardLayout extends ConsumerWidget {
   const MobileDashboardLayout({super.key, this.initialIndex = 0});
 
   final int initialIndex;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final bottomInset = MediaQuery.paddingOf(context).bottom;
 
     return Stack(
@@ -43,7 +44,12 @@ class MobileDashboardLayout extends StatelessWidget {
                       sliver: SliverToBoxAdapter(
                         child: switch (initialIndex) {
                           12 => FeedScreen(
-                              onFindFriends: () => context.go('/friends'),
+                              onFindFriends: () async {
+                                final proceed = await checkDraftsAndConfirm(context, ref);
+                                if (proceed && context.mounted) {
+                                  context.go('/friends');
+                                }
+                              },
                             ),
                           13 => const FriendsScreen(),
                           14 => const MessagesScreen(),
@@ -539,13 +545,13 @@ class FloatingActionTaskButton extends StatelessWidget {
   }
 }
 
-class MobileBottomNavBar extends StatelessWidget {
+class MobileBottomNavBar extends ConsumerWidget {
   const MobileBottomNavBar({required this.bottomInset, super.key});
 
   final double bottomInset;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     String location = '/home';
     try {
       location = GoRouterState.of(context).matchedLocation;
@@ -570,33 +576,76 @@ class MobileBottomNavBar extends StatelessWidget {
                 icon: Icons.home_rounded,
                 label: 'Dashboard',
                 active: location == '/home' || location == '/',
-                onTap: () => context.go('/home'),
+                onTap: () async {
+                  if (location == '/feed') {
+                    final proceed = await checkDraftsAndConfirm(context, ref);
+                    if (!proceed) return;
+                  }
+                  if (context.mounted) {
+                    context.go('/home');
+                  }
+                },
               ),
               _BottomNavItem(
                 icon: Icons.assignment_rounded,
                 label: 'Tasks',
                 active: location == '/tasks',
-                onTap: () => context.go('/tasks'),
+                onTap: () async {
+                  if (location == '/feed') {
+                    final proceed = await checkDraftsAndConfirm(context, ref);
+                    if (!proceed) return;
+                  }
+                  if (context.mounted) {
+                    context.go('/tasks');
+                  }
+                },
               ),
               _BottomNavItem(
                 icon: Icons.dynamic_feed_rounded,
                 label: 'Feed',
                 active: location == '/feed',
-                onTap: () => context.go('/feed'),
+                onTap: () async {
+                  if (location == '/feed') {
+                    final proceed = await checkDraftsAndConfirm(context, ref);
+                    if (!proceed) return;
+                  }
+                  if (context.mounted) {
+                    context.go('/feed');
+                  }
+                },
               ),
               _BottomNavItem(
                 icon: Icons.forum_rounded,
                 label: 'Messages',
                 active: location == '/messages',
-                onTap: () => context.go('/messages'),
+                onTap: () async {
+                  if (location == '/feed') {
+                    final proceed = await checkDraftsAndConfirm(context, ref);
+                    if (!proceed) return;
+                  }
+                  if (context.mounted) {
+                    context.go('/messages');
+                  }
+                },
               ),
               _BottomNavItem(
                 icon: Icons.person_rounded,
                 label: 'Profile',
                 active: location == '/profile',
-                onTap:
-                    ProfileNavigationScope.maybeOf(context)?.onProfileSelected ??
-                    () => context.go('/profile'),
+                onTap: () async {
+                  if (location == '/feed') {
+                    final proceed = await checkDraftsAndConfirm(context, ref);
+                    if (!proceed) return;
+                  }
+                  if (context.mounted) {
+                    final onProfile = ProfileNavigationScope.maybeOf(context)?.onProfileSelected;
+                    if (onProfile != null) {
+                      onProfile();
+                    } else {
+                      context.go('/profile');
+                    }
+                  }
+                },
               ),
             ],
           ),

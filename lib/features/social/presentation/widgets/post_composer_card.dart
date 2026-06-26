@@ -4,6 +4,7 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/social/presentation/widgets/post_composer_modal.dart';
+import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
 
 class PostComposerCard extends ConsumerStatefulWidget {
   const PostComposerCard({super.key});
@@ -101,6 +102,7 @@ class _PostComposerCardState extends ConsumerState<PostComposerCard> {
     final fullName = profile?.fullName ?? profile?.username ?? 'Bạn';
     final firstName = fullName.split(' ').first;
     final displayFirstName = firstName.isNotEmpty ? firstName : 'Bạn';
+    final postDraft = ref.watch(postDraftProvider);
 
     final double screenWidth = MediaQuery.sizeOf(context).width;
     final bool isMobile = screenWidth < 768;
@@ -150,12 +152,20 @@ class _PostComposerCardState extends ConsumerState<PostComposerCard> {
                   child: AnimatedDefaultTextStyle(
                     duration: const Duration(milliseconds: 150),
                     style: TextStyle(
-                      color: _isPlaceholderHovered 
-                          ? Colors.white.withOpacity(0.55) 
-                          : Colors.white.withOpacity(0.35),
+                      color: postDraft.isNotEmpty
+                          ? Colors.white.withOpacity(0.9)
+                          : (_isPlaceholderHovered 
+                              ? Colors.white.withOpacity(0.55) 
+                              : Colors.white.withOpacity(0.35)),
                       fontSize: 14,
                     ),
-                    child: Text('$displayFirstName ơi, bạn đang nghĩ gì thế?'),
+                    child: Text(
+                      postDraft.isNotEmpty 
+                          ? postDraft 
+                          : '$displayFirstName ơi, bạn đang nghĩ gì thế?',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ),
               ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:to_do_app/features/social/presentation/widgets/leave_confirmation_dialogs.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/social/data/models/activity_post_model.dart';
 import 'package:to_do_app/features/social/presentation/widgets/activity_post_card.dart';
@@ -23,7 +24,7 @@ class PostDetailsDialog extends ConsumerStatefulWidget {
   static void show(BuildContext context, ActivityPostModel post) {
     showGeneralDialog(
       context: context,
-      barrierDismissible: true,
+      barrierDismissible: false,
       barrierLabel: 'PostDetailsDialog',
       barrierColor: Colors.black.withOpacity(0.65),
       transitionDuration: const Duration(milliseconds: 250),
@@ -62,6 +63,16 @@ class _PostDetailsDialogState extends ConsumerState<PostDetailsDialog> {
   final LayerLink _stickerLink = LayerLink();
 
   @override
+  void initState() {
+    super.initState();
+    final draft = ref.read(commentDraftsProvider)[widget.post.id];
+    if (draft != null) {
+      _commentController.text = draft.text;
+      _selectedAttachment = draft.attachment;
+    }
+  }
+
+  @override
   void dispose() {
     CommentMediaPickerOverlay.close();
     _commentController.dispose();
@@ -89,6 +100,7 @@ class _PostDetailsDialogState extends ConsumerState<PostDetailsDialog> {
       }
 
       final replyingId = _replyingToCommentId;
+      ref.read(commentDraftsProvider.notifier).clearDraft(widget.post.id);
       _commentController.clear();
       setState(() {
         _selectedAttachment = null;
@@ -326,15 +338,42 @@ class _PostDetailsDialogState extends ConsumerState<PostDetailsDialog> {
         ? fullName
         : (username != null && username.isNotEmpty ? '@$username' : 'Người dùng');
 
-    return Center(
-      child: AnimatedPadding(
-        duration: const Duration(milliseconds: 150),
-        curve: Curves.easeOutQuad,
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-        child: Material(
-          color: Colors.transparent,
-          child: Container(
-            width: dialogWidth,
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final text = _commentController.text;
+        final attachment = _selectedAttachment;
+        final currentDraft = ref.read(commentDraftsProvider)[widget.post.id];
+        if (currentDraft == null || currentDraft.text != text || currentDraft.attachment != attachment) {
+          ref.read(commentDraftsProvider.notifier).updateDraft(widget.post.id, text);
+          ref.read(commentDraftsProvider.notifier).updateAttachment(widget.post.id, attachment);
+        }
+      }
+    });
+
+    return GestureDetector(
+      onTap: () async {
+        final text = _commentController.text.trim();
+        if (text.isNotEmpty || _selectedAttachment != null) {
+          final leave = await showLeaveCommentConfirmationDialog(context);
+          if (leave && context.mounted) {
+            Navigator.pop(context);
+          }
+        } else {
+          Navigator.pop(context);
+        }
+      },
+      behavior: HitTestBehavior.opaque,
+      child: Center(
+        child: AnimatedPadding(
+          duration: const Duration(milliseconds: 150),
+          curve: Curves.easeOutQuad,
+          padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+          child: Material(
+            color: Colors.transparent,
+            child: GestureDetector(
+              onTap: () {}, // Prevent taps inside card from closing
+              child: Container(
+                width: dialogWidth,
             constraints: BoxConstraints(
               maxHeight: MediaQuery.sizeOf(context).height * 0.85,
             ),
@@ -369,7 +408,17 @@ class _PostDetailsDialogState extends ConsumerState<PostDetailsDialog> {
                         ),
                       ),
                       GestureDetector(
-                        onTap: () => Navigator.pop(context),
+                        onTap: () async {
+                          final text = _commentController.text.trim();
+                          if (text.isNotEmpty || _selectedAttachment != null) {
+                            final leave = await showLeaveCommentConfirmationDialog(context);
+                            if (leave && context.mounted) {
+                              Navigator.pop(context);
+                            }
+                          } else {
+                            Navigator.pop(context);
+                          }
+                        },
                         child: Container(
                           width: 28,
                           height: 28,
@@ -645,7 +694,9 @@ class _PostDetailsDialogState extends ConsumerState<PostDetailsDialog> {
               ],
             ),
           ),
+          ),
         ),
+      ),
       ),
     );
   }

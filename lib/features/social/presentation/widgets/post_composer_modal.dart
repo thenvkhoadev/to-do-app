@@ -15,6 +15,7 @@ import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.d
 import 'package:to_do_app/features/tasks/data/datasource/attachment_datasource.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
+import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
 import 'package:to_do_app/features/social/presentation/widgets/post_backgrounds.dart';
 import 'package:to_do_app/features/social/presentation/widgets/emoji_popover.dart';
 
@@ -77,6 +78,9 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
   void initState() {
     super.initState();
     _scrollController.addListener(_checkPopoverDirection);
+    // Initialize controller with draft content
+    final initialDraft = ref.read(postDraftProvider);
+    _contentController.text = initialDraft;
     _contentController.addListener(_onContentChanged);
     // Map initialTab to initial attachment type
     if (widget.initialTab == 0) {
@@ -115,6 +119,7 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
   }
 
   void _onContentChanged() {
+    ref.read(postDraftProvider.notifier).state = _contentController.text;
     setState(() {});
   }
 
@@ -439,6 +444,8 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
         metaData: metaData,
       );
 
+      ref.read(postDraftProvider.notifier).state = '';
+
       if (mounted) {
         Navigator.pop(context);
         PremiumToast.show(context, 'Đăng bài viết thành công!');
@@ -468,66 +475,75 @@ class _PostComposerModalState extends ConsumerState<PostComposerModal> {
 
     return Scaffold(
       backgroundColor: Colors.black.withOpacity(0.6),
-      body: Center(
-        child: Container(
-          width: 580,
-          constraints: const BoxConstraints(maxHeight: 640),
-          margin: const EdgeInsets.symmetric(horizontal: 20),
-          decoration: BoxDecoration(
-            color: DesignTokens.bgCard,
-            borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
-            border: Border.all(color: Colors.white.withOpacity(0.08)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.5),
-                blurRadius: 32,
-                offset: const Offset(0, 16),
-              ),
-            ],
-          ),
-          child: Stack(
-            children: [
-              // Dialog Main Content (Switch screens depending on state)
-              _buildActiveScreen(firstName, tasksAsync, profileAsync),
-
-              // Floating Emoji Popover (aligned dynamically relative to target smiley icon)
-              if (_showEmojiPicker && _currentScreen == ComposerScreen.main)
-                CompositedTransformFollower(
-                  link: _emojiLayerLink,
-                  showWhenUnlinked: false,
-                  targetAnchor: _shouldShowPopoverBelow ? Alignment.bottomRight : Alignment.topRight,
-                  followerAnchor: _shouldShowPopoverBelow ? Alignment.topRight : Alignment.bottomRight,
-                  offset: Offset(0, _shouldShowPopoverBelow ? 4 : -4), // Dynamic gap based on direction
-                  child: TapRegion(
-                    groupId: 'post_composer_emoji',
-                    onTapOutside: (_) {
-                      setState(() {
-                        _showEmojiPicker = false;
-                      });
-                    },
-                    child: EmojiPopover(
-                      arrowOffset: 12.0,
-                      isArrowTop: _shouldShowPopoverBelow,
-                      onEmojiSelected: (emoji) {
-                        final text = _contentController.text;
-                        final selection = _contentController.selection;
-                        final start = selection.start >= 0 ? selection.start : text.length;
-                        final end = selection.end >= 0 ? selection.end : text.length;
-                        final newText = text.replaceRange(start, end, emoji);
-                        _contentController.value = TextEditingValue(
-                          text: newText,
-                          selection: TextSelection.collapsed(offset: start + emoji.length),
-                        );
-                      },
-                      onClose: () {
-                        setState(() {
-                          _showEmojiPicker = false;
-                        });
-                      },
-                    ),
+      body: GestureDetector(
+        onTap: () {
+          Navigator.pop(context);
+        },
+        behavior: HitTestBehavior.opaque,
+        child: Center(
+          child: GestureDetector(
+            onTap: () {}, // Prevent taps inside card from closing
+            child: Container(
+              width: 580,
+              constraints: const BoxConstraints(maxHeight: 640),
+              margin: const EdgeInsets.symmetric(horizontal: 20),
+              decoration: BoxDecoration(
+                color: DesignTokens.bgCard,
+                borderRadius: BorderRadius.circular(DesignTokens.radiusCard),
+                border: Border.all(color: Colors.white.withOpacity(0.08)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.5),
+                    blurRadius: 32,
+                    offset: const Offset(0, 16),
                   ),
-                ),
-            ],
+                ],
+              ),
+              child: Stack(
+                children: [
+                  // Dialog Main Content (Switch screens depending on state)
+                  _buildActiveScreen(firstName, tasksAsync, profileAsync),
+
+                  // Floating Emoji Popover (aligned dynamically relative to target smiley icon)
+                  if (_showEmojiPicker && _currentScreen == ComposerScreen.main)
+                    CompositedTransformFollower(
+                      link: _emojiLayerLink,
+                      showWhenUnlinked: false,
+                      targetAnchor: _shouldShowPopoverBelow ? Alignment.bottomRight : Alignment.topRight,
+                      followerAnchor: _shouldShowPopoverBelow ? Alignment.topRight : Alignment.bottomRight,
+                      offset: Offset(0, _shouldShowPopoverBelow ? 4 : -4), // Dynamic gap based on direction
+                      child: TapRegion(
+                        groupId: 'post_composer_emoji',
+                        onTapOutside: (_) {
+                          setState(() {
+                            _showEmojiPicker = false;
+                          });
+                        },
+                        child: EmojiPopover(
+                          arrowOffset: 12.0,
+                          isArrowTop: _shouldShowPopoverBelow,
+                          onEmojiSelected: (emoji) {
+                            final text = _contentController.text;
+                            final selection = _contentController.selection;
+                            final start = selection.start >= 0 ? selection.start : text.length;
+                            final end = selection.end >= 0 ? selection.end : text.length;
+                            final newText = text.replaceRange(start, end, emoji);
+                            _contentController.value = TextEditingValue(
+                              text: newText,
+                              selection: TextSelection.collapsed(offset: start + emoji.length),
+                            );
+                          },
+                          onClose: () {
+                            setState(() {
+                              _showEmojiPicker = false;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),

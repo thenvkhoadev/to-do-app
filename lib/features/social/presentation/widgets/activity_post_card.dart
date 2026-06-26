@@ -93,6 +93,13 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
         _localCommentReactions![reply.id] = Map<String, String>.from(reply.reactions);
       }
     }
+    
+    // Restore comment draft
+    final draft = ref.read(commentDraftsProvider)[widget.post.id];
+    if (draft != null) {
+      _commentController.text = draft.text;
+      _selectedAttachment = draft.attachment;
+    }
   }
 
 
@@ -225,6 +232,7 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
       }
       ref.invalidate(feedPostsProvider);
       
+      ref.read(commentDraftsProvider.notifier).clearDraft(widget.post.id);
       _commentController.clear();
       setState(() {
         _selectedAttachment = null;
@@ -935,6 +943,18 @@ class _ActivityPostCardState extends ConsumerState<ActivityPostCard> {
 
   @override
   Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final text = _commentController.text;
+        final attachment = _selectedAttachment;
+        final currentDraft = ref.read(commentDraftsProvider)[widget.post.id];
+        if (currentDraft == null || currentDraft.text != text || currentDraft.attachment != attachment) {
+          ref.read(commentDraftsProvider.notifier).updateDraft(widget.post.id, text);
+          ref.read(commentDraftsProvider.notifier).updateAttachment(widget.post.id, attachment);
+        }
+      }
+    });
+
     final currentUser = ref.watch(authControllerProvider).valueOrNull;
     final friendshipStatus = ref.watch(friendshipStatusProvider(widget.post.userId));
     final isMe = currentUser != null && currentUser.id == widget.post.userId;

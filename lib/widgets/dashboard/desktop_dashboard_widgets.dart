@@ -36,6 +36,7 @@ import 'package:to_do_app/features/social/presentation/screens/feed_screen.dart'
 import 'package:to_do_app/features/social/presentation/screens/friends_screen.dart';
 import 'package:to_do_app/features/social/presentation/screens/messages_screen.dart';
 import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
+import 'package:to_do_app/features/social/presentation/widgets/leave_confirmation_dialogs.dart';
 import 'package:to_do_app/widgets/dashboard/social_dropdowns.dart';
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
@@ -77,6 +78,14 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
       }
       _checkAndLoadTaskFromId();
     }
+  }
+
+  Future<bool> _checkSocialDrafts() async {
+    if (_selectedIndex == 12) {
+      final proceed = await checkDraftsAndConfirm(context, ref);
+      return proceed;
+    }
+    return true;
   }
 
   void _openTaskDetails(TaskBoardItem item) =>
@@ -239,50 +248,61 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
         DesktopSidebar(
           selectedIndex: _selectedIndex,
           onSelected:
-              (index) => setState(() {
+              (index) async {
+                if (_selectedIndex == 12 && index != 12) {
+                  final proceed = await _checkSocialDrafts();
+                  if (!proceed) return;
+                }
                 _detailsItem = null;
                 _selectedIndex = index;
                 ref.read(editingTaskProvider.notifier).state = null;
-              }),
+                setState(() {});
+              },
         ),
         Expanded(
           child: ProfileNavigationScope(
-            onProfileSelected: () {
+            onProfileSelected: () async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _detailsItem = null;
                 _selectedIndex = 7;
               });
             },
-            onSettingsSelected: () {
+            onSettingsSelected: () async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _detailsItem = null;
                 _selectedIndex = 5;
               });
             },
-            onAchievementsSelected: () {
+            onAchievementsSelected: () async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _detailsItem = null;
                 _selectedIndex = 10;
               });
             },
-            onNotificationsSelected: () {
+            onNotificationsSelected: () async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _detailsItem = null;
                 _selectedIndex = 11;
               });
             },
-            onSupportSelected: () {
+            onSupportSelected: () async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _detailsItem = null;
                 _selectedIndex = 6;
               });
             },
-            onTaskSelected: (taskId) {
+            onTaskSelected: (taskId) async {
+              if (!await _checkSocialDrafts()) return;
               ref.read(editingTaskProvider.notifier).state = null;
               setState(() {
                 _selectedIndex = -1;
@@ -290,7 +310,10 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
               });
               _openTaskDetailsFromId(taskId);
             },
-            onSignOut: () => signOutDashboard(context),
+            onSignOut: () async {
+              if (!await _checkSocialDrafts()) return;
+              signOutDashboard(context);
+            },
             child: AnimatedSwitcher(
               duration: const Duration(milliseconds: 240),
               switchInCurve: Curves.easeOutCubic,
@@ -390,7 +413,12 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                         ),
                         12 => FeedScreen(
                           key: const ValueKey('feed'),
-                          onFindFriends: () => setState(() => _selectedIndex = 13),
+                          onFindFriends: () async {
+                            final proceed = await _checkSocialDrafts();
+                            if (proceed) {
+                              setState(() => _selectedIndex = 13);
+                            }
+                          },
                         ),
                         13 => const FriendsScreen(
                           key: ValueKey('friends'),

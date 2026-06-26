@@ -121,3 +121,55 @@ class PhotoViewerState {
 
 final photoViewerStateProvider = StateProvider<PhotoViewerState?>((ref) => null);
 
+final postDraftProvider = StateProvider<String>((ref) => '');
+
+class CommentDraftState {
+  final String text;
+  final Map<String, dynamic>? attachment;
+
+  const CommentDraftState({
+    this.text = '',
+    this.attachment,
+  });
+
+  bool get isEmpty => text.trim().isEmpty && attachment == null;
+}
+
+class CommentDraftsNotifier extends StateNotifier<Map<String, CommentDraftState>> {
+  CommentDraftsNotifier() : super(const {});
+
+  void updateDraft(String postId, String text) {
+    final current = state[postId] ?? const CommentDraftState();
+    state = {
+      ...state,
+      postId: CommentDraftState(text: text, attachment: current.attachment),
+    };
+  }
+
+  void updateAttachment(String postId, Map<String, dynamic>? attachment) {
+    final current = state[postId] ?? const CommentDraftState();
+    state = {
+      ...state,
+      postId: CommentDraftState(text: current.text, attachment: attachment),
+    };
+  }
+
+  void clearDraft(String postId) {
+    if (state.containsKey(postId)) {
+      final newState = Map<String, CommentDraftState>.from(state);
+      newState.remove(postId);
+      state = newState;
+    }
+  }
+
+  bool get hasAnyDraft {
+    return state.values.any((draft) => !draft.isEmpty);
+  }
+}
+
+final commentDraftsProvider =
+    StateNotifierProvider<CommentDraftsNotifier, Map<String, CommentDraftState>>((ref) {
+  return CommentDraftsNotifier();
+});
+
+
