@@ -1,4 +1,4 @@
-enum StoryContentType { photo, taskSummary, streak, achievement }
+enum StoryContentType { photo, text, taskSummary, streak, achievement }
 
 class StoryModel {
   final String id;
@@ -33,6 +33,9 @@ class StoryModel {
     final contentTypeStr = json['content_type'] as String? ?? 'photo';
     StoryContentType contentType;
     switch (contentTypeStr) {
+      case 'text':
+        contentType = StoryContentType.text;
+        break;
       case 'taskSummary':
         contentType = StoryContentType.taskSummary;
         break;

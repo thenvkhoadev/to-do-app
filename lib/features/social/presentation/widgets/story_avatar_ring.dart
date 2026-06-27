@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:to_do_app/theme/design_tokens.dart';
 import 'package:to_do_app/features/social/data/models/story_model.dart';
+import 'package:to_do_app/features/social/presentation/providers/story_state_providers.dart';
 
 class StoryAvatarRing extends StatelessWidget {
   const StoryAvatarRing({
@@ -25,22 +26,22 @@ class StoryAvatarRing extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 140,
-        height: 230,
+        width: 116,
+        height: 200,
         margin: const EdgeInsets.symmetric(horizontal: 6),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withValues(alpha: .08)),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: .06)),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: .3),
-              blurRadius: 8,
-              offset: const Offset(0, 3),
+              color: Colors.black.withValues(alpha: .25),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(11),
           child: Stack(
             children: [
               // 1. Story Background
@@ -48,11 +49,11 @@ class StoryAvatarRing extends StatelessWidget {
                 Column(
                   children: [
                     Expanded(
-                      flex: 7,
+                      flex: 78,
                       child: Container(
                         width: double.infinity,
                         decoration: BoxDecoration(
-                          color: Colors.grey.shade900,
+                          color: const Color(0xFF1E1E2E),
                           image: avatarUrl != null && avatarUrl.isNotEmpty
                               ? DecorationImage(
                                   image: NetworkImage(avatarUrl),
@@ -61,23 +62,24 @@ class StoryAvatarRing extends StatelessWidget {
                               : null,
                         ),
                         child: avatarUrl == null || avatarUrl.isEmpty
-                            ? const Icon(Icons.person, color: Colors.white24, size: 48)
+                            ? const Icon(Icons.person, color: Colors.white24, size: 36)
                             : null,
                       ),
                     ),
                     Expanded(
-                      flex: 3,
+                      flex: 22,
                       child: Container(
                         width: double.infinity,
-                        color: const Color(0xFF1E1E2E),
-                        child: const Center(
+                        color: const Color(0xFF242526),
+                        child: const Align(
+                          alignment: Alignment.bottomCenter,
                           child: Padding(
-                            padding: EdgeInsets.only(top: 12),
+                            padding: EdgeInsets.only(bottom: 6),
                             child: Text(
                               'Tạo tin',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -89,7 +91,7 @@ class StoryAvatarRing extends StatelessWidget {
                 )
               else
                 // Friends story card background
-                _buildStoryCardBackground(),
+                Positioned.fill(child: _buildStoryCardBackground(context)),
 
               // 2. Gradient Overlay for readability of name text
               if (!isCreateItem)
@@ -97,9 +99,10 @@ class StoryAvatarRing extends StatelessWidget {
                   child: Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Colors.transparent, Colors.black54],
+                        colors: [Colors.transparent, Colors.black87],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
+                        stops: [0.4, 1.0],
                       ),
                     ),
                   ),
@@ -108,21 +111,21 @@ class StoryAvatarRing extends StatelessWidget {
               // 3. Plus Icon Button for Create Item
               if (isCreateItem)
                 Positioned(
-                  top: 144, // center it on the boundary (230 * 0.7 = 161. 161 - (34/2) = 144)
+                  top: 140, // center it on the boundary (200 * 0.78 = 156. 156 - (32/2) = 140)
                   left: 0,
                   right: 0,
                   child: Center(
                     child: Container(
-                      width: 34,
-                      height: 34,
+                      width: 32,
+                      height: 32,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: DesignTokens.gradientPrimary,
-                        border: Border.all(color: const Color(0xFF13131C), width: 2.5),
+                        color: const Color(0xFF1877F2),
+                        border: Border.all(color: const Color(0xFF242526), width: 3.5),
                       ),
                       child: const Icon(
                         Icons.add,
-                        size: 20,
+                        size: 18,
                         color: Colors.white,
                       ),
                     ),
@@ -132,32 +135,24 @@ class StoryAvatarRing extends StatelessWidget {
               // 4. Author Avatar at top-left
               if (!isCreateItem)
                 Positioned(
-                  top: 12,
-                  left: 12,
+                  top: 10,
+                  left: 10,
                   child: Container(
-                    width: 44,
-                    height: 44,
-                    padding: const EdgeInsets.all(2.5),
+                    width: 32,
+                    height: 32,
+                    padding: const EdgeInsets.all(2.0),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      gradient: hasUnseen ? DesignTokens.gradientPrimary : null,
-                      color: hasUnseen ? null : Colors.grey.shade700,
+                      color: hasUnseen ? const Color(0xFF7C5CFF) : Colors.white.withValues(alpha: 0.3),
                     ),
-                    child: Container(
-                      padding: const EdgeInsets.all(1.5),
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: DesignTokens.bgPrimary,
-                      ),
-                      child: CircleAvatar(
-                        backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
-                            ? NetworkImage(avatarUrl)
-                            : null,
-                        backgroundColor: Colors.grey.shade900,
-                        child: avatarUrl == null || avatarUrl.isEmpty
-                            ? const Icon(Icons.person, color: Colors.white54, size: 20)
-                            : null,
-                      ),
+                    child: CircleAvatar(
+                      backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
+                          ? NetworkImage(avatarUrl)
+                          : null,
+                      backgroundColor: Colors.grey.shade900,
+                      child: avatarUrl == null || avatarUrl.isEmpty
+                          ? const Icon(Icons.person, color: Colors.white54, size: 14)
+                          : null,
                     ),
                   ),
                 ),
@@ -165,24 +160,17 @@ class StoryAvatarRing extends StatelessWidget {
               // 5. Author Name at bottom-left
               if (!isCreateItem)
                 Positioned(
-                  bottom: 12,
-                  left: 12,
-                  right: 12,
+                  bottom: 10,
+                  left: 10,
+                  right: 10,
                   child: Text(
                     name,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 12.5,
-                      fontWeight: FontWeight.bold,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black,
-                          blurRadius: 4,
-                          offset: Offset(0, 1),
-                        ),
-                      ],
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
                   ),
                 ),
@@ -193,7 +181,7 @@ class StoryAvatarRing extends StatelessWidget {
     );
   }
 
-  Widget _buildStoryCardBackground() {
+  Widget _buildStoryCardBackground(BuildContext context) {
     if (story == null) return Container(color: Colors.grey.shade900);
 
     final media = story!.mediaUrl;
@@ -203,6 +191,45 @@ class StoryAvatarRing extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
+      );
+    }
+
+    if (story!.contentType == StoryContentType.text) {
+      final text = story!.autoData?['text'] ?? '';
+      final bgIndex = story!.autoData?['backgroundColorIndex'] ?? 0;
+      final fontFamily = story!.autoData?['fontFamily'] ?? 'Gọn Gàng';
+      
+      // Select font style
+      TextStyle fontStyle = const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold);
+      if (fontFamily == 'Bình Thường') {
+        fontStyle = fontStyle.copyWith(fontFamily: 'sans-serif', fontWeight: FontWeight.normal);
+      } else if (fontFamily == 'Kiểu Cách') {
+        fontStyle = fontStyle.copyWith(fontFamily: 'Georgia', fontStyle: FontStyle.italic);
+      } else if (fontFamily == 'Tiêu Đề') {
+        fontStyle = fontStyle.copyWith(fontFamily: 'monospace', fontWeight: FontWeight.w900);
+      }
+
+      // Default gradients
+      final gradients = const [
+        LinearGradient(colors: [Color(0xFF1877F2), Color(0xFF00C6FF)]),
+        LinearGradient(colors: [Color(0xFFC678DD), Color(0xFFE96FA0)]),
+        LinearGradient(colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)]),
+      ];
+      final gradient = bgIndex < gradients.length ? gradients[bgIndex] : gradients[0];
+
+      return Container(
+        width: double.infinity,
+        height: double.infinity,
+        decoration: BoxDecoration(gradient: gradient),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          maxLines: 4,
+          overflow: TextOverflow.ellipsis,
+          style: fontStyle,
+        ),
       );
     }
 
@@ -250,22 +277,22 @@ class StoryAvatarRing extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: -24,
-            bottom: -24,
+            right: -16,
+            bottom: -16,
             child: Icon(
               icon,
-              size: 110,
+              size: 64,
               color: Colors.white.withValues(alpha: .15),
             ),
           ),
           Center(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0),
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(icon, color: Colors.white, size: 32),
-                  const SizedBox(height: 8),
+                  Icon(icon, color: Colors.white, size: 24),
+                  const SizedBox(height: 4),
                   Text(
                     label,
                     textAlign: TextAlign.center,
@@ -273,8 +300,8 @@ class StoryAvatarRing extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
                 ],

@@ -1,18 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
-import 'package:to_do_app/features/social/data/models/story_model.dart';
-import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
-import 'package:to_do_app/features/social/presentation/providers/story_provider.dart';
+import 'package:to_do_app/features/social/presentation/providers/story_state_providers.dart';
 import 'package:to_do_app/features/social/presentation/widgets/stories_row.dart';
 import 'package:to_do_app/features/social/presentation/widgets/story_viewer.dart';
-import 'package:to_do_app/features/social/presentation/widgets/story_create_sheet.dart';
+import 'package:to_do_app/features/social/presentation/widgets/story_creator_view.dart';
 import 'package:to_do_app/features/social/presentation/widgets/post_composer_card.dart';
 import 'package:to_do_app/features/social/presentation/widgets/activity_post_card.dart';
 import 'package:to_do_app/features/social/presentation/widgets/empty_feed_state.dart';
 import 'package:to_do_app/features/social/presentation/widgets/feed_right_sidebar.dart';
+import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
+import 'package:to_do_app/features/social/presentation/providers/story_provider.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 
 class FeedScreen extends ConsumerWidget {
@@ -20,91 +18,147 @@ class FeedScreen extends ConsumerWidget {
 
   final VoidCallback? onFindFriends;
 
-  void _openStoryViewer(BuildContext context, WidgetRef ref, List<StoryModel> stories) {
-    showGeneralDialog(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black,
-      transitionDuration: const Duration(milliseconds: 250),
-      pageBuilder: (context, anim1, anim2) {
-        return StoryViewer(
-          stories: stories,
-          onClose: () => Navigator.pop(context),
-          onStorySeen: (storyId) async {
-            final currentUser = ref.read(authControllerProvider).valueOrNull;
-            if (currentUser != null) {
-              await ref.read(storyServiceProvider).viewStory(storyId, currentUser.id);
-            }
-          },
-        );
-      },
-    );
-  }
-
-  void _openStoryCreateSheet(BuildContext context, WidgetRef ref) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return StoryCreateSheet(
-          onCreatePhotoStory: (file) => _createPhotoStory(context, ref, file),
-          onCreateTaskStory: (count, xp) => _createTaskStory(context, ref, count, xp),
-          onCreateStreakStory: (streak) => _createStreakStory(context, ref, streak),
-          onCreateAchievementStory: (title, desc) => _createAchievementStory(context, ref, title, desc),
-        );
-      },
-    );
-  }
-
-  Future<void> _createPhotoStory(BuildContext context, WidgetRef ref, XFile file) async {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    if (currentUser == null) return;
-    final storyService = ref.read(storyServiceProvider);
-    final mediaUrl = await storyService.uploadStoryPhoto(currentUser.id, file);
-    await storyService.createStory(
-      authorId: currentUser.id,
-      contentType: StoryContentType.photo,
-      mediaUrl: mediaUrl,
-    );
-  }
-
-  Future<void> _createTaskStory(BuildContext context, WidgetRef ref, int count, int xp) async {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    if (currentUser == null) return;
-    await ref.read(storyServiceProvider).createStory(
-      authorId: currentUser.id,
-      contentType: StoryContentType.taskSummary,
-      autoData: {'taskCount': count, 'xp': xp},
-    );
-  }
-
-  Future<void> _createStreakStory(BuildContext context, WidgetRef ref, int streak) async {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    if (currentUser == null) return;
-    await ref.read(storyServiceProvider).createStory(
-      authorId: currentUser.id,
-      contentType: StoryContentType.streak,
-      autoData: {'streakCount': streak},
-    );
-  }
-
-  Future<void> _createAchievementStory(BuildContext context, WidgetRef ref, String title, String desc) async {
-    final currentUser = ref.read(authControllerProvider).valueOrNull;
-    if (currentUser == null) return;
-    await ref.read(storyServiceProvider).createStory(
-      authorId: currentUser.id,
-      contentType: StoryContentType.achievement,
-      autoData: {'title': title, 'desc': desc},
-    );
-  }
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final creatorState = ref.watch(storyCreatorProvider);
+    final viewerState = ref.watch(storyViewerStateProvider);
+
+    final isViewing = viewerState != null && viewerState.activeAuthorId != null;
+    final isCreating = creatorState != null;
+
+    // Listen for creator state on mobile to push a fullscreen route
+    ref.listen<StoryCreatorState?>(storyCreatorProvider, (previous, next) {
+      final isDesktop = MediaQuery.sizeOf(context).width >= 1200;
+      if (!isDesktop) {
+        if (next != null && previous == null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PopScope(
+                canPop: true,
+                onPopInvokedWithResult: (didPop, result) {
+                  if (didPop) {
+                    ref.read(storyCreatorProvider.notifier).reset();
+                  }
+                },
+                child: Scaffold(
+                  body: StoryCreatorView(
+                    onClose: () {
+                      ref.read(storyCreatorProvider.notifier).reset();
+                      Navigator.of(context).maybePop();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    });
+
+    // Listen for viewer state on mobile to push a fullscreen route
+    ref.listen<StoryViewerState?>(storyViewerStateProvider, (previous, next) {
+      final isDesktop = MediaQuery.sizeOf(context).width >= 1200;
+      if (!isDesktop) {
+        if (next != null && previous == null) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PopScope(
+                canPop: true,
+                onPopInvokedWithResult: (didPop, result) {
+                  if (didPop) {
+                    ref.read(storyViewerStateProvider.notifier).closeViewer();
+                  }
+                },
+                child: Scaffold(
+                  backgroundColor: Colors.black,
+                  body: StoryViewer(
+                    onClose: () {
+                      ref.read(storyViewerStateProvider.notifier).closeViewer();
+                      Navigator.of(context).maybePop();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          );
+        }
+      }
+    });
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final screenWidth = MediaQuery.sizeOf(context).width;
         final isDesktop = screenWidth >= 1200;
+
+        Widget content;
+        if (isViewing && isDesktop) {
+          content = StoryViewer(
+            onClose: () {
+              ref.read(storyViewerStateProvider.notifier).closeViewer();
+            },
+          );
+        } else if (isCreating && isDesktop) {
+          content = StoryCreatorView(
+            onClose: () {
+              ref.read(storyCreatorProvider.notifier).reset();
+            },
+          );
+        } else {
+          // Normal Feed Layout
+          content = isDesktop
+              ? Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Center Content Scroll Area
+                    Expanded(
+                      child: SingleChildScrollView(
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                        child: Center(
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxWidth: 680),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                const PostComposerCard(),
+                                const SizedBox(height: 16),
+                                _buildStoriesSection(context, ref),
+                                const SizedBox(height: 16),
+                                _buildFeedToggle(context, ref),
+                                const SizedBox(height: 16),
+                                _buildPostsList(context, ref),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    // Right Sidebar
+                    if (screenWidth >= 1280)
+                      const Padding(
+                        padding: EdgeInsets.only(top: 20),
+                        child: FeedRightSidebar(),
+                      ),
+                  ],
+                )
+              : SingleChildScrollView(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const PostComposerCard(),
+                        const SizedBox(height: 16),
+                        _buildStoriesSection(context, ref),
+                        const SizedBox(height: 16),
+                        _buildFeedToggle(context, ref),
+                        const SizedBox(height: 16),
+                        _buildPostsList(context, ref),
+                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                );
+        }
 
         if (isDesktop) {
           return Column(
@@ -113,65 +167,13 @@ class FeedScreen extends ConsumerWidget {
               const DesktopTopbar(),
               Expanded(
                 child: ClipRect(
-                  child: Overlay(
-                    initialEntries: [
-                      OverlayEntry(
-                        builder: (overlayContext) => Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // Center Content Scroll Area
-                            Expanded(
-                              child: SingleChildScrollView(
-                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                                child: Center(
-                                  child: ConstrainedBox(
-                                    constraints: const BoxConstraints(maxWidth: 680),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        const PostComposerCard(),
-                                        const SizedBox(height: 16),
-                                        _buildStoriesSection(overlayContext, ref),
-                                        const SizedBox(height: 16),
-                                        _buildFeedToggle(overlayContext, ref),
-                                        const SizedBox(height: 16),
-                                        _buildPostsList(overlayContext, ref),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ),
-                            // Right Sidebar (shown if width is wide enough)
-                            if (screenWidth >= 1280)
-                              const Padding(
-                                padding: EdgeInsets.only(top: 20),
-                                child: FeedRightSidebar(),
-                              ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
+                  child: content,
                 ),
               ),
             ],
           );
         } else {
-          // Mobile: Layout scroll is managed by the dashboard shell, so we return a Column
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const PostComposerCard(),
-              const SizedBox(height: 16),
-              _buildStoriesSection(context, ref),
-              const SizedBox(height: 16),
-              _buildFeedToggle(context, ref),
-              const SizedBox(height: 16),
-              _buildPostsList(context, ref),
-              const SizedBox(height: 24),
-            ],
-          );
+          return content;
         }
       },
     );
@@ -188,8 +190,12 @@ class FeedScreen extends ConsumerWidget {
         return StoriesRow(
           groupedStories: groupedStories,
           currentUserAvatarUrl: currentUserAvatar,
-          onCreateStoryTap: () => _openStoryCreateSheet(context, ref),
-          onAuthorStoryTap: (authorId, stories) => _openStoryViewer(context, ref, stories),
+          onCreateStoryTap: () {
+            ref.read(storyCreatorProvider.notifier).startCreating();
+          },
+          onAuthorStoryTap: (authorId, stories) {
+            ref.read(storyViewerStateProvider.notifier).openViewer(authorId, 0);
+          },
         );
       },
       loading: () => const SizedBox(

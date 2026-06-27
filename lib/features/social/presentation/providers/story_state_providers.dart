@@ -1,0 +1,755 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:dio/dio.dart';
+
+enum ImageFitType { cover, fit }
+
+// Screens inside story creator
+enum CreatorScreenType { select, text, image }
+
+// Overlay model for texts on photo stories
+class TextOverlay {
+  final String id;
+  final String text;
+  final Color color;
+  final double x; // offset X ratio
+  final double y; // offset Y ratio
+  final double scale;
+
+  TextOverlay({
+    required this.id,
+    required this.text,
+    required this.color,
+    this.x = 0.5,
+    this.y = 0.5,
+    this.scale = 1.0,
+  });
+
+  TextOverlay copyWith({
+    String? id,
+    String? text,
+    Color? color,
+    double? x,
+    double? y,
+    double? scale,
+  }) {
+    return TextOverlay(
+      id: id ?? this.id,
+      text: text ?? this.text,
+      color: color ?? this.color,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      scale: scale ?? this.scale,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'text': text,
+        'color': color.value,
+        'x': x,
+        'y': y,
+        'scale': scale,
+      };
+
+  factory TextOverlay.fromJson(Map<String, dynamic> json) => TextOverlay(
+        id: json['id'] as String,
+        text: json['text'] as String,
+        color: Color(json['color'] as int),
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        scale: (json['scale'] as num).toDouble(),
+      );
+}
+
+// Music overlay model
+class MusicOverlay {
+  final String title;
+  final String artist;
+  final String coverUrl;
+  final String audioUrl;
+  final double x;
+  final double y;
+  final double scale;
+  final int startTimeSec;
+  final int durationSec;
+  final int layoutStyle; // 0, 1, 2, 3
+
+  MusicOverlay({
+    required this.title,
+    required this.artist,
+    required this.coverUrl,
+    required this.audioUrl,
+    this.x = 0.5,
+    this.y = 0.6,
+    this.scale = 1.0,
+    this.startTimeSec = 0,
+    this.durationSec = 15,
+    this.layoutStyle = 0,
+  });
+
+  MusicOverlay copyWith({
+    String? title,
+    String? artist,
+    String? coverUrl,
+    String? audioUrl,
+    double? x,
+    double? y,
+    double? scale,
+    int? startTimeSec,
+    int? durationSec,
+    int? layoutStyle,
+  }) {
+    return MusicOverlay(
+      title: title ?? this.title,
+      artist: artist ?? this.artist,
+      coverUrl: coverUrl ?? this.coverUrl,
+      audioUrl: audioUrl ?? this.audioUrl,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      scale: scale ?? this.scale,
+      startTimeSec: startTimeSec ?? this.startTimeSec,
+      durationSec: durationSec ?? this.durationSec,
+      layoutStyle: layoutStyle ?? this.layoutStyle,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'title': title,
+        'artist': artist,
+        'coverUrl': coverUrl,
+        'audioUrl': audioUrl,
+        'x': x,
+        'y': y,
+        'scale': scale,
+        'startTimeSec': startTimeSec,
+        'durationSec': durationSec,
+        'layoutStyle': layoutStyle,
+      };
+
+  factory MusicOverlay.fromJson(Map<String, dynamic> json) => MusicOverlay(
+        title: json['title'] as String,
+        artist: json['artist'] as String,
+        coverUrl: json['coverUrl'] as String,
+        audioUrl: json['audioUrl'] as String? ?? '',
+        x: (json['x'] as num).toDouble(),
+        y: (json['y'] as num).toDouble(),
+        scale: (json['scale'] as num).toDouble(),
+        startTimeSec: json['startTimeSec'] as int,
+        durationSec: json['durationSec'] as int,
+        layoutStyle: json['layoutStyle'] as int? ?? 0,
+      );
+}
+
+// Story Creator State
+class StoryCreatorState {
+  final CreatorScreenType screenType;
+  final XFile? imageFile;
+  final double zoom;
+  final double rotation; // 0, 90, 180, 270 degrees
+  final double panX;
+  final double panY;
+  final String text;
+  final String fontFamily;
+  final int backgroundColorIndex;
+  final List<TextOverlay> textOverlays;
+  final MusicOverlay? musicOverlay;
+  final String altText;
+  final bool isAltTextAI; // true if using AI detect, false if custom text
+  final ImageFitType imageFit;
+
+  StoryCreatorState({
+    this.screenType = CreatorScreenType.select,
+    this.imageFile,
+    this.zoom = 1.0,
+    this.rotation = 0.0,
+    this.panX = 0.0,
+    this.panY = 0.0,
+    this.text = '',
+    this.fontFamily = 'Gọn Gàng',
+    this.backgroundColorIndex = 0,
+    this.textOverlays = const [],
+    this.musicOverlay,
+    this.altText = '',
+    this.isAltTextAI = true,
+    this.imageFit = ImageFitType.fit,
+  });
+
+  StoryCreatorState copyWith({
+    CreatorScreenType? screenType,
+    XFile? imageFile,
+    double? zoom,
+    double? rotation,
+    double? panX,
+    double? panY,
+    String? text,
+    String? fontFamily,
+    int? backgroundColorIndex,
+    List<TextOverlay>? textOverlays,
+    MusicOverlay? musicOverlay,
+    String? altText,
+    bool? isAltTextAI,
+    ImageFitType? imageFit,
+  }) {
+    return StoryCreatorState(
+      screenType: screenType ?? this.screenType,
+      imageFile: imageFile ?? this.imageFile,
+      zoom: zoom ?? this.zoom,
+      rotation: rotation ?? this.rotation,
+      panX: panX ?? this.panX,
+      panY: panY ?? this.panY,
+      text: text ?? this.text,
+      fontFamily: fontFamily ?? this.fontFamily,
+      backgroundColorIndex: backgroundColorIndex ?? this.backgroundColorIndex,
+      textOverlays: textOverlays ?? this.textOverlays,
+      musicOverlay: musicOverlay ?? this.musicOverlay,
+      altText: altText ?? this.altText,
+      isAltTextAI: isAltTextAI ?? this.isAltTextAI,
+      imageFit: imageFit ?? this.imageFit,
+    );
+  }
+}
+
+class StoryCreatorNotifier extends StateNotifier<StoryCreatorState?> {
+  StoryCreatorNotifier() : super(null);
+
+  void startCreating() {
+    state = StoryCreatorState(screenType: CreatorScreenType.select);
+  }
+
+  void reset() => state = null;
+
+  void setScreenType(CreatorScreenType type) {
+    if (state == null) return;
+    state = state!.copyWith(screenType: type);
+  }
+
+  void setImageFile(XFile file) => state = StoryCreatorState(
+        imageFile: file,
+        screenType: CreatorScreenType.image,
+        zoom: 1.0,
+        rotation: 0.0,
+        panX: 0.0,
+        panY: 0.0,
+        textOverlays: [],
+        musicOverlay: null,
+        imageFit: ImageFitType.fit,
+      );
+
+  void setZoom(double val) {
+    if (state == null) return;
+    state = state!.copyWith(zoom: val);
+  }
+
+  void setRotation(double val) {
+    if (state == null) return;
+    state = state!.copyWith(rotation: val);
+  }
+
+  void setPan(double x, double y) {
+    if (state == null) return;
+    state = state!.copyWith(panX: x, panY: y);
+  }
+
+  void setImageFit(ImageFitType fit) {
+    if (state == null) return;
+    state = state!.copyWith(imageFit: fit);
+  }
+
+  void setText(String val) {
+    if (state == null) return;
+    state = state!.copyWith(text: val);
+  }
+
+  void setFontFamily(String val) {
+    if (state == null) return;
+    state = state!.copyWith(fontFamily: val);
+  }
+
+  void setBackgroundColorIndex(int val) {
+    if (state == null) return;
+    state = state!.copyWith(backgroundColorIndex: val);
+  }
+
+  void addTextOverlay(TextOverlay overlay) {
+    if (state == null) return;
+    state = state!.copyWith(
+      textOverlays: [...state!.textOverlays, overlay],
+    );
+  }
+
+  void updateTextOverlay(TextOverlay overlay) {
+    if (state == null) return;
+    state = state!.copyWith(
+      textOverlays: state!.textOverlays
+          .map((o) => o.id == overlay.id ? overlay : o)
+          .toList(),
+    );
+  }
+
+  void removeTextOverlay(String id) {
+    if (state == null) return;
+    state = state!.copyWith(
+      textOverlays: state!.textOverlays.where((o) => o.id != id).toList(),
+    );
+  }
+
+  void setMusicOverlay(MusicOverlay? overlay) {
+    if (state == null) return;
+    state = state!.copyWith(musicOverlay: overlay);
+  }
+
+  void setAltText(String val, bool isAI) {
+    if (state == null) return;
+    state = state!.copyWith(altText: val, isAltTextAI: isAI);
+  }
+}
+
+final storyCreatorProvider =
+    StateNotifierProvider<StoryCreatorNotifier, StoryCreatorState?>((ref) {
+  return StoryCreatorNotifier();
+});
+
+// Story Viewer State
+class StoryViewerState {
+  final String? activeAuthorId;
+  final int activeStoryIndex;
+  final bool isPlaying;
+
+  StoryViewerState({
+    this.activeAuthorId,
+    this.activeStoryIndex = 0,
+    this.isPlaying = true,
+  });
+
+  StoryViewerState copyWith({
+    String? activeAuthorId,
+    int? activeStoryIndex,
+    bool? isPlaying,
+  }) {
+    return StoryViewerState(
+      activeAuthorId: activeAuthorId ?? this.activeAuthorId,
+      activeStoryIndex: activeStoryIndex ?? this.activeStoryIndex,
+      isPlaying: isPlaying ?? this.isPlaying,
+    );
+  }
+}
+
+class StoryViewerNotifier extends StateNotifier<StoryViewerState?> {
+  StoryViewerNotifier() : super(null);
+
+  void openViewer(String authorId, int initialIndex) {
+    state = StoryViewerState(
+      activeAuthorId: authorId,
+      activeStoryIndex: initialIndex,
+      isPlaying: true,
+    );
+  }
+
+  void closeViewer() => state = null;
+
+  void nextStory(int totalStoriesForAuthor, VoidCallback onNextAuthor) {
+    if (state == null) return;
+    if (state!.activeStoryIndex < totalStoriesForAuthor - 1) {
+      state = state!.copyWith(activeStoryIndex: state!.activeStoryIndex + 1);
+    } else {
+      // Finished all stories for this author
+      onNextAuthor();
+    }
+  }
+
+  void prevStory(VoidCallback onPrevAuthor) {
+    if (state == null) return;
+    if (state!.activeStoryIndex > 0) {
+      state = state!.copyWith(activeStoryIndex: state!.activeStoryIndex - 1);
+    } else {
+      // Go to previous author
+      onPrevAuthor();
+    }
+  }
+
+  void selectStoryIndex(int index) {
+    if (state == null) return;
+    state = state!.copyWith(activeStoryIndex: index);
+  }
+
+  void setPlaying(bool val) {
+    if (state == null) return;
+    state = state!.copyWith(isPlaying: val);
+  }
+}
+
+final storyViewerStateProvider =
+    StateNotifierProvider<StoryViewerNotifier, StoryViewerState?>((ref) {
+  return StoryViewerNotifier();
+});
+
+// Story Privacy State
+final storyPrivacyProvider = StateProvider<String>((ref) => 'public');
+
+// Mock Song class
+class StorySong {
+  final String id;
+  final String title;
+  final String artist;
+  final String coverUrl;
+  final String audioUrl;
+  final String category;
+
+  StorySong({
+    required this.id,
+    required this.title,
+    required this.artist,
+    required this.coverUrl,
+    required this.audioUrl,
+    required this.category,
+  });
+}
+
+// Fallback Mock Songs
+final List<StorySong> _defaultMockSongsList = [
+  StorySong(
+    id: '1',
+    title: 'Come My Way',
+    artist: 'Sơn Tùng M-TP, Tyga',
+    coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Mới phát hành',
+  ),
+  StorySong(
+    id: '2',
+    title: 'Dai Dai',
+    artist: 'Shakira, Burna Boy',
+    coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Mới phát hành',
+  ),
+  StorySong(
+    id: '3',
+    title: 'NO ERA AMOR',
+    artist: 'DJ Asul',
+    coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Dành cho bạn',
+  ),
+  StorySong(
+    id: '4',
+    title: 'Beautiful Things',
+    artist: 'Benson Boone',
+    coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Pop',
+  ),
+  StorySong(
+    id: '5',
+    title: 'Flowers',
+    artist: 'Miley Cyrus',
+    coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Pop',
+  ),
+  StorySong(
+    id: '6',
+    title: 'Cruel Summer',
+    artist: 'Taylor Swift',
+    coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Tình yêu',
+  ),
+  StorySong(
+    id: '7',
+    title: 'As It Was',
+    artist: 'Harry Styles',
+    coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Buổi sáng',
+  ),
+  StorySong(
+    id: '8',
+    title: 'Stay',
+    artist: 'The Kid LAROI, Justin Bieber',
+    coverUrl: 'https://images.unsplash.com/photo-1487180142328-0c4e37023af5?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Hip Hop',
+  ),
+  StorySong(
+    id: '9',
+    title: 'Blinding Lights',
+    artist: 'The Weeknd',
+    coverUrl: 'https://images.unsplash.com/photo-1501386761578-eac5c94b800a?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'R&B và Soul',
+  ),
+  StorySong(
+    id: '10',
+    title: 'Dynamite',
+    artist: 'BTS',
+    coverUrl: 'https://images.unsplash.com/photo-1533174072545-7a4b6ad7a6c3?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Cuối tuần',
+  ),
+  StorySong(
+    id: '11',
+    title: 'Sinh Nhật Vui Vẻ',
+    artist: 'Phan Đinh Tùng',
+    coverUrl: 'https://images.unsplash.com/photo-1464366400600-7168b8af9bc3?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Sinh nhật',
+  ),
+  StorySong(
+    id: '12',
+    title: 'Date Night Jazz',
+    artist: 'Jazz Master Trio',
+    coverUrl: 'https://images.unsplash.com/photo-1486591978090-58e619d37fe7?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Buổi tối hẹn hò',
+  ),
+  StorySong(
+    id: '13',
+    title: 'Gia Đình Nhỏ, Hạnh Phúc To',
+    artist: 'Nguyễn Văn Chung',
+    coverUrl: 'https://images.unsplash.com/photo-1542038784456-1ea8e935640e?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Gia đình',
+  ),
+  StorySong(
+    id: '14',
+    title: 'Sweet Rock',
+    artist: 'The Hardcore Kids',
+    coverUrl: 'https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=150&auto=format&fit=crop&q=80',
+    audioUrl: '',
+    category: 'Rock',
+  ),
+];
+
+// Mock Music Library (Now a FutureProvider fetching from iTunes API)
+final mockSongsProvider = FutureProvider<List<StorySong>>((ref) async {
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 3),
+    receiveTimeout: const Duration(seconds: 3),
+  ));
+  try {
+    // Fetch popular Vietnamese songs as default trending list
+    final response = await dio.get('https://itunes.apple.com/search?term=vietnamese&media=music&limit=60');
+    final results = response.data['results'] as List<dynamic>;
+
+    final List<StorySong> list = [];
+    int index = 0;
+    for (final item in results) {
+      final id = item['trackId']?.toString() ?? index.toString();
+      final title = item['trackName'] as String? ?? 'Bài hát không tên';
+      final artist = item['artistName'] as String? ?? 'Ca sĩ ẩn danh';
+      String coverUrl = item['artworkUrl100'] as String? ?? '';
+      if (coverUrl.contains('100x100bb')) {
+        coverUrl = coverUrl.replaceAll('100x100bb', '300x300bb');
+      }
+      final audioUrl = item['previewUrl'] as String? ?? '';
+
+      // Map dynamic categories based on index
+      String category = 'Dành cho bạn';
+      if (index < 12) {
+        category = 'Dành cho bạn';
+      } else if (index < 24) {
+        category = 'Mới phát hành';
+      } else if (index < 32) {
+        category = 'Cuối tuần';
+      } else if (index < 40) {
+        category = 'Pop';
+      } else if (index < 48) {
+        category = 'Tình yêu';
+      } else {
+        category = 'Rock';
+      }
+
+      list.add(StorySong(
+        id: id,
+        title: title,
+        artist: artist,
+        coverUrl: coverUrl,
+        audioUrl: audioUrl,
+        category: category,
+      ));
+      index++;
+    }
+    return list.isNotEmpty ? list : _defaultMockSongsList;
+  } catch (e) {
+    return _defaultMockSongsList;
+  }
+});
+
+// Search State & Provider for iTunes Real-Time search
+final musicSearchQueryProvider = StateProvider<String>((ref) => '');
+
+final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
+  final query = ref.watch(musicSearchQueryProvider);
+  if (query.trim().isEmpty) return [];
+
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 3),
+    receiveTimeout: const Duration(seconds: 3),
+  ));
+  try {
+    final response = await dio.get('https://itunes.apple.com/search?term=${Uri.encodeComponent(query)}&media=music&limit=25');
+    final results = response.data['results'] as List<dynamic>;
+
+    final List<StorySong> list = [];
+    int index = 0;
+    for (final item in results) {
+      final id = item['trackId']?.toString() ?? index.toString();
+      final title = item['trackName'] as String? ?? 'Bài hát không tên';
+      final artist = item['artistName'] as String? ?? 'Ca sĩ ẩn danh';
+      String coverUrl = item['artworkUrl100'] as String? ?? '';
+      if (coverUrl.contains('100x100bb')) {
+        coverUrl = coverUrl.replaceAll('100x100bb', '300x300bb');
+      }
+      final audioUrl = item['previewUrl'] as String? ?? '';
+
+      list.add(StorySong(
+        id: id,
+        title: title,
+        artist: artist,
+        coverUrl: coverUrl,
+        audioUrl: audioUrl,
+        category: 'Tìm kiếm',
+      ));
+      index++;
+    }
+    return list;
+  } catch (e) {
+    return [];
+  }
+});
+
+// Saved music state (list of saved song IDs)
+class SavedMusicNotifier extends StateNotifier<Set<String>> {
+  SavedMusicNotifier() : super({'3', '6'}); // Default save some songs for testing
+
+  void toggleSave(String songId) {
+    if (state.contains(songId)) {
+      state = state.where((id) => id != songId).toSet();
+    } else {
+      state = {...state, songId};
+    }
+  }
+
+  bool isSaved(String songId) => state.contains(songId);
+}
+
+final savedMusicProvider =
+    StateNotifierProvider<SavedMusicNotifier, Set<String>>((ref) {
+  return SavedMusicNotifier();
+});
+
+// Gradient list for text story background swatches
+final storyGradientsList = Provider<List<LinearGradient>>((ref) {
+  return const [
+    LinearGradient(
+      colors: [Color(0xFF1877F2), Color(0xFF00C6FF)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFC678DD), Color(0xFFE96FA0)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF3B82F6), Color(0xFF8B5CF6)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF10B981), Color(0xFF059669)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF0F2027), Color(0xFF203A43), Color(0xFF2C5364)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF833AB4), Color(0xFFFD1D1D), Color(0xFFFCB045)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // Row 2
+    LinearGradient(
+      colors: [Color(0xFF00F260), Color(0xFF0575E6)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFE0C3FC), Color(0xFF8EC5FC)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFEB3349), Color(0xFFF45C43)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF11998E), Color(0xFF38EF7D)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFA8C0FF), Color(0xFF3F2B96)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF3A6073), Color(0xFF3A7BD5)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF232526), Color(0xFF414345)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    // Extra swatches for expanded state
+    LinearGradient(
+      colors: [Color(0xFFFF0844), Color(0xFFFFB199)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF7028E4), Color(0xFFE5B2CA)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF184E68), Color(0xFF57CA85)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFFAD961), Color(0xFFF76B1C)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF30CFD0), Color(0xFF330867)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFF00FF87), Color(0xFF60EFFF)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+    LinearGradient(
+      colors: [Color(0xFFFF4E50), Color(0xFFF9D423)],
+      begin: Alignment.topLeft,
+      end: Alignment.bottomRight,
+    ),
+  ];
+});
