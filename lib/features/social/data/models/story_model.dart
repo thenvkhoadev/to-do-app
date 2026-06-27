@@ -1,4 +1,4 @@
-enum StoryContentType { photo, text, taskSummary, streak, achievement }
+enum StoryContentType { photo, text, taskSummary, streak, achievement, video }
 
 class StoryModel {
   final String id;
@@ -44,6 +44,9 @@ class StoryModel {
         break;
       case 'achievement':
         contentType = StoryContentType.achievement;
+        break;
+      case 'video':
+        contentType = StoryContentType.video;
         break;
       case 'photo':
       default:

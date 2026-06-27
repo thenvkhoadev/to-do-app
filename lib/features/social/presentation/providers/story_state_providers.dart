@@ -6,7 +6,7 @@ import 'package:dio/dio.dart';
 enum ImageFitType { cover, fit }
 
 // Screens inside story creator
-enum CreatorScreenType { select, text, image }
+enum CreatorScreenType { select, text, image, video }
 
 // Overlay model for texts on photo stories
 class TextOverlay {
@@ -146,6 +146,7 @@ class MusicOverlay {
 class StoryCreatorState {
   final CreatorScreenType screenType;
   final XFile? imageFile;
+  final XFile? videoFile;
   final double zoom;
   final double rotation; // 0, 90, 180, 270 degrees
   final double panX;
@@ -162,6 +163,7 @@ class StoryCreatorState {
   StoryCreatorState({
     this.screenType = CreatorScreenType.select,
     this.imageFile,
+    this.videoFile,
     this.zoom = 1.0,
     this.rotation = 0.0,
     this.panX = 0.0,
@@ -179,6 +181,7 @@ class StoryCreatorState {
   StoryCreatorState copyWith({
     CreatorScreenType? screenType,
     XFile? imageFile,
+    XFile? videoFile,
     double? zoom,
     double? rotation,
     double? panX,
@@ -195,6 +198,7 @@ class StoryCreatorState {
     return StoryCreatorState(
       screenType: screenType ?? this.screenType,
       imageFile: imageFile ?? this.imageFile,
+      videoFile: videoFile ?? this.videoFile,
       zoom: zoom ?? this.zoom,
       rotation: rotation ?? this.rotation,
       panX: panX ?? this.panX,
@@ -228,6 +232,18 @@ class StoryCreatorNotifier extends StateNotifier<StoryCreatorState?> {
   void setImageFile(XFile file) => state = StoryCreatorState(
         imageFile: file,
         screenType: CreatorScreenType.image,
+        zoom: 1.0,
+        rotation: 0.0,
+        panX: 0.0,
+        panY: 0.0,
+        textOverlays: [],
+        musicOverlay: null,
+        imageFit: ImageFitType.fit,
+      );
+
+  void setVideoFile(XFile file) => state = StoryCreatorState(
+        videoFile: file,
+        screenType: CreatorScreenType.video,
         zoom: 1.0,
         rotation: 0.0,
         panX: 0.0,

@@ -65,6 +65,8 @@ dependencies:
   webview_windows: ^0.4.0
   app_links: ^6.1.1
   win32_registry: ^2.1.0
+  video_player: ^2.11.1
+  video_player_win: ^3.2.2
 
 dev_dependencies:
   flutter_test:

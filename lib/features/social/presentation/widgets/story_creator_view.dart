@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
+import 'package:video_player/video_player.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -33,6 +34,10 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   
   // For text story emoji picker
   bool _showEmojiPicker = false;
+  
+  // Video Story preview controller
+  VideoPlayerController? _videoPlayerController;
+  String? _currentVideoPath;
 
   final TextEditingController _textStoryController = TextEditingController();
   final FocusNode _textStoryFocus = FocusNode();
@@ -57,7 +62,29 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
     _overlayTextController.dispose();
     _overlayTextFocus.dispose();
     _altTextController.dispose();
+    _videoPlayerController?.dispose();
     super.dispose();
+  }
+
+  Future<void> _initVideoPlayer(String path) async {
+    if (_videoPlayerController != null) {
+      await _videoPlayerController!.dispose();
+    }
+    
+    if (kIsWeb) {
+      _videoPlayerController = VideoPlayerController.networkUrl(Uri.parse(path));
+    } else {
+      _videoPlayerController = VideoPlayerController.file(File(path));
+    }
+
+    try {
+      await _videoPlayerController!.initialize();
+      await _videoPlayerController!.setLooping(true);
+      await _videoPlayerController!.play();
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error loading video preview: $e');
+    }
   }
 
   Future<void> _pickImage() async {
@@ -70,6 +97,18 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
       }
     } catch (e) {
       PremiumToast.show(context, 'Lỗi chọn ảnh: $e', isError: true);
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final picker = ImagePicker();
+    try {
+      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+      if (video != null) {
+        ref.read(storyCreatorProvider.notifier).setVideoFile(video);
+      }
+    } catch (e) {
+      PremiumToast.show(context, 'Lỗi chọn video: $e', isError: true);
     }
   }
 
@@ -142,6 +181,28 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
           mediaUrl: mediaUrl,
           autoData: autoData,
         );
+      } else if (state.screenType == CreatorScreenType.video && state.videoFile != null) {
+        // Upload video and Publish Video Story
+        final mediaUrl = await service.uploadStoryVideo(currentUser.id, state.videoFile!);
+        
+        final autoData = <String, dynamic>{
+          'altText': state.altText,
+        };
+
+        if (state.textOverlays.isNotEmpty) {
+          autoData['textOverlays'] = state.textOverlays.map((o) => o.toJson()).toList();
+        }
+
+        if (state.musicOverlay != null) {
+          autoData['music'] = state.musicOverlay!.toJson();
+        }
+
+        await service.createStory(
+          authorId: currentUser.id,
+          contentType: StoryContentType.video,
+          mediaUrl: mediaUrl,
+          autoData: autoData,
+        );
       }
 
       // Close loading & view
@@ -181,6 +242,26 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   @override
   Widget build(BuildContext context) {
     final creatorState = ref.watch(storyCreatorProvider);
+    
+    if (creatorState != null && creatorState.screenType == CreatorScreenType.video && creatorState.videoFile != null) {
+      final newPath = creatorState.videoFile!.path;
+      if (_currentVideoPath != newPath) {
+        _currentVideoPath = newPath;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _initVideoPlayer(newPath);
+        });
+      }
+    } else {
+      if (_currentVideoPath != null) {
+        _currentVideoPath = null;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _videoPlayerController?.dispose();
+          _videoPlayerController = null;
+          if (mounted) setState(() {});
+        });
+      }
+    }
+
     if (creatorState == null) return const SizedBox.shrink();
     final userProfile = ref.watch(userProfileProvider).valueOrNull;
 
@@ -660,6 +741,37 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
             ],
           ),
         );
+
+      case CreatorScreenType.video:
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Option 1: Thêm văn bản
+              _buildSidebarOption(
+                icon: Icons.title_rounded,
+                title: 'Thêm văn bản',
+                onTap: _addTextOverlay,
+              ),
+              const SizedBox(height: 12),
+
+              // Option 2: Thêm nhạc
+              _buildSidebarOption(
+                icon: Icons.music_note_rounded,
+                title: 'Thêm nhạc',
+                subtitle: creatorState.musicOverlay != null ? creatorState.musicOverlay!.title : null,
+                onTap: () {
+                  setState(() {
+                    _showMusicDialog = !_showMusicDialog;
+                    _showColorPicker = false;
+                    _showAltTextPanel = false;
+                  });
+                },
+              ),
+            ],
+          ),
+        );
     }
   }
 
@@ -713,7 +825,7 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   // BUILDER: Canvas Story Preview (Aspect ratio 9/16)
   Widget _buildCanvasPreview(StoryCreatorState creatorState) {
     if (creatorState.screenType == CreatorScreenType.select) {
-      // 2 Cards layout for choosing types (image3)
+      // 3 Cards layout for choosing types (image3)
       return Center(
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
@@ -727,6 +839,15 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
                 colors: [const Color(0xFF6EC6F5), const Color(0xFF4A90E2)],
                 icon: Icons.image_outlined,
                 onTap: _pickImage,
+              ),
+              const SizedBox(width: 24),
+              // Card: Video Creator
+              _buildTypeCard(
+                title: 'Tạo tin dạng video',
+                subtitle: 'Chọn video từ thiết bị của bạn',
+                colors: [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+                icon: Icons.video_library_rounded,
+                onTap: _pickVideo,
               ),
               const SizedBox(width: 24),
               // Card: Text Creator
@@ -759,6 +880,19 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
           gradient: gradients[creatorState.backgroundColorIndex],
         ),
       );
+    } else if (creatorState.screenType == CreatorScreenType.video) {
+      if (creatorState.videoFile != null && _videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+        background = Center(
+          child: AspectRatio(
+            aspectRatio: _videoPlayerController!.value.aspectRatio,
+            child: VideoPlayer(_videoPlayerController!),
+          ),
+        );
+      } else {
+        background = const Center(
+          child: CircularProgressIndicator(color: Colors.white),
+        );
+      }
     } else {
       // Background Image
       if (creatorState.imageFile != null) {
@@ -1524,6 +1658,14 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
                   colors: [const Color(0xFF6EC6F5), const Color(0xFF4A90E2)],
                   icon: Icons.image_outlined,
                   onTap: _pickImage,
+                ),
+                const SizedBox(height: 24),
+                _buildTypeCard(
+                  title: 'Tạo tin dạng video',
+                  subtitle: 'Chọn video từ thiết bị của bạn',
+                  colors: [const Color(0xFFEF4444), const Color(0xFFDC2626)],
+                  icon: Icons.video_library_rounded,
+                  onTap: _pickVideo,
                 ),
                 const SizedBox(height: 24),
                 _buildTypeCard(

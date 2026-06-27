@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:video_player/video_player.dart';
 import 'package:to_do_app/theme/design_tokens.dart';
 import 'package:to_do_app/features/social/data/models/story_model.dart';
 import 'package:to_do_app/features/social/presentation/providers/story_state_providers.dart';
@@ -135,15 +136,18 @@ class StoryAvatarRing extends StatelessWidget {
               // 4. Author Avatar at top-left
               if (!isCreateItem)
                 Positioned(
-                  top: 10,
-                  left: 10,
+                  top: 12,
+                  left: 12,
                   child: Container(
-                    width: 32,
-                    height: 32,
-                    padding: const EdgeInsets.all(2.0),
+                    width: 40,
+                    height: 40,
+                    padding: const EdgeInsets.all(2.5),
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: hasUnseen ? const Color(0xFF7C5CFF) : Colors.white.withValues(alpha: 0.3),
+                      border: Border.all(
+                        color: hasUnseen ? const Color(0xFF1877F2) : Colors.white.withValues(alpha: 0.3),
+                        width: hasUnseen ? 2.5 : 1.5,
+                      ),
                     ),
                     child: CircleAvatar(
                       backgroundImage: avatarUrl != null && avatarUrl.isNotEmpty
@@ -151,7 +155,7 @@ class StoryAvatarRing extends StatelessWidget {
                           : null,
                       backgroundColor: Colors.grey.shade900,
                       child: avatarUrl == null || avatarUrl.isEmpty
-                          ? const Icon(Icons.person, color: Colors.white54, size: 14)
+                          ? const Icon(Icons.person, color: Colors.white54, size: 16)
                           : null,
                     ),
                   ),
@@ -160,9 +164,9 @@ class StoryAvatarRing extends StatelessWidget {
               // 5. Author Name at bottom-left
               if (!isCreateItem)
                 Positioned(
-                  bottom: 10,
-                  left: 10,
-                  right: 10,
+                  bottom: 12,
+                  left: 12,
+                  right: 12,
                   child: Text(
                     name,
                     maxLines: 2,
@@ -170,7 +174,14 @@ class StoryAvatarRing extends StatelessWidget {
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 12,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.bold,
+                      shadows: [
+                        Shadow(
+                          color: Colors.black54,
+                          blurRadius: 4,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -185,6 +196,10 @@ class StoryAvatarRing extends StatelessWidget {
     if (story == null) return Container(color: Colors.grey.shade900);
 
     final media = story!.mediaUrl;
+    if (story!.contentType == StoryContentType.video && media != null && media.isNotEmpty) {
+      return VideoPreviewWidget(videoUrl: media);
+    }
+
     if (story!.contentType == StoryContentType.photo && media != null && media.isNotEmpty) {
       return Image.network(
         media,
@@ -309,6 +324,63 @@ class StoryAvatarRing extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class VideoPreviewWidget extends StatefulWidget {
+  final String videoUrl;
+
+  const VideoPreviewWidget({super.key, required this.videoUrl});
+
+  @override
+  State<VideoPreviewWidget> createState() => _VideoPreviewWidgetState();
+}
+
+class _VideoPreviewWidgetState extends State<VideoPreviewWidget> {
+  VideoPlayerController? _controller;
+  bool _initialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _initialized = true;
+          });
+        }
+      });
+  }
+
+  @override
+  void dispose() {
+    _controller?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_initialized && _controller != null) {
+      return SizedBox.expand(
+        child: FittedBox(
+          fit: BoxFit.cover,
+          clipBehavior: Clip.hardEdge,
+          child: SizedBox(
+            width: _controller!.value.size.width,
+            height: _controller!.value.size.height,
+            child: VideoPlayer(_controller!),
+          ),
+        ),
+      );
+    }
+    return const Center(
+      child: SizedBox(
+        width: 20,
+        height: 20,
+        child: CircularProgressIndicator(color: Colors.white30, strokeWidth: 2),
       ),
     );
   }

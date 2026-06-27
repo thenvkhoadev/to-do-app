@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:video_player/video_player.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
@@ -29,6 +30,8 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
   final FocusNode _replyFocusNode = FocusNode();
   bool _isMuted = false;
   AudioPlayer? _audioPlayer;
+  VideoPlayerController? _storyVideoController;
+  String? _currentViewerVideoUrl;
 
   @override
   void initState() {
@@ -39,8 +42,10 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
     _replyFocusNode.addListener(() {
       if (_replyFocusNode.hasFocus) {
         _animController.stop(); // Pause playback while typing
+        _storyVideoController?.pause();
       } else {
         _animController.forward(); // Resume
+        _storyVideoController?.play();
       }
     });
 
@@ -58,6 +63,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
     if (_audioPlayer != null) {
       _audioPlayer!.dispose();
     }
+    _storyVideoController?.dispose();
     super.dispose();
   }
 
@@ -99,6 +105,55 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
     }
   }
 
+  Future<void> _initStoryVideo(StoryModel story) async {
+    if (_storyVideoController != null) {
+      final oldController = _storyVideoController!;
+      _storyVideoController = null;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        oldController.dispose();
+      });
+    }
+
+    if (story.contentType != StoryContentType.video || story.mediaUrl == null || story.mediaUrl!.isEmpty) {
+      _currentViewerVideoUrl = null;
+      return;
+    }
+
+    final videoUrl = story.mediaUrl!;
+    _currentViewerVideoUrl = videoUrl;
+
+    final controller = VideoPlayerController.networkUrl(Uri.parse(videoUrl));
+    _storyVideoController = controller;
+
+    try {
+      _animController.stop();
+
+      await controller.initialize();
+      if (_currentViewerVideoUrl != videoUrl) {
+        controller.dispose();
+        return;
+      }
+
+      await controller.setVolume(_isMuted ? 0.0 : 1.0);
+      await controller.setLooping(false);
+
+      final duration = controller.value.duration;
+      _animController.duration = duration > Duration.zero ? duration : const Duration(seconds: 5);
+      
+      final viewerState = ref.read(storyViewerStateProvider);
+      final isViewerPlaying = viewerState?.isPlaying ?? true;
+      if (isViewerPlaying) {
+        await controller.play();
+        _animController.forward();
+      }
+      setState(() {});
+    } catch (e) {
+      debugPrint('Error initializing story video: $e');
+      _animController.duration = const Duration(seconds: 5);
+      _animController.forward();
+    }
+  }
+
   void _startStoryTimer() {
     _animController.stop();
     _animController.reset();
@@ -112,6 +167,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
         final activeStoryIndex = viewerState.activeStoryIndex.clamp(0, authorStories.length - 1);
         final activeStory = authorStories[activeStoryIndex];
         _playStoryMusic(activeStory);
+        _initStoryVideo(activeStory);
       }
       
       if (viewerState.isPlaying) {
@@ -205,11 +261,13 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
     notifier.setPlaying(!wasPlaying);
     if (wasPlaying) {
       _animController.stop();
+      _storyVideoController?.pause();
       if (_audioPlayer != null) {
         _audioPlayer!.pause();
       }
     } else {
       _animController.forward();
+      _storyVideoController?.play();
       if (_audioPlayer != null) {
         _audioPlayer!.resume();
       }
@@ -285,22 +343,24 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                         children: [
                           const Text(
                             'Tin',
-                            style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                            style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.arrow_back, color: Colors.white),
+                            icon: const Icon(Icons.close, color: Colors.white70),
                             onPressed: widget.onClose,
+                            padding: EdgeInsets.zero,
+                            constraints: const BoxConstraints(),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 6),
                       Row(
                         children: [
                           GestureDetector(
                             onTap: () => PremiumToast.show(context, 'Mở kho lưu trữ tin...'),
                             child: const Text(
                               'Kho lưu trữ',
-                              style: TextStyle(color: Colors.white54, fontSize: 13, decoration: TextDecoration.underline),
+                              style: TextStyle(color: Color(0xFF1877F2), fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ),
                           const Text(' · ', style: TextStyle(color: Colors.white30)),
@@ -308,7 +368,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                             onTap: _openPrivacySettings,
                             child: const Text(
                               'Cài đặt',
-                              style: TextStyle(color: Colors.white54, fontSize: 13, decoration: TextDecoration.underline),
+                              style: TextStyle(color: Color(0xFF1877F2), fontSize: 13, fontWeight: FontWeight.w600),
                             ),
                           ),
                         ],
@@ -324,13 +384,63 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                     physics: const BouncingScrollPhysics(),
                     children: [
                       // Section: Tin của bạn
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        child: Text('Tin của bạn', style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
+                      ),
                       if (currentUser != null && groupedStories.containsKey(currentUser.id)) ...[
-                        const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Text('Tin của bạn', style: TextStyle(color: Colors.white54, fontSize: 13, fontWeight: FontWeight.bold)),
-                        ),
                         _buildAuthorRow(currentUser.id, groupedStories[currentUser.id]!, activeAuthorId),
-                        const SizedBox(height: 8),
+                      ] else ...[
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                          child: InkWell(
+                            onTap: () {
+                              ref.read(storyViewerStateProvider.notifier).closeViewer();
+                              ref.read(storyCreatorProvider.notifier).startCreating();
+                            },
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 8.0),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white.withValues(alpha: .06),
+                                    ),
+                                    child: const Icon(Icons.add, color: Color(0xFF1877F2), size: 24),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Tạo tin',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                        SizedBox(height: 2),
+                                        Text(
+                                          'Bạn có thể chia sẻ ảnh hoặc viết gì đó.',
+                                          style: TextStyle(
+                                            color: Colors.white54,
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                       ],
 
                       // Section: Tất cả tin
@@ -454,6 +564,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                                         setState(() {
                                           _isMuted = !_isMuted;
                                         });
+                                        _storyVideoController?.setVolume(_isMuted ? 0.0 : 1.0);
                                         if (_audioPlayer != null) {
                                           _audioPlayer!.setVolume(_isMuted ? 0.0 : 1.0);
                                         }
@@ -615,6 +726,21 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
   }
 
   Widget _buildPlayerContent(StoryModel story) {
+    if (story.contentType == StoryContentType.video && story.mediaUrl != null) {
+      if (_storyVideoController != null && _storyVideoController!.value.isInitialized) {
+        return Center(
+          child: AspectRatio(
+            aspectRatio: _storyVideoController!.value.aspectRatio,
+            child: VideoPlayer(_storyVideoController!),
+          ),
+        );
+      } else {
+        return const Center(
+          child: CircularProgressIndicator(color: Colors.white24),
+        );
+      }
+    }
+
     if (story.contentType == StoryContentType.photo && story.mediaUrl != null) {
       final double z = (story.autoData?['zoom'] as num? ?? 1.0).toDouble();
       final double r = (story.autoData?['rotation'] as num? ?? 0.0).toDouble();
@@ -1047,6 +1173,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                     setState(() {
                       _isMuted = !_isMuted;
                     });
+                    _storyVideoController?.setVolume(_isMuted ? 0.0 : 1.0);
                     if (_audioPlayer != null) {
                       _audioPlayer!.setVolume(_isMuted ? 0.0 : 1.0);
                     }

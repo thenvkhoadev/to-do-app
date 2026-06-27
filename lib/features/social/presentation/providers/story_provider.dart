@@ -149,6 +149,31 @@ class StoryService {
       return _client.storage.from('avatars').getPublicUrl(path);
     }
   }
+
+  // Upload story video
+  Future<String> uploadStoryVideo(String userId, XFile file) async {
+    final fileBytes = await file.readAsBytes();
+    final ext = file.name.split('.').last.toLowerCase();
+    final name = 'story_video_${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final path = '$userId/$name';
+
+    try {
+      await _client.storage.from('stories').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: FileOptions(upsert: true, contentType: 'video/$ext'),
+      );
+      return _client.storage.from('stories').getPublicUrl(path);
+    } catch (_) {
+      // Fallback
+      await _client.storage.from('avatars').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: FileOptions(upsert: true, contentType: 'video/$ext'),
+      );
+      return _client.storage.from('avatars').getPublicUrl(path);
+    }
+  }
 }
 
 // Providers
