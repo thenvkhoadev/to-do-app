@@ -32,6 +32,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
   final _usernameController = TextEditingController();
   final _bioController = TextEditingController();
   final _avatarUrlController = TextEditingController();
+  final _coverUrlController = TextEditingController();
   final _locationController = TextEditingController();
 
   bool _initialized = false;
@@ -53,6 +54,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
     _usernameController.dispose();
     _bioController.dispose();
     _avatarUrlController.dispose();
+    _coverUrlController.dispose();
     _locationController.dispose();
     super.dispose();
   }
@@ -71,6 +73,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
             bio: _bioController.text.trim(),
             occupation: _occupation,
             avatarUrl: _avatarUrlController.text.trim(),
+            coverUrl: _coverUrlController.text.trim(),
             coreTech: _skills,
             locationNode: _locationController.text.trim(),
             preferredTimezone: _preferredTimezone,
@@ -144,6 +147,7 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
           _usernameController.text = profile.username ?? '';
           _bioController.text = profile.bio ?? '';
           _avatarUrlController.text = profile.avatarUrl ?? '';
+          _coverUrlController.text = profile.coverUrl ?? '';
           _themeMode = profile.themeMode;
           _notificationsEnabled = profile.notificationsEnabled;
           _privacyMode = profile.privacyMode;
@@ -218,9 +222,11 @@ class _EditProfileScreenState extends ConsumerState<EditProfileScreen> {
                             email: profile.email,
                             tier: profile.tier,
                             role: profile.role,
+                            level: profile.level,
                             fullNameController: _fullNameController,
                             usernameController: _usernameController,
                             avatarUrlController: _avatarUrlController,
+                            coverUrlController: _coverUrlController,
                             onDiscard: _discardChanges,
                             onSave: _saveChanges,
                             isSaving: _isSaving,

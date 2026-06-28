@@ -446,6 +446,8 @@ class StorySong {
   final String coverUrl;
   final String audioUrl;
   final String category;
+  final int durationSec;
+  final bool isVerified;
 
   StorySong({
     required this.id,
@@ -454,6 +456,8 @@ class StorySong {
     required this.coverUrl,
     required this.audioUrl,
     required this.category,
+    this.durationSec = 30,
+    this.isVerified = false,
   });
 }
 
@@ -575,15 +579,9 @@ final List<StorySong> _defaultMockSongsList = [
 
 // Map of Deezer Category Radios
 const Map<String, int> _deezerCategoryRadios = {
-  'Cuối tuần': 6,
-  'Sinh nhật': 7,
-  'Buổi tối hẹn hò': 8,
-  'Gia đình': 9,
-  'Tình yêu': 10,
-  'Buổi sáng': 11,
-  'R&B và Soul': 165,
   'Pop': 132,
-  'Hip Hop': 116,
+  'EDM': 106,
+  'Rap': 116,
   'Rock': 152,
 };
 
@@ -605,6 +603,7 @@ final mockSongsProvider = FutureProvider<List<StorySong>>((ref) async {
       final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
       final coverUrl = item['album']?['cover_medium'] as String? ?? '';
       final audioUrl = item['preview'] as String? ?? '';
+      final duration = item['duration'] as int? ?? 30;
 
       if (audioUrl.isEmpty) continue;
 
@@ -623,6 +622,8 @@ final mockSongsProvider = FutureProvider<List<StorySong>>((ref) async {
         coverUrl: coverUrl,
         audioUrl: audioUrl,
         category: category,
+        durationSec: duration,
+        isVerified: true,
       ));
       index++;
     }
@@ -655,6 +656,7 @@ final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
       final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
       final coverUrl = item['album']?['cover_medium'] as String? ?? '';
       final audioUrl = item['preview'] as String? ?? '';
+      final duration = item['duration'] as int? ?? 30;
 
       if (audioUrl.isNotEmpty) {
         list.add(StorySong(
@@ -664,6 +666,8 @@ final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
           coverUrl: coverUrl,
           audioUrl: audioUrl,
           category: 'Tìm kiếm',
+          durationSec: duration,
+          isVerified: true,
         ));
       }
     }
@@ -677,16 +681,21 @@ final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
 // Dynamic Radio Category Songs Provider family
 final categorySongsProvider = FutureProvider.family<List<StorySong>, String>((ref, categoryName) async {
   final radioId = _deezerCategoryRadios[categoryName];
-  if (radioId == null) return [];
-
   final dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 3),
     receiveTimeout: const Duration(seconds: 3),
   ));
 
   try {
-    final response = await dio.get('https://api.deezer.com/radio/$radioId/tracks?limit=25');
-    final results = response.data['data'] as List<dynamic>;
+    final List<dynamic> results;
+    if (radioId != null) {
+      final response = await dio.get('https://api.deezer.com/radio/$radioId/tracks?limit=25');
+      results = response.data['data'] as List<dynamic>;
+    } else {
+      // For Vpop, Kpop, Lofi, Acoustic etc. search query fallback
+      final response = await dio.get('https://api.deezer.com/search?q=${Uri.encodeComponent(categoryName)}&limit=25');
+      results = response.data['data'] as List<dynamic>;
+    }
 
     final List<StorySong> list = [];
     for (final item in results) {
@@ -695,6 +704,7 @@ final categorySongsProvider = FutureProvider.family<List<StorySong>, String>((re
       final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
       final coverUrl = item['album']?['cover_medium'] as String? ?? '';
       final audioUrl = item['preview'] as String? ?? '';
+      final duration = item['duration'] as int? ?? 30;
 
       if (audioUrl.isNotEmpty) {
         list.add(StorySong(
@@ -704,6 +714,8 @@ final categorySongsProvider = FutureProvider.family<List<StorySong>, String>((re
           coverUrl: coverUrl,
           audioUrl: audioUrl,
           category: categoryName,
+          durationSec: duration,
+          isVerified: true,
         ));
       }
     }

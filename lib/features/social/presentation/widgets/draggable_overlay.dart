@@ -56,6 +56,13 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
         });
       }
     });
+
+    _isEditing = widget.isSelected;
+    if (_isEditing) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    }
   }
 
   @override
@@ -63,6 +70,19 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
     super.didUpdateWidget(oldWidget);
     if (oldWidget.overlay.text != widget.overlay.text && _textController.text != widget.overlay.text) {
       _textController.text = widget.overlay.text;
+    }
+    if (widget.isSelected && !oldWidget.isSelected) {
+      setState(() {
+        _isEditing = true;
+      });
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _focusNode.requestFocus();
+      });
+    } else if (!widget.isSelected && oldWidget.isSelected) {
+      setState(() {
+        _isEditing = false;
+      });
+      _focusNode.unfocus();
     }
   }
 
@@ -154,111 +174,132 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
 
     final showBorder = widget.isSelected || _isHovering || _isDragging;
 
+    const double padding = 20.0;
+    final double outerW = w + padding * 2;
+    final double outerH = h + padding * 2;
+
     return Positioned(
-      left: posX - (w / 2),
-      top: posY - (h / 2),
+      left: posX - (w / 2) - padding,
+      top: posY - (h / 2) - padding,
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovering = true),
         onExit: (_) => setState(() => _isHovering = false),
         cursor: _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
-        child: GestureDetector(
-          onTap: () {
-            widget.onTap();
-            setState(() {
-              _isEditing = true;
-            });
-            _focusNode.requestFocus();
-          },
-          onPanStart: (details) {
-            widget.onTap();
-            _dragX = widget.overlay.x * widget.canvasWidth;
-            _dragY = widget.overlay.y * widget.canvasHeight;
-            setState(() {
-              _isDragging = true;
-            });
-          },
-          onPanUpdate: (details) {
-            if (_dragX == null || _dragY == null) return;
-            _dragX = _dragX! + details.delta.dx;
-            _dragY = _dragY! + details.delta.dy;
-
-            final double newX = (_dragX! / widget.canvasWidth).clamp(0.05, 0.95);
-            final double newY = (_dragY! / widget.canvasHeight).clamp(0.05, 0.95);
-            widget.onUpdate(widget.overlay.copyWith(x: newX, y: newY));
-          },
-          onPanEnd: (_) {
-            setState(() {
-              _isDragging = false;
-              _dragX = null;
-              _dragY = null;
-            });
-          },
+        child: SizedBox(
+          width: outerW,
+          height: outerH,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // The Text Container
-              Container(
+              // The Text Container with Drag & Scale Gestures
+              Positioned(
+                left: padding,
+                top: padding,
                 width: w,
                 height: h,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: showBorder
-                      ? Border.all(
-                          color: Colors.white.withValues(alpha: .6),
-                          width: 1.5,
-                          style: BorderStyle.none, // Painted dashed border instead
-                        )
-                      : null,
-                ),
-                child: CustomPaint(
-                  painter: showBorder ? DashedBorderPainter(color: Colors.white.withValues(alpha: .6)) : null,
-                  child: Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: _isEditing
-                          ? TextField(
-                              controller: _textController,
-                              focusNode: _focusNode,
-                              textAlign: TextAlign.center,
-                              maxLines: null,
-                              cursorColor: widget.overlay.color,
-                              style: TextStyle(
-                                color: widget.overlay.color,
-                                fontSize: 20 * scale,
-                                fontWeight: FontWeight.bold,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
-                                  ),
-                                ],
-                              ),
-                              decoration: const InputDecoration(
-                                border: InputBorder.none,
-                                contentPadding: EdgeInsets.zero,
-                                isDense: true,
-                              ),
-                              onChanged: (val) {
-                                widget.onUpdate(widget.overlay.copyWith(text: val));
-                              },
+                child: GestureDetector(
+                  onTap: () {
+                    widget.onTap();
+                    setState(() {
+                      _isEditing = true;
+                    });
+                    _focusNode.requestFocus();
+                  },
+                  onScaleStart: (details) {
+                    widget.onTap();
+                    _initialScale = widget.overlay.scale;
+                    _dragX = widget.overlay.x * widget.canvasWidth;
+                    _dragY = widget.overlay.y * widget.canvasHeight;
+                    setState(() {
+                      _isDragging = true;
+                    });
+                  },
+                  onScaleUpdate: (details) {
+                    if (_dragX == null || _dragY == null) return;
+                    
+                    // pinch to zoom scaling
+                    double newScale = (_initialScale * details.scale).clamp(0.5, 2.5);
+                    
+                    _dragX = _dragX! + details.focalPointDelta.dx;
+                    _dragY = _dragY! + details.focalPointDelta.dy;
+
+                    final double newX = (_dragX! / widget.canvasWidth).clamp(0.05, 0.95);
+                    final double newY = (_dragY! / widget.canvasHeight).clamp(0.05, 0.95);
+                    
+                    widget.onUpdate(widget.overlay.copyWith(
+                      x: newX,
+                      y: newY,
+                      scale: newScale,
+                    ));
+                  },
+                  onScaleEnd: (details) {
+                    setState(() {
+                      _isDragging = false;
+                      _dragX = null;
+                      _dragY = null;
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      border: showBorder
+                          ? Border.all(
+                              color: Colors.white.withValues(alpha: .6),
+                              width: 1.5,
+                              style: BorderStyle.none, // Painted dashed border instead
                             )
-                          : Text(
-                              widget.overlay.text,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                color: widget.overlay.color,
-                                fontSize: 20 * scale,
-                                fontWeight: FontWeight.bold,
-                                shadows: const [
-                                  Shadow(
-                                    color: Colors.black54,
-                                    blurRadius: 4,
-                                    offset: Offset(0, 1),
+                          : null,
+                    ),
+                    child: CustomPaint(
+                      painter: showBorder ? DashedBorderPainter(color: Colors.white.withValues(alpha: .6)) : null,
+                      child: Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: _isEditing
+                              ? TextField(
+                                  controller: _textController,
+                                  focusNode: _focusNode,
+                                  textAlign: TextAlign.center,
+                                  maxLines: null,
+                                  cursorColor: widget.overlay.color,
+                                  style: TextStyle(
+                                    color: widget.overlay.color,
+                                    fontSize: 20 * scale,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black54,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                            ),
+                                  decoration: const InputDecoration(
+                                    border: InputBorder.none,
+                                    contentPadding: EdgeInsets.zero,
+                                    isDense: true,
+                                  ),
+                                  onChanged: (val) {
+                                    widget.onUpdate(widget.overlay.copyWith(text: val));
+                                  },
+                                )
+                              : Text(
+                                  widget.overlay.text,
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: widget.overlay.color,
+                                    fontSize: 20 * scale,
+                                    fontWeight: FontWeight.bold,
+                                    shadows: const [
+                                      Shadow(
+                                        color: Colors.black54,
+                                        blurRadius: 4,
+                                        offset: Offset(0, 1),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                        ),
+                      ),
                     ),
                   ),
                 ),
@@ -267,8 +308,8 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
               // Delete Handle [x] at top-left
               if (showBorder)
                 Positioned(
-                  top: -10,
-                  left: -10,
+                  top: padding - 10,
+                  left: padding - 10,
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
@@ -289,8 +330,8 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
               // Floating Move Icon at bottom center of the border
               if (showBorder)
                 Positioned(
-                  bottom: -10,
-                  left: (w / 2) - 10,
+                  bottom: padding - 10,
+                  left: padding + (w / 2) - 10,
                   child: Container(
                     width: 20,
                     height: 20,
@@ -308,8 +349,8 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
                 // Top Right (NE)
                 _buildCornerHandle(
                   cursor: SystemMouseCursors.resizeUpRightDownLeft,
-                  left: w - 10,
-                  top: -10,
+                  left: padding + w - 10,
+                  top: padding - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -317,8 +358,8 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
                 // Bottom Right (SE)
                 _buildCornerHandle(
                   cursor: SystemMouseCursors.resizeUpLeftDownRight,
-                  left: w - 10,
-                  top: h - 10,
+                  left: padding + w - 10,
+                  top: padding + h - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -326,8 +367,8 @@ class _DraggableTextOverlayWidgetState extends State<DraggableTextOverlayWidget>
                 // Bottom Left (SW)
                 _buildCornerHandle(
                   cursor: SystemMouseCursors.resizeUpRightDownLeft,
-                  left: -10,
-                  top: h - 10,
+                  left: padding - 10,
+                  top: padding + h - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -368,7 +409,7 @@ class DraggableMusicOverlayWidget extends StatefulWidget {
   State<DraggableMusicOverlayWidget> createState() => _DraggableMusicOverlayWidgetState();
 }
 
-class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidget> {
+class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidget> with TickerProviderStateMixin {
   bool _isHovering = false;
   bool _isDragging = false;
 
@@ -384,11 +425,26 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
   Timer? _timer;
   List<Map<String, dynamic>>? _lyrics;
 
+  // Animation controllers for advanced music visualizers
+  late final AnimationController _rotationController;
+  late final AnimationController _visualizerController;
+
   @override
   void initState() {
     super.initState();
     _currentPosSec = widget.overlay.startTimeSec;
     _loadRealLyrics();
+    
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 12),
+    )..repeat();
+
+    _visualizerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat(reverse: true);
+
     _timer = Timer.periodic(const Duration(seconds: 1), (t) {
       if (mounted) {
         setState(() {
@@ -425,6 +481,8 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
   @override
   void dispose() {
     _timer?.cancel();
+    _rotationController.dispose();
+    _visualizerController.dispose();
     super.dispose();
   }
 

@@ -650,50 +650,57 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
                                               : null,
                                         ),
                                         const SizedBox(width: 10),
-                                        Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              activeStory.authorName,
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 14,
-                                                fontWeight: FontWeight.bold,
-                                                shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
-                                              ),
-                                            ),
-                                            Row(
-                                              children: [
-                                                Text(
-                                                  _timeAgo(activeStory.createdAt),
-                                                  style: TextStyle(
-                                                    color: Colors.white.withValues(alpha: .7),
-                                                    fontSize: 11,
-                                                    shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
-                                                  ),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Text(
+                                                activeStory.authorName,
+                                                overflow: TextOverflow.ellipsis,
+                                                maxLines: 1,
+                                                style: const TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.bold,
+                                                  shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
                                                 ),
-                                                 if (musicOverlay != null && musicOverlay.audioUrl.isNotEmpty) ...[
-                                                  const SizedBox(width: 6),
-                                                  const Text('•', style: TextStyle(color: Colors.white54, fontSize: 11)),
-                                                  const SizedBox(width: 6),
-                                                  const Icon(Icons.music_note_rounded, color: Color(0xFFC0A0FF), size: 12),
-                                                  const SizedBox(width: 3),
+                                              ),
+                                              Row(
+                                                children: [
                                                   Text(
-                                                    '${musicOverlay.title} - ${musicOverlay.artist}',
-                                                    style: const TextStyle(
-                                                      color: Color(0xFFE0D0FF),
+                                                    _timeAgo(activeStory.createdAt),
+                                                    style: TextStyle(
+                                                      color: Colors.white.withValues(alpha: .7),
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w500,
-                                                      shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                                                      shadows: const [Shadow(color: Colors.black54, blurRadius: 4)],
                                                     ),
                                                   ),
+                                                   if (musicOverlay != null && musicOverlay.audioUrl.isNotEmpty) ...[
+                                                    const SizedBox(width: 6),
+                                                    const Text('•', style: TextStyle(color: Colors.white54, fontSize: 11)),
+                                                    const SizedBox(width: 6),
+                                                    const Icon(Icons.music_note_rounded, color: Color(0xFFC0A0FF), size: 12),
+                                                    const SizedBox(width: 3),
+                                                    Expanded(
+                                                      child: Text(
+                                                        '${musicOverlay.title} - ${musicOverlay.artist}',
+                                                        overflow: TextOverflow.ellipsis,
+                                                        maxLines: 1,
+                                                        style: const TextStyle(
+                                                          color: Color(0xFFE0D0FF),
+                                                          fontSize: 11,
+                                                          fontWeight: FontWeight.w500,
+                                                          shadows: [Shadow(color: Colors.black54, blurRadius: 4)],
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
                                                 ],
-                                              ],
-                                            ),
-                                          ],
+                                              ),
+                                            ],
+                                          ),
                                         ),
-                                        const Spacer(),
 
                                     // Action buttons: Mute, Play/Pause, Three-dots
                                     IconButton(

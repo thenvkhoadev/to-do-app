@@ -9,17 +9,21 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:crop_your_image/crop_your_image.dart';
+import 'package:video_player/video_player.dart';
 import 'edit_profile_shared.dart';
 import '../../providers/profile_provider.dart';
+import 'package:to_do_app/screens/profile/user_profile_screen.dart';
 
 class ProfileHeaderCard extends ConsumerStatefulWidget {
   const ProfileHeaderCard({
     required this.email,
     required this.tier,
     required this.role,
+    required this.level,
     required this.fullNameController,
     required this.usernameController,
     required this.avatarUrlController,
+    required this.coverUrlController,
     required this.onDiscard,
     required this.onSave,
     this.isSaving = false,
@@ -29,9 +33,11 @@ class ProfileHeaderCard extends ConsumerStatefulWidget {
   final String email;
   final String tier;
   final String role;
+  final int level;
   final TextEditingController fullNameController;
   final TextEditingController usernameController;
   final TextEditingController avatarUrlController;
+  final TextEditingController coverUrlController;
   final VoidCallback onDiscard;
   final VoidCallback onSave;
   final bool isSaving;
@@ -91,295 +97,399 @@ class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
     }
   }
 
+  void _triggerCoverChange(BuildContext context) {
+    final userId = Supabase.instance.client.auth.currentUser?.id;
+    showEditCoverDialog(
+      context,
+      ref,
+      userId: userId,
+      coverUrlController: widget.coverUrlController,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([widget.fullNameController, widget.usernameController, widget.avatarUrlController]),
+      listenable: Listenable.merge([
+        widget.fullNameController,
+        widget.usernameController,
+        widget.avatarUrlController,
+        widget.coverUrlController,
+      ]),
       builder: (context, _) {
         final currentName = widget.fullNameController.text.isNotEmpty ? widget.fullNameController.text : 'User';
         final currentUsername = widget.usernameController.text.isNotEmpty ? widget.usernameController.text : 'username';
         final currentAvatar = widget.avatarUrlController.text.trim();
+        final currentCover = widget.coverUrlController.text.trim();
+        final hasCover = currentCover.isNotEmpty;
+        final isVideo = hasCover && isVideoUrl(currentCover);
 
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isDesktop = constraints.maxWidth >= 900;
+        return AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F1626),
+              borderRadius: BorderRadius.circular(28),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  blurRadius: 40,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(28),
+              child: Stack(
+                children: [
+                  // Cover Image Background (Only top section, top: 0 to bottom: 160!)
+                  if (hasCover && !isVideo)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: 160,
+                      child: Image.network(
+                        currentCover,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => const SizedBox(),
+                      ),
+                    ),
 
-            final avatarSize = isDesktop ? 160.0 : 120.0;
-            final cameraSize = isDesktop ? 42.0 : 36.0;
+                  // Cover Video Background (Only top section, top: 0 to bottom: 160!)
+                  if (hasCover && isVideo)
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 0,
+                      bottom: 160,
+                      child: CoverVideoPlayer(videoUrl: currentCover),
+                    ),
 
-            final avatarWidget = Center(
-              child: SizedBox(
-                width: avatarSize,
-                height: avatarSize,
-                child: Stack(
-                  clipBehavior: Clip.none,
-                  children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
+                  // Dark gradient overlay for cover photo readability (Only top section!)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    bottom: 160,
+                    child: Container(
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFF7C5CFF).withValues(alpha: 0.25),
-                            blurRadius: 30,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF7C5CFF), Color(0xFFA855F7)],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withValues(alpha: 0.25),
+                            Colors.black.withValues(alpha: 0.75),
+                          ],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
                       ),
-                      padding: const EdgeInsets.all(3),
-                      child: Hero(
-                        tag: 'profile_avatar_hero',
+                    ),
+                  ),
+
+                  // Camera Edit Cover Button (Chỉnh sửa ảnh bìa) - Top-Right
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      child: GestureDetector(
+                        onTap: () => _triggerCoverChange(context),
                         child: Container(
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: EditProfileColors.cardBg,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: GestureDetector(
-                            onTap: () => _triggerAvatarChange(context),
-                            child: Material(
-                              type: MaterialType.transparency,
-                              child: Stack(
-                                fit: StackFit.expand,
-                                children: [
-                                  currentAvatar.isNotEmpty
-                                      ? Image.network(
-                                          currentAvatar,
-                                          fit: BoxFit.cover,
-                                          errorBuilder: (_, __, ___) => _buildPlaceholderAvatar(currentUsername),
-                                        )
-                                      : _buildPlaceholderAvatar(currentUsername),
-                                  AnimatedOpacity(
-                                    opacity: _isDialogOpen ? 1.0 : 0.0,
-                                    duration: const Duration(milliseconds: 200),
-                                    child: Container(
-                                      color: Colors.black.withValues(alpha: 0.4),
-                                    ),
-                                  ),
-                                ],
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.25),
+                                blurRadius: 8,
                               ),
-                            ),
+                            ],
+                          ),
+                          child: const Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.camera_alt_outlined, color: Colors.black, size: 14),
+                              SizedBox(width: 6),
+                              Text(
+                                'Ảnh bìa',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
-                    Positioned(
-                      bottom: 8,
-                      right: 8,
-                      child: MouseRegion(
-                        onEnter: (_) => setState(() => _isCameraHovered = true),
-                        onExit: (_) => setState(() => _isCameraHovered = false),
-                        cursor: SystemMouseCursors.click,
-                        child: GestureDetector(
-                          onTap: () => _triggerAvatarChange(context),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: cameraSize,
-                            height: cameraSize,
-                            transform: Matrix4.diagonal3Values(_isCameraHovered ? 1.08 : 1.0, _isCameraHovered ? 1.08 : 1.0, 1.0),
-                            transformAlignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF7C5CFF),
-                              border: Border.all(
-                                color: const Color(0xFF0B1020),
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFF7C5CFF).withValues(
-                                    alpha: _isCameraHovered ? 0.65 : 0.45,
+                  ),
+
+                  // Solid Dark Footer Info Panel (Bottom 160px)
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    height: 160,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF0C101E), // Solid dark footer background to prevent bleeding
+                        border: Border(
+                          top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          // Avatar spacer (for overlapping avatar)
+                          const SizedBox(width: 130),
+
+                          // User primary info (name, handle, badges)
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Wrap(
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  spacing: 8,
+                                  runSpacing: 4,
+                                  children: [
+                                    Text(
+                                      currentName,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 26, // Increased from 22
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: -0.5,
+                                        fontFamily: 'Geist',
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), // Increased padding
+                                      decoration: BoxDecoration(
+                                        color: EditProfileColors.secondary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: EditProfileColors.secondary.withValues(alpha: 0.2)),
+                                      ),
+                                      child: Text(
+                                        widget.tier.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: EditProfileColors.secondary,
+                                          fontSize: 11, // Increased from 9
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3), // Increased padding
+                                      decoration: BoxDecoration(
+                                        color: EditProfileColors.primary.withValues(alpha: 0.1),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(color: EditProfileColors.primary.withValues(alpha: 0.2)),
+                                      ),
+                                      child: Text(
+                                        widget.role.toUpperCase(),
+                                        style: const TextStyle(
+                                          color: EditProfileColors.primary,
+                                          fontSize: 11, // Increased from 9
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  '@$currentUsername • ${widget.email}',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: Colors.white54,
+                                    fontSize: 14, // Increased from 12
                                   ),
-                                  blurRadius: _isCameraHovered ? 25 : 20,
-                                  spreadRadius: _isCameraHovered ? 1 : 0,
+                                ),
+                                const SizedBox(height: 10),
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                      ),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.verified, color: EditProfileColors.success, size: 14),
+                                          SizedBox(width: 6),
+                                          Text(
+                                            'Verified',
+                                            style: TextStyle(color: EditProfileColors.success, fontSize: 12, fontWeight: FontWeight.bold),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                                      ),
+                                      child: Text(
+                                        'Level ${widget.level}',
+                                        style: const TextStyle(color: EditProfileColors.textSecondary, fontSize: 12, fontWeight: FontWeight.bold),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ],
                             ),
-                            child: Center(
-                              child: AnimatedRotation(
-                                turns: _isDialogOpen ? 0.25 : 0.0,
-                                duration: const Duration(milliseconds: 300),
-                                curve: Curves.easeInOut,
-                                child: const Icon(
-                                  Icons.photo_camera,
-                                  color: Colors.white,
-                                  size: 20,
+                          ),
+
+                          const SizedBox(width: 24),
+
+                          // Quick actions (Discard & Save changes) - Constrained height to 44px to prevent vertical stretching
+                          SizedBox(
+                            height: 44,
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                OutlinedButton(
+                                  onPressed: widget.onDiscard,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: Colors.white,
+                                    side: const BorderSide(color: EditProfileColors.borderSides),
+                                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                                  ),
+                                  child: const Text(
+                                    'Discard',
+                                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                EditProfileGradientButton(
+                                  label: 'Save Changes',
+                                  isLoading: widget.isSaving,
+                                  onTap: widget.onSave,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Overlapping Avatar with Edit camera trigger (Half-overlapping footer top boundary!)
+                  Positioned(
+                    left: 24,
+                    bottom: 110, // Offset bottom to center avatar on the 160px height footer top boundary
+                    child: Stack(
+                      clipBehavior: Clip.none,
+                      alignment: Alignment.center,
+                      children: [
+                        // Outer glowing shadow
+                        Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF7C5CFF).withValues(alpha: 0.5),
+                                blurRadius: 24,
+                                spreadRadius: 4,
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Outer border ring
+                        Container(
+                          width: 110,
+                          height: 110,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFF0B1020),
+                            border: Border.all(
+                              color: const Color(0xFF7C5CFF),
+                              width: 3,
+                            ),
+                          ),
+                          child: ClipOval(
+                            child: currentAvatar.isNotEmpty
+                                ? Image.network(
+                                    currentAvatar,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => _buildPlaceholderAvatar(currentUsername),
+                                  )
+                                : _buildPlaceholderAvatar(currentUsername),
+                          ),
+                        ),
+                        // Camera Edit Button on Avatar
+                        Positioned(
+                          bottom: 2,
+                          right: 2,
+                          child: MouseRegion(
+                            onEnter: (_) => setState(() => _isCameraHovered = true),
+                            onExit: (_) => setState(() => _isCameraHovered = false),
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () => _triggerAvatarChange(context),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                width: 34,
+                                height: 34,
+                                transform: Matrix4.diagonal3Values(_isCameraHovered ? 1.08 : 1.0, _isCameraHovered ? 1.08 : 1.0, 1.0),
+                                transformAlignment: Alignment.center,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  color: const Color(0xFF7C5CFF),
+                                  border: Border.all(
+                                    color: const Color(0xFF0B1020),
+                                    width: 2.5,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF7C5CFF).withValues(
+                                        alpha: _isCameraHovered ? 0.65 : 0.45,
+                                      ),
+                                      blurRadius: _isCameraHovered ? 25 : 20,
+                                    ),
+                                  ],
+                                ),
+                                child: Center(
+                                  child: AnimatedRotation(
+                                    turns: _isDialogOpen ? 0.25 : 0.0,
+                                    duration: const Duration(milliseconds: 300),
+                                    curve: Curves.easeInOut,
+                                    child: const Icon(
+                                      Icons.photo_camera,
+                                      color: Colors.white,
+                                      size: 16,
+                                    ),
+                                  ),
                                 ),
                               ),
                             ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                  ],
-                ),
-              ),
-            );
-
-            final infoWidget = Column(
-              crossAxisAlignment: isDesktop ? CrossAxisAlignment.start : CrossAxisAlignment.center,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Wrap(
-                  alignment: isDesktop ? WrapAlignment.start : WrapAlignment.center,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  spacing: 12,
-                  runSpacing: 8,
-                  children: [
-                    Text(
-                      currentName,
-                      style: const TextStyle(
-                        color: EditProfileColors.textPrimary,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: EditProfileColors.primary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: EditProfileColors.primary.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        widget.tier.toUpperCase(),
-                        style: const TextStyle(
-                          color: EditProfileColors.primary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: EditProfileColors.secondary.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(999),
-                        border: Border.all(color: EditProfileColors.secondary.withValues(alpha: 0.2)),
-                      ),
-                      child: Text(
-                        widget.role.toUpperCase(),
-                        style: const TextStyle(
-                          color: EditProfileColors.secondary,
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  '@$currentUsername • ${widget.email}',
-                  textAlign: isDesktop ? TextAlign.left : TextAlign.center,
-                  style: const TextStyle(
-                    color: EditProfileColors.textSecondary,
-                    fontSize: 14,
                   ),
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: isDesktop ? MainAxisAlignment.start : MainAxisAlignment.center,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.verified, color: EditProfileColors.success, size: 12),
-                          SizedBox(width: 4),
-                          Text(
-                            'Verified',
-                            style: TextStyle(color: EditProfileColors.success, fontSize: 11, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
-                      ),
-                      child: const Text(
-                        'Level 42',
-                        style: TextStyle(color: EditProfileColors.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            );
-
-            final actionsWidget = Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    OutlinedButton(
-                      onPressed: widget.onDiscard,
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: EditProfileColors.textPrimary,
-                        side: const BorderSide(color: EditProfileColors.borderSides),
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      child: const Text('Discard'),
-                    ),
-                    const SizedBox(width: 12),
-                    EditProfileGradientButton(
-                      label: 'Save Changes',
-                      isLoading: widget.isSaving,
-                      onTap: widget.onSave,
-                    ),
-                  ],
-                ),
-              ],
-            );
-
-            if (isDesktop) {
-              return EditProfileGlassCard(
-                child: Row(
-                  children: [
-                    avatarWidget,
-                    const SizedBox(width: 32),
-                    Expanded(child: infoWidget),
-                    const SizedBox(width: 24),
-                    actionsWidget,
-                  ],
-                ),
-              );
-            } else {
-              return EditProfileGlassCard(
-                child: Column(
-                  children: [
-                    avatarWidget,
-                    const SizedBox(height: 24),
-                    infoWidget,
-                    const SizedBox(height: 24),
-                    actionsWidget,
-                  ],
-                ),
-              );
-            }
-          },
+                ],
+              ),
+            ),
+          ),
         );
       },
     );

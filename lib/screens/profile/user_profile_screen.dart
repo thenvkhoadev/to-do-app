@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,10 +9,15 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:crop_your_image/crop_your_image.dart';
+import 'package:video_player/video_player.dart';
 import 'package:to_do_app/features/achievements/domain/achievement.dart';
 import 'package:to_do_app/features/achievements/providers/achievements_provider.dart';
 import 'package:to_do_app/features/achievements/widgets/badge_widget.dart';
 import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
+import 'package:to_do_app/features/profile/data/datasource/profile_remote_datasource.dart';
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
@@ -95,6 +101,7 @@ class _ProfileVM {
     required this.email,
     required this.bio,
     required this.avatarUrl,
+    required this.coverUrl,
     required this.tier,
     required this.role,
     required this.joinedLabel,
@@ -113,6 +120,7 @@ class _ProfileVM {
   final String email;
   final String bio;
   final String avatarUrl;
+  final String coverUrl;
   final String tier;
   final String role;
   final String joinedLabel;
@@ -596,6 +604,7 @@ class _ProfileVM {
       email: pick(m?.email, auth.email),
       bio: (m?.bio ?? '').trim(),
       avatarUrl: pick(m?.avatarUrl, auth.avatarUrl),
+      coverUrl: m?.coverUrl ?? '',
       tier: (m?.tier ?? 'free').trim(),
       role: (m?.role ?? 'user').trim(),
       joinedLabel:
@@ -1175,38 +1184,608 @@ class _DesktopHeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final profile = vm;
-    return _GlassPanel(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: LayoutBuilder(
-          builder: (context, c) {
-            final horizontal = c.maxWidth > 700;
-            final avatar = _HeroAvatar(profile: profile);
-            final info = _HeroInfo(profile: profile, center: !horizontal);
-            final actions = _HeroActions(profile: profile);
-            if (!horizontal) {
-              return Column(
-                children: [
-                  avatar,
-                  const SizedBox(height: 24),
-                  info,
-                  const SizedBox(height: 24),
-                  actions,
-                ],
-              );
-            }
-            return Row(
-              children: [
-                avatar,
-                const SizedBox(width: 32),
-                Expanded(child: info),
-                const SizedBox(width: 24),
-                actions,
-              ],
-            );
-          },
+    final coverUrl = profile.coverUrl.trim();
+    final hasCover = coverUrl.isNotEmpty;
+    final isVideo = hasCover && isVideoUrl(coverUrl);
+
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF0C101E), // Solid dark color for the entire card background
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 40,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(28),
+          child: Stack(
+            children: [
+              // Cover Image Background (Only top section, top: 0 to bottom: 200!)
+              if (hasCover && !isVideo)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 200,
+                  child: Image.network(
+                    coverUrl,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+
+              // Video background if applicable (Only top section, top: 0 to bottom: 200!)
+              if (hasCover && isVideo)
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 200,
+                  child: CoverVideoPlayer(videoUrl: coverUrl),
+                ),
+
+              // Dark gradient overlay for cover photo readability (Only top section, top: 0 to bottom: 200!)
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 0,
+                bottom: 200,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        Colors.black.withValues(alpha: 0.25),
+                        Colors.black.withValues(alpha: 0.75),
+                      ],
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Floating XP level indicator (Top-Right)
+              Positioned(
+                top: 24,
+                right: 24,
+                child: _FloatingXpCard(profile: profile),
+              ),
+
+              // Floating Badges list (Top-Left)
+              Positioned(
+                top: 24,
+                left: 24,
+                child: _FloatingBadgesCard(profile: profile),
+              ),
+
+              // Solid Dark Footer Info Panel (Bottom)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 200,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0C101E), // Solid dark background to cover cover photo bottom section
+                    border: Border(
+                      top: BorderSide(color: Colors.white.withValues(alpha: 0.08)),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      // Avatar spacer (for overlapping avatar)
+                      const SizedBox(width: 130),
+                      
+                      // User primary info (name, handle, badges, bio, tech skills, metadata)
+                      Expanded(
+                        flex: 3,
+                        child: _FooterPrimaryInfo(profile: profile),
+                      ),
+                      
+                      const SizedBox(width: 16),
+                      
+                      // Statistics Grid
+                      Expanded(
+                        flex: 2,
+                        child: _FooterStatsGrid(profile: profile),
+                      ),
+
+                      const SizedBox(width: 24),
+
+                      // Quick action buttons
+                      _FooterActions(profile: profile),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Overlapping Avatar (Half-overlapping the footer top boundary!)
+              Positioned(
+                left: 24,
+                bottom: 145, // Offset bottom to center avatar on the top boundary of the 200px height footer
+                child: _GlowingAvatar(profile: profile),
+              ),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _GlowingAvatar extends ConsumerWidget {
+  const _GlowingAvatar({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final statusState = ref.watch(userStatusProvider);
+    final details = _getStatusDetails(statusState.status);
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.center,
+      children: [
+        // Outer glowing shadow
+        Container(
+          width: 110,
+          height: 110,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF7C5CFF).withValues(alpha: 0.5),
+                blurRadius: 24,
+                spreadRadius: 4,
+              ),
+            ],
+          ),
+        ),
+        // Outer border ring
+        Container(
+          width: 110,
+          height: 110,
+          padding: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: const Color(0xFF0B1020),
+            border: Border.all(
+              color: const Color(0xFF7C5CFF),
+              width: 3,
+            ),
+          ),
+          child: ClipOval(
+            child: _ProfileImage(
+              avatarUrl: profile.avatarUrl,
+              initial: profile.initial,
+              fontSize: 38,
+            ),
+          ),
+        ),
+        // Status dot
+        Positioned(
+          bottom: 2,
+          right: 2,
+          child: Container(
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: details.color,
+              shape: BoxShape.circle,
+              border: Border.all(color: const Color(0xFF0B1020), width: 3),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FloatingXpCard extends StatelessWidget {
+  const _FloatingXpCard({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bolt, color: Color(0xFFB388FF), size: 16),
+                  const SizedBox(width: 4),
+                  Text(
+                    'LEVEL ${profile.level}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    ' · ${profile.rankName}',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              SizedBox(
+                width: 140,
+                height: 6,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(3),
+                  child: LinearProgressIndicator(
+                    value: profile.xpProgress.clamp(0.0, 1.0),
+                    backgroundColor: Colors.white.withValues(alpha: 0.1),
+                    color: const Color(0xFF7C5CFF),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${profile.xpIntoLevel}/${profile.xpForNextLevel} XP',
+                style: const TextStyle(
+                  color: Colors.white54,
+                  fontSize: 10,
+                  fontFamily: 'JetBrains Mono',
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingBadgesCard extends ConsumerWidget {
+  const _FloatingBadgesCard({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final achievements = ref.watch(achievementsProvider);
+    // Sort descending by rarity.index to show the best unlocked badges first
+    final displayAchievements = achievements
+        .where((a) => a.isUnlocked)
+        .toList()
+      ..sort((a, b) => b.rarity.index.compareTo(a.rarity.index));
+    final top5 = displayAchievements.take(5).toList();
+
+    if (top5.isEmpty) {
+      final localAch = profile.achievements.take(5).toList();
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(16),
+        child: BackdropFilter(
+          filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.45),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: localAch.map((ach) {
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                  child: Tooltip(
+                    message: '${ach.title}: ${ach.description}',
+                    child: Icon(ach.icon, color: ach.accent, size: 24),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: 0.45),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: top5.map((ach) {
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6.0),
+                child: Tooltip(
+                  message: '${ach.name}: ${ach.description}',
+                  child: BadgeWidget(
+                    rarity: ach.rarity,
+                    icon: ach.icon,
+                    svgName: ach.svgName,
+                    size: 32,
+                    isLocked: false,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FooterPrimaryInfo extends StatelessWidget {
+  const _FooterPrimaryInfo({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context) {
+    final handle = profile.username.isEmpty
+        ? profile.email
+        : '@${profile.username} • ${profile.email}';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Wrap(
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  Text(
+                    profile.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: -0.5,
+                      fontFamily: 'Geist',
+                    ),
+                  ),
+                  _HeroBadge(
+                    label: profile.tier.toUpperCase(),
+                    color: NexusColors.secondary,
+                    bg: NexusColors.secondaryContainer.withValues(alpha: 0.4),
+                  ),
+                  _HeroBadge(
+                    label: profile.roleLabel,
+                    color: NexusColors.primary,
+                    bg: NexusColors.primary.withValues(alpha: 0.1),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 4),
+        Text(
+          handle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: Colors.white54,
+            fontSize: 12,
+          ),
+        ),
+        if (profile.bio.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Text(
+            profile.bio,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              height: 1.4,
+            ),
+          ),
+        ],
+        if (profile.coreTech.isNotEmpty) ...[
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 6,
+            runSpacing: 4,
+            children: profile.coreTech.take(4).map((tech) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+                ),
+                child: Text(
+                  tech.toUpperCase(),
+                  style: const TextStyle(
+                    color: Color(0xFFB388FF),
+                    fontSize: 9,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 4,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            if (profile.occupation?.isNotEmpty == true)
+              _buildMetaItem(Icons.work_outline, profile.occupation!),
+            if (profile.locationNode?.isNotEmpty == true)
+              _buildMetaItem(Icons.location_on_outlined, profile.locationNode!),
+            if (profile.preferredTimezone?.isNotEmpty == true)
+              _buildMetaItem(Icons.schedule, profile.preferredTimezone!.split(' ').first),
+            _buildMetaItem(Icons.calendar_month_rounded, 'SINCE ${profile.joinedLabel}'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetaItem(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, color: Colors.white38, size: 12),
+        const SizedBox(width: 4),
+        Text(
+          text.toUpperCase(),
+          style: const TextStyle(
+            color: Colors.white38,
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FooterStatsGrid extends StatelessWidget {
+  const _FooterStatsGrid({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Row(
+          children: [
+            Expanded(child: _buildStatBlock(Icons.timer_outlined, '${profile.focusHours}h', 'Focus Time')),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatBlock(Icons.task_alt_rounded, '${profile.completedTasks}', 'Tasks Done')),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: [
+            Expanded(child: _buildStatBlock(Icons.percent_rounded, '${profile.taskCompletionRate}%', 'Rate')),
+            const SizedBox(width: 8),
+            Expanded(child: _buildStatBlock(Icons.local_fire_department_rounded, '${profile.streakDays}d', 'Streak')),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatBlock(IconData icon, String value, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.03),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.04)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: const Color(0xFFB388FF), size: 18),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'JetBrains Mono',
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 9,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FooterActions extends ConsumerWidget {
+  const _FooterActions({required this.profile});
+  final _ProfileVM profile;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        _GradientButton(
+          label: 'EDIT PROFILE',
+          onTap: () => ref.read(showEditProfileProvider.notifier).state = true,
+        ),
+        const SizedBox(height: 10),
+        ElevatedButton.icon(
+          onPressed: () {
+            showEditCoverDialog(context, ref, userId: profile.model?.id);
+          },
+          icon: const Icon(Icons.camera_alt_outlined, size: 14),
+          label: const Text('Cover Photo'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.white,
+            foregroundColor: Colors.black,
+            minimumSize: const Size(120, 36),
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+            ),
+            textStyle: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1416,6 +1995,46 @@ class _HeroActions extends ConsumerWidget {
         _GradientButton(
           label: 'EDIT PROFILE',
           onTap: () => ref.read(showEditProfileProvider.notifier).state = true,
+        ),
+        const SizedBox(height: 12),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () {
+              showEditCoverDialog(context, ref, userId: profile.model?.id);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.15),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.camera_alt_outlined, color: Colors.black, size: 14),
+                  SizedBox(width: 8),
+                  Text(
+                    'CHỈNH SỬA ẢNH BÌA',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                      fontFamily: 'JetBrains Mono',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ),
         const SizedBox(height: 12),
         InkWell(
@@ -10366,3 +10985,593 @@ class _PulseTextState extends State<_PulseText>
     );
   }
 }
+
+void showEditCoverDialog(BuildContext context, WidgetRef ref, {String? userId, TextEditingController? coverUrlController}) {
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.65),
+    builder: (context) => _EditCoverPhotoDialog(userId: userId, coverUrlController: coverUrlController),
+  );
+}
+
+class _EditCoverPhotoDialog extends ConsumerStatefulWidget {
+  const _EditCoverPhotoDialog({this.userId, this.coverUrlController});
+  final String? userId;
+  final TextEditingController? coverUrlController;
+
+  @override
+  ConsumerState<_EditCoverPhotoDialog> createState() => _EditCoverPhotoDialogState();
+}
+
+class _EditCoverPhotoDialogState extends ConsumerState<_EditCoverPhotoDialog> {
+  final _cropController = CropController();
+  final _picker = ImagePicker();
+  Uint8List? _selectedBytes;
+  String? _fileName;
+  bool _isCropping = false;
+  bool _isUploading = false;
+  String? _errorMessage;
+
+  VideoPlayerController? _videoController;
+  bool _isGif = false;
+  bool _isVideo = false;
+
+  @override
+  void dispose() {
+    _videoController?.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickImage() async {
+    try {
+      _videoController?.dispose();
+      _videoController = null;
+
+      final result = await FilePicker.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['png', 'jpg', 'jpeg', 'gif', 'mp4', 'mov', 'avi', 'webm'],
+        allowMultiple: false,
+        withData: true,
+      );
+      if (result == null || result.files.isEmpty) return;
+
+      final file = result.files.first;
+      final name = file.name.toLowerCase();
+      final bytes = file.bytes;
+      final path = file.path;
+
+      Uint8List fileBytes;
+      if (bytes != null) {
+        fileBytes = bytes;
+      } else if (path != null) {
+        final ioFile = File(path);
+        fileBytes = await ioFile.readAsBytes();
+      } else {
+        throw Exception('Không thể đọc dữ liệu file');
+      }
+
+      final isGif = name.endsWith('.gif');
+      final isVideo = name.endsWith('.mp4') || name.endsWith('.mov') || name.endsWith('.avi') || name.endsWith('.webm');
+
+      if (isVideo) {
+        setState(() {
+          _isUploading = true;
+          _errorMessage = null;
+        });
+        double durationInSeconds = 0.0;
+        try {
+          if (path != null) {
+            final controller = VideoPlayerController.file(File(path));
+            await controller.initialize();
+            durationInSeconds = controller.value.duration.inMilliseconds / 1000.0;
+            await controller.dispose();
+          } else {
+            durationInSeconds = 3.0; // Fallback
+          }
+        } catch (ve) {
+          debugPrint('Lỗi kiểm tra độ dài video: $ve');
+        }
+
+        if (durationInSeconds > 5.0) {
+          setState(() {
+            _isUploading = false;
+            _errorMessage = 'Video phải dưới 5 giây (Độ dài hiện tại: ${durationInSeconds.toStringAsFixed(1)}s)';
+          });
+          return;
+        }
+      }
+
+      setState(() {
+        _selectedBytes = fileBytes;
+        _fileName = file.name;
+        _isGif = isGif;
+        _isVideo = isVideo;
+        _errorMessage = null;
+        _isCropping = false;
+        _isUploading = false;
+      });
+
+      if (isVideo && path != null) {
+        final controller = VideoPlayerController.file(File(path));
+        try {
+          await controller.initialize();
+          controller.setLooping(true);
+          controller.setVolume(0.0);
+          controller.play();
+          setState(() {
+            _videoController = controller;
+          });
+        } catch (e) {
+          debugPrint('Lỗi khởi tạo video preview: $e');
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Lỗi chọn file: $e';
+        _isUploading = false;
+      });
+    }
+  }
+
+  Future<void> _uploadDirectly() async {
+    if (_selectedBytes == null) return;
+    setState(() {
+      _isUploading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final supabase = Supabase.instance.client;
+      final userId = widget.userId ?? supabase.auth.currentUser?.id;
+      if (userId == null) {
+        throw Exception('User session not found');
+      }
+
+      final remoteDs = ref.read(profileRemoteDataSourceProvider);
+      final imageUrl = await remoteDs.uploadCoverPhoto(
+        userId,
+        _selectedBytes!,
+        fileName: _fileName ?? 'cover.bin',
+      );
+
+      if (imageUrl == null) {
+        throw Exception('Tải ảnh bìa lên thất bại');
+      }
+
+      if (widget.coverUrlController != null) {
+        widget.coverUrlController!.text = imageUrl;
+      }
+
+      await remoteDs.updateProfileInfo(userId, coverUrl: imageUrl);
+
+      if (mounted) {
+        Navigator.pop(context);
+        showDialog<void>(
+          context: context,
+          barrierColor: Colors.black.withValues(alpha: 0.6),
+          builder: (context) => const _CoverSuccessDialog(),
+        );
+      }
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Lỗi lưu ảnh bìa: $e';
+        _isUploading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: const Color(0xFF0B1020),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(24),
+        child: Container(
+          width: 600,
+          height: 500,
+          color: const Color(0xFF0B1020),
+          child: Column(
+            children: [
+              // Header
+              Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Chỉnh sửa ảnh bìa (16:9)',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white70),
+                      onPressed: () => Navigator.pop(context),
+                    ),
+                  ],
+                ),
+              ),
+              
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Colors.redAccent, fontSize: 13),
+                  ),
+                ),
+
+              // Content Area
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: _selectedBytes == null
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.image_outlined,
+                                  size: 64,
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                ),
+                                const SizedBox(height: 16),
+                                ElevatedButton.icon(
+                                  onPressed: _pickImage,
+                                  icon: const Icon(Icons.upload_file),
+                                  label: const Text('Chọn ảnh từ thiết bị'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: const Color(0xFF7C5CFF),
+                                    foregroundColor: Colors.white,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 24,
+                                      vertical: 16,
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : Stack(
+                            children: [
+                              if (_isGif || _isVideo)
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.2),
+                                  alignment: Alignment.center,
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      // 16:9 framing preview
+                                      AspectRatio(
+                                        aspectRatio: 16 / 9,
+                                        child: Container(
+                                          decoration: BoxDecoration(
+                                            border: Border.all(color: const Color(0xFF7C5CFF), width: 3),
+                                          ),
+                                          clipBehavior: Clip.antiAlias,
+                                          child: _isGif
+                                              ? Image.memory(
+                                                  _selectedBytes!,
+                                                  fit: BoxFit.cover,
+                                                )
+                                              : (_videoController != null && _videoController!.value.isInitialized
+                                                  ? VideoPlayer(_videoController!)
+                                                  : const Center(
+                                                      child: CircularProgressIndicator(color: Color(0xFF7C5CFF)),
+                                                    )),
+                                        ),
+                                      ),
+                                      Positioned(
+                                        bottom: 12,
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(alpha: 0.6),
+                                            borderRadius: BorderRadius.circular(8),
+                                          ),
+                                          child: const Text(
+                                            'Xem trước định dạng 16:9',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              else
+                                Crop(
+                                  image: _selectedBytes!,
+                                  controller: _cropController,
+                                  onCropped: (result) async {
+                                    if (!mounted) return;
+                                    if (result is CropSuccess) {
+                                      setState(() {
+                                        _isCropping = false;
+                                        _isUploading = true;
+                                      });
+                                      try {
+                                        final supabase = Supabase.instance.client;
+                                        final userId = widget.userId ?? supabase.auth.currentUser?.id;
+                                        if (userId == null) {
+                                          throw Exception('User session not found');
+                                        }
+                                        
+                                        final remoteDs = ref.read(profileRemoteDataSourceProvider);
+                                        final imageUrl = await remoteDs.uploadCoverPhoto(
+                                          userId,
+                                          result.croppedImage,
+                                          fileName: _fileName,
+                                        );
+                                        
+                                        if (imageUrl == null) {
+                                          throw Exception('Tải ảnh bìa lên thất bại');
+                                        }
+
+                                        if (widget.coverUrlController != null) {
+                                          widget.coverUrlController!.text = imageUrl;
+                                        }
+
+                                        await remoteDs.updateProfileInfo(userId, coverUrl: imageUrl);
+
+                                        if (mounted) {
+                                          Navigator.pop(context);
+                                          showDialog<void>(
+                                            context: context,
+                                            barrierColor: Colors.black.withValues(alpha: 0.6),
+                                            builder: (context) => const _CoverSuccessDialog(),
+                                          );
+                                        }
+                                      } catch (e) {
+                                        setState(() {
+                                          _errorMessage = 'Lỗi lưu ảnh bìa: $e';
+                                          _isUploading = false;
+                                        });
+                                      }
+                                    } else if (result is CropFailure) {
+                                      setState(() {
+                                        _isCropping = false;
+                                        _errorMessage = 'Cắt ảnh bìa thất bại: ${result.cause}';
+                                      });
+                                    }
+                                  },
+                                  aspectRatio: 16 / 9,
+                                  interactive: false,
+                                  maskColor: Colors.black.withValues(alpha: 0.65),
+                                  cornerDotBuilder: (size, edgeAlignment) => const DotControl(
+                                    color: Color(0xFF7C5CFF),
+                                  ),
+                                ),
+                              if (_isCropping || _isUploading)
+                                Container(
+                                  color: Colors.black.withValues(alpha: 0.5),
+                                  child: const Center(
+                                    child: CircularProgressIndicator(
+                                      color: Color(0xFF7C5CFF),
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                  ),
+                ),
+              ),
+
+              // Footer Actions
+              Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Hủy',
+                        style: TextStyle(color: Colors.white70),
+                      ),
+                    ),
+                    if (_selectedBytes != null) ...[
+                      const SizedBox(width: 16),
+                      TextButton.icon(
+                        onPressed: _isCropping || _isUploading ? null : _pickImage,
+                        icon: const Icon(Icons.refresh, size: 16, color: Colors.white70),
+                        label: const Text(
+                          'Chọn ảnh khác',
+                          style: TextStyle(color: Colors.white70),
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                      ElevatedButton(
+                        onPressed: _isCropping || _isUploading
+                            ? null
+                            : () {
+                                if (_isGif || _isVideo) {
+                                  _uploadDirectly();
+                                } else {
+                                  setState(() => _isCropping = true);
+                                  _cropController.crop();
+                                }
+                              },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF7C5CFF),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text('Lưu'),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CoverSuccessDialog extends StatelessWidget {
+  const _CoverSuccessDialog();
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      child: Container(
+        width: 400,
+        padding: const EdgeInsets.all(32),
+        decoration: BoxDecoration(
+          color: const Color(0xFF0B1020),
+          borderRadius: BorderRadius.circular(28),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.5),
+              blurRadius: 24,
+              offset: const Offset(0, 10),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF7C5CFF).withValues(alpha: 0.15),
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Color(0xFF7C5CFF),
+                size: 48,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              'Thành Công',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Text(
+              'Đã cập nhật ảnh bìa thành công!',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: 14,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C5CFF),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(double.infinity, 48),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Đóng'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+bool isVideoUrl(String url) {
+  final cleanUrl = url.toLowerCase().split('?').first;
+  return cleanUrl.endsWith('.mp4') ||
+      cleanUrl.endsWith('.mov') ||
+      cleanUrl.endsWith('.avi') ||
+      cleanUrl.endsWith('.webm');
+}
+
+class CoverVideoPlayer extends StatefulWidget {
+  const CoverVideoPlayer({required this.videoUrl, super.key});
+  final String videoUrl;
+
+  @override
+  State<CoverVideoPlayer> createState() => _CoverVideoPlayerState();
+}
+
+class _CoverVideoPlayerState extends State<CoverVideoPlayer> {
+  late VideoPlayerController _controller;
+  bool _isInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initController();
+  }
+
+  void _initController() {
+    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
+      ..initialize().then((_) {
+        if (mounted) {
+          setState(() {
+            _isInitialized = true;
+          });
+          _controller.setLooping(true);
+          _controller.setVolume(0.0);
+          _controller.play();
+        }
+      });
+  }
+
+  @override
+  void didUpdateWidget(CoverVideoPlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.videoUrl != widget.videoUrl) {
+      _controller.dispose();
+      _isInitialized = false;
+      _initController();
+    }
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isInitialized) {
+      return Container(color: const Color(0xFF12182A));
+    }
+    return SizedBox.expand(
+      child: FittedBox(
+        fit: BoxFit.cover,
+        child: SizedBox(
+          width: _controller.value.size.width,
+          height: _controller.value.size.height,
+          child: VideoPlayer(_controller),
+        ),
+      ),
+    );
+  }
+}
+

@@ -1,7 +1,9 @@
 import 'dart:io';
+import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
@@ -39,6 +41,10 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   VideoPlayerController? _videoPlayerController;
   String? _currentVideoPath;
 
+  // Unified audio player for the editor
+  late final AudioPlayer _audioPlayer;
+  StreamSubscription<Duration>? _audioPositionSubscription;
+
   final TextEditingController _textStoryController = TextEditingController();
   final FocusNode _textStoryFocus = FocusNode();
 
@@ -50,13 +56,30 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   @override
   void initState() {
     super.initState();
+    _audioPlayer = AudioPlayer();
     _textStoryController.addListener(() {
       ref.read(storyCreatorProvider.notifier).setText(_textStoryController.text);
+    });
+
+    _audioPositionSubscription = _audioPlayer.positionStream.listen((position) {
+      final state = ref.read(storyCreatorProvider);
+      if (state != null && state.musicOverlay != null && state.musicOverlay!.audioUrl.isNotEmpty) {
+        final overlay = state.musicOverlay!;
+        final startMs = overlay.startTimeSec * 1000;
+        final durationMs = overlay.durationSec * 1000;
+        final endMs = startMs + durationMs;
+        
+        if (position.inMilliseconds >= endMs) {
+          _audioPlayer.seek(Duration(milliseconds: startMs));
+        }
+      }
     });
   }
 
   @override
   void dispose() {
+    _audioPositionSubscription?.cancel();
+    _audioPlayer.dispose();
     _textStoryController.dispose();
     _textStoryFocus.dispose();
     _overlayTextController.dispose();
@@ -346,14 +369,61 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
       _selectedOverlayId = id;
       _overlayTextController.text = 'Chạm để sửa';
       _showColorPicker = true;
+      _showAltTextPanel = false;
+      _showMusicDialog = false;
     });
-    _overlayTextFocus.requestFocus();
+  }
+
+  int _getMaxMusicDuration(StoryCreatorState creatorState) {
+    if (creatorState.screenType == CreatorScreenType.video) {
+      if (_videoPlayerController != null && _videoPlayerController!.value.isInitialized) {
+        final videoDurSec = _videoPlayerController!.value.duration.inSeconds;
+        return videoDurSec.clamp(5, 90);
+      }
+      return 90;
+    }
+    return 30;
+  }
+
+  String _formatTime(int seconds) {
+    final m = seconds ~/ 60;
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   @override
   Widget build(BuildContext context) {
     final creatorState = ref.watch(storyCreatorProvider);
-    
+
+    ref.listen<StoryCreatorState?>(storyCreatorProvider, (oldState, newState) async {
+      if (newState == null) {
+        await _audioPlayer.stop();
+        return;
+      }
+      final oldOverlay = oldState?.musicOverlay;
+      final newOverlay = newState.musicOverlay;
+      if (newOverlay != oldOverlay) {
+        if (newOverlay == null || newOverlay.audioUrl.isEmpty) {
+          await _audioPlayer.stop();
+        } else if (oldOverlay?.audioUrl != newOverlay.audioUrl) {
+          try {
+            await _audioPlayer.stop();
+            await _audioPlayer.setUrl(newOverlay.audioUrl);
+            await _audioPlayer.setVolume(newOverlay.volume);
+            await _audioPlayer.seek(Duration(seconds: newOverlay.startTimeSec));
+            await _audioPlayer.play();
+          } catch (e) {
+            debugPrint('Error playing music in editor: $e');
+          }
+        } else {
+          await _audioPlayer.setVolume(newOverlay.volume);
+          if (oldOverlay?.startTimeSec != newOverlay.startTimeSec) {
+            await _audioPlayer.seek(Duration(seconds: newOverlay.startTimeSec));
+          }
+        }
+      }
+    });
+
     if (creatorState != null && creatorState.screenType == CreatorScreenType.video && creatorState.videoFile != null) {
       final newPath = creatorState.videoFile!.path;
       if (_currentVideoPath != newPath) {
@@ -379,173 +449,213 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isDesktop = screenWidth >= 1200;
 
+    final Widget layoutBody;
     if (!isDesktop) {
-      return _buildMobileLayout(context, creatorState, userProfile);
-    }
-
-    return Row(
-      children: [
-        // 1. LEFT SIDEBAR (width 360px)
-        Container(
-          width: 360,
-          color: const Color(0xFF1C1A2E),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Sidebar Header
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back, color: Colors.white70),
-                      onPressed: () async {
-                        if (await _confirmDiscard()) {
-                          ref.read(storyCreatorProvider.notifier).reset();
-                          widget.onClose();
-                        }
-                      },
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                    const SizedBox(width: 12),
-                    const Text(
-                      'Tin của bạn',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                    const Spacer(),
-                    GestureDetector(
-                      onTap: _openPrivacySettings,
-                      child: Container(
-                        width: 32,
-                        height: 32,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.white.withValues(alpha: .1),
-                        ),
-                        child: const Icon(Icons.settings, color: Colors.white, size: 18),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // User Info
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
-                child: Row(
-                  children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundImage: (userProfile?.avatarUrl != null && userProfile!.avatarUrl!.isNotEmpty)
-                          ? NetworkImage(userProfile.avatarUrl!)
-                          : null,
-                      backgroundColor: Colors.grey.shade800,
-                      child: (userProfile?.avatarUrl == null || userProfile!.avatarUrl!.isEmpty)
-                          ? const Icon(Icons.person, color: Colors.white)
-                          : null,
-                    ),
-                    const SizedBox(width: 12),
-                    Text(
-                      userProfile?.fullName ?? userProfile?.username ?? 'Vu Khoa',
-                      style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-              const Divider(color: Colors.white12, height: 24),
-
-              // Creator controls area based on screen type
-              Expanded(
-                child: SingleChildScrollView(
-                  child: _buildSidebarControls(creatorState),
-                ),
-              ),
-
-              // Footer Action Buttons
-              if (creatorState.screenType != CreatorScreenType.select)
+      layoutBody = _buildMobileLayout(context, creatorState, userProfile);
+    } else {
+      layoutBody = Row(
+        children: [
+          // 1. LEFT SIDEBAR (width 360px)
+          Container(
+            width: 360,
+            color: const Color(0xFF1C1A2E),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Sidebar Header
                 Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(
                     children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () async {
-                            if (await _confirmDiscard()) {
-                              ref.read(storyCreatorProvider.notifier).reset();
-                              setState(() {
-                                _selectedOverlayId = null;
-                                _showMusicDialog = false;
-                                _showAltTextPanel = false;
-                                _showColorPicker = false;
-                              });
-                            }
-                          },
-                          style: OutlinedButton.styleFrom(
-                            side: const BorderSide(color: Colors.white24),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
-                          child: const Text('Bỏ', style: TextStyle(color: Colors.white70)),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back, color: Colors.white70),
+                        onPressed: () async {
+                          if (await _confirmDiscard()) {
+                            ref.read(storyCreatorProvider.notifier).reset();
+                            widget.onClose();
+                          }
+                        },
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
                       const SizedBox(width: 12),
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: _shareStory,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF7C5CFF),
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                            padding: const EdgeInsets.symmetric(vertical: 14),
+                      const Text(
+                        'Tin của bạn',
+                        style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: _openPrivacySettings,
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withValues(alpha: .1),
                           ),
-                          child: const Text('Chia sẻ lên tin', style: TextStyle(fontWeight: FontWeight.bold)),
+                          child: const Icon(Icons.settings, color: Colors.white, size: 18),
                         ),
                       ),
                     ],
                   ),
                 ),
-            ],
-          ),
-        ),
 
-        // Vertical divider
-        Container(width: 1, color: Colors.white12),
-
-        // 2. CENTER PREVIEW AREA & RIGHT PANEL
-        Expanded(
-          child: Container(
-            color: const Color(0xFF0E0D16),
-            child: Row(
-              children: [
-                // Center Canvas
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                // User Info
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8),
+                  child: Row(
                     children: [
-                      _buildCanvasPreview(creatorState),
-                      
-                      // Under-canvas controls (only for image creator)
-                      if (creatorState.screenType == CreatorScreenType.image && creatorState.imageFile != null)
-                        _buildImageControls(creatorState),
+                      CircleAvatar(
+                        radius: 20,
+                        backgroundImage: (userProfile?.avatarUrl != null && userProfile!.avatarUrl!.isNotEmpty)
+                            ? NetworkImage(userProfile.avatarUrl!)
+                            : null,
+                        backgroundColor: Colors.grey.shade800,
+                        child: (userProfile?.avatarUrl == null || userProfile!.avatarUrl!.isEmpty)
+                            ? const Icon(Icons.person, color: Colors.white)
+                            : null,
+                      ),
+                      const SizedBox(width: 12),
+                      Text(
+                        userProfile?.fullName ?? userProfile?.username ?? 'Vu Khoa',
+                        style: const TextStyle(color: Colors.white, fontSize: 15, fontWeight: FontWeight.bold),
+                      ),
                     ],
                   ),
                 ),
+                const Divider(color: Colors.white12, height: 24),
 
-                // Right Panel (e.g. Music Dialog, Color Picker, Alt Text Panel)
-                if (_showMusicDialog || _showColorPicker || _showAltTextPanel) ...[
-                  Container(width: 1, color: Colors.white10),
-                  const SizedBox(width: 12),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 16.0),
-                    child: _buildRightPanel(creatorState),
+                // Creator controls area based on screen type
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: _buildSidebarControls(creatorState),
                   ),
-                  const SizedBox(width: 16),
-                ],
+                ),
+
+                // Footer Action Buttons
+                if (creatorState.screenType != CreatorScreenType.select)
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () async {
+                              if (await _confirmDiscard()) {
+                                ref.read(storyCreatorProvider.notifier).reset();
+                                setState(() {
+                                  _selectedOverlayId = null;
+                                  _showMusicDialog = false;
+                                  _showAltTextPanel = false;
+                                  _showColorPicker = false;
+                                });
+                              }
+                            },
+                            style: OutlinedButton.styleFrom(
+                              side: const BorderSide(color: Colors.white24),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Bỏ', style: TextStyle(color: Colors.white70)),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: _shareStory,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF7C5CFF),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                            ),
+                            child: const Text('Chia sẻ lên tin', style: TextStyle(fontWeight: FontWeight.bold)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
               ],
             ),
           ),
-        ),
+
+          // Vertical divider
+          Container(width: 1, color: Colors.white12),
+
+          // 2. CENTER PREVIEW AREA & RIGHT PANEL
+          Expanded(
+            child: Container(
+              color: const Color(0xFF0E0D16),
+              child: Row(
+                children: [
+                  // Center Canvas
+                  Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _buildCanvasPreview(creatorState),
+                        
+                        // Under-canvas controls (only for image creator)
+                        if (creatorState.screenType == CreatorScreenType.image && creatorState.imageFile != null)
+                          _buildImageControls(creatorState),
+                      ],
+                    ),
+                  ),
+
+                  // Right Panel (e.g. Color Picker, Alt Text Panel, Music Dialog)
+                  if (_showColorPicker || _showAltTextPanel || _showMusicDialog) ...[
+                    Container(width: 1, color: Colors.white10),
+                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16.0),
+                      child: _buildRightPanel(creatorState),
+                    ),
+                    const SizedBox(width: 16),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    return Stack(
+      children: [
+        layoutBody,
+        if (_showMusicDialog && !isDesktop)
+          Positioned.fill(
+            child: Material(
+              color: Colors.black.withValues(alpha: .5),
+              child: StoryMusicDialog(
+                audioPlayer: _audioPlayer,
+                onSongSelected: (song) {
+                  final maxDur = _getMaxMusicDuration(creatorState);
+                  final defaultDur = song.durationSec < maxDur ? song.durationSec : maxDur;
+                  final overlay = MusicOverlay(
+                    title: song.title,
+                    artist: song.artist,
+                    coverUrl: song.coverUrl,
+                    audioUrl: song.audioUrl,
+                    startTimeSec: 0,
+                    durationSec: defaultDur,
+                    layoutStyle: 6, // Style 6: Only music (no card overlay)
+                  );
+                  ref.read(storyCreatorProvider.notifier).setMusicOverlay(overlay);
+                  setState(() {
+                    _showMusicDialog = false;
+                    _selectedOverlayId = 'music';
+                  });
+                  PremiumToast.show(context, 'Đã chọn bài: ${song.title}');
+                },
+                onClose: () {
+                  setState(() {
+                    _showMusicDialog = false;
+                  });
+                },
+              ),
+            ),
+          ),
       ],
     );
   }
@@ -939,6 +1049,21 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   Widget _buildMusicConfigPanel(StoryCreatorState creatorState) {
     if (creatorState.musicOverlay == null || creatorState.musicOverlay!.audioUrl.isEmpty) return const SizedBox.shrink();
 
+    final allSongs = ref.watch(mockSongsProvider).valueOrNull ?? [];
+    final currentSong = allSongs.firstWhere(
+      (s) => s.audioUrl == creatorState.musicOverlay!.audioUrl,
+      orElse: () => StorySong(
+        id: '',
+        title: creatorState.musicOverlay!.title,
+        artist: creatorState.musicOverlay!.artist,
+        coverUrl: creatorState.musicOverlay!.coverUrl,
+        audioUrl: creatorState.musicOverlay!.audioUrl,
+        category: '',
+        durationSec: 180,
+      ),
+    );
+    final int songDurationSec = currentSong.durationSec;
+
     return Padding(
       padding: const EdgeInsets.only(top: 12.0, bottom: 12.0),
       child: Container(
@@ -951,6 +1076,139 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            // Playback controls (Play, Pause, Progress Bar, Duration)
+            const Text('TRÌNH PHÁT NHẠC', style: TextStyle(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            StreamBuilder<PlayerState>(
+              stream: _audioPlayer.playerStateStream,
+              builder: (context, snapshot) {
+                final playerState = snapshot.data;
+                final playing = playerState?.playing ?? false;
+                return Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        playing ? Icons.pause_circle_filled_rounded : Icons.play_circle_filled_rounded,
+                        color: const Color(0xFF7C5CFF),
+                        size: 32,
+                      ),
+                      onPressed: () {
+                        if (playing) {
+                          _audioPlayer.pause();
+                        } else {
+                          _audioPlayer.play();
+                        }
+                      },
+                    ),
+                    Expanded(
+                      child: StreamBuilder<Duration>(
+                        stream: _audioPlayer.positionStream,
+                        builder: (context, posSnapshot) {
+                          final position = posSnapshot.data ?? Duration.zero;
+                          final startSec = creatorState.musicOverlay!.startTimeSec;
+                          final durSec = creatorState.musicOverlay!.durationSec;
+                          
+                          // Calculate relative position within the segment
+                          final relativeMs = (position.inMilliseconds - startSec * 1000).clamp(0, durSec * 1000);
+                          final double value = durSec > 0 ? (relativeMs / (durSec * 1000)) : 0.0;
+                          
+                          return Column(
+                            children: [
+                              SliderTheme(
+                                data: SliderTheme.of(context).copyWith(
+                                  trackHeight: 3,
+                                  thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6),
+                                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 10),
+                                ),
+                                child: Slider(
+                                  value: value,
+                                  activeColor: const Color(0xFF7C5CFF),
+                                  inactiveColor: Colors.white10,
+                                  onChanged: (val) {
+                                    final targetMs = (startSec * 1000) + (val * durSec * 1000);
+                                    _audioPlayer.seek(Duration(milliseconds: targetMs.toInt()));
+                                  },
+                                ),
+                              ),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(_formatTime(relativeMs ~/ 1000), style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                    Text('${durSec}s', style: const TextStyle(color: Colors.white38, fontSize: 10)),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Start position slider
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Bắt đầu từ', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  _formatTime(creatorState.musicOverlay!.startTimeSec),
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+              ],
+            ),
+            Slider(
+              value: creatorState.musicOverlay!.startTimeSec.toDouble(),
+              min: 0.0,
+              max: (songDurationSec - creatorState.musicOverlay!.durationSec).toDouble().clamp(0.0, songDurationSec.toDouble()),
+              activeColor: const Color(0xFF7C5CFF),
+              inactiveColor: Colors.white10,
+              onChanged: (val) {
+                ref.read(storyCreatorProvider.notifier).setMusicOverlay(
+                      creatorState.musicOverlay!.copyWith(startTimeSec: val.toInt()),
+                    );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Duration slider
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Thời lượng phát', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                Text(
+                  '${creatorState.musicOverlay!.durationSec} giây',
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+              ],
+            ),
+            Slider(
+              value: creatorState.musicOverlay!.durationSec.toDouble(),
+              min: 5.0,
+              max: _getMaxMusicDuration(creatorState).toDouble(),
+              activeColor: const Color(0xFF7C5CFF),
+              inactiveColor: Colors.white10,
+              onChanged: (val) {
+                final newDuration = val.toInt();
+                int newStart = creatorState.musicOverlay!.startTimeSec;
+                if (newStart + newDuration > songDurationSec) {
+                  newStart = (songDurationSec - newDuration).clamp(0, songDurationSec);
+                }
+                ref.read(storyCreatorProvider.notifier).setMusicOverlay(
+                      creatorState.musicOverlay!.copyWith(
+                        durationSec: newDuration,
+                        startTimeSec: newStart,
+                      ),
+                    );
+              },
+            ),
+            const SizedBox(height: 12),
+
             // Music volume
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -963,7 +1221,7 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
               value: creatorState.musicOverlay!.volume,
               min: 0.0,
               max: 1.0,
-              activeColor: const Color(0xFF3B82F6),
+              activeColor: const Color(0xFF7C5CFF),
               inactiveColor: Colors.white10,
               onChanged: (val) {
                 ref.read(storyCreatorProvider.notifier).setMusicOverlay(
@@ -978,15 +1236,16 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
             Wrap(
               spacing: 8,
               runSpacing: 8,
-              children: List.generate(7, (index) {
+              children: List.generate(8, (index) {
                 final isActive = creatorState.musicOverlay!.layoutStyle == index;
                 IconData styleIcon = Icons.portrait_rounded;
                 if (index == 1) styleIcon = Icons.developer_board_rounded;
                 if (index == 2) styleIcon = Icons.splitscreen_rounded;
                 if (index == 3) styleIcon = Icons.album_rounded;
                 if (index == 4) styleIcon = Icons.format_align_center_rounded;
-                if (index == 5) styleIcon = Icons.text_fields_rounded;
-                if (index == 6) styleIcon = Icons.music_note_rounded;
+                if (index == 5) styleIcon = Icons.equalizer_rounded;
+                if (index == 6) styleIcon = Icons.waves_rounded;
+                if (index == 7) styleIcon = Icons.music_note_rounded;
 
                 return GestureDetector(
                   onTap: () {
@@ -1001,14 +1260,14 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
                       shape: BoxShape.circle,
                       color: Colors.white.withValues(alpha: isActive ? .15 : .06),
                       border: Border.all(
-                        color: isActive ? const Color(0xFF3B82F6) : Colors.transparent,
+                        color: isActive ? const Color(0xFF7C5CFF) : Colors.transparent,
                         width: 2,
                       ),
                     ),
                     child: Center(
                       child: Icon(
                         styleIcon,
-                        color: isActive ? const Color(0xFF3B82F6) : Colors.white70,
+                        color: isActive ? const Color(0xFF7C5CFF) : Colors.white70,
                         size: 16,
                       ),
                     ),
@@ -1241,8 +1500,8 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
                 ),
               ),
 
-            // 3. Render Draggable Text Overlays (only for Image Creator)
-            if (creatorState.screenType == CreatorScreenType.image)
+            // 3. Render Draggable Text Overlays (only for Image & Video Creator)
+            if (creatorState.screenType == CreatorScreenType.image || creatorState.screenType == CreatorScreenType.video)
               ...creatorState.textOverlays.map((overlay) {
                 final isSelected = _selectedOverlayId == overlay.id;
                 return DraggableTextOverlayWidget(
@@ -1483,29 +1742,44 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
   // BUILDER: Right drawer panel (image8 / image13 / image15)
   Widget _buildRightPanel(StoryCreatorState creatorState) {
     if (_showMusicDialog) {
-      return StoryMusicDialog(
-        onSongSelected: (song) {
-          final overlay = MusicOverlay(
-            title: song.title,
-            artist: song.artist,
-            coverUrl: song.coverUrl,
-            audioUrl: song.audioUrl,
-            startTimeSec: 0,
-            durationSec: 15,
-            layoutStyle: 0,
-          );
-          ref.read(storyCreatorProvider.notifier).setMusicOverlay(overlay);
-          setState(() {
-            _showMusicDialog = false;
-            _selectedOverlayId = 'music'; // Select the newly added music card
-          });
-          PremiumToast.show(context, 'Đã chọn bài: ${song.title}');
-        },
-        onClose: () {
-          setState(() {
-            _showMusicDialog = false;
-          });
-        },
+      return Container(
+        width: 360,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1C1A2E),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: .06)),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: StoryMusicDialog(
+            audioPlayer: _audioPlayer,
+            isInline: true,
+            onSongSelected: (song) {
+              final maxDur = _getMaxMusicDuration(creatorState);
+              final defaultDur = song.durationSec < maxDur ? song.durationSec : maxDur;
+              final overlay = MusicOverlay(
+                title: song.title,
+                artist: song.artist,
+                coverUrl: song.coverUrl,
+                audioUrl: song.audioUrl,
+                startTimeSec: 0,
+                durationSec: defaultDur,
+                layoutStyle: 6, // Default to audio-only
+              );
+              ref.read(storyCreatorProvider.notifier).setMusicOverlay(overlay);
+              setState(() {
+                _showMusicDialog = false;
+                _selectedOverlayId = 'music';
+              });
+              PremiumToast.show(context, 'Đã chọn bài: ${song.title}');
+            },
+            onClose: () {
+              setState(() {
+                _showMusicDialog = false;
+              });
+            },
+          ),
+        ),
       );
     }
 
@@ -1968,22 +2242,6 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
       );
     }
 
-    if (_showMusicDialog) {
-      return Scaffold(
-        backgroundColor: const Color(0xFF1C1A2E),
-        appBar: AppBar(
-          backgroundColor: Colors.transparent,
-          elevation: 0,
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back, color: Colors.white),
-            onPressed: () => setState(() => _showMusicDialog = false),
-          ),
-          title: const Text('Thêm nhạc', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
-          centerTitle: true,
-        ),
-        body: _buildRightPanel(creatorState),
-      );
-    }
 
     if (creatorState.screenType == CreatorScreenType.text) {
       return Scaffold(

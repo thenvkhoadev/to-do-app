@@ -5,6 +5,7 @@ class UserProfileModel {
     this.username,
     this.fullName,
     this.avatarUrl,
+    this.coverUrl,
     this.bio,
     this.occupation,
     this.tier = 'free',
@@ -44,6 +45,7 @@ class UserProfileModel {
   final String? username;
   final String? fullName;
   final String? avatarUrl;
+  final String? coverUrl;
   final String? bio;
   final String? occupation;
   final String tier;
@@ -91,6 +93,7 @@ class UserProfileModel {
       username: json['username']?.toString(),
       fullName: json['full_name']?.toString(),
       avatarUrl: json['avatar_url']?.toString(),
+      coverUrl: json['cover_url']?.toString(),
       bio: json['bio']?.toString(),
       occupation: json['occupation']?.toString(),
       tier: json['tier']?.toString() ?? 'free',

@@ -76,6 +76,7 @@ class ProfileRemoteDataSource {
     String? bio,
     String? occupation,
     String? avatarUrl,
+    String? coverUrl,
     List<String>? coreTech,
     String? locationNode,
     String? preferredTimezone,
@@ -88,6 +89,7 @@ class ProfileRemoteDataSource {
     if (bio != null) patch['bio'] = bio;
     if (occupation != null) patch['occupation'] = occupation;
     if (avatarUrl != null) patch['avatar_url'] = avatarUrl;
+    if (coverUrl != null) patch['cover_url'] = coverUrl;
     if (coreTech != null) patch['core_tech'] = coreTech;
 
     await _client.from('users').update(patch).eq('id', userId);
@@ -123,6 +125,25 @@ class ProfileRemoteDataSource {
       return imageUrl;
     } catch (e) {
       debugPrint('Error uploading avatar: $e');
+      throw Exception(e.toString());
+    }
+  }
+
+  Future<String?> uploadCoverPhoto(String userId, Uint8List fileBytes, {String? fileName}) async {
+    try {
+      final name = fileName ?? 'cover_$userId${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final path = '$userId/$name';
+
+      await _client.storage.from('covers').uploadBinary(
+        path,
+        fileBytes,
+        fileOptions: const FileOptions(upsert: true),
+      );
+
+      final imageUrl = _client.storage.from('covers').getPublicUrl(path);
+      return imageUrl;
+    } catch (e) {
+      debugPrint('Error uploading cover photo: $e');
       throw Exception(e.toString());
     }
   }
