@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:to_do_app/features/social/presentation/providers/story_state_providers.dart';
 
 // Text Overlay Widget (image14)
@@ -348,6 +350,7 @@ class DraggableMusicOverlayWidget extends StatefulWidget {
     required this.canvasHeight,
     required this.isSelected,
     required this.onTap,
+    this.onDoubleTap,
     required this.onUpdate,
     required this.onDelete,
   });
@@ -357,6 +360,7 @@ class DraggableMusicOverlayWidget extends StatefulWidget {
   final double canvasHeight;
   final bool isSelected;
   final VoidCallback onTap;
+  final VoidCallback? onDoubleTap;
   final void Function(MusicOverlay updated) onUpdate;
   final VoidCallback onDelete;
 
@@ -375,6 +379,54 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
   // Distance-based corner resize parameters
   double _initialDragDist = 1.0;
   double _initialScale = 1.0;
+
+  int _currentPosSec = 0;
+  Timer? _timer;
+  List<Map<String, dynamic>>? _lyrics;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentPosSec = widget.overlay.startTimeSec;
+    _loadRealLyrics();
+    _timer = Timer.periodic(const Duration(seconds: 1), (t) {
+      if (mounted) {
+        setState(() {
+          _currentPosSec++;
+          if (_currentPosSec >= widget.overlay.startTimeSec + 15) {
+            _currentPosSec = widget.overlay.startTimeSec;
+          }
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant DraggableMusicOverlayWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.overlay.startTimeSec != widget.overlay.startTimeSec) {
+      _currentPosSec = widget.overlay.startTimeSec;
+    }
+    if (oldWidget.overlay.title != widget.overlay.title ||
+        oldWidget.overlay.artist != widget.overlay.artist) {
+      _loadRealLyrics();
+    }
+  }
+
+  Future<void> _loadRealLyrics() async {
+    final res = await fetchRealLyrics(widget.overlay.title, widget.overlay.artist);
+    if (mounted) {
+      setState(() {
+        _lyrics = res;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
 
   void _onResizeStart(Offset globalPosition, double w, double h) {
     final RenderBox? renderBox = context.findRenderObject() as RenderBox?;
@@ -445,6 +497,13 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
 
   @override
   Widget build(BuildContext context) {
+    final int layoutStyle = widget.overlay.layoutStyle;
+
+    // Style 6: Only music -> render nothing on canvas
+    if (layoutStyle == 6) {
+      return const SizedBox.shrink();
+    }
+
     final double posX = widget.overlay.x * widget.canvasWidth;
     final double posY = widget.overlay.y * widget.canvasHeight;
     final double scale = widget.overlay.scale;
@@ -452,7 +511,6 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
     // Dimensions based on chosen style layout
     double baseWidth = 150;
     double baseHeight = 160;
-    final int layoutStyle = widget.overlay.layoutStyle;
 
     if (layoutStyle == 1) {
       baseWidth = 180;
@@ -463,6 +521,18 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
     } else if (layoutStyle == 3) {
       baseWidth = 100;
       baseHeight = 120;
+    } else if (layoutStyle == 4) {
+      // Centered scrolling lyrics
+      baseWidth = 220;
+      baseHeight = 100;
+    } else if (layoutStyle == 5) {
+      // Typewriter bold lyrics
+      baseWidth = 220;
+      baseHeight = 60;
+    } else if (layoutStyle == 6) {
+      // Only music mode card representation in editor
+      baseWidth = 110;
+      baseHeight = 70;
     }
 
     final double w = baseWidth * scale;
@@ -578,6 +648,77 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
           ),
         ],
       );
+    } else if (layoutStyle == 4) {
+      // Centered scrolling lyrics
+      final lyrics = _lyrics ?? getLyricsForSong(widget.overlay.title, widget.overlay.artist);
+      final relativeSec = _currentPosSec - widget.overlay.startTimeSec;
+      int activeIndex = 0;
+      for (int i = 0; i < lyrics.length; i++) {
+        if (relativeSec >= lyrics[i]['time']) {
+          activeIndex = i;
+        }
+      }
+      cardChild = Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(3, (offset) {
+          final index = activeIndex - 1 + offset;
+          final isCurrent = offset == 1;
+          if (index < 0 || index >= lyrics.length) {
+            return SizedBox(height: (isCurrent ? 24 : 18) * scale);
+          }
+          return Padding(
+            padding: EdgeInsets.symmetric(vertical: 1.0 * scale),
+            child: SizedBox(
+              height: (isCurrent ? 24 : 18) * scale,
+              child: Center(
+                child: Text(
+                  lyrics[index]['text'] as String,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: isCurrent ? Colors.white : Colors.white30,
+                    fontSize: (isCurrent ? 14 : 11) * scale,
+                    fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                    shadows: const [Shadow(color: Colors.black87, blurRadius: 4)],
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      );
+    } else if (layoutStyle == 5) {
+      // Typewriter bold lyrics
+      final lyrics = _lyrics ?? getLyricsForSong(widget.overlay.title, widget.overlay.artist);
+      final relativeSec = _currentPosSec - widget.overlay.startTimeSec;
+      int activeIndex = 0;
+      for (int i = 0; i < lyrics.length; i++) {
+        if (relativeSec >= lyrics[i]['time']) {
+          activeIndex = i;
+        }
+      }
+      final currentLine = lyrics[activeIndex]['text'] as String;
+      cardChild = Container(
+        alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(horizontal: 12 * scale),
+        child: Text(
+          currentLine,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: Colors.yellowAccent,
+            fontSize: 16 * scale,
+            fontWeight: FontWeight.w900,
+            fontStyle: FontStyle.italic,
+            shadows: const [Shadow(color: Colors.black, blurRadius: 6)],
+          ),
+        ),
+      );
+    } else if (layoutStyle == 6) {
+      // Only music mode editor placeholder
+      cardChild = const SizedBox.shrink();
     } else {
       // Style 0 (Default vertical card)
       cardChild = Column(
@@ -641,67 +782,84 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
       );
     }
 
+    const double padding = 20.0;
+    final double outerW = w + padding * 2;
+    final double outerH = h + padding * 2;
+
     return Positioned(
-      left: posX - (w / 2),
-      top: posY - (h / 2),
+      left: posX - (w / 2) - padding,
+      top: posY - (h / 2) - padding,
       child: MouseRegion(
         onEnter: (_) => setState(() => _isHovering = true),
         onExit: (_) => setState(() => _isHovering = false),
         cursor: _isDragging ? SystemMouseCursors.grabbing : SystemMouseCursors.grab,
-        child: GestureDetector(
-          onTap: widget.onTap,
-          onPanStart: (details) {
-            widget.onTap();
-            _dragX = widget.overlay.x * widget.canvasWidth;
-            _dragY = widget.overlay.y * widget.canvasHeight;
-            setState(() {
-              _isDragging = true;
-            });
-          },
-          onPanUpdate: (details) {
-            if (_dragX == null || _dragY == null) return;
-            _dragX = _dragX! + details.delta.dx;
-            _dragY = _dragY! + details.delta.dy;
-
-            final double newX = (_dragX! / widget.canvasWidth).clamp(0.1, 0.9);
-            final double newY = (_dragY! / widget.canvasHeight).clamp(0.1, 0.9);
-            widget.onUpdate(widget.overlay.copyWith(x: newX, y: newY));
-          },
-          onPanEnd: (_) {
-            setState(() {
-              _isDragging = false;
-              _dragX = null;
-              _dragY = null;
-            });
-          },
+        child: SizedBox(
+          width: outerW,
+          height: outerH,
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // Music Card Container
-              Container(
+              // Music Card Container with Drag Gestures wrapping only the card
+              Positioned(
+                left: padding,
+                top: padding,
                 width: w,
                 height: h,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(12 * scale),
-                ),
-                child: CustomPaint(
-                  painter: showBorder ? DashedBorderPainter(color: Colors.white.withValues(alpha: .7)) : null,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(11 * scale),
-                    child: cardChild,
+                child: GestureDetector(
+                  onTap: widget.onTap,
+                  onDoubleTap: widget.onDoubleTap,
+                  onPanStart: (details) {
+                    widget.onTap();
+                    _dragX = widget.overlay.x * widget.canvasWidth;
+                    _dragY = widget.overlay.y * widget.canvasHeight;
+                    setState(() {
+                      _isDragging = true;
+                    });
+                  },
+                  onPanUpdate: (details) {
+                    if (_dragX == null || _dragY == null) return;
+                    _dragX = _dragX! + details.delta.dx;
+                    _dragY = _dragY! + details.delta.dy;
+
+                    final double newX = (_dragX! / widget.canvasWidth).clamp(0.1, 0.9);
+                    final double newY = (_dragY! / widget.canvasHeight).clamp(0.1, 0.9);
+                    widget.onUpdate(widget.overlay.copyWith(x: newX, y: newY));
+                  },
+                  onPanEnd: (_) {
+                    setState(() {
+                      _isDragging = false;
+                      _dragX = null;
+                      _dragY = null;
+                    });
+                  },
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: (layoutStyle == 4 || layoutStyle == 5) ? null : const Color(0xE61A1A1A),
+                      borderRadius: BorderRadius.circular(12 * scale),
+                    ),
+                    child: CustomPaint(
+                      painter: showBorder ? DashedBorderPainter(color: Colors.white.withValues(alpha: .7)) : null,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(11 * scale),
+                        child: cardChild,
+                      ),
+                    ),
                   ),
                 ),
               ),
 
-              // Delete button top-left
+              // Delete button top-right
               if (showBorder)
                 Positioned(
-                  top: -10,
-                  left: -10,
+                  top: padding - 10,
+                  right: padding - 10,
                   child: MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: widget.onDelete,
+                      onTap: () {
+                        debugPrint('Delete button clicked');
+                        widget.onDelete();
+                      },
                       child: Container(
                         width: 20,
                         height: 20,
@@ -715,11 +873,11 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
                   ),
                 ),
 
-              // Floating Move Icon at bottom center of the border (except circular style, or show centered)
+              // Floating Move Icon at bottom center of the border
               if (showBorder)
                 Positioned(
-                  bottom: -10,
-                  left: (w / 2) - 10,
+                  bottom: padding - 10,
+                  left: padding + (w / 2) - 10,
                   child: Container(
                     width: 20,
                     height: 20,
@@ -734,11 +892,11 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
 
               // Corner Resize Handles
               if (showBorder) ...[
-                // Top Right (NE)
+                // Top Left (NW)
                 _buildCornerHandle(
-                  cursor: SystemMouseCursors.resizeUpRightDownLeft,
-                  left: w - 10,
-                  top: -10,
+                  cursor: SystemMouseCursors.resizeUpLeftDownRight,
+                  left: padding - 10,
+                  top: padding - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -746,8 +904,8 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
                 // Bottom Right (SE)
                 _buildCornerHandle(
                   cursor: SystemMouseCursors.resizeUpLeftDownRight,
-                  left: w - 10,
-                  top: h - 10,
+                  left: padding + w - 10,
+                  top: padding + h - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -755,8 +913,8 @@ class _DraggableMusicOverlayWidgetState extends State<DraggableMusicOverlayWidge
                 // Bottom Left (SW)
                 _buildCornerHandle(
                   cursor: SystemMouseCursors.resizeUpRightDownLeft,
-                  left: -10,
-                  top: h - 10,
+                  left: padding - 10,
+                  top: padding + h - 10,
                   w: w,
                   h: h,
                   baseWidth: baseWidth,
@@ -816,4 +974,135 @@ class DashedBorderPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+const Map<String, List<Map<String, dynamic>>> mockLyricsMap = {
+  'duyên âm': [
+    {'time': 0, 'text': 'Thiên duyên tiền định, em chớ lo phiền'},
+    {'time': 3, 'text': 'Gặp nhau là nợ, xa nhau là duyên'},
+    {'time': 6, 'text': 'Duyên âm dang dở, ai khóc ai cười'},
+    {'time': 9, 'text': 'Thương người đi trước, tiễn người đi sau'},
+    {'time': 12, 'text': 'Đời này có duyên, gặp nhau lần nữa'},
+    {'time': 15, 'text': 'Thiên duyên tiền định, em chớ lo phiền'},
+  ],
+  'son tung': [
+    {'time': 0, 'text': 'Chúng ta không thuộc về nhau'},
+    {'time': 3, 'text': 'Mọi duyên tình nay cũng đã phai màu'},
+    {'time': 6, 'text': 'Hãy xóa đi những ký ức ngày hôm qua'},
+    {'time': 9, 'text': 'Để cả hai được tự do cất bước rời xa'},
+    {'time': 12, 'text': 'Chúng ta không thuộc về nhau'},
+    {'time': 15, 'text': 'Chúng ta không thuộc về nhau'},
+  ],
+  'ngot': [
+    {'time': 0, 'text': 'Em dạo này có còn đi xem xiếc thú?'},
+    {'time': 3, 'text': 'Có còn mua trà sữa mỗi chiều thứ tư?'},
+    {'time': 6, 'text': 'Anh dạo này cũng khác đi nhiều lắm'},
+    {'time': 9, 'text': 'Chỉ có nỗi nhớ em vẫn nguyên vẹn sâu thẳm'},
+    {'time': 12, 'text': 'Em dạo này thế nào rồi?'},
+    {'time': 15, 'text': 'Có còn đi xem xiếc thú không?'},
+  ],
+};
+
+List<Map<String, dynamic>> getLyricsForSong(String title, String artist) {
+  final cleanTitle = title.toLowerCase().trim();
+  for (final entry in mockLyricsMap.entries) {
+    if (cleanTitle.contains(entry.key)) {
+      return entry.value;
+    }
+  }
+  
+  // Generic fallback lyrics based on title and artist
+  return [
+    {'time': 0, 'text': '🎵 Đang phát: $title'},
+    {'time': 3, 'text': '🎤 Ca sĩ: $artist'},
+    {'time': 6, 'text': '✨ Giai điệu tuyệt vời từ Story Music'},
+    {'time': 9, 'text': '💖 Đang sẻ chia cảm xúc cùng mọi người'},
+    {'time': 12, 'text': '🌟 Thưởng thức bản nhạc này thôi nào!'},
+    {'time': 15, 'text': '🎵 Đang phát: $title'},
+  ];
+}
+
+String cleanSearchTerm(String term) {
+  String cleaned = term.replaceAll(RegExp(r'\([^)]*\)'), '');
+  cleaned = cleaned.replaceAll(RegExp(r'\[[^\]]*\]'), '');
+  cleaned = cleaned.replaceAll(RegExp(r'\b(feat\.|ft\.|remix|official|lyric|video|audio)\b', caseSensitive: false), '');
+  cleaned = cleaned.replaceAll(RegExp(r'\s*-\s*'), ' ');
+  cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ');
+  return cleaned.trim();
+}
+
+final Map<String, List<Map<String, dynamic>>> _lyricsCache = {};
+
+Future<List<Map<String, dynamic>>> fetchRealLyrics(String title, String artist) async {
+  final cacheKey = '${title.toLowerCase().trim()} - ${artist.toLowerCase().trim()}';
+  if (_lyricsCache.containsKey(cacheKey)) {
+    return _lyricsCache[cacheKey]!;
+  }
+
+  try {
+    final dio = Dio();
+    final cleanTitle = cleanSearchTerm(title);
+    final cleanArtist = cleanSearchTerm(artist);
+
+    final response = await dio.get(
+      'https://lrclib.net/api/lookup',
+      queryParameters: {
+        'artist_name': cleanArtist.isNotEmpty ? cleanArtist : artist,
+        'track_name': cleanTitle.isNotEmpty ? cleanTitle : title,
+      },
+      options: Options(
+        sendTimeout: const Duration(seconds: 8),
+        receiveTimeout: const Duration(seconds: 8),
+      ),
+    );
+
+    if (response.statusCode == 200 && response.data != null) {
+      final syncedLyrics = response.data['syncedLyrics'] as String?;
+      if (syncedLyrics != null && syncedLyrics.isNotEmpty) {
+        final lines = syncedLyrics.split('\n');
+        final List<Map<String, dynamic>> parsed = [];
+        for (final line in lines) {
+          final regExp = RegExp(r'\[(\d+):(\d+)\.(\d+)\](.*)');
+          final match = regExp.firstMatch(line);
+          if (match != null) {
+            final min = int.parse(match.group(1)!);
+            final sec = int.parse(match.group(2)!);
+            final text = match.group(4)!.trim();
+            if (text.isNotEmpty) {
+              parsed.add({
+                'time': min * 60 + sec,
+                'text': text,
+              });
+            }
+          }
+        }
+        if (parsed.isNotEmpty) {
+          _lyricsCache[cacheKey] = parsed;
+          return parsed;
+        }
+      }
+
+      final plainLyrics = response.data['plainLyrics'] as String?;
+      if (plainLyrics != null && plainLyrics.isNotEmpty) {
+        final lines = plainLyrics.split('\n').where((l) => l.trim().isNotEmpty).toList();
+        final List<Map<String, dynamic>> parsed = [];
+        for (int i = 0; i < lines.length; i++) {
+          parsed.add({
+            'time': (i * 2.5).toInt(),
+            'text': lines[i].trim(),
+          });
+        }
+        if (parsed.isNotEmpty) {
+          _lyricsCache[cacheKey] = parsed;
+          return parsed;
+        }
+      }
+    }
+  } catch (e) {
+    debugPrint('Error fetching real lyrics from LRCLIB: $e');
+  }
+
+  final localFallback = getLyricsForSong(title, artist);
+  _lyricsCache[cacheKey] = localFallback;
+  return localFallback;
 }

@@ -75,6 +75,8 @@ class MusicOverlay {
   final int startTimeSec;
   final int durationSec;
   final int layoutStyle; // 0, 1, 2, 3
+  final double volume; // Added music volume (0.0 to 1.0, default 1.0)
+  final double originalVolume; // Original video volume (0.0 to 1.0, default 1.0)
 
   MusicOverlay({
     required this.title,
@@ -87,6 +89,8 @@ class MusicOverlay {
     this.startTimeSec = 0,
     this.durationSec = 15,
     this.layoutStyle = 0,
+    this.volume = 1.0,
+    this.originalVolume = 1.0,
   });
 
   MusicOverlay copyWith({
@@ -100,6 +104,8 @@ class MusicOverlay {
     int? startTimeSec,
     int? durationSec,
     int? layoutStyle,
+    double? volume,
+    double? originalVolume,
   }) {
     return MusicOverlay(
       title: title ?? this.title,
@@ -112,6 +118,8 @@ class MusicOverlay {
       startTimeSec: startTimeSec ?? this.startTimeSec,
       durationSec: durationSec ?? this.durationSec,
       layoutStyle: layoutStyle ?? this.layoutStyle,
+      volume: volume ?? this.volume,
+      originalVolume: originalVolume ?? this.originalVolume,
     );
   }
 
@@ -126,6 +134,8 @@ class MusicOverlay {
         'startTimeSec': startTimeSec,
         'durationSec': durationSec,
         'layoutStyle': layoutStyle,
+        'volume': volume,
+        'originalVolume': originalVolume,
       };
 
   factory MusicOverlay.fromJson(Map<String, dynamic> json) => MusicOverlay(
@@ -139,6 +149,8 @@ class MusicOverlay {
         startTimeSec: json['startTimeSec'] as int,
         durationSec: json['durationSec'] as int,
         layoutStyle: json['layoutStyle'] as int? ?? 0,
+        volume: (json['volume'] as num?)?.toDouble() ?? 1.0,
+        originalVolume: (json['originalVolume'] as num?)?.toDouble() ?? 1.0,
       );
 }
 
@@ -223,6 +235,8 @@ class StoryCreatorNotifier extends StateNotifier<StoryCreatorState?> {
   }
 
   void reset() => state = null;
+
+  void updateState(StoryCreatorState newState) => state = newState;
 
   void setScreenType(CreatorScreenType type) {
     if (state == null) return;
@@ -313,7 +327,27 @@ class StoryCreatorNotifier extends StateNotifier<StoryCreatorState?> {
 
   void setMusicOverlay(MusicOverlay? overlay) {
     if (state == null) return;
-    state = state!.copyWith(musicOverlay: overlay);
+    if (overlay == null) {
+      state = StoryCreatorState(
+        screenType: state!.screenType,
+        imageFile: state!.imageFile,
+        videoFile: state!.videoFile,
+        zoom: state!.zoom,
+        rotation: state!.rotation,
+        panX: state!.panX,
+        panY: state!.panY,
+        text: state!.text,
+        fontFamily: state!.fontFamily,
+        backgroundColorIndex: state!.backgroundColorIndex,
+        textOverlays: state!.textOverlays,
+        musicOverlay: null, // Clear music overlay
+        altText: state!.altText,
+        isAltTextAI: state!.isAltTextAI,
+        imageFit: state!.imageFit,
+      );
+    } else {
+      state = state!.copyWith(musicOverlay: overlay);
+    }
   }
 
   void setAltText(String val, bool isAI) {
@@ -430,7 +464,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Come My Way',
     artist: 'Sơn Tùng M-TP, Tyga',
     coverUrl: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3',
     category: 'Mới phát hành',
   ),
   StorySong(
@@ -438,7 +472,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Dai Dai',
     artist: 'Shakira, Burna Boy',
     coverUrl: 'https://images.unsplash.com/photo-1470225620780-dba8ba36b745?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3',
     category: 'Mới phát hành',
   ),
   StorySong(
@@ -446,7 +480,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'NO ERA AMOR',
     artist: 'DJ Asul',
     coverUrl: 'https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3',
     category: 'Dành cho bạn',
   ),
   StorySong(
@@ -454,7 +488,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Beautiful Things',
     artist: 'Benson Boone',
     coverUrl: 'https://images.unsplash.com/photo-1506157786151-b8491531f063?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3',
     category: 'Pop',
   ),
   StorySong(
@@ -462,7 +496,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Flowers',
     artist: 'Miley Cyrus',
     coverUrl: 'https://images.unsplash.com/photo-1498038432885-c6f3f1b912ee?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3',
     category: 'Pop',
   ),
   StorySong(
@@ -470,7 +504,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Cruel Summer',
     artist: 'Taylor Swift',
     coverUrl: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3',
     category: 'Tình yêu',
   ),
   StorySong(
@@ -478,7 +512,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'As It Was',
     artist: 'Harry Styles',
     coverUrl: 'https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3',
     category: 'Buổi sáng',
   ),
   StorySong(
@@ -486,7 +520,7 @@ final List<StorySong> _defaultMockSongsList = [
     title: 'Stay',
     artist: 'The Kid LAROI, Justin Bieber',
     coverUrl: 'https://images.unsplash.com/photo-1487180142328-0c4e37023af5?w=150&auto=format&fit=crop&q=80',
-    audioUrl: '',
+    audioUrl: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3',
     category: 'Hip Hop',
   ),
   StorySong(
@@ -539,43 +573,47 @@ final List<StorySong> _defaultMockSongsList = [
   ),
 ];
 
-// Mock Music Library (Now a FutureProvider fetching from iTunes API)
+// Map of Deezer Category Radios
+const Map<String, int> _deezerCategoryRadios = {
+  'Cuối tuần': 6,
+  'Sinh nhật': 7,
+  'Buổi tối hẹn hò': 8,
+  'Gia đình': 9,
+  'Tình yêu': 10,
+  'Buổi sáng': 11,
+  'R&B và Soul': 165,
+  'Pop': 132,
+  'Hip Hop': 116,
+  'Rock': 152,
+};
+
+// Mock Music Library (Now fetching from Deezer Charts API)
 final mockSongsProvider = FutureProvider<List<StorySong>>((ref) async {
   final dio = Dio(BaseOptions(
     connectTimeout: const Duration(seconds: 3),
     receiveTimeout: const Duration(seconds: 3),
   ));
   try {
-    // Fetch popular Vietnamese songs as default trending list
-    final response = await dio.get('https://itunes.apple.com/search?term=vietnamese&media=music&limit=60');
-    final results = response.data['results'] as List<dynamic>;
+    final response = await dio.get('https://api.deezer.com/chart/0/tracks?limit=50');
+    final results = response.data['data'] as List<dynamic>;
 
     final List<StorySong> list = [];
     int index = 0;
     for (final item in results) {
-      final id = item['trackId']?.toString() ?? index.toString();
-      final title = item['trackName'] as String? ?? 'Bài hát không tên';
-      final artist = item['artistName'] as String? ?? 'Ca sĩ ẩn danh';
-      String coverUrl = item['artworkUrl100'] as String? ?? '';
-      if (coverUrl.contains('100x100bb')) {
-        coverUrl = coverUrl.replaceAll('100x100bb', '300x300bb');
-      }
-      final audioUrl = item['previewUrl'] as String? ?? '';
+      final id = item['id']?.toString() ?? index.toString();
+      final title = item['title'] as String? ?? 'Bài hát không tên';
+      final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
+      final coverUrl = item['album']?['cover_medium'] as String? ?? '';
+      final audioUrl = item['preview'] as String? ?? '';
 
-      // Map dynamic categories based on index
+      if (audioUrl.isEmpty) continue;
+
+      // Assign categories for homepage listing
       String category = 'Dành cho bạn';
       if (index < 12) {
         category = 'Dành cho bạn';
-      } else if (index < 24) {
-        category = 'Mới phát hành';
-      } else if (index < 32) {
-        category = 'Cuối tuần';
-      } else if (index < 40) {
-        category = 'Pop';
-      } else if (index < 48) {
-        category = 'Tình yêu';
       } else {
-        category = 'Rock';
+        category = 'Mới phát hành';
       }
 
       list.add(StorySong(
@@ -590,11 +628,12 @@ final mockSongsProvider = FutureProvider<List<StorySong>>((ref) async {
     }
     return list.isNotEmpty ? list : _defaultMockSongsList;
   } catch (e) {
+    debugPrint('Error fetching Deezer charts: $e');
     return _defaultMockSongsList;
   }
 });
 
-// Search State & Provider for iTunes Real-Time search
+// Search State & Provider for Deezer Search
 final musicSearchQueryProvider = StateProvider<String>((ref) => '');
 
 final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
@@ -606,33 +645,71 @@ final musicSearchResultsProvider = FutureProvider<List<StorySong>>((ref) async {
     receiveTimeout: const Duration(seconds: 3),
   ));
   try {
-    final response = await dio.get('https://itunes.apple.com/search?term=${Uri.encodeComponent(query)}&media=music&limit=25');
-    final results = response.data['results'] as List<dynamic>;
+    final response = await dio.get('https://api.deezer.com/search?q=${Uri.encodeComponent(query)}&limit=25');
+    final results = response.data['data'] as List<dynamic>;
 
     final List<StorySong> list = [];
-    int index = 0;
     for (final item in results) {
-      final id = item['trackId']?.toString() ?? index.toString();
-      final title = item['trackName'] as String? ?? 'Bài hát không tên';
-      final artist = item['artistName'] as String? ?? 'Ca sĩ ẩn danh';
-      String coverUrl = item['artworkUrl100'] as String? ?? '';
-      if (coverUrl.contains('100x100bb')) {
-        coverUrl = coverUrl.replaceAll('100x100bb', '300x300bb');
-      }
-      final audioUrl = item['previewUrl'] as String? ?? '';
+      final id = item['id']?.toString() ?? '';
+      final title = item['title'] as String? ?? 'Bài hát không tên';
+      final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
+      final coverUrl = item['album']?['cover_medium'] as String? ?? '';
+      final audioUrl = item['preview'] as String? ?? '';
 
-      list.add(StorySong(
-        id: id,
-        title: title,
-        artist: artist,
-        coverUrl: coverUrl,
-        audioUrl: audioUrl,
-        category: 'Tìm kiếm',
-      ));
-      index++;
+      if (audioUrl.isNotEmpty) {
+        list.add(StorySong(
+          id: id,
+          title: title,
+          artist: artist,
+          coverUrl: coverUrl,
+          audioUrl: audioUrl,
+          category: 'Tìm kiếm',
+        ));
+      }
     }
     return list;
   } catch (e) {
+    debugPrint('Error searching Deezer: $e');
+    return [];
+  }
+});
+
+// Dynamic Radio Category Songs Provider family
+final categorySongsProvider = FutureProvider.family<List<StorySong>, String>((ref, categoryName) async {
+  final radioId = _deezerCategoryRadios[categoryName];
+  if (radioId == null) return [];
+
+  final dio = Dio(BaseOptions(
+    connectTimeout: const Duration(seconds: 3),
+    receiveTimeout: const Duration(seconds: 3),
+  ));
+
+  try {
+    final response = await dio.get('https://api.deezer.com/radio/$radioId/tracks?limit=25');
+    final results = response.data['data'] as List<dynamic>;
+
+    final List<StorySong> list = [];
+    for (final item in results) {
+      final id = item['id']?.toString() ?? '';
+      final title = item['title'] as String? ?? 'Bài hát không tên';
+      final artist = item['artist']?['name'] as String? ?? 'Ca sĩ ẩn danh';
+      final coverUrl = item['album']?['cover_medium'] as String? ?? '';
+      final audioUrl = item['preview'] as String? ?? '';
+
+      if (audioUrl.isNotEmpty) {
+        list.add(StorySong(
+          id: id,
+          title: title,
+          artist: artist,
+          coverUrl: coverUrl,
+          audioUrl: audioUrl,
+          category: categoryName,
+        ));
+      }
+    }
+    return list;
+  } catch (e) {
+    debugPrint('Error fetching category songs from Deezer: $e');
     return [];
   }
 });

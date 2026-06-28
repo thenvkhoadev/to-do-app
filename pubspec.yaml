@@ -60,7 +60,9 @@ dependencies:
   string_to_icon: ^1.0.0
   emoji_picker_flutter: ^4.4.0
   record: ^7.1.0
-  audioplayers: ^6.7.1
+  just_audio: ^0.9.40
+  just_audio_windows: ^0.2.1
+  audio_session: ^0.1.21
   flutter_inappwebview: ^6.0.0
   webview_windows: ^0.4.0
   app_links: ^6.1.1

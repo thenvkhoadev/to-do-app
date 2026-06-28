@@ -33,21 +33,134 @@ class FeedScreen extends ConsumerWidget {
         if (next != null && previous == null) {
           Navigator.of(context).push(
             MaterialPageRoute(
-              builder: (context) => PopScope(
-                canPop: true,
-                onPopInvokedWithResult: (didPop, result) {
-                  if (didPop) {
-                    ref.read(storyCreatorProvider.notifier).reset();
+              builder: (context) => Consumer(
+                builder: (context, ref, child) {
+                  final creatorState = ref.watch(storyCreatorProvider);
+                  
+                  bool hasChanges = false;
+                  if (creatorState != null && creatorState.screenType != CreatorScreenType.select) {
+                    if (creatorState.screenType == CreatorScreenType.text) {
+                      hasChanges = creatorState.text.trim().isNotEmpty || creatorState.musicOverlay != null;
+                    } else if (creatorState.screenType == CreatorScreenType.image) {
+                      hasChanges = creatorState.imageFile != null || creatorState.textOverlays.isNotEmpty || creatorState.musicOverlay != null;
+                    } else if (creatorState.screenType == CreatorScreenType.video) {
+                      hasChanges = creatorState.videoFile != null || creatorState.textOverlays.isNotEmpty || creatorState.musicOverlay != null;
+                    }
                   }
-                },
-                child: Scaffold(
-                  body: StoryCreatorView(
-                    onClose: () {
-                      ref.read(storyCreatorProvider.notifier).reset();
-                      Navigator.of(context).maybePop();
+
+                  return PopScope(
+                    canPop: !hasChanges,
+                    onPopInvokedWithResult: (didPop, result) async {
+                      if (didPop) return;
+
+                      final leave = await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: true,
+                        builder: (BuildContext context) {
+                          return Dialog(
+                            backgroundColor: const Color(0xFF1E1C30),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.0)),
+                            child: Container(
+                              width: 400,
+                              padding: const EdgeInsets.all(24.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      const Text(
+                                        'Rời khỏi trang?',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 20.0,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: Colors.white.withValues(alpha: .08),
+                                        ),
+                                        child: IconButton(
+                                          icon: const Icon(Icons.close, color: Colors.white70, size: 16),
+                                          onPressed: () => Navigator.of(context).pop(false),
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 16.0),
+                                  const Text(
+                                    'Bạn đang chỉnh sửa tin. Bạn có muốn rời đi và hủy tất cả thay đổi không?',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 15.0,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 24.0),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: [
+                                      TextButton(
+                                        onPressed: () => Navigator.of(context).pop(false),
+                                        child: const Text(
+                                          'Ở lại Trang',
+                                          style: TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 16.0,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 16.0),
+                                      ElevatedButton(
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF1877F2),
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(8.0),
+                                          ),
+                                          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 12.0),
+                                          elevation: 0,
+                                        ),
+                                        onPressed: () => Navigator.of(context).pop(true),
+                                        child: const Text(
+                                          'Rời khỏi Trang',
+                                          style: TextStyle(
+                                            fontSize: 16.0,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      );
+
+                      if (leave == true) {
+                        ref.read(storyCreatorProvider.notifier).reset();
+                        Navigator.of(context).pop();
+                      }
                     },
-                  ),
-                ),
+                    child: Scaffold(
+                      body: StoryCreatorView(
+                        onClose: () {
+                          ref.read(storyCreatorProvider.notifier).reset();
+                          Navigator.of(context).maybePop();
+                        },
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           );

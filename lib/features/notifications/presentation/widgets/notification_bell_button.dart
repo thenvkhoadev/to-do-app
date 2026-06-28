@@ -1,4 +1,4 @@
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -78,7 +78,8 @@ class _NotificationBellButtonState extends ConsumerState<NotificationBellButton>
     final isMuted = ref.read(muteNotificationsProvider);
     if (!isMuted && defaultTargetPlatform != TargetPlatform.windows) {
       try {
-        await _audioPlayer.play(UrlSource('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav'));
+        await _audioPlayer.setUrl('https://assets.mixkit.co/active_storage/sfx/2869/2869-84.wav');
+        await _audioPlayer.play();
       } catch (e) {
         debugPrint('Audio playback error: $e');
       }

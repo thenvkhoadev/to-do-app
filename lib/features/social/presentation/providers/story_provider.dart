@@ -125,29 +125,27 @@ class StoryService {
     );
   }
 
+  // Delete story
+  Future<void> deleteStory(String storyId) async {
+    await _client.from('stories').delete().eq('id', storyId);
+  }
+
   // Upload story photo
   Future<String> uploadStoryPhoto(String userId, XFile file) async {
     final fileBytes = await file.readAsBytes();
-    final name = 'story_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+    final ext = file.name.split('.').last.toLowerCase();
+    final name = 'story_${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
     final path = '$userId/$name';
 
-    // Try uploading to 'stories' bucket, fall back to 'avatars' if not exists
-    try {
-      await _client.storage.from('stories').uploadBinary(
-        path,
-        fileBytes,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      return _client.storage.from('stories').getPublicUrl(path);
-    } catch (_) {
-      // Fallback
-      await _client.storage.from('avatars').uploadBinary(
-        path,
-        fileBytes,
-        fileOptions: const FileOptions(upsert: true),
-      );
-      return _client.storage.from('avatars').getPublicUrl(path);
-    }
+    await _client.storage.from('stories').uploadBinary(
+      path,
+      fileBytes,
+      fileOptions: FileOptions(
+        upsert: true,
+        contentType: ext == 'png' ? 'image/png' : 'image/jpeg',
+      ),
+    );
+    return _client.storage.from('stories').getPublicUrl(path);
   }
 
   // Upload story video
@@ -157,22 +155,12 @@ class StoryService {
     final name = 'story_video_${userId}_${DateTime.now().millisecondsSinceEpoch}.$ext';
     final path = '$userId/$name';
 
-    try {
-      await _client.storage.from('stories').uploadBinary(
-        path,
-        fileBytes,
-        fileOptions: FileOptions(upsert: true, contentType: 'video/$ext'),
-      );
-      return _client.storage.from('stories').getPublicUrl(path);
-    } catch (_) {
-      // Fallback
-      await _client.storage.from('avatars').uploadBinary(
-        path,
-        fileBytes,
-        fileOptions: FileOptions(upsert: true, contentType: 'video/$ext'),
-      );
-      return _client.storage.from('avatars').getPublicUrl(path);
-    }
+    await _client.storage.from('stories').uploadBinary(
+      path,
+      fileBytes,
+      fileOptions: FileOptions(upsert: true, contentType: 'video/$ext'),
+    );
+    return _client.storage.from('stories').getPublicUrl(path);
   }
 }
 

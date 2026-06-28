@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:to_do_app/features/social/presentation/providers/story_state_providers.dart';
 
 enum MusicViewType { home, categories, saved, categoryDetail, searchResults }
@@ -348,7 +348,10 @@ class _StoryMusicDialogState extends ConsumerState<StoryMusicDialog> with Single
 
   // View: CATEGORY DETAILS (image11)
   Widget _buildCategoryDetailView() {
-    final songsAsync = ref.watch(mockSongsProvider);
+    final isPreset = _selectedCategory == 'Dành cho bạn' || _selectedCategory == 'Mới phát hành';
+    final songsAsync = isPreset
+        ? ref.watch(mockSongsProvider)
+        : ref.watch(categorySongsProvider(_selectedCategory));
 
     return songsAsync.when(
       loading: () => const Center(child: Padding(
@@ -357,7 +360,9 @@ class _StoryMusicDialogState extends ConsumerState<StoryMusicDialog> with Single
       )),
       error: (err, stack) => const Center(child: Text('Lỗi tải nhạc', style: TextStyle(color: Colors.white70))),
       data: (allSongs) {
-        final categorySongs = allSongs.where((s) => s.category == _selectedCategory).toList();
+        final categorySongs = isPreset
+            ? allSongs.where((s) => s.category == _selectedCategory).toList()
+            : allSongs;
 
         return Column(
           children: [
@@ -581,8 +586,12 @@ class _StoryMusicDialogState extends ConsumerState<StoryMusicDialog> with Single
                       if (song.audioUrl.isNotEmpty) {
                         try {
                           await _audioPlayer.stop();
-                          await _audioPlayer.play(UrlSource(song.audioUrl));
-                        } catch (_) {}
+                          await _audioPlayer.setVolume(1.0); // Ensure volume is up
+                          await _audioPlayer.setUrl(song.audioUrl);
+                          await _audioPlayer.play();
+                        } catch (e) {
+                          debugPrint('Error playing preview: $e');
+                        }
                       }
                     }
                   },

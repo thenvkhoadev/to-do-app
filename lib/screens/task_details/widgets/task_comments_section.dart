@@ -11,7 +11,7 @@ import 'package:to_do_app/features/profile/presentation/providers/profile_provid
 import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:emoji_picker_flutter/emoji_picker_flutter.dart';
 import 'package:record/record.dart';
-import 'package:audioplayers/audioplayers.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 
 
@@ -2526,16 +2526,13 @@ class _VoicePlayerState extends State<_VoicePlayer> {
         }
       } catch (_) {}
 
-      Source source;
       if (cleanUrl.startsWith('http') || cleanUrl.startsWith('https')) {
-        source = UrlSource(cleanUrl);
+        await _player.setUrl(cleanUrl);
       } else {
-        source = DeviceFileSource(cleanUrl);
+        await _player.setFilePath(cleanUrl);
       }
 
-      await _player.setSource(source);
-
-      _posSub = _player.onPositionChanged.listen((p) {
+      _posSub = _player.positionStream.listen((p) {
         if (mounted && _isPlaying) {
           setState(() {
             _elapsedMilliseconds = p.inMilliseconds;
@@ -2545,15 +2542,15 @@ class _VoicePlayerState extends State<_VoicePlayer> {
         }
       });
 
-      _durSub = _player.onDurationChanged.listen((d) {
+      _durSub = _player.durationStream.listen((d) {
         // Optional
       });
 
-      _stateSub = _player.onPlayerStateChanged.listen((s) {
+      _stateSub = _player.playerStateStream.listen((s) {
         if (mounted) {
           setState(() {
-            _isPlaying = s == PlayerState.playing;
-            if (s == PlayerState.completed) {
+            _isPlaying = s.playing;
+            if (s.processingState == ProcessingState.completed) {
               _progress = 0.0;
               _elapsedMilliseconds = 0;
               _isPlaying = false;
@@ -2622,25 +2619,12 @@ class _VoicePlayerState extends State<_VoicePlayer> {
       if (_isPlaying) {
         await _player.pause();
       } else {
-        await _player.setPlaybackRate(_playbackSpeed);
+        await _player.setSpeed(_playbackSpeed);
         await _player.setVolume(_isMuted ? 0.0 : 1.0);
-        
-        final url = widget.voiceNote.audioUrl;
-        String cleanUrl = url;
-        try {
-          final uri = Uri.parse(url);
-          if (uri.scheme == 'http' || uri.scheme == 'https') {
-            cleanUrl = url.split('?').first;
-          }
-        } catch (_) {}
-
-        Source source;
-        if (cleanUrl.startsWith('http') || cleanUrl.startsWith('https')) {
-          source = UrlSource(cleanUrl);
-        } else {
-          source = DeviceFileSource(cleanUrl);
+        if (_player.processingState == ProcessingState.completed) {
+          await _player.seek(Duration.zero);
         }
-        await _player.play(source);
+        await _player.play();
       }
     } catch (e) {
       debugPrint('Error toggling playback: $e');
@@ -2673,7 +2657,7 @@ class _VoicePlayerState extends State<_VoicePlayer> {
     });
     if (_useSimulation) return;
     try {
-      await _player.setPlaybackRate(nextSpeed);
+      await _player.setSpeed(nextSpeed);
     } catch (e) {
       debugPrint('Error setting playback rate: $e');
     }
