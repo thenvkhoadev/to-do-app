@@ -3,13 +3,16 @@
 #
 
 list(APPEND FLUTTER_PLUGIN_LIST
+  agora_rtc_engine
   app_links
   audioplayers_windows
   emoji_picker_flutter
   file_selector_windows
   flutter_inappwebview_windows
   flutter_secure_storage_windows
+  iris_method_channel
   just_audio_windows
+  permission_handler_windows
   record_windows
   syncfusion_pdfviewer_windows
   url_launcher_windows
