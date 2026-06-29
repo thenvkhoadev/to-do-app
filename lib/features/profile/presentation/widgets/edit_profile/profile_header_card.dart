@@ -62,7 +62,7 @@ class _ProfileHeaderCardState extends ConsumerState<ProfileHeaderCard> {
     await showDialog<void>(
       context: context,
       barrierColor: Colors.black.withValues(alpha: 0.65),
-      builder: (ctx) => _ProfilePhotoDialog(
+      builder: (ctx) => ProfilePhotoDialog(
         username: widget.usernameController.text,
         avatarUrlController: widget.avatarUrlController,
         onRemove: _removeAvatar,
@@ -529,8 +529,8 @@ Color _getRandomColor(String name) {
   return colors[hash % colors.length];
 }
 
-class _ProfilePhotoDialog extends StatefulWidget {
-  const _ProfilePhotoDialog({
+class ProfilePhotoDialog extends StatefulWidget {
+  const ProfilePhotoDialog({
     required this.username,
     required this.avatarUrlController,
     required this.onRemove,
@@ -545,10 +545,10 @@ class _ProfilePhotoDialog extends StatefulWidget {
   final void Function(String url) onSaveUrl;
 
   @override
-  State<_ProfilePhotoDialog> createState() => _ProfilePhotoDialogState();
+  State<ProfilePhotoDialog> createState() => ProfilePhotoDialogState();
 }
 
-class _ProfilePhotoDialogState extends State<_ProfilePhotoDialog> {
+class ProfilePhotoDialogState extends State<ProfilePhotoDialog> {
   final ImagePicker _picker = ImagePicker();
   bool _uploadSuccess = false;
   bool _removeSuccess = false;

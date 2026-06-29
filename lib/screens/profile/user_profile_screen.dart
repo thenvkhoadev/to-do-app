@@ -21,6 +21,7 @@ import 'package:to_do_app/features/profile/data/datasource/profile_remote_dataso
 import 'package:to_do_app/features/profile/presentation/providers/profile_provider.dart';
 import 'package:to_do_app/features/profile/presentation/providers/user_status_provider.dart';
 import 'package:to_do_app/features/profile/presentation/screens/edit_profile_screen.dart';
+import 'package:to_do_app/features/profile/presentation/widgets/edit_profile/profile_header_card.dart';
 import 'package:to_do_app/features/profile/presentation/widgets/achievement_plus_button.dart';
 import 'package:to_do_app/features/profile/presentation/widgets/achievement_selector_dialog.dart';
 import 'package:to_do_app/features/xp/domain/xp_leveling.dart' as leveling;
@@ -1320,70 +1321,106 @@ class _DesktopHeroSection extends StatelessWidget {
   }
 }
 
-class _GlowingAvatar extends ConsumerWidget {
+class _GlowingAvatar extends ConsumerStatefulWidget {
   const _GlowingAvatar({required this.profile});
   final _ProfileVM profile;
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_GlowingAvatar> createState() => _GlowingAvatarState();
+}
+
+class _GlowingAvatarState extends ConsumerState<_GlowingAvatar> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     final statusState = ref.watch(userStatusProvider);
     final details = _getStatusDetails(statusState.status);
 
-    return Stack(
-      clipBehavior: Clip.none,
-      alignment: Alignment.center,
-      children: [
-        // Outer glowing shadow
-        Container(
-          width: 110,
-          height: 110,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: const Color(0xFF7C5CFF).withValues(alpha: 0.5),
-                blurRadius: 24,
-                spreadRadius: 4,
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () {
+          showEditAvatarDialog(context, ref, username: widget.profile.username, currentAvatarUrl: widget.profile.avatarUrl);
+        },
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            // Outer glowing shadow
+            Container(
+              width: 110,
+              height: 110,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C5CFF).withValues(alpha: 0.5),
+                    blurRadius: 24,
+                    spreadRadius: 4,
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        // Outer border ring
-        Container(
-          width: 110,
-          height: 110,
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF0B1020),
-            border: Border.all(
-              color: const Color(0xFF7C5CFF),
-              width: 3,
             ),
-          ),
-          child: ClipOval(
-            child: _ProfileImage(
-              avatarUrl: profile.avatarUrl,
-              initial: profile.initial,
-              fontSize: 38,
+            // Outer border ring
+            Container(
+              width: 110,
+              height: 110,
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: const Color(0xFF0B1020),
+                border: Border.all(
+                  color: const Color(0xFF7C5CFF),
+                  width: 3,
+                ),
+              ),
+              child: ClipOval(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    _ProfileImage(
+                      avatarUrl: widget.profile.avatarUrl,
+                      initial: widget.profile.initial,
+                      fontSize: 38,
+                    ),
+                    AnimatedOpacity(
+                      opacity: _isHovered ? 1.0 : 0.0,
+                      duration: const Duration(milliseconds: 200),
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.55),
+                        child: const Center(
+                          child: Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             ),
-          ),
-        ),
-        // Status dot
-        Positioned(
-          bottom: 2,
-          right: 2,
-          child: Container(
-            width: 24,
-            height: 24,
-            decoration: BoxDecoration(
-              color: details.color,
-              shape: BoxShape.circle,
-              border: Border.all(color: const Color(0xFF0B1020), width: 3),
+            // Status dot
+            Positioned(
+              bottom: 2,
+              right: 2,
+              child: Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: details.color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF0B1020), width: 3),
+                ),
+              ),
             ),
-          ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
@@ -1765,25 +1802,51 @@ class _FooterActions extends ConsumerWidget {
           onTap: () => ref.read(showEditProfileProvider.notifier).state = true,
         ),
         const SizedBox(height: 10),
-        ElevatedButton.icon(
-          onPressed: () {
-            showEditCoverDialog(context, ref, userId: profile.model?.id);
-          },
-          icon: const Icon(Icons.camera_alt_outlined, size: 14),
-          label: const Text('Cover Photo'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.white,
-            foregroundColor: Colors.black,
-            minimumSize: const Size(120, 36),
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () {
+                showEditAvatarDialog(context, ref, username: profile.username, currentAvatarUrl: profile.avatarUrl);
+              },
+              icon: const Icon(Icons.photo_camera_outlined, size: 14),
+              label: const Text('Avatar'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF7C5CFF),
+                foregroundColor: Colors.white,
+                minimumSize: const Size(100, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-            textStyle: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: () {
+                showEditCoverDialog(context, ref, userId: profile.model?.id);
+              },
+              icon: const Icon(Icons.camera_alt_outlined, size: 14),
+              label: const Text('Cover Photo'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black,
+                minimumSize: const Size(120, 36),
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                textStyle: const TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
-          ),
+          ],
         ),
       ],
     );
@@ -2025,6 +2088,46 @@ class _HeroActions extends ConsumerWidget {
                     'CHỈNH SỬA ẢNH BÌA',
                     style: TextStyle(
                       color: Colors.black,
+                      fontSize: 10,
+                      letterSpacing: 2,
+                      fontFamily: 'JetBrains Mono',
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        MouseRegion(
+          cursor: SystemMouseCursors.click,
+          child: GestureDetector(
+            onTap: () {
+              showEditAvatarDialog(context, ref, username: profile.username, currentAvatarUrl: profile.avatarUrl);
+            },
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF7C5CFF),
+                borderRadius: BorderRadius.circular(999),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF7C5CFF).withValues(alpha: 0.3),
+                    blurRadius: 12,
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  Icon(Icons.photo_camera, color: Colors.white, size: 14),
+                  SizedBox(width: 8),
+                  Text(
+                    'CHỈNH SỬA ẢNH ĐẠI DIỆN',
+                    style: TextStyle(
+                      color: Colors.white,
                       fontSize: 10,
                       letterSpacing: 2,
                       fontFamily: 'JetBrains Mono',
@@ -5860,84 +5963,89 @@ class _MobileProfileScreen extends ConsumerWidget {
           // Profile Header
           Column(
             children: [
-              Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [NexusColors.primary, NexusColors.secondary],
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: NexusColors.primary.withValues(alpha: 0.2),
-                          blurRadius: 20,
-                        ),
-                      ],
-                    ),
-                    padding: const EdgeInsets.all(3),
-                    child: ClipOval(
-                      child: _ProfileImage(
-                        avatarUrl: profile.avatarUrl,
-                        initial: profile.initial,
-                        fontSize: 38,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 0,
-                    right: 0,
-                    child: Container(
-                      width: 22,
-                      height: 22,
+              GestureDetector(
+                onTap: () {
+                  showEditAvatarDialog(context, ref, username: profile.username, currentAvatarUrl: profile.avatarUrl);
+                },
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
-                        color: details.color,
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: NexusColors.surface,
-                          width: 3,
+                        gradient: const LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [NexusColors.primary, NexusColors.secondary],
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: NexusColors.primary.withValues(alpha: 0.2),
+                            blurRadius: 20,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(3),
+                      child: ClipOval(
+                        child: _ProfileImage(
+                          avatarUrl: profile.avatarUrl,
+                          initial: profile.initial,
+                          fontSize: 38,
                         ),
                       ),
                     ),
-                  ),
-                  Positioned(
-                    bottom: -8,
-                    left: 0,
-                    right: 0,
-                    child: Center(
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 2,
-                        ),
+                        width: 22,
+                        height: 22,
                         decoration: BoxDecoration(
-                          color: NexusColors.primary,
-                          borderRadius: BorderRadius.circular(999),
-                          boxShadow: [
-                            BoxShadow(
-                              color: NexusColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: Text(
-                          '${profile.tier.toUpperCase()} Plan',
-                          style: const TextStyle(
-                            color: NexusColors.onPrimary,
-                            fontSize: 10,
-                            letterSpacing: 2,
-                            fontFamily: 'JetBrains Mono',
+                          color: details.color,
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: NexusColors.surface,
+                            width: 3,
                           ),
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      bottom: -8,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: NexusColors.primary,
+                            borderRadius: BorderRadius.circular(999),
+                            boxShadow: [
+                              BoxShadow(
+                                color: NexusColors.primary.withValues(alpha: 0.3),
+                                blurRadius: 8,
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            '${profile.tier.toUpperCase()} Plan',
+                            style: const TextStyle(
+                              color: NexusColors.onPrimary,
+                              fontSize: 10,
+                              letterSpacing: 2,
+                              fontFamily: 'JetBrains Mono',
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 24),
               Text(
@@ -11574,4 +11682,32 @@ class _CoverVideoPlayerState extends State<CoverVideoPlayer> {
     );
   }
 }
+
+void showEditAvatarDialog(BuildContext context, WidgetRef ref, {required String username, required String currentAvatarUrl}) {
+  final tempController = TextEditingController(text: currentAvatarUrl);
+  showDialog<void>(
+    context: context,
+    barrierColor: Colors.black.withValues(alpha: 0.65),
+    builder: (context) => ProfilePhotoDialog(
+      username: username,
+      avatarUrlController: tempController,
+      onRemove: () async {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          await ref.read(profileRemoteDataSourceProvider).updateProfileInfo(userId, avatarUrl: '');
+          ref.invalidate(userProfileProvider);
+        }
+      },
+      onUpload: (bytes, fileName) async {},
+      onSaveUrl: (url) async {
+        final userId = Supabase.instance.client.auth.currentUser?.id;
+        if (userId != null) {
+          await ref.read(profileRemoteDataSourceProvider).updateProfileInfo(userId, avatarUrl: url);
+          ref.invalidate(userProfileProvider);
+        }
+      },
+    ),
+  );
+}
+
 

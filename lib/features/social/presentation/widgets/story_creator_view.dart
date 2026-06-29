@@ -408,9 +408,11 @@ class _StoryCreatorViewState extends ConsumerState<StoryCreatorView> {
         } else if (oldOverlay?.audioUrl != newOverlay.audioUrl) {
           try {
             await _audioPlayer.stop();
-            await _audioPlayer.setUrl(newOverlay.audioUrl);
+            await _audioPlayer.setUrl(
+              newOverlay.audioUrl,
+              initialPosition: Duration(seconds: newOverlay.startTimeSec),
+            );
             await _audioPlayer.setVolume(newOverlay.volume);
-            await _audioPlayer.seek(Duration(seconds: newOverlay.startTimeSec));
             await _audioPlayer.play();
           } catch (e) {
             debugPrint('Error playing music in editor: $e');

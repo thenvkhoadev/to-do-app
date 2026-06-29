@@ -12,6 +12,7 @@ import 'package:to_do_app/features/social/presentation/widgets/feed_right_sideba
 import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
 import 'package:to_do_app/features/social/presentation/providers/story_provider.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
+import 'package:to_do_app/core/utils/audio_unmute_helper.dart';
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key, this.onFindFriends});
@@ -307,6 +308,7 @@ class FeedScreen extends ConsumerWidget {
             ref.read(storyCreatorProvider.notifier).startCreating();
           },
           onAuthorStoryTap: (authorId, stories) {
+            resumeWebAudio();
             ref.read(storyViewerStateProvider.notifier).openViewer(authorId, 0);
           },
         );

@@ -16,6 +16,7 @@ import 'package:to_do_app/features/social/presentation/widgets/premium_toast.dar
 import 'package:to_do_app/features/social/presentation/widgets/story_privacy_modal.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
 import 'package:dio/dio.dart';
+import 'package:to_do_app/core/utils/audio_unmute_helper.dart';
 
 class StoryViewer extends ConsumerStatefulWidget {
   const StoryViewer({
@@ -34,6 +35,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
   final TextEditingController _replyController = TextEditingController();
   final FocusNode _replyFocusNode = FocusNode();
   bool _isMuted = false;
+  bool _musicFailed = false;
   AudioPlayer? _audioPlayer;
   VideoPlayerController? _storyVideoController;
   String? _currentViewerVideoUrl;
@@ -122,10 +124,32 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
           await _audioPlayer!.setVolume(musicOverlay.volume);
         }
         await _audioPlayer!.stop();
-        await _audioPlayer!.setUrl(audioUrl);
-        await _audioPlayer!.seek(Duration(seconds: musicOverlay.startTimeSec));
+        await _audioPlayer!.setUrl(
+          audioUrl,
+          initialPosition: Duration(seconds: musicOverlay.startTimeSec),
+        );
         await _audioPlayer!.play();
-      } catch (_) {}
+        
+        // Ensure volume is applied after play()
+        await _audioPlayer!.setVolume(_isMuted ? 0.0 : musicOverlay.volume);
+        
+        // Delayed fallback to handle platform lag
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && _audioPlayer != null && _currentPlayingMusic == musicOverlay) {
+            _audioPlayer!.setVolume(_isMuted ? 0.0 : musicOverlay.volume);
+          }
+        });
+      } catch (e) {
+        debugPrint('Error playing story music: $e');
+        _musicFailed = true;
+        // Fallback: If music fails to play (e.g. Media error on Windows), restore video volume so story is not silent
+        if (!_isMuted && _storyVideoController != null) {
+          _storyVideoController!.setVolume(1.0);
+        }
+        if (mounted) {
+          setState(() {});
+        }
+      }
     }
   }
 
@@ -162,7 +186,7 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
       final musicData = story.autoData?['music'] as Map<String, dynamic>?;
       if (musicData != null) {
         final musicOverlay = MusicOverlay.fromJson(musicData);
-        videoVolume = musicOverlay.originalVolume;
+        videoVolume = _musicFailed ? 1.0 : musicOverlay.originalVolume;
       }
 
       await controller.setVolume(_isMuted ? 0.0 : videoVolume);
@@ -176,6 +200,16 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
       if (isViewerPlaying) {
         await controller.play();
         _animController.forward();
+        
+        // Ensure volume is applied after play()
+        await controller.setVolume(_isMuted ? 0.0 : videoVolume);
+        
+        // Delayed fallback to handle platform lag
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted && _storyVideoController == controller) {
+            controller.setVolume(_isMuted ? 0.0 : videoVolume);
+          }
+        });
       }
       setState(() {});
     } catch (e) {
@@ -186,6 +220,8 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
   }
 
   void _startStoryTimer() {
+    resumeWebAudio();
+    _musicFailed = false;
     _animController.stop();
     _animController.reset();
     _animController.duration = const Duration(seconds: 5);
@@ -307,7 +343,6 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
         if (currentIdx != -1 && currentIdx < authorIds.length - 1) {
           final nextAuthorId = authorIds[currentIdx + 1];
           ref.read(storyViewerStateProvider.notifier).openViewer(nextAuthorId, 0);
-          _startStoryTimer();
         } else {
           // Finished all stories, close
           widget.onClose();
@@ -333,7 +368,6 @@ class _StoryViewerState extends ConsumerState<StoryViewer> with SingleTickerProv
           final prevAuthorStories = groupedStories[prevAuthorId] ?? [];
           // Start from last story of previous author
           ref.read(storyViewerStateProvider.notifier).openViewer(prevAuthorId, prevAuthorStories.length - 1);
-          _startStoryTimer();
         } else {
           // At first story of first author, close or restart
           widget.onClose();
