@@ -28,6 +28,10 @@ import 'package:to_do_app/screens/tasks_projects/widgets/tasks_projects_insights
 import 'package:to_do_app/screens/tasks_projects/widgets/tasks_premium_filters.dart';
 import 'package:to_do_app/features/streak/presentation/providers/streak_providers.dart';
 import 'package:to_do_app/features/xp/presentation/providers/xp_providers.dart';
+import 'package:to_do_app/widgets/common/skeleton_fade.dart';
+import 'package:to_do_app/widgets/common/skeletons/task_list_skeleton.dart';
+import 'package:to_do_app/widgets/common/skeletons/stats_card_skeleton.dart';
+import 'package:to_do_app/widgets/common/skeletons/section_header_skeleton.dart';
 
 TaskBoardItem _mapTaskToBoardItem(
   NexusTask task,
@@ -658,14 +662,8 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
     final usersAsync = ref.watch(allUsersProvider);
     final tagsAsync = ref.watch(userTagsProvider);
 
-    return tasksAsync.when(
-      loading:
-          () => const Center(
-            child: Padding(
-              padding: EdgeInsets.symmetric(vertical: 64),
-              child: CircularProgressIndicator(),
-            ),
-          ),
+    final tasksContent = tasksAsync.when(
+      loading: () => const SizedBox.shrink(),
       error:
           (err, stack) => Center(
             child: Padding(
@@ -919,6 +917,15 @@ class _DesktopKanbanBoardState extends ConsumerState<_DesktopKanbanBoard> {
         );
       },
     );
+
+    return SkeletonFade(
+      isLoading: tasksAsync.isLoading && !tasksAsync.hasValue,
+      skeleton: const Padding(
+        padding: EdgeInsets.symmetric(vertical: 64),
+        child: TaskListSkeleton(count: 4),
+      ),
+      child: tasksContent,
+    );
   }
 }
 
@@ -1050,6 +1057,155 @@ class _TasksProjectsMobileSliverBodyState
     final rawTasks = tasksAsync.valueOrNull ?? [];
     final boardTasks = rawTasks.map((t) => _mapTaskToBoardItem(t, users, tags)).toList();
 
+    final mobileTasksContent = tasksAsync.when(
+      loading: () => const SizedBox.shrink(),
+      error:
+          (err, stack) => Center(
+            child: Text(
+              'Error: $err',
+              style: const TextStyle(color: DashboardColors.error),
+            ),
+          ),
+      data: (tasks) {
+        final users = usersAsync.valueOrNull ?? [];
+        final tags = tagsAsync.valueOrNull ?? [];
+        final attachmentTaskIds =
+            ref.watch(userAttachmentTaskIdsProvider).valueOrNull ?? const <String>{};
+        final subtasksByTask =
+            ref.watch(userSubtasksByTaskProvider).valueOrNull ??
+                const <String, List<TaskSubtaskModel>>{};
+        final currentUserId =
+            ref.watch(authControllerProvider).valueOrNull?.id;
+        final ofs = _overlayFilterState;
+
+        final filteredTasks = tasks.where((task) {
+          if (ofs.selectedCategoryIds.isNotEmpty &&
+              !ofs.selectedCategoryIds.contains(task.categoryId ?? '')) {
+            return false;
+          }
+          if (ofs.selectedTagIds.isNotEmpty &&
+              !task.tagIds.any((id) => ofs.selectedTagIds.contains(id))) {
+            return false;
+          }
+          if (ofs.selectedAssigneeIds.isNotEmpty &&
+              !task.assigneeIds.any((id) => ofs.selectedAssigneeIds.contains(id))) {
+            return false;
+          }
+          if (ofs.assigneeSpecialFilters
+                  .contains(AssigneeSpecialFilter.unassigned) &&
+              task.assigneeIds.isNotEmpty) return false;
+          if (ofs.assigneeSpecialFilters
+                  .contains(AssigneeSpecialFilter.assignedToMe) &&
+              currentUserId != null &&
+              !task.assigneeIds.contains(currentUserId)) {
+            return false;
+          }
+          if (ofs.assigneeSpecialFilters
+                  .contains(AssigneeSpecialFilter.createdByMe) &&
+              currentUserId != null &&
+              task.userId != currentUserId) return false;
+          if (ofs.unassignedOnly && task.assigneeIds.isNotEmpty) {
+            return false;
+          }
+          if (ofs.aiTaskFilter == AiTaskFilter.generated &&
+              !task.aiGenerated) return false;
+          if (ofs.aiTaskFilter == AiTaskFilter.manual &&
+              task.aiGenerated) return false;
+          if (ofs.attachmentFilter ==
+                  AttachmentFilter.hasAttachments &&
+              !attachmentTaskIds.contains(task.id)) return false;
+          if (ofs.attachmentFilter ==
+                  AttachmentFilter.noAttachments &&
+              attachmentTaskIds.contains(task.id)) return false;
+          final subtasks = subtasksByTask[task.id] ?? const [];
+          for (final sf in ofs.selectedSubtaskFilters) {
+            if (sf == SubtaskFilter.hasSubtasks &&
+                subtasks.isEmpty) return false;
+            if (sf == SubtaskFilter.noSubtasks &&
+                subtasks.isNotEmpty) return false;
+            if (sf == SubtaskFilter.completedSubtasks &&
+                (subtasks.isEmpty ||
+                    subtasks.any((s) => !s.isDone))) return false;
+            if (sf == SubtaskFilter.incompleteSubtasks &&
+                subtasks.every((s) => s.isDone)) return false;
+          }
+          if (ofs.subtaskSearch.trim().isNotEmpty) {
+            final q = ofs.subtaskSearch.trim().toLowerCase();
+            final taskSubtasks =
+                subtasksByTask[task.id] ?? const [];
+            if (!taskSubtasks
+                .any((s) => s.title.toLowerCase().contains(q))) {
+              return false;
+            }
+          }
+          for (final tf in ofs.selectedTimeFilters) {
+            if (!matchesTimeFilter(task, tf)) return false;
+          }
+          return true;
+        }).toList();
+
+        final boardItems = filteredTasks
+            .map((t) => _mapTaskToBoardItem(t, users, tags))
+            .where(_matchesFilters)
+            .toList();
+        if (boardItems.isEmpty) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Text(
+                'No tasks found',
+                style: TextStyle(
+                  color: DashboardColors.onSurfaceVariant,
+                ),
+              ),
+            ),
+          );
+        }
+        return SizedBox(
+          height: 520,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildMobileColumn(
+                  context,
+                  ref,
+                  'Draft',
+                  TaskBoardStatus.draft,
+                  boardItems,
+                ),
+                const SizedBox(width: 16),
+                _buildMobileColumn(
+                  context,
+                  ref,
+                  'To Do',
+                  TaskBoardStatus.todo,
+                  boardItems,
+                ),
+                const SizedBox(width: 16),
+                _buildMobileColumn(
+                  context,
+                  ref,
+                  'In Progress',
+                  TaskBoardStatus.inProgress,
+                  boardItems,
+                ),
+                const SizedBox(width: 16),
+                _buildMobileColumn(
+                  context,
+                  ref,
+                  'Completed',
+                  TaskBoardStatus.completed,
+                  boardItems,
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+
     return SliverPadding(
       padding:
           widget.compact
@@ -1075,161 +1231,13 @@ class _TasksProjectsMobileSliverBodyState
                 const SizedBox(height: 14),
                 const TasksProjectsAnalyticsStrip(compact: true),
                 const SizedBox(height: 22),
-                tasksAsync.when(
-                  loading:
-                      () => const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: CircularProgressIndicator(),
-                        ),
-                      ),
-                  error:
-                      (err, stack) => Center(
-                        child: Text(
-                          'Error: $err',
-                          style: const TextStyle(color: DashboardColors.error),
-                        ),
-                      ),
-                  data: (tasks) {
-                    final users = usersAsync.valueOrNull ?? [];
-                    final tags = tagsAsync.valueOrNull ?? [];
-                    final attachmentTaskIds =
-                        ref.watch(userAttachmentTaskIdsProvider).valueOrNull ??
-                            const <String>{};
-                    final subtasksByTask =
-                        ref.watch(userSubtasksByTaskProvider).valueOrNull ??
-                            const <String, List<TaskSubtaskModel>>{};
-                    final currentUserId =
-                        ref.watch(authControllerProvider).valueOrNull?.id;
-                    final ofs = _overlayFilterState;
-
-                    final filteredTasks = tasks.where((task) {
-                      if (ofs.selectedCategoryIds.isNotEmpty &&
-                          !ofs.selectedCategoryIds
-                              .contains(task.categoryId ?? '')) return false;
-                      if (ofs.selectedTagIds.isNotEmpty &&
-                          !task.tagIds
-                              .any((id) => ofs.selectedTagIds.contains(id))) {
-                        return false;
-                      }
-                      if (ofs.selectedAssigneeIds.isNotEmpty &&
-                          !task.assigneeIds.any(
-                              (id) => ofs.selectedAssigneeIds.contains(id))) {
-                        return false;
-                      }
-                      if (ofs.assigneeSpecialFilters
-                              .contains(AssigneeSpecialFilter.unassigned) &&
-                          task.assigneeIds.isNotEmpty) return false;
-                      if (ofs.assigneeSpecialFilters
-                              .contains(AssigneeSpecialFilter.assignedToMe) &&
-                          currentUserId != null &&
-                          !task.assigneeIds.contains(currentUserId)) {
-                        return false;
-                      }
-                      if (ofs.assigneeSpecialFilters
-                              .contains(AssigneeSpecialFilter.createdByMe) &&
-                          currentUserId != null &&
-                          task.userId != currentUserId) return false;
-                      if (ofs.unassignedOnly && task.assigneeIds.isNotEmpty) {
-                        return false;
-                      }
-                      if (ofs.aiTaskFilter == AiTaskFilter.generated &&
-                          !task.aiGenerated) return false;
-                      if (ofs.aiTaskFilter == AiTaskFilter.manual &&
-                          task.aiGenerated) return false;
-                      if (ofs.attachmentFilter ==
-                              AttachmentFilter.hasAttachments &&
-                          !attachmentTaskIds.contains(task.id)) return false;
-                      if (ofs.attachmentFilter ==
-                              AttachmentFilter.noAttachments &&
-                          attachmentTaskIds.contains(task.id)) return false;
-                      final subtasks = subtasksByTask[task.id] ?? const [];
-                      for (final sf in ofs.selectedSubtaskFilters) {
-                        if (sf == SubtaskFilter.hasSubtasks &&
-                            subtasks.isEmpty) return false;
-                        if (sf == SubtaskFilter.noSubtasks &&
-                            subtasks.isNotEmpty) return false;
-                        if (sf == SubtaskFilter.completedSubtasks &&
-                            (subtasks.isEmpty ||
-                                subtasks.any((s) => !s.isDone))) return false;
-                        if (sf == SubtaskFilter.incompleteSubtasks &&
-                            subtasks.every((s) => s.isDone)) return false;
-                      }
-                      if (ofs.subtaskSearch.trim().isNotEmpty) {
-                        final q = ofs.subtaskSearch.trim().toLowerCase();
-                        final taskSubtasks =
-                            subtasksByTask[task.id] ?? const [];
-                        if (!taskSubtasks
-                            .any((s) => s.title.toLowerCase().contains(q))) {
-                          return false;
-                        }
-                      }
-                      for (final tf in ofs.selectedTimeFilters) {
-                        if (!matchesTimeFilter(task, tf)) return false;
-                      }
-                      return true;
-                    }).toList();
-
-                    final boardItems = filteredTasks
-                        .map((t) => _mapTaskToBoardItem(t, users, tags))
-                        .where(_matchesFilters)
-                        .toList();
-                    if (boardItems.isEmpty) {
-                      return const Center(
-                        child: Padding(
-                          padding: EdgeInsets.symmetric(vertical: 32),
-                          child: Text(
-                            'No tasks found',
-                            style: TextStyle(
-                              color: DashboardColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
-                      );
-                    }
-                    return SizedBox(
-                      height: 520,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            _buildMobileColumn(
-                              context,
-                              ref,
-                              'Draft',
-                              TaskBoardStatus.draft,
-                              boardItems,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildMobileColumn(
-                              context,
-                              ref,
-                              'To Do',
-                              TaskBoardStatus.todo,
-                              boardItems,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildMobileColumn(
-                              context,
-                              ref,
-                              'In Progress',
-                              TaskBoardStatus.inProgress,
-                              boardItems,
-                            ),
-                            const SizedBox(width: 16),
-                            _buildMobileColumn(
-                              context,
-                              ref,
-                              'Completed',
-                              TaskBoardStatus.completed,
-                              boardItems,
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
+                SkeletonFade(
+                  isLoading: tasksAsync.isLoading && !tasksAsync.hasValue,
+                  skeleton: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 32),
+                    child: TaskListSkeleton(count: 4),
+                  ),
+                  child: mobileTasksContent,
                 ),
               ],
             ),

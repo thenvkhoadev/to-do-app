@@ -11,8 +11,12 @@ import 'package:to_do_app/features/social/presentation/widgets/empty_feed_state.
 import 'package:to_do_app/features/social/presentation/widgets/feed_right_sidebar.dart';
 import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
 import 'package:to_do_app/features/social/presentation/providers/story_provider.dart';
+import 'package:to_do_app/widgets/common/skeleton_fade.dart';
+import 'package:to_do_app/widgets/common/skeletons/social_stories_skeleton.dart';
+import 'package:to_do_app/widgets/common/skeletons/social_post_skeleton.dart';
 import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart';
 import 'package:to_do_app/core/utils/audio_unmute_helper.dart';
+
 
 class FeedScreen extends ConsumerWidget {
   const FeedScreen({super.key, this.onFindFriends});
@@ -299,25 +303,26 @@ class FeedScreen extends ConsumerWidget {
 
     final currentUserAvatar = profileAsync.valueOrNull?.avatarUrl;
 
-    return storiesAsync.when(
-      data: (groupedStories) {
-        return StoriesRow(
-          groupedStories: groupedStories,
-          currentUserAvatarUrl: currentUserAvatar,
-          onCreateStoryTap: () {
-            ref.read(storyCreatorProvider.notifier).startCreating();
-          },
-          onAuthorStoryTap: (authorId, stories) {
-            resumeWebAudio();
-            ref.read(storyViewerStateProvider.notifier).openViewer(authorId, 0);
-          },
-        );
-      },
-      loading: () => const SizedBox(
-        height: 96,
-        child: Center(child: CircularProgressIndicator(color: Colors.white24)),
+    return SkeletonFade(
+      isLoading: storiesAsync.isLoading && !storiesAsync.hasValue,
+      skeleton: const SocialStoriesSkeleton(),
+      child: storiesAsync.when(
+        data: (groupedStories) {
+          return StoriesRow(
+            groupedStories: groupedStories,
+            currentUserAvatarUrl: currentUserAvatar,
+            onCreateStoryTap: () {
+              ref.read(storyCreatorProvider.notifier).startCreating();
+            },
+            onAuthorStoryTap: (authorId, stories) {
+              resumeWebAudio();
+              ref.read(storyViewerStateProvider.notifier).openViewer(authorId, 0);
+            },
+          );
+        },
+        loading: () => const SizedBox.shrink(),
+        error: (_, __) => const SizedBox.shrink(),
       ),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 
@@ -373,38 +378,37 @@ class FeedScreen extends ConsumerWidget {
     final postsAsync = ref.watch(feedPostsProvider);
     final posts = postsAsync.valueOrNull ?? [];
 
-    if (posts.isEmpty && postsAsync.isLoading) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32.0),
-          child: CircularProgressIndicator(color: Colors.white24),
-        ),
-      );
-    }
+    final isLoading = postsAsync.isLoading && posts.isEmpty;
 
-    if (posts.isEmpty && postsAsync.hasError) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Text(
-            'Không thể tải bài viết: ${postsAsync.error}',
-            style: const TextStyle(color: Colors.redAccent),
-          ),
-        ),
-      );
-    }
-
-    if (posts.isEmpty) {
-      return EmptyFeedState(onFindFriends: onFindFriends);
-    }
-
-    return ListView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: posts.length,
-      itemBuilder: (context, index) {
-        return ActivityPostCard(post: posts[index]);
-      },
+    return SkeletonFade(
+      isLoading: isLoading,
+      skeleton: Column(
+        children: const [
+          SocialPostSkeleton(),
+          SocialPostSkeleton(),
+          SocialPostSkeleton(),
+        ],
+      ),
+      child: posts.isEmpty && postsAsync.hasError
+          ? Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
+                child: Text(
+                  'Không thể tải bài viết: ${postsAsync.error}',
+                  style: const TextStyle(color: Colors.redAccent),
+                ),
+              ),
+            )
+          : posts.isEmpty
+              ? EmptyFeedState(onFindFriends: onFindFriends)
+              : ListView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: posts.length,
+                  itemBuilder: (context, index) {
+                    return ActivityPostCard(post: posts[index]);
+                  },
+                ),
     );
   }
 }

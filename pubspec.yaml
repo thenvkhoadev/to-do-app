@@ -70,6 +70,7 @@ dependencies:
   video_player: ^2.11.1
   video_player_win: ^3.2.2
   audioplayers: ^6.1.0
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:
