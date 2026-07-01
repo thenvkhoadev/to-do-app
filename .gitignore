@@ -14,7 +14,8 @@ migrate_working_dir/
 temp_fb_reactions_hamza/
 lamviec.md
 story.docx
-
+.agents/skills
+skills-lock.json
 supabase_schema.sql
 scratch/
 supabase/

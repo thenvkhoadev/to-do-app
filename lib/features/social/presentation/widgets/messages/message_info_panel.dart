@@ -21,7 +21,7 @@ class MessageInfoPanel extends ConsumerWidget {
     final thread = threads[threadIndex];
 
     return Container(
-      color: const Color(0xFF18191A),
+      color: const Color(0xFF1C1B1B), // Match the sidebar background
       height: double.infinity,
       child: SingleChildScrollView(
         child: Column(
@@ -83,7 +83,7 @@ class MessageInfoPanel extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 20),
-            const Divider(color: Color(0xFF303031), height: 1),
+            const Divider(color: Color(0xFF242526), height: 1),
             // Accordion Sections (ExpansionTiles without borders)
             _buildAccordionTile(
               context,
@@ -207,21 +207,21 @@ class MessageInfoPanel extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Material(
-          color: const Color(0xFF242526),
+          color: const Color(0xFF2C2C2E), // Lighter circle background
           shape: const CircleBorder(),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: onTap,
             hoverColor: const Color(0xFF3A3B3C),
             child: Container(
-              width: 44,
-              height: 44,
+              width: 40, // Slightly more compact circle
+              height: 40,
               alignment: Alignment.center,
-              child: Icon(icon, color: Colors.white, size: 20),
+              child: Icon(icon, color: Colors.white, size: 18),
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 6),
         SizedBox(
           width: 72,
           child: Text(

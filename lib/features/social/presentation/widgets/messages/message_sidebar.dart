@@ -53,7 +53,7 @@ class _MessageSidebarState extends ConsumerState<MessageSidebar> {
     }
 
     return Material(
-      color: const Color(0xFF18191A),
+      color: const Color(0xFF1C1B1B), // Dark charcoal matching Messenger Desktop
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
@@ -102,10 +102,10 @@ class _MessageSidebarState extends ConsumerState<MessageSidebar> {
               },
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                height: 44,
+                height: 36, // Slimmer search bar
                 decoration: BoxDecoration(
-                  color: const Color(0xFF242526),
-                  borderRadius: BorderRadius.circular(22),
+                  color: const Color(0xFF2C2C2E), // Lighter grey input background
+                  borderRadius: BorderRadius.circular(18),
                   border: Border.all(
                     color: isFocused ? const Color(0xFF0084FF) : Colors.transparent,
                     width: 1.5,
@@ -261,14 +261,14 @@ class _MessageSidebarState extends ConsumerState<MessageSidebar> {
           }
         },
         labelStyle: TextStyle(
-          color: isSelected ? Colors.white : Colors.white70,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          color: isSelected ? const Color(0xFF0084FF) : Colors.white60,
+          fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
           fontSize: 13,
         ),
-        backgroundColor: const Color(0xFF242526),
-        selectedColor: const Color(0xFF0084FF).withValues(alpha: .2),
-        side: BorderSide(
-          color: isSelected ? const Color(0xFF0084FF) : Colors.transparent,
+        backgroundColor: Colors.transparent,
+        selectedColor: const Color(0xFF2C2C2E),
+        side: const BorderSide(
+          color: Colors.transparent,
           width: 1,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
@@ -932,9 +932,9 @@ class _ConversationTileState extends ConsumerState<_ConversationTile> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         child: Material(
           color: isSelected
-              ? const Color(0xFF0084FF).withValues(alpha: .15)
+              ? const Color(0xFF2C2C2E) // Native selection grey background
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(8),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () {
@@ -944,13 +944,13 @@ class _ConversationTileState extends ConsumerState<_ConversationTile> {
             onSecondaryTapDown: (details) {
               widget.showContextMenu(details.globalPosition, thread.id);
             },
-            splashFactory: NoSplash.splashFactory, // Disable ripple
+            splashFactory: NoSplash.splashFactory,
             hoverColor: isSelected
-                ? const Color(0xFF0084FF).withValues(alpha: .2)
+                ? const Color(0xFF2C2C2E)
                 : const Color(0xFF242526),
             child: Container(
-              height: 76,
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              height: 72, // Slimmer tile height
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               child: Row(
                 children: [
                   // Avatar with online dot
@@ -978,7 +978,12 @@ class _ConversationTileState extends ConsumerState<_ConversationTile> {
                             decoration: BoxDecoration(
                               color: const Color(0xFF31A24C),
                               shape: BoxShape.circle,
-                              border: Border.all(color: const Color(0xFF18191A), width: 2),
+                              border: Border.all(
+                                color: isSelected
+                                    ? const Color(0xFF2C2C2E)
+                                    : (_isHovered ? const Color(0xFF242526) : const Color(0xFF1C1B1B)),
+                                width: 2,
+                              ),
                             ),
                           ),
                         ),

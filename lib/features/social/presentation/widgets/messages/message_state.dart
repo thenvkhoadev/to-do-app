@@ -915,6 +915,16 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
     state = state.where((t) => t.id != threadId).toList();
   }
 
+  void deleteMessage(String threadId, String msgId) {
+    state = state.map((t) {
+      if (t.id == threadId) {
+        final updatedMsgs = t.messages.where((m) => m.id != msgId).toList();
+        return t.copyWith(messages: updatedMsgs);
+      }
+      return t;
+    }).toList();
+  }
+
   void addReaction(String threadId, String msgId, String emoji) {
     state = state.map((t) {
       if (t.id == threadId) {

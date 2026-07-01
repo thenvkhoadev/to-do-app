@@ -552,12 +552,12 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     final thread = threads[threadIndex];
 
     return Material(
-      color: const Color(0xFF18191A),
+      color: const Color(0xFF0A0A0A), // Solid black background matching Messenger Desktop
       child: Column(
         children: [
           // Chat Header (always visible navbar)
           _buildChatHeader(thread, rightSidebarVisible),
-          const Divider(height: 1, color: Color(0xFF303031)),
+          const Divider(height: 1, color: Color(0xFF242526)),
           
           if (_uploadProgress != null)
             LinearProgressIndicator(
@@ -592,8 +592,27 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
                       final message = thread.messages[index];
                       final isMe = message.senderId == 'me';
                       final showReceipt = index == thread.messages.length - 1 && isMe;
+                      final groupPosition = _getGroupPosition(thread.messages, index);
 
-                      return _buildMessageRow(message, isMe, showReceipt, thread);
+                      return _InteractiveMessageRow(
+                        key: ValueKey('msg-${message.id}'),
+                        message: message,
+                        isMe: isMe,
+                        showReceipt: showReceipt,
+                        thread: thread,
+                        groupPosition: groupPosition,
+                        onReply: (msg) {
+                          setState(() {
+                            _replyingTo = msg;
+                          });
+                        },
+                        onReact: (msg, emoji) {
+                          ref.read(chatThreadsProvider.notifier).addReaction(thread.id, msg.id, emoji);
+                        },
+                        onShowReactionPicker: (btnContext, msg, pos) {
+                          _showReactionPicker(btnContext, pos, msg);
+                        },
+                      );
                     },
                   ),
                   
@@ -627,8 +646,8 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
   }
 
   Widget _buildEmptyState() {
-    return Material(
-      color: const Color(0xFF18191A),
+    return Container(
+      color: const Color(0xFF0A0A0A),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -742,117 +761,6 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     );
   }
 
-  Widget _buildMessageRow(ChatMessage message, bool isMe, bool showReceipt, ChatThread thread) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (!isMe) ...[
-            CircleAvatar(
-              radius: 14,
-              backgroundColor: const Color(0xFF3A3B3C),
-              child: Text(
-                thread.avatarInitials,
-                style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          // Bubble block
-          Column(
-            crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-            children: [
-              // Replying quote preview inside list
-              if (message.replyTo != null)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 2),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF242526),
-                    borderRadius: BorderRadius.circular(12),
-                    border: const Border(left: BorderSide(color: Color(0xFF0084FF), width: 3)),
-                  ),
-                  child: Text(
-                    message.replyTo!.text,
-                    style: const TextStyle(color: Colors.white38, fontSize: 11),
-                  ),
-                ),
-              // Main bubble widget with long press reaction picker
-              GestureDetector(
-                onLongPressStart: (details) {
-                  _showReactionPicker(context, details.globalPosition, message);
-                },
-                child: _MessageBubble(message: message, isMe: isMe),
-              ),
-              // Reactions display below bubble
-              if (message.reactions.isNotEmpty)
-                _buildReactionsBadge(message),
-              // Seen receipts
-              if (isMe && (showReceipt || message.status == MessageStatus.seen || message.seenByUserIds.isNotEmpty))
-                Padding(
-                  padding: const EdgeInsets.only(top: 2, right: 4),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (message.status == MessageStatus.sending)
-                        const Icon(Icons.access_time_rounded, color: Colors.white30, size: 12)
-                      else if (message.status == MessageStatus.sent)
-                        const Icon(Icons.check_circle_outline_rounded, color: Colors.white30, size: 12)
-                      else if (message.status == MessageStatus.delivered)
-                        const Icon(Icons.check_circle_rounded, color: Colors.white30, size: 12)
-                      else if (message.status == MessageStatus.seen || message.seenByUserIds.isNotEmpty)
-                        CircleAvatar(
-                          radius: 7,
-                          backgroundColor: const Color(0xFF3A3B3C),
-                          backgroundImage: thread.avatarUrl != null ? NetworkImage(thread.avatarUrl!) : null,
-                          child: thread.avatarUrl == null
-                              ? Text(
-                                  thread.avatarInitials,
-                                  style: const TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold),
-                                )
-                              : null,
-                        ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildReactionsBadge(ChatMessage message) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 2, left: 8, right: 8),
-      child: Wrap(
-        spacing: 2,
-        children: message.reactions.keys.map((emoji) {
-          final count = message.reactions[emoji]!.length;
-          return Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: const Color(0xFF242526),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.white.withValues(alpha: .04)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(emoji, style: const TextStyle(fontSize: 11)),
-                if (count > 1) ...[
-                  const SizedBox(width: 2),
-                  Text('$count', style: const TextStyle(color: Colors.white70, fontSize: 10)),
-                ],
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
 
   Widget _buildTypingIndicator(ChatThread thread) {
     return Padding(
@@ -1163,7 +1071,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
                       constraints: const BoxConstraints(),
                       icon: const Icon(
                         Icons.emoji_emotions_rounded,
-                        color: Color(0xFFF0E6D2),
+                        color: Color(0xFF0084FF), // Blue icon matching Messenger
                         size: 22,
                       ),
                       onPressed: () => _toggleMediaPicker('emoji', thread),
@@ -1191,7 +1099,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
 
   Widget _buildComposerOptionButton(IconData icon, VoidCallback onTap) {
     return IconButton(
-      icon: Icon(icon, color: const Color(0xFFF0E6D2), size: 22),
+      icon: Icon(icon, color: const Color(0xFF0084FF), size: 22), // Blue icon matching Messenger
       padding: const EdgeInsets.symmetric(horizontal: 5),
       constraints: const BoxConstraints(),
       onPressed: onTap,
@@ -1200,7 +1108,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
 
   Widget _buildSendOrLikeButton({required bool isSending, required VoidCallback onTap}) {
     return Material(
-      color: isSending ? const Color(0xFF242526) : Colors.transparent,
+      color: Colors.transparent,
       shape: const CircleBorder(),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
@@ -1212,7 +1120,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
           alignment: Alignment.center,
           child: Icon(
             isSending ? Icons.send_rounded : Icons.thumb_up_rounded,
-            color: isSending ? const Color(0xFFF0E6D2) : const Color(0xFF0084FF),
+            color: const Color(0xFF0084FF), // Keep send/like icon blue
             size: isSending ? 22 : 24,
           ),
         ),
@@ -1946,13 +1854,50 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
       ),
     );
   }
+
+  BubbleGroupPosition _getGroupPosition(List<ChatMessage> messages, int index) {
+    if (index < 0 || index >= messages.length) return BubbleGroupPosition.single;
+    
+    final current = messages[index];
+    final senderId = current.senderId;
+    
+    final hasPrev = index > 0;
+    final hasNext = index < messages.length - 1;
+    
+    final prev = hasPrev ? messages[index - 1] : null;
+    final next = hasNext ? messages[index + 1] : null;
+    
+    final isPrevSame = prev != null && 
+        prev.senderId == senderId && 
+        current.timestamp.difference(prev.timestamp).inMinutes < 2;
+    final isNextSame = next != null && 
+        next.senderId == senderId && 
+        next.timestamp.difference(current.timestamp).inMinutes < 2;
+    
+    if (isPrevSame && isNextSame) {
+      return BubbleGroupPosition.middle;
+    } else if (isPrevSame) {
+      return BubbleGroupPosition.end;
+    } else if (isNextSame) {
+      return BubbleGroupPosition.start;
+    } else {
+      return BubbleGroupPosition.single;
+    }
+  }
 }
 
 class _MessageBubble extends StatelessWidget {
   final ChatMessage message;
   final bool isMe;
+  final BubbleGroupPosition groupPosition;
+  final bool hasReply;
 
-  const _MessageBubble({required this.message, required this.isMe});
+  const _MessageBubble({
+    required this.message,
+    required this.isMe,
+    required this.groupPosition,
+    this.hasReply = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1970,7 +1915,7 @@ class _MessageBubble extends StatelessWidget {
         width: 220,
         height: 160,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: _getBubbleBorderRadius(isMe, groupPosition, hasReply: hasReply),
           image: DecorationImage(
             image: imgProvider,
             fit: BoxFit.cover,
@@ -2056,15 +2001,10 @@ class _MessageBubble extends StatelessWidget {
 
     return Container(
       constraints: const BoxConstraints(maxWidth: 320),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
       decoration: BoxDecoration(
-        color: isMe ? const Color(0xFF0084FF) : const Color(0xFF303031),
-        borderRadius: BorderRadius.only(
-          topLeft: const Radius.circular(20),
-          topRight: const Radius.circular(20),
-          bottomLeft: Radius.circular(isMe ? 20 : 4),
-          bottomRight: Radius.circular(isMe ? 4 : 20),
-        ),
+        color: isMe ? const Color(0xFF0084FF) : const Color(0xFF2C2C2E),
+        borderRadius: _getBubbleBorderRadius(isMe, groupPosition, hasReply: hasReply),
       ),
       child: Text(
         message.text,
@@ -4903,6 +4843,445 @@ class _VideoThumbnailItemState extends State<_VideoThumbnailItem> {
             : const Center(
                 child: Icon(Icons.video_library_rounded, size: 20, color: Colors.white30),
               ),
+      ),
+    );
+  }
+}
+
+// ==========================================
+// BUBBLE GROUPING & INTERACTIVE HOVER ACTIONS
+// ==========================================
+
+enum BubbleGroupPosition { start, middle, end, single }
+
+BorderRadius _getBubbleBorderRadius(bool isMe, BubbleGroupPosition position, {bool hasReply = false}) {
+  const double rMax = 18.0;
+  const double rMin = 4.0;
+
+  if (hasReply) {
+    // If this bubble follows a reply quote preview block directly on top, flatten top corners to attach
+    return BorderRadius.only(
+      topLeft: const Radius.circular(rMin),
+      topRight: const Radius.circular(rMin),
+      bottomLeft: Radius.circular(isMe ? rMax : rMin),
+      bottomRight: Radius.circular(isMe ? rMin : rMax),
+    );
+  }
+
+  if (isMe) {
+    switch (position) {
+      case BubbleGroupPosition.start:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMax),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMin),
+        );
+      case BubbleGroupPosition.middle:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMax),
+          topRight: Radius.circular(rMin),
+          bottomRight: Radius.circular(rMin),
+        );
+      case BubbleGroupPosition.end:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMax),
+          topRight: Radius.circular(rMin),
+          bottomRight: Radius.circular(rMax),
+        );
+      case BubbleGroupPosition.single:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMax),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMin),
+        );
+    }
+  } else {
+    switch (position) {
+      case BubbleGroupPosition.start:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMin),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMax),
+        );
+      case BubbleGroupPosition.middle:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMin),
+          bottomLeft: Radius.circular(rMin),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMax),
+        );
+      case BubbleGroupPosition.end:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMin),
+          bottomLeft: Radius.circular(rMax),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMax),
+        );
+      case BubbleGroupPosition.single:
+        return const BorderRadius.only(
+          topLeft: Radius.circular(rMax),
+          bottomLeft: Radius.circular(rMin),
+          topRight: Radius.circular(rMax),
+          bottomRight: Radius.circular(rMax),
+        );
+    }
+  }
+}
+
+class _InteractiveMessageRow extends ConsumerStatefulWidget {
+  final ChatMessage message;
+  final bool isMe;
+  final bool showReceipt;
+  final ChatThread thread;
+  final BubbleGroupPosition groupPosition;
+  final void Function(ChatMessage) onReply;
+  final void Function(ChatMessage, String) onReact;
+  final void Function(BuildContext, ChatMessage, Offset) onShowReactionPicker;
+
+  const _InteractiveMessageRow({
+    super.key,
+    required this.message,
+    required this.isMe,
+    required this.showReceipt,
+    required this.thread,
+    required this.groupPosition,
+    required this.onReply,
+    required this.onReact,
+    required this.onShowReactionPicker,
+  });
+
+  @override
+  ConsumerState<_InteractiveMessageRow> createState() => _InteractiveMessageRowState();
+}
+
+class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final message = widget.message;
+    final isMe = widget.isMe;
+    final showReceipt = widget.showReceipt;
+    final thread = widget.thread;
+    final groupPosition = widget.groupPosition;
+
+    final isLastInGroup = groupPosition == BubbleGroupPosition.end || groupPosition == BubbleGroupPosition.single;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: (groupPosition == BubbleGroupPosition.start || groupPosition == BubbleGroupPosition.single) ? 6 : 2,
+          bottom: (groupPosition == BubbleGroupPosition.end || groupPosition == BubbleGroupPosition.single) ? 6 : 2,
+          left: 16,
+          right: 16,
+        ),
+        child: Row(
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            // Left Side: Recipient Avatar (only shown at the end of a group block)
+            if (!isMe) ...[
+              if (isLastInGroup)
+                CircleAvatar(
+                  radius: 14,
+                  backgroundColor: const Color(0xFF3A3B3C),
+                  backgroundImage: thread.avatarUrl != null && thread.avatarUrl!.isNotEmpty
+                      ? NetworkImage(thread.avatarUrl!)
+                      : null,
+                  child: thread.avatarUrl == null || thread.avatarUrl!.isEmpty
+                      ? Text(
+                          thread.avatarInitials,
+                          style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                        )
+                      : null,
+                )
+              else
+                const SizedBox(width: 28), // Spacer matches CircleAvatar width
+              const SizedBox(width: 8),
+            ],
+
+            // Center / Hover actions (placed left of bubble if isMe)
+            if (isMe && _isHovered) ...[
+              _buildHoverActions(context),
+            ],
+
+            // Bubble block
+            Column(
+              crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                // Reply header: curved arrow icon and text "Đạt đã trả lời 7 Sụa"
+                if (message.replyTo != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 4, left: 4, right: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(
+                          Icons.reply_rounded,
+                          color: Colors.white38,
+                          size: 13,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${message.senderId == 'me' ? 'Bạn' : message.senderName} đã trả lời ${message.replyTo!.senderId == 'me' ? 'bạn' : message.replyTo!.senderName}',
+                          style: const TextStyle(
+                            color: Colors.white38,
+                            fontSize: 11,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                // Replying quote preview inside list
+                if (message.replyTo != null)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 2),
+                    constraints: const BoxConstraints(maxWidth: 320),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: message.replyTo!.senderId == 'me'
+                          ? const Color(0xFF003D80)
+                          : const Color(0xFF1F1F21),
+                      borderRadius: BorderRadius.only(
+                        topLeft: const Radius.circular(18),
+                        topRight: const Radius.circular(18),
+                        bottomLeft: Radius.circular(isMe ? 18 : 4),
+                        bottomRight: Radius.circular(isMe ? 4 : 18),
+                      ),
+                    ),
+                    child: Text(
+                      message.replyTo!.text,
+                      style: const TextStyle(
+                        color: Colors.white60,
+                        fontSize: 13,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+
+                // Main bubble widget
+                _MessageBubble(
+                  message: message,
+                  isMe: isMe,
+                  groupPosition: groupPosition,
+                  hasReply: message.replyTo != null,
+                ),
+
+                // Reactions display below bubble
+                if (message.reactions.isNotEmpty)
+                  _buildReactionsBadge(message),
+
+                // Seen receipts (only shown for isMe)
+                if (isMe && (showReceipt || message.status == MessageStatus.seen || message.seenByUserIds.isNotEmpty))
+                  Padding(
+                    padding: const EdgeInsets.only(top: 2, right: 4),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (message.status == MessageStatus.sending)
+                          const Icon(Icons.access_time_rounded, color: Colors.white30, size: 12)
+                        else if (message.status == MessageStatus.sent)
+                          const Icon(Icons.check_circle_outline_rounded, color: Colors.white30, size: 12)
+                        else if (message.status == MessageStatus.delivered)
+                          const Icon(Icons.check_circle_rounded, color: Colors.white30, size: 12)
+                        else if (message.status == MessageStatus.seen || message.seenByUserIds.isNotEmpty)
+                          CircleAvatar(
+                            radius: 7,
+                            backgroundColor: const Color(0xFF3A3B3C),
+                            backgroundImage: thread.avatarUrl != null && thread.avatarUrl!.isNotEmpty
+                                ? NetworkImage(thread.avatarUrl!)
+                                : null,
+                            child: thread.avatarUrl == null || thread.avatarUrl!.isEmpty
+                                ? Text(
+                                    thread.avatarInitials,
+                                    style: const TextStyle(color: Colors.white, fontSize: 6, fontWeight: FontWeight.bold),
+                                  )
+                                : null,
+                          ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+
+            // Center / Hover actions (placed right of bubble if !isMe)
+            if (!isMe && _isHovered) ...[
+              _buildHoverActions(context),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHoverActions(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 8),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildHoverActionIconButton(
+            icon: Icons.sentiment_satisfied_alt_rounded,
+            tooltip: 'Bày tỏ cảm xúc',
+            onTap: (btnContext) {
+              final renderBox = btnContext.findRenderObject() as RenderBox;
+              final position = renderBox.localToGlobal(Offset.zero);
+              widget.onShowReactionPicker(btnContext, widget.message, position);
+            },
+          ),
+          const SizedBox(width: 4),
+          _buildHoverActionIconButton(
+            icon: Icons.reply_rounded,
+            tooltip: 'Trả lời',
+            onTap: (btnContext) {
+              widget.onReply(widget.message);
+            },
+          ),
+          const SizedBox(width: 4),
+          _buildHoverActionIconButton(
+            icon: Icons.more_vert_rounded,
+            tooltip: 'Xem thêm',
+            onTap: (btnContext) {
+              final renderBox = btnContext.findRenderObject() as RenderBox;
+              final position = renderBox.localToGlobal(Offset.zero);
+              _showMoreMenu(btnContext, position);
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMoreMenu(BuildContext context, Offset position) {
+    showMenu(
+      context: context,
+      position: RelativeRect.fromLTRB(
+        position.dx,
+        position.dy + 32, // Show right below/near the 3-dot button
+        position.dx + 120,
+        position.dy + 150,
+      ),
+      color: const Color(0xFF252525),
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      items: [
+        PopupMenuItem(
+          height: 38,
+          onTap: () {
+            ref.read(chatThreadsProvider.notifier).deleteMessage(widget.thread.id, widget.message.id);
+          },
+          child: const Text(
+            'Gỡ',
+            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          ),
+        ),
+        PopupMenuItem(
+          height: 38,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đang chuyển tiếp tin nhắn...')),
+            );
+          },
+          child: const Text(
+            'Chuyển tiếp',
+            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          ),
+        ),
+        PopupMenuItem(
+          height: 38,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã ghim tin nhắn')),
+            );
+          },
+          child: const Text(
+            'Ghim',
+            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          ),
+        ),
+        PopupMenuItem(
+          height: 38,
+          onTap: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Đã gửi báo cáo đoạn chat')),
+            );
+          },
+          child: const Text(
+            'Báo cáo',
+            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHoverActionIconButton({
+    required IconData icon,
+    required String tooltip,
+    required void Function(BuildContext) onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: Builder(
+        builder: (btnContext) {
+          return MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () => onTap(btnContext),
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF1E1E1E),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(icon, color: Colors.white70, size: 16),
+              ),
+            ),
+          );
+        }
+      ),
+    );
+  }
+
+  Widget _buildReactionsBadge(ChatMessage message) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 2, left: 8, right: 8),
+      child: Wrap(
+        spacing: 2,
+        children: message.reactions.keys.map((emoji) {
+          final count = message.reactions[emoji]!.length;
+          return Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+            decoration: BoxDecoration(
+              color: const Color(0xFF242526),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.white.withValues(alpha: .04)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(emoji, style: const TextStyle(fontSize: 11)),
+                if (count > 1) ...[
+                  const SizedBox(width: 2),
+                  Text('$count', style: const TextStyle(color: Colors.white70, fontSize: 10)),
+                ],
+              ],
+            ),
+          );
+        }).toList(),
       ),
     );
   }
