@@ -2,10 +2,12 @@ import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_state.dart';
+import 'package:to_do_app/features/social/presentation/widgets/messages/message_draft_state.dart';
 import 'package:to_do_app/features/social/presentation/widgets/activity_post_card.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task.dart';
 import 'package:to_do_app/features/tasks/presentation/providers/tasks_provider.dart';
@@ -43,6 +45,24 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
   String? _activePickerTab;
   bool _isTaskPickerOpen = false;
   bool _isPlusMenuOpen = false;
+
+  // Reaction overlay state
+  OverlayEntry? _reactionOverlayEntry;
+  Timer? _reactionShowTimer;
+  Timer? _reactionHideTimer;
+  final _MessengerReactionPopupController _reactionPopupController = _MessengerReactionPopupController();
+  bool _isTransitioningToFullPicker = false;
+  String? _hoveredMessageId;
+  Timer? _draftDebounceTimer;
+  bool _isDisposed = false;
+
+  // Composer emoji picker overlay state
+  OverlayEntry? _emojiPickerOverlay;
+  final _MessengerEmojiPickerPopupController _emojiPickerPopupController = _MessengerEmojiPickerPopupController();
+
+  // Full emoji picker (triggered by + button on Reaction Capsule) overlay state
+  OverlayEntry? _fullEmojiPickerOverlay;
+  final _MessengerEmojiPickerPopupController _fullEmojiPickerPopupController = _MessengerEmojiPickerPopupController();
 
   // Call status state
   bool _isCallActive = false;
@@ -107,13 +127,29 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat();
+    _textController.addListener(_onTextChanged);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final activeId = ref.read(activeThreadIdProvider);
+        if (activeId != null) {
+          _loadDraftForThread(activeId);
+        }
+      }
+    });
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
+    _draftDebounceTimer?.cancel();
+    _textController.removeListener(_onTextChanged);
     _textController.dispose();
     _scrollController.dispose();
     _inputFocus.dispose();
+    _dismissReactionPopupImmediate();
+    _closeEmojiPickerImmediate();
+    _closeFullEmojiPickerImmediate();
     CommentMediaPickerOverlay.close();
     TaskPickerOverlay.close();
     PlusMenuOverlay.close();
@@ -124,6 +160,8 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     _disposeCallCameraController();
     super.dispose();
   }
+
+
 
   Future<void> _pickMedia(ChatThread thread) async {
     try {
@@ -225,6 +263,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
   }
 
   void _toggleMediaPicker(String tab, ChatThread thread) {
+    _closeEmojiPickerImmediate();
     if (_activePickerTab == tab) {
       CommentMediaPickerOverlay.close();
       setState(() {
@@ -329,49 +368,48 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     }
   }
 
-  void _togglePlusMenu(ChatThread thread) {
+  void _togglePlusMenu(ChatThread thread, BuildContext anchorContext) {
     if (_isPlusMenuOpen) {
       PlusMenuOverlay.close();
-      setState(() {
-        _isPlusMenuOpen = false;
-      });
+      setState(() => _isPlusMenuOpen = false);
     } else {
-      setState(() {
-        _isPlusMenuOpen = true;
-      });
+      setState(() => _isPlusMenuOpen = true);
 
       PlusMenuOverlay.show(
         context: context,
+        anchorContext: anchorContext,
         link: _plusLink,
         onSendAudio: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           ref.read(voiceRecordingProvider.notifier).startRecording();
         },
         onAttachFile: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           _pickAttachmentFile(thread);
         },
         onSticker: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           _toggleMediaPicker('sticker', thread);
         },
         onGif: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           _toggleMediaPicker('gif', thread);
         },
         onCapture: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           _capturePhoto(thread);
         },
         onShareTask: () {
-          _togglePlusMenu(thread);
+          PlusMenuOverlay.close();
+          setState(() => _isPlusMenuOpen = false);
           _toggleTaskPicker(thread);
         },
-        onClose: () {
-          setState(() {
-            _isPlusMenuOpen = false;
-          });
-        },
+        onClose: () => setState(() => _isPlusMenuOpen = false),
       );
     }
   }
@@ -485,6 +523,97 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     return '${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
   }
 
+  void _onTextChanged() {
+    final activeId = ref.read(activeThreadIdProvider);
+    if (activeId == null) return;
+
+    _draftDebounceTimer?.cancel();
+
+    final text = _textController.text;
+    if (text.trim().isEmpty) {
+      ref.read(messageDraftsProvider.notifier).deleteDraft(activeId);
+      return;
+    }
+
+    _draftDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      final text = _textController.text;
+      if (text.trim().isNotEmpty) {
+        int cursor = _textController.selection.baseOffset;
+        int start = _textController.selection.start;
+        int end = _textController.selection.end;
+        if (cursor < 0) cursor = text.length;
+        if (start < 0) start = text.length;
+        if (end < 0) end = text.length;
+
+        ref.read(messageDraftsProvider.notifier).saveDraft(
+          conversationId: activeId,
+          text: text,
+          cursorPosition: cursor,
+          selectionStart: start,
+          selectionEnd: end,
+        );
+      }
+    });
+  }
+
+  void _saveDraftImmediately(String conversationId) {
+    _draftDebounceTimer?.cancel();
+    final text = _textController.text;
+    if (text.trim().isEmpty) {
+      ref.read(messageDraftsProvider.notifier).deleteDraft(conversationId);
+    } else {
+      int cursor = _textController.selection.baseOffset;
+      int start = _textController.selection.start;
+      int end = _textController.selection.end;
+      if (cursor < 0) cursor = text.length;
+      if (start < 0) start = text.length;
+      if (end < 0) end = text.length;
+
+      ref.read(messageDraftsProvider.notifier).saveDraft(
+        conversationId: conversationId,
+        text: text,
+        cursorPosition: cursor,
+        selectionStart: start,
+        selectionEnd: end,
+      );
+    }
+  }
+
+  void _loadDraftForThread(String conversationId) {
+    _draftDebounceTimer?.cancel();
+
+    _textController.removeListener(_onTextChanged);
+
+    final drafts = ref.read(messageDraftsProvider);
+    final draft = drafts[conversationId];
+
+    if (draft != null && draft.draftText.isNotEmpty) {
+      _textController.text = draft.draftText;
+
+      final textLength = draft.draftText.length;
+      int start = draft.selectionStart;
+      int end = draft.selectionEnd;
+
+      if (start < 0 || start > textLength) start = textLength;
+      if (end < 0 || end > textLength) end = textLength;
+
+      _textController.selection = TextSelection(
+        baseOffset: start,
+        extentOffset: end,
+      );
+
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _inputFocus.requestFocus();
+        }
+      });
+    } else {
+      _textController.clear();
+    }
+
+    _textController.addListener(_onTextChanged);
+  }
+
   void _handleSend() {
     final activeId = ref.read(activeThreadIdProvider);
     if (activeId == null) return;
@@ -517,6 +646,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
       );
     }
 
+    ref.read(messageDraftsProvider.notifier).deleteDraft(activeId);
     _textController.clear();
     setState(() {
       _replyingTo = null;
@@ -536,6 +666,18 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
 
   @override
   Widget build(BuildContext context) {
+    ref.listen<String?>(activeThreadIdProvider, (previous, next) {
+      if (previous != next) {
+        _dismissReactionPopupImmediate();
+        if (previous != null) {
+          _saveDraftImmediately(previous);
+        }
+        if (next != null) {
+          _loadDraftForThread(next);
+        }
+      }
+    });
+
     final activeId = ref.watch(activeThreadIdProvider);
     final threads = ref.watch(chatThreadsProvider);
     final rightSidebarVisible = ref.watch(isRightSidebarVisibleProvider);
@@ -609,20 +751,16 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
                         onReact: (msg, emoji) {
                           ref.read(chatThreadsProvider.notifier).addReaction(thread.id, msg.id, emoji);
                         },
-                        onShowReactionPicker: (btnContext, msg, pos) {
-                          _showReactionPicker(btnContext, pos, msg);
-                        },
+                        onShowReactionPicker: (btnContext, msg, pos, link) =>
+                            _showReactionPicker(btnContext, pos, msg, link),
+                        onBubbleHoverShow: (btnContext, link, msg, pos) =>
+                            _showReactionPopup(context: btnContext, link: link, message: msg, isMe: msg.senderId == 'me', position: pos),
+                        onBubbleHoverExit: _startReactionHideTimer,
+                        onBubbleHoverEnterCancelHide: _cancelReactionHideTimer,
+                        isMenuOpen: _hoveredMessageId == message.id && (_reactionOverlayEntry != null || _fullEmojiPickerOverlay != null),
                       );
                     },
                   ),
-                  
-                  if (_showEmojiPicker)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildFacebookEmojiPicker(),
-                    ),
                     
                   // Draggable/Positioned mini video call preview
                   if (_isCallActive && _isCallMinimized && _isCallVideo)
@@ -1002,15 +1140,17 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
             // Collapsed state: just show + or x toggle button
             CompositedTransformTarget(
               link: _plusLink,
-              child: IconButton(
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-                icon: Icon(
-                  _isPlusMenuOpen ? Icons.cancel_rounded : Icons.add_circle_rounded,
-                  color: const Color(0xFF0084FF),
-                  size: 32,
+              child: Builder(
+                builder: (btnContext) => IconButton(
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                  icon: Icon(
+                    _isPlusMenuOpen ? Icons.cancel_rounded : Icons.add_circle_rounded,
+                    color: const Color(0xFF0084FF),
+                    size: 32,
+                  ),
+                  onPressed: () => _togglePlusMenu(thread, btnContext),
                 ),
-                onPressed: () => _togglePlusMenu(thread),
               ),
             ),
             const SizedBox(width: 8),
@@ -1074,7 +1214,7 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
                         color: Color(0xFF0084FF), // Blue icon matching Messenger
                         size: 22,
                       ),
-                      onPressed: () => _toggleMediaPicker('emoji', thread),
+                      onPressed: () => _toggleEmojiPicker(thread),
                     ),
                   ),
                 ],
@@ -1128,93 +1268,274 @@ class _MessageChatWindowState extends ConsumerState<MessageChatWindow> with Tick
     );
   }
 
-  Widget _buildFacebookEmojiPicker() {
-    final emojis = ['👍', '❤️', '😂', '😮', '😢', '😡', '👌', '🎉', '🔥', '✨', '👀', '💯'];
-    return Container(
-      color: const Color(0xFF242526),
-      height: 120,
-      padding: const EdgeInsets.all(12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+  void _toggleEmojiPicker(ChatThread thread) {
+    if (_emojiPickerOverlay != null) {
+      _closeEmojiPicker();
+    } else {
+      _closeEmojiPickerImmediate();
+      CommentMediaPickerOverlay.close();
+      PlusMenuOverlay.close();
+      TaskPickerOverlay.close();
+
+      final overlay = Overlay.of(context);
+      _emojiPickerOverlay = OverlayEntry(
+        builder: (overlayContext) {
+          return Stack(
             children: [
-              const Text('Biểu tượng cảm xúc', style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: const Icon(Icons.close_rounded, color: Colors.white38, size: 16),
-                onPressed: () => setState(() => _showEmojiPicker = false),
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _closeEmojiPicker,
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+              CompositedTransformFollower(
+                link: _emojiLink,
+                showWhenUnlinked: false,
+                targetAnchor: Alignment.topCenter,
+                followerAnchor: Alignment.bottomCenter,
+                offset: const Offset(-168, -8),
+                child: Material(
+                  color: Colors.transparent,
+                  child: _MessengerEmojiPickerPopup(
+                    controller: _emojiPickerPopupController,
+                    onDismissed: () {
+                      _emojiPickerOverlay?.remove();
+                      _emojiPickerOverlay = null;
+                      if (mounted) {
+                        setState(() {
+                          _showEmojiPicker = false;
+                        });
+                      }
+                    },
+                    onEmojiSelected: (emoji) {
+                      _textController.text += emoji;
+                      setState(() {});
+                      _closeEmojiPicker();
+                    },
+                  ),
+                ),
               ),
             ],
-          ),
-          Expanded(
-            child: GridView.count(
-              crossAxisCount: 6,
-              children: emojis.map((emoji) {
-                return InkWell(
-                  onTap: () {
-                    _textController.text += emoji;
-                    setState(() {
-                      _showEmojiPicker = false;
-                    });
-                  },
-                  child: Center(
-                    child: Text(emoji, style: const TextStyle(fontSize: 22)),
-                  ),
-                );
-              }).toList(),
-            ),
-          ),
-        ],
-      ),
+          );
+        },
+      );
+      overlay.insert(_emojiPickerOverlay!);
+      setState(() {
+        _showEmojiPicker = true;
+      });
+    }
+  }
+
+  void _closeEmojiPicker() {
+    _emojiPickerPopupController.close?.call();
+  }
+
+  void _closeEmojiPickerImmediate() {
+    _emojiPickerOverlay?.remove();
+    _emojiPickerOverlay = null;
+    if (mounted && !_isDisposed) {
+      setState(() {
+        _showEmojiPicker = false;
+      });
+    }
+  }
+
+  Future<void> _showReactionPicker(BuildContext context, Offset position, ChatMessage message, LayerLink link) async {
+    _showReactionPopup(
+      context: context,
+      link: link,
+      message: message,
+      isMe: message.senderId == 'me',
+      position: position,
     );
   }
 
-  void _showReactionPicker(BuildContext context, Offset position, ChatMessage message) {
-    final emojis = ['👍', '❤️', '😂', '😮', '😢', '😡'];
-    final activeId = ref.read(activeThreadIdProvider);
-    if (activeId == null) return;
+  void _dismissReactionPopupImmediate() {
+    _reactionShowTimer?.cancel();
+    _reactionShowTimer = null;
+    _reactionHideTimer?.cancel();
+    _reactionHideTimer = null;
+    final changed = _reactionOverlayEntry != null || _hoveredMessageId != null;
+    _reactionOverlayEntry?.remove();
+    _reactionOverlayEntry = null;
+    if (!_isTransitioningToFullPicker) {
+      _hoveredMessageId = null;
+    }
+    if (changed && mounted && !_isDisposed) setState(() {});
+  }
 
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(position.dx, position.dy - 80, position.dx + 1, position.dy - 40),
-      color: const Color(0xFF242526),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      items: [
-        PopupMenuItem(
-          enabled: false,
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: emojis.map((emoji) {
-              return InkWell(
-                onTap: () {
-                  ref.read(chatThreadsProvider.notifier).addReaction(activeId, message.id, emoji);
-                  Navigator.of(context).pop();
+  void _closeReactionPopup() {
+    _reactionPopupController.close?.call();
+  }
+
+  void _startReactionHideTimer() {
+    if (_isTransitioningToFullPicker) return;
+    _reactionHideTimer?.cancel();
+    _reactionHideTimer = Timer(const Duration(milliseconds: 250), () {
+      _closeReactionPopup();
+    });
+  }
+
+  void _cancelReactionHideTimer() {
+    _reactionHideTimer?.cancel();
+    _reactionHideTimer = null;
+  }
+
+  void _showReactionPopup({
+    required BuildContext context,
+    required LayerLink link,
+    required ChatMessage message,
+    required bool isMe,
+    required Offset position,
+  }) {
+    _reactionShowTimer?.cancel();
+    _reactionShowTimer = null;
+    _reactionHideTimer?.cancel();
+    _reactionHideTimer = null;
+
+    if (_hoveredMessageId == message.id && _reactionOverlayEntry != null) {
+      return;
+    }
+
+    _dismissReactionPopupImmediate();
+
+    _hoveredMessageId = message.id;
+
+    final overlay = Overlay.of(context);
+    final bool openDownward = position.dy < 80;
+
+    _reactionOverlayEntry = OverlayEntry(
+      builder: (overlayContext) {
+        return CompositedTransformFollower(
+          link: link,
+          showWhenUnlinked: false,
+          targetAnchor: openDownward ? Alignment.bottomCenter : Alignment.topCenter,
+          followerAnchor: openDownward ? Alignment.topCenter : Alignment.bottomCenter,
+          offset: Offset(0, openDownward ? 8 : -8),
+          child: Align(
+            alignment: openDownward ? Alignment.topCenter : Alignment.bottomCenter,
+            widthFactor: 1.0,
+            heightFactor: 1.0,
+            child: Material(
+              color: Colors.transparent,
+              child: _MessengerReactionPopup(
+                controller: _reactionPopupController,
+                message: message,
+                activeId: ref.read(activeThreadIdProvider)!,
+                ref: ref,
+                isMe: isMe,
+                openDownward: openDownward,
+                onDismissed: () {
+                  _reactionOverlayEntry?.remove();
+                  _reactionOverlayEntry = null;
+                  _hoveredMessageId = null;   // trước đây thiếu dòng này
+                  if (mounted) setState(() {});
                 },
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-                  child: Text(emoji, style: const TextStyle(fontSize: 22)),
-                ),
-              );
-            }).toList(),
+                onOpenFullPicker: () {
+                  _isTransitioningToFullPicker = true;
+                  _dismissReactionPopupImmediate();
+                  _showFullEmojiPicker(context, message, link);
+                  _isTransitioningToFullPicker = false;
+                },
+                onEnter: _cancelReactionHideTimer,
+                onExit: _startReactionHideTimer,
+              ),
+            ),
           ),
-        ),
-        PopupMenuItem(
-          onTap: () {
-            setState(() {
-              _replyingTo = message;
-            });
-          },
-          child: const Row(
-            children: [
-              Icon(Icons.reply_rounded, color: Colors.white70, size: 18),
-              SizedBox(width: 8),
-              Text('Trả lời', style: TextStyle(color: Colors.white, fontSize: 13)),
-            ],
-          ),
-        ),
-      ],
+        );
+      },
     );
+
+    overlay.insert(_reactionOverlayEntry!);
+    if (mounted) setState(() {});
+  }
+
+  void _showFullEmojiPicker(BuildContext context, ChatMessage message, LayerLink link) {
+    if (_fullEmojiPickerOverlay != null) {
+      _closeFullEmojiPicker();
+    } else {
+      _closeFullEmojiPickerImmediate();
+      _dismissReactionPopupImmediate();
+
+      final overlay = Overlay.of(context);
+      
+      final RenderBox? targetBox = context.findRenderObject() as RenderBox?;
+      if (targetBox == null) return;
+      final targetPosition = targetBox.localToGlobal(Offset.zero);
+      
+      final bool openDownward = targetPosition.dy < 360;
+      const double pickerWidth = 280.0;
+      
+      _fullEmojiPickerOverlay = OverlayEntry(
+        builder: (overlayContext) {
+          final screenWidth = MediaQuery.of(overlayContext).size.width;
+          final targetWidth = targetBox.size.width;
+          final targetCenterX = targetPosition.dx + targetWidth / 2;
+          
+          double popupLeft = targetCenterX - pickerWidth / 2;
+          double adjustedLeft = popupLeft;
+          if (adjustedLeft < 12) {
+            adjustedLeft = 12;
+          } else if (adjustedLeft + pickerWidth > screenWidth - 12) {
+            adjustedLeft = screenWidth - 12 - pickerWidth;
+          }
+          
+          double offsetX = adjustedLeft - targetPosition.dx;
+          double arrowX = targetCenterX - adjustedLeft;
+          
+          return Stack(
+            children: [
+              Positioned.fill(
+                child: GestureDetector(
+                  behavior: HitTestBehavior.translucent,
+                  onTap: _closeFullEmojiPicker,
+                  child: Container(color: Colors.transparent),
+                ),
+              ),
+              CompositedTransformFollower(
+                link: link,
+                showWhenUnlinked: false,
+                targetAnchor: openDownward ? Alignment.bottomLeft : Alignment.topLeft,
+                followerAnchor: openDownward ? Alignment.topLeft : Alignment.bottomLeft,
+                offset: Offset(offsetX, openDownward ? 8 : -8),
+                child: Material(
+                  color: Colors.transparent,
+                  child: _FullEmojiPickerPopup(
+                    controller: _fullEmojiPickerPopupController,
+                    arrowAtBottom: !openDownward,
+                    arrowX: arrowX,
+                    message: message,
+                    activeId: ref.read(activeThreadIdProvider)!,
+                    ref: ref,
+                    onDismissed: () {
+                      _fullEmojiPickerOverlay?.remove();
+                      _fullEmojiPickerOverlay = null;
+                      _hoveredMessageId = null;
+                      if (mounted) setState(() {});
+                    },
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      );
+      overlay.insert(_fullEmojiPickerOverlay!);
+      if (mounted) setState(() {});
+    }
+  }
+
+  void _closeFullEmojiPicker() {
+    _fullEmojiPickerPopupController.close?.call();
+  }
+
+  void _closeFullEmojiPickerImmediate() {
+    final changed = _fullEmojiPickerOverlay != null;
+    _fullEmojiPickerOverlay?.remove();
+    _fullEmojiPickerOverlay = null;
+    _hoveredMessageId = null;
+    if (changed && mounted && !_isDisposed) setState(() {});
   }
 
   Widget _buildFullCallScreen(ChatThread thread) {
@@ -2827,6 +3148,7 @@ class PlusMenuOverlay {
   static void show({
     required BuildContext context,
     required LayerLink link,
+    required BuildContext anchorContext, // 👈 context của chính nút "+" để đo vị trí
     required VoidCallback onSendAudio,
     required VoidCallback onAttachFile,
     required VoidCallback onSticker,
@@ -2839,25 +3161,70 @@ class PlusMenuOverlay {
 
     final overlayState = Overlay.of(context);
 
+    final RenderBox? targetBox = anchorContext.findRenderObject() as RenderBox?;
+    if (targetBox == null) return;
+    final targetPosition = targetBox.localToGlobal(Offset.zero);
+    final targetSize = targetBox.size;
+
+    const double menuWidth = 320;
+    const double menuHeight = 290;
+
     _entry = OverlayEntry(
       builder: (context) {
-        return Positioned(
-          width: 320,
-          height: 290,
-          child: CompositedTransformFollower(
-            link: link,
-            showWhenUnlinked: false,
-            offset: const Offset(-8, -300),
-            child: _PlusMenuWidget(
-              onSendAudio: onSendAudio,
-              onAttachFile: onAttachFile,
-              onSticker: onSticker,
-              onGif: onGif,
-              onCapture: onCapture,
-              onShareTask: onShareTask,
-              onClose: onClose,
+        final screenSize = MediaQuery.of(context).size;
+
+        // Đủ chỗ phía trên nút "+" không? Nếu không thì mở xuống dưới.
+        final bool openUpward = targetPosition.dy - menuHeight - 12 > 0;
+
+        double dx = targetPosition.dx - 8;
+        // Không để popup tràn ra khỏi mép phải màn hình
+        if (dx + menuWidth > screenSize.width - 12) {
+          dx = screenSize.width - 12 - menuWidth;
+        }
+        if (dx < 12) dx = 12;
+
+        final double offsetX = dx - targetPosition.dx;
+        final double offsetY = openUpward
+            ? -(menuHeight + 12)
+            : (targetSize.height + 12);
+
+        return Stack(
+          children: [
+            // Lớp chắn để tap ra ngoài thì đóng popup
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.translucent,
+                onTap: () {
+                  close();
+                  onClose();
+                },
+                child: Container(color: Colors.transparent),
+              ),
             ),
-          ),
+            CompositedTransformFollower(
+              link: link,
+              showWhenUnlinked: false,
+              targetAnchor: Alignment.topLeft,
+              followerAnchor: Alignment.topLeft,
+              offset: Offset(offsetX, offsetY),
+              child: Material(
+                color: Colors.transparent,
+                child: SizedBox(
+                  width: menuWidth,
+                  height: menuHeight,
+                  child: _PlusMenuWidget(
+                    onSendAudio: onSendAudio,
+                    onAttachFile: onAttachFile,
+                    onSticker: onSticker,
+                    onGif: onGif,
+                    onCapture: onCapture,
+                    onShareTask: onShareTask,
+                    onClose: onClose,
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -4941,7 +5308,11 @@ class _InteractiveMessageRow extends ConsumerStatefulWidget {
   final BubbleGroupPosition groupPosition;
   final void Function(ChatMessage) onReply;
   final void Function(ChatMessage, String) onReact;
-  final void Function(BuildContext, ChatMessage, Offset) onShowReactionPicker;
+  final Future<void> Function(BuildContext, ChatMessage, Offset, LayerLink) onShowReactionPicker;
+  final void Function(BuildContext context, LayerLink link, ChatMessage message, Offset position) onBubbleHoverShow;
+  final void Function() onBubbleHoverExit;
+  final void Function() onBubbleHoverEnterCancelHide;
+  final bool isMenuOpen;
 
   const _InteractiveMessageRow({
     super.key,
@@ -4953,6 +5324,10 @@ class _InteractiveMessageRow extends ConsumerStatefulWidget {
     required this.onReply,
     required this.onReact,
     required this.onShowReactionPicker,
+    required this.onBubbleHoverShow,
+    required this.onBubbleHoverExit,
+    required this.onBubbleHoverEnterCancelHide,
+    required this.isMenuOpen,
   });
 
   @override
@@ -4961,6 +5336,17 @@ class _InteractiveMessageRow extends ConsumerStatefulWidget {
 
 class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> {
   bool _isHovered = false;
+  bool _isMenuOpen = false;
+
+  final LayerLink _layerLink = LayerLink();
+  Timer? _showDelayTimer;
+  bool _isSmileHovered = false;
+
+  @override
+  void dispose() {
+    _showDelayTimer?.cancel();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -5007,11 +5393,6 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
               const SizedBox(width: 8),
             ],
 
-            // Center / Hover actions (placed left of bubble if isMe)
-            if (isMe && _isHovered) ...[
-              _buildHoverActions(context),
-            ],
-
             // Bubble block
             Column(
               crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
@@ -5019,22 +5400,22 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
                 // Reply header: curved arrow icon and text "Đạt đã trả lời 7 Sụa"
                 if (message.replyTo != null)
                   Padding(
-                    padding: const EdgeInsets.only(bottom: 4, left: 4, right: 4),
+                    padding: const EdgeInsets.only(bottom: 6, left: 4, right: 4),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(
+                        Icon(
                           Icons.reply_rounded,
-                          color: Colors.white38,
-                          size: 13,
+                          color: Colors.white.withValues(alpha: 0.55),
+                          size: 14,
                         ),
-                        const SizedBox(width: 4),
+                        const SizedBox(width: 6),
                         Text(
                           '${message.senderId == 'me' ? 'Bạn' : message.senderName} đã trả lời ${message.replyTo!.senderId == 'me' ? 'bạn' : message.replyTo!.senderName}',
-                          style: const TextStyle(
-                            color: Colors.white38,
-                            fontSize: 11,
-                            fontWeight: FontWeight.normal,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.55),
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -5043,38 +5424,52 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
 
                 // Replying quote preview inside list
                 if (message.replyTo != null)
-                  Container(
-                    margin: const EdgeInsets.only(bottom: 2),
-                    constraints: const BoxConstraints(maxWidth: 320),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: message.replyTo!.senderId == 'me'
-                          ? const Color(0xFF003D80)
-                          : const Color(0xFF1F1F21),
-                      borderRadius: BorderRadius.only(
-                        topLeft: const Radius.circular(18),
-                        topRight: const Radius.circular(18),
-                        bottomLeft: Radius.circular(isMe ? 18 : 4),
-                        bottomRight: Radius.circular(isMe ? 4 : 18),
+                  Align(
+                    heightFactor: 0.82,
+                    alignment: isMe ? Alignment.topRight : Alignment.topLeft,
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 320),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isMe
+                            ? const Color(0xFF0056B3)
+                            : const Color(0xFF1F1F21),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.04),
+                          width: 0.5,
+                        ),
                       ),
-                    ),
-                    child: Text(
-                      message.replyTo!.text,
-                      style: const TextStyle(
-                        color: Colors.white60,
-                        fontSize: 13,
+                      child: Text(
+                        message.replyTo!.text,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.65),
+                          fontSize: 13,
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
 
-                // Main bubble widget
-                _MessageBubble(
-                  message: message,
-                  isMe: isMe,
-                  groupPosition: groupPosition,
-                  hasReply: message.replyTo != null,
+                // Row containing Main Bubble and Vertically Centered Hover Actions!
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    if (isMe && (_isHovered || widget.isMenuOpen || _isMenuOpen)) ...[
+                      _buildHoverActions(context),
+                    ],
+                    _MessageBubble(
+                      message: message,
+                      isMe: isMe,
+                      groupPosition: groupPosition,
+                      hasReply: false,
+                    ),
+                    if (!isMe && (_isHovered || widget.isMenuOpen || _isMenuOpen)) ...[
+                      _buildHoverActions(context),
+                    ],
+                  ],
                 ),
 
                 // Reactions display below bubble
@@ -5113,11 +5508,6 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
                   ),
               ],
             ),
-
-            // Center / Hover actions (placed right of bubble if !isMe)
-            if (!isMe && _isHovered) ...[
-              _buildHoverActions(context),
-            ],
           ],
         ),
       ),
@@ -5130,14 +5520,44 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          _buildHoverActionIconButton(
-            icon: Icons.sentiment_satisfied_alt_rounded,
-            tooltip: 'Bày tỏ cảm xúc',
-            onTap: (btnContext) {
-              final renderBox = btnContext.findRenderObject() as RenderBox;
-              final position = renderBox.localToGlobal(Offset.zero);
-              widget.onShowReactionPicker(btnContext, widget.message, position);
-            },
+          CompositedTransformTarget(
+            link: _layerLink,
+            child: MouseRegion(
+              onEnter: (_) {
+                _isSmileHovered = true;
+                widget.onBubbleHoverEnterCancelHide();
+                _showDelayTimer?.cancel();
+                _showDelayTimer = Timer(const Duration(milliseconds: 120), () {
+                  if (_isSmileHovered && mounted) {
+                    final renderBox = context.findRenderObject() as RenderBox;
+                    final position = renderBox.localToGlobal(Offset.zero);
+                    widget.onBubbleHoverShow(context, _layerLink, widget.message, position);
+                  }
+                });
+              },
+              onExit: (_) {
+                _isSmileHovered = false;
+                _showDelayTimer?.cancel();
+                widget.onBubbleHoverExit();
+              },
+              child: _buildHoverActionIconButton(
+                icon: Icons.sentiment_satisfied_alt_rounded,
+                tooltip: 'Bày tỏ cảm xúc',
+                onTap: (btnContext) async {
+                  setState(() {
+                    _isMenuOpen = true;
+                  });
+                  final renderBox = btnContext.findRenderObject() as RenderBox;
+                  final position = renderBox.localToGlobal(Offset.zero);
+                  widget.onShowReactionPicker(btnContext, widget.message, position, _layerLink);
+                  if (mounted) {
+                    setState(() {
+                      _isMenuOpen = false;
+                    });
+                  }
+                },
+              ),
+            ),
           ),
           const SizedBox(width: 4),
           _buildHoverActionIconButton(
@@ -5162,19 +5582,42 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
     );
   }
 
-  void _showMoreMenu(BuildContext context, Offset position) {
-    showMenu(
-      context: context,
-      position: RelativeRect.fromLTRB(
-        position.dx,
-        position.dy + 32, // Show right below/near the 3-dot button
-        position.dx + 120,
-        position.dy + 150,
+  void _showMoreMenu(BuildContext context, Offset position) async {
+    setState(() {
+      _isMenuOpen = true;
+    });
+
+    final RenderBox overlay = Navigator.of(context).overlay!.context.findRenderObject() as RenderBox;
+    final bool openUpward = position.dy > overlay.size.height - 220;
+
+    const double menuHeight = 168.0;
+    const double menuWidth = 140.0;
+
+    final double topCoord = openUpward 
+        ? position.dy - menuHeight 
+        : position.dy + 28;
+
+    final RelativeRect positionRect = RelativeRect.fromRect(
+      Rect.fromLTWH(
+        position.dx - 106,
+        topCoord,
+        menuWidth,
+        menuHeight,
       ),
-      color: const Color(0xFF252525),
+      Offset.zero & overlay.size,
+    );
+
+    await showMenu(
+      context: context,
+      position: positionRect,
+      color: const Color(0xFF242526),
       elevation: 8,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+      shape: TooltipShapeBorder(
+        arrowWidth: 10,
+        arrowHeight: 6,
+        arrowXFromRight: 20.0,
+        radius: 12,
+        arrowAtBottom: openUpward,
       ),
       items: [
         PopupMenuItem(
@@ -5182,9 +5625,16 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
           onTap: () {
             ref.read(chatThreadsProvider.notifier).deleteMessage(widget.thread.id, widget.message.id);
           },
-          child: const Text(
-            'Gỡ',
-            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Gỡ',
+              style: TextStyle(
+                color: Color(0xFFE4E6EB),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
         PopupMenuItem(
@@ -5194,9 +5644,16 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
               const SnackBar(content: Text('Đang chuyển tiếp tin nhắn...')),
             );
           },
-          child: const Text(
-            'Chuyển tiếp',
-            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Chuyển tiếp',
+              style: TextStyle(
+                color: Color(0xFFE4E6EB),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
         PopupMenuItem(
@@ -5206,9 +5663,16 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
               const SnackBar(content: Text('Đã ghim tin nhắn')),
             );
           },
-          child: const Text(
-            'Ghim',
-            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Ghim',
+              style: TextStyle(
+                color: Color(0xFFE4E6EB),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
         PopupMenuItem(
@@ -5218,13 +5682,26 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
               const SnackBar(content: Text('Đã gửi báo cáo đoạn chat')),
             );
           },
-          child: const Text(
-            'Báo cáo',
-            style: TextStyle(color: Colors.white, fontSize: 13.5),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 4),
+            child: Text(
+              'Báo cáo',
+              style: TextStyle(
+                color: Color(0xFFE4E6EB),
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
           ),
         ),
       ],
     );
+
+    if (mounted) {
+      setState(() {
+        _isMenuOpen = false;
+      });
+    }
   }
 
   Widget _buildHoverActionIconButton({
@@ -5257,6 +5734,15 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
   }
 
   Widget _buildReactionsBadge(ChatMessage message) {
+    final reactionImages = {
+      '❤️': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/2764.png',
+      '😆': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f606.png',
+      '😮': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f62e.png',
+      '😢': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f622.png',
+      '😡': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f621.png',
+      '👍': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f44d.png',
+    };
+
     return Padding(
       padding: const EdgeInsets.only(top: 2, left: 8, right: 8),
       child: Wrap(
@@ -5273,7 +5759,16 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(emoji, style: const TextStyle(fontSize: 11)),
+                reactionImages.containsKey(emoji)
+                    ? Image.network(
+                        reactionImages[emoji]!,
+                        width: 14,
+                        height: 14,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Text(emoji, style: const TextStyle(fontSize: 11));
+                        },
+                      )
+                    : Text(emoji, style: const TextStyle(fontSize: 11)),
                 if (count > 1) ...[
                   const SizedBox(width: 2),
                   Text('$count', style: const TextStyle(color: Colors.white70, fontSize: 10)),
@@ -5286,3 +5781,1436 @@ class _InteractiveMessageRowState extends ConsumerState<_InteractiveMessageRow> 
     );
   }
 }
+
+class TooltipShapeBorder extends ShapeBorder {
+  final double arrowWidth;
+  final double arrowHeight;
+  final double? arrowXFromRight;
+  final double? arrowXFromLeft;
+  final double radius;
+  final bool arrowAtBottom;
+
+  const TooltipShapeBorder({
+    this.arrowWidth = 12.0,
+    this.arrowHeight = 8.0,
+    this.arrowXFromRight,
+    this.arrowXFromLeft,
+    this.radius = 12.0,
+    this.arrowAtBottom = false,
+  });
+
+  @override
+  EdgeInsetsGeometry get dimensions => EdgeInsets.only(
+        top: arrowAtBottom ? 0 : arrowHeight,
+        bottom: arrowAtBottom ? arrowHeight : 0,
+      );
+
+  @override
+  Path getInnerPath(Rect rect, {TextDirection? textDirection}) => Path();
+
+  @override
+  Path getOuterPath(Rect rect, {TextDirection? textDirection}) {
+    final double xArrow = arrowXFromLeft != null 
+        ? rect.left + arrowXFromLeft! 
+        : rect.right - (arrowXFromRight ?? 20.0);
+    final double r = radius;
+    final Path path = Path();
+
+    if (arrowAtBottom) {
+      final double bodyBottom = rect.bottom - arrowHeight;
+      path.moveTo(rect.left + r, rect.top);
+      path.lineTo(rect.right - r, rect.top);
+      path.arcToPoint(Offset(rect.right, rect.top + r), radius: Radius.circular(r), clockwise: true);
+      path.lineTo(rect.right, bodyBottom - r);
+      path.arcToPoint(Offset(rect.right - r, bodyBottom), radius: Radius.circular(r), clockwise: true);
+      
+      path.lineTo(xArrow + arrowWidth / 2, bodyBottom);
+      path.lineTo(xArrow, rect.bottom);
+      path.lineTo(xArrow - arrowWidth / 2, bodyBottom);
+      
+      path.lineTo(rect.left + r, bodyBottom);
+      path.arcToPoint(Offset(rect.left, bodyBottom - r), radius: Radius.circular(r), clockwise: true);
+      path.lineTo(rect.left, rect.top + r);
+      path.arcToPoint(Offset(rect.left + r, rect.top), radius: Radius.circular(r), clockwise: true);
+    } else {
+      final double bodyTop = rect.top + arrowHeight;
+      path.moveTo(rect.left + r, bodyTop);
+      path.lineTo(xArrow - arrowWidth / 2, bodyTop);
+      path.lineTo(xArrow, rect.top);
+      path.lineTo(xArrow + arrowWidth / 2, bodyTop);
+      path.lineTo(rect.right - r, bodyTop);
+
+      path.arcToPoint(Offset(rect.right, bodyTop + r), radius: Radius.circular(r), clockwise: true);
+      path.lineTo(rect.right, rect.bottom - r);
+      path.arcToPoint(Offset(rect.right - r, rect.bottom), radius: Radius.circular(r), clockwise: true);
+      path.lineTo(rect.left + r, rect.bottom);
+      path.arcToPoint(Offset(rect.left, rect.bottom - r), radius: Radius.circular(r), clockwise: true);
+      path.lineTo(rect.left, bodyTop + r);
+      path.arcToPoint(Offset(rect.left + r, bodyTop), radius: Radius.circular(r), clockwise: true);
+    }
+    
+    path.close();
+    return path;
+  }
+
+  @override
+  void paint(Canvas canvas, Rect rect, {TextDirection? textDirection}) {}
+
+  @override
+  ShapeBorder scale(double t) => this;
+}
+
+class _FullEmojiPickerWidget extends StatefulWidget {
+  final ChatMessage message;
+  final String activeId;
+  final WidgetRef ref;
+  final VoidCallback? onClose;
+
+  const _FullEmojiPickerWidget({
+    required this.message,
+    required this.activeId,
+    required this.ref,
+    this.onClose,
+  });
+
+  @override
+  State<_FullEmojiPickerWidget> createState() => _FullEmojiPickerWidgetState();
+}
+
+class _FullEmojiPickerWidgetState extends State<_FullEmojiPickerWidget> {
+  String _searchQuery = '';
+  String _activeCategory = 'smileys';
+
+  final Map<String, String> _categoryTitles = {
+    'smileys': 'Mặt cười và hình người',
+    'animals': 'Động vật và tự nhiên',
+    'food': 'Đồ ăn và thức uống',
+    'activities': 'Hoạt động',
+    'travel': 'Du lịch và địa điểm',
+    'objects': 'Đồ vật',
+    'symbols': 'Biểu tượng',
+    'flags': 'Lá cờ',
+  };
+
+  final Map<String, IconData> _categoryIcons = {
+    'smileys': Icons.sentiment_satisfied_alt_rounded,
+    'animals': Icons.pets_rounded,
+    'food': Icons.restaurant_rounded,
+    'activities': Icons.sports_soccer_rounded,
+    'travel': Icons.directions_car_rounded,
+    'objects': Icons.lightbulb_outline_rounded,
+    'symbols': Icons.favorite_border_rounded,
+    'flags': Icons.flag_outlined,
+  };
+
+  final Map<String, List<String>> _emojiData = {
+    'smileys': ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓', '😎', '🥸', '🤩', '🥳', '😏', '😒', '😞', '😔', '😟', '😕', '🙁', '☹️', '😣', '😖', '😫', '😩', '🥺', '😢', '😭', '😤', '😠', '😡', '🤬', '🤯', '😳', '🥵', '🥶', '😱', '😨', '😰', '😥', '😓', '🤗', '🤔', '🫣', '🤭', '🫢', '🫡', '🤫', '🫠', '👍', '👎', '👊', '✊', '🤛', '🤜', '🤞', '✌️', '🤟', '🤘', '👌', '👋', '💪'],
+    'animals': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🕷️', '🕸️', '🦂', '🐢', '🐍', '🦎', '🐙', '🦑', '🦞', '🦀', '🐠', '🐟', '🐬', '🐳', '🐋', '🦈', '🐊', '🐅', '🐆', '🦓', '🦍', '🦧', '🐘', '🐪', '🦒', '🦘', '🐏', '🐐', '🦌', '🐕', '🐈', '🐇', '🕊️'],
+    'food': ['🍎', '🍏', '🍐', '🍑', '🍒', '🍓', '🍇', '🍉', '🍌', '🍋', '🍊', '🍍', '🥭', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐', '🥖', '🥨', '🥯', '🥞', '🧇', '🧀', '🍖', '🍗', '🥩', '🥓', '🍔', '🍟', '🍕', '🌭', '🥪', '🌮', '🌯', '🥚', '🍳', '🥘', '🍲', '🥣', '🥗', '🍿', '🧈', '🧂', '🍣', '🍤', '🍱', '🥟', '🍦', '🍧', '🍨', '🍩', '🍪', '🎂', '🍰', '🍫', '🍬', '🍭', '🍮', '🍯', '☕', '🍵', '🍶', '🍷', '🍸', '🍹', '🍺', '🍻', '🥤'],
+    'activities': ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '', '🏓', '💡', '🏸', '🏒', '🏑', '🥍', '🏏', '⛳', '🎣', '🤿', '🥊', '🥋', '🛹', '🛼', '🏋️', '🤼', '🤸', '⛹️', '        ', '🤺', '🤾', '🏌️', '🏇', '🧘', '🏄', '🏊', '🤽', '🚣', '🧗', '🚴', '🏆', '🥇', '🥈', '🥉', '🏅', '🎖️', '🎗️', '🎟️', '🎪', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🎸', '🎲', '♟️', '🎯', '🎳', '🎮', '🎰', '🧩'],
+    'travel': ['🚗', '🚕', '🚙', '🚌', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚜', '🛵', '🏍️', '🛺', '🚲', '🚨', '🚥', '🚦', '🚧', '⚓', '⛵', '🚤', '🚢', '✈️', '🛫', '🛬', '🚁', '🚟', '🚀', '🛸', '🪐', '🌙', '☀️', '🌤️', '⛅', '🌥️', '☁️', '🌧️', '⛈️', '🌩️', '❄️', '⛄', '🔥', '💧', '🌊', '🎄', '✨', '🌈', '☂️', '⚡', '❄️', '⛄', '☄️', '🔥', '💧', '🌊'],
+    'objects': ['⌚', '📱', '📲', '💻', '⌨️', '🖱️', '🕹️', '💿', '📼', '📷', '📸', '📹', '🎥', '📞', '📟', '📠', '📺', '📻', '🎙️', '🎛️', 'Compass', '🧭', '⏰', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '💵', '💴', '💶', '💷', '🪙', '💳', '✉️', '📧', '📨', '📩', '📤', '📥', '📦', '🏷️', '📁', '📂', '📅', '📆', '📊', '📋', '📌', '📍', '📎', '🔒', '🔓', '🔑', '🔨', '🔧', '🔩', '🔫', '💣', '🧨', '🛡️', '🔑', '🗝️', '🪓', '🔪', '🗡️'],
+    'symbols': ['💘', '💝', '💖', '💗', '💓', '💞', '💕', '💟', '❣️', '💔', '❤️', '🧡', '💛', '💚', '💙', '💜', '🤎', '🖤', '🤍', '💯', '💢', '💥', '💫', '💦', '💨', '💬', '🗨️', '💭', '💤', '♠️', '♥️', '♦️', '♣️', '🃏', '🔇', '🔈', '🔉', '🔊', '📢', '📣', '🔔', '🔕', '🎼', '🎵', '🎶', '➕', '➖', '✖️', '➗', '♾️', '💲', '💱', '™️', '©️', '®️'],
+    'flags': ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🏴‍☠️', '🇻🇳', '🇺🇸', '🇯🇵', '🇰🇷', '🇨🇳', '🇫🇷', '🇩🇪', '🇬🇧', '🇷🇺', '🇮🇹', '🇪🇸', '🇨🇦', '🇦🇺', '🇧🇷', '🇮🇳', '🇸🇬', '🇹🇭', '🇲🇾', '🇵🇭', '🇮🇩'],
+  };
+
+  List<String> _getFilteredEmojis() {
+    if (_searchQuery.isEmpty) {
+      return _emojiData[_activeCategory] ?? [];
+    }
+    
+    final List<String> results = [];
+    for (var list in _emojiData.values) {
+      for (var emoji in list) {
+        if (!results.contains(emoji)) {
+          results.add(emoji);
+        }
+      }
+    }
+    return results.where((e) => e.contains(_searchQuery) || _searchQuery.length < 3).take(48).toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredEmojis = _getFilteredEmojis();
+    final defaultEmojis = ['❤️', '😆', '😮', '😢', '😡', '👍'];
+
+    return Container(
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E1E1F),
+        borderRadius: BorderRadius.all(Radius.circular(16)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Search Bar
+          Padding(
+            padding: const EdgeInsets.only(top: 10, left: 12, right: 12, bottom: 8),
+            child: Container(
+              height: 36,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.06),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  const SizedBox(width: 10),
+                  Icon(Icons.search_rounded, color: Colors.white.withValues(alpha: 0.4), size: 18),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextField(
+                      autofocus: true,
+                      onChanged: (val) {
+                        setState(() {
+                          _searchQuery = val;
+                        });
+                      },
+                      style: const TextStyle(color: Colors.white, fontSize: 13),
+                      decoration: InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.zero,
+                        hintText: 'Tìm kiếm biểu tượng cảm xúc',
+                        hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
+                        border: InputBorder.none,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Divider
+          Container(height: 0.5, color: Colors.white.withValues(alpha: 0.05)),
+
+          // 2. Main content scroll area
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Your Reactions Section
+                  if (_searchQuery.isEmpty) ...[
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Cảm xúc của bạn',
+                          style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                        Text(
+                          'Tùy chỉnh',
+                          style: TextStyle(color: const Color(0xFF0084FF).withValues(alpha: 0.8), fontSize: 11, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: defaultEmojis.map((emoji) {
+                        final reactionImages = {
+                          '❤️': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/2764.png',
+                          '😆': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f606.png',
+                          '😮': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f62e.png',
+                          '😢': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f622.png',
+                          '😡': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f621.png',
+                          '👍': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f44d.png',
+                        };
+                        return InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: () {
+                            widget.ref.read(chatThreadsProvider.notifier).addReaction(widget.activeId, widget.message.id, emoji);
+                            if (widget.onClose != null) {
+                              widget.onClose!();
+                            } else {
+                              Navigator.of(context).pop();
+                            }
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(4.0),
+                            child: reactionImages.containsKey(emoji)
+                                ? Image.network(
+                                    reactionImages[emoji]!,
+                                    width: 24,
+                                    height: 24,
+                                    errorBuilder: (context, error, stackTrace) => Text(emoji, style: const TextStyle(fontSize: 24)),
+                                  )
+                                : Text(emoji, style: const TextStyle(fontSize: 24)),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+
+                  // Category Grid Section
+                  Text(
+                    _searchQuery.isEmpty ? (_categoryTitles[_activeCategory] ?? '') : 'Kết quả tìm kiếm',
+                    style: TextStyle(color: Colors.white.withValues(alpha: 0.4), fontSize: 11, fontWeight: FontWeight.bold),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: filteredEmojis.map((emoji) {
+                      return InkWell(
+                        borderRadius: BorderRadius.circular(6),
+                        onTap: () {
+                          widget.ref.read(chatThreadsProvider.notifier).addReaction(widget.activeId, widget.message.id, emoji);
+                          if (widget.onClose != null) {
+                            widget.onClose!();
+                          } else {
+                            Navigator.of(context).pop();
+                          }
+                        },
+                        child: SizedBox(
+                          width: 36,
+                          height: 36,
+                          child: Center(
+                            child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Divider
+          Container(height: 0.5, color: Colors.white.withValues(alpha: 0.05)),
+
+          // 3. Category bar at the bottom
+          Container(
+            height: 38,
+            color: const Color(0xFF161617),
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: _categoryIcons.keys.map((catKey) {
+                final isSelected = catKey == _activeCategory && _searchQuery.isEmpty;
+                return InkWell(
+                  borderRadius: BorderRadius.circular(16),
+                  onTap: () {
+                    setState(() {
+                      _activeCategory = catKey;
+                      _searchQuery = '';
+                    });
+                  },
+                  child: Padding(
+                    padding: const EdgeInsets.all(6.0),
+                    child: Icon(
+                      _categoryIcons[catKey],
+                      size: 16,
+                      color: isSelected ? const Color(0xFF0084FF) : Colors.white.withValues(alpha: 0.35),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MessengerReactionPopupController {
+  Future<void> Function()? close;
+}
+
+class _MessengerReactionPopup extends StatefulWidget {
+  final _MessengerReactionPopupController controller;
+  final ChatMessage message;
+  final String activeId;
+  final WidgetRef ref;
+  final bool isMe;
+  final bool openDownward;
+  final VoidCallback onDismissed;
+  final VoidCallback onOpenFullPicker;
+  final VoidCallback onEnter;
+  final VoidCallback onExit;
+
+  const _MessengerReactionPopup({
+    Key? key,
+    required this.controller,
+    required this.message,
+    required this.activeId,
+    required this.ref,
+    required this.isMe,
+    required this.openDownward,
+    required this.onDismissed,
+    required this.onOpenFullPicker,
+    required this.onEnter,
+    required this.onExit,
+  }) : super(key: key);
+
+  @override
+  State<_MessengerReactionPopup> createState() => _MessengerReactionPopupState();
+}
+
+class _MessengerReactionPopupState extends State<_MessengerReactionPopup> with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _slideAnimation;
+
+  int? _hoveredEmojiIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.96, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _slideAnimation = Tween<double>(
+      begin: widget.openDownward ? -6.0 : 6.0,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _entranceController.forward();
+
+    widget.controller.close = () async {
+      await _entranceController.animateTo(0.0, duration: const Duration(milliseconds: 140), curve: Curves.easeInCubic);
+      widget.onDismissed();
+    };
+  }
+
+  @override
+  void dispose() {
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final reactionImages = {
+      '❤️': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/2764.png',
+      '😆': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f606.png',
+      '😮': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f62e.png',
+      '😢': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f622.png',
+      '😡': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f621.png',
+      '👍': 'https://cdnjs.cloudflare.com/ajax/libs/emojione/2.2.7/assets/png/1f44d.png',
+    };
+
+    final emojis = reactionImages.keys.toList();
+
+    return AnimatedBuilder(
+      animation: _entranceController,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, _slideAnimation.value),
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              alignment: widget.openDownward ? Alignment.topCenter : Alignment.bottomCenter,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: MouseRegion(
+        onEnter: (_) => widget.onEnter(),
+        onExit: (_) => widget.onExit(),
+        child: SizedBox(
+          width: 276,
+          height: 62, // 52 Capsule height + 10 arrow height
+          child: CustomPaint(
+            painter: _TooltipBackgroundPainter(
+              arrowAtBottom: !widget.openDownward,
+              arrowX: 138,
+              color: const Color(0xFF242526),
+            ),
+            child: Padding(
+              padding: EdgeInsets.only(
+                top: widget.openDownward ? 10 : 0,
+                bottom: widget.openDownward ? 0 : 10,
+              ),
+              child: Container(
+                height: 52,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                color: Colors.transparent, // Background and border are painted by CustomPaint
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    ...List.generate(emojis.length, (index) {
+                      final emoji = emojis[index];
+                      final imageUrl = reactionImages[emoji]!;
+                      
+                      // Hover calculation
+                      double scale = 1.0;
+                      double translateY = 0.0;
+                      double translateX = 0.0;
+
+                      if (_hoveredEmojiIndex == index) {
+                        scale = 1.32;
+                        translateY = -10.0;
+                      } else if (_hoveredEmojiIndex != null) {
+                        if (index == _hoveredEmojiIndex! - 1) {
+                          translateX = -3.0;
+                        } else if (index == _hoveredEmojiIndex! + 1) {
+                          translateX = 3.0;
+                        }
+                      }
+
+                      return SizedBox(
+                        width: 36,
+                        height: 40,
+                        child: Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            Positioned.fill(
+                              child: MouseRegion(
+                                onEnter: (_) => setState(() => _hoveredEmojiIndex = index),
+                                onExit: (_) => setState(() => _hoveredEmojiIndex = null),
+                                child: GestureDetector(
+                                  behavior: HitTestBehavior.opaque,
+                                  onTap: () {
+                                    widget.ref.read(chatThreadsProvider.notifier).addReaction(widget.activeId, widget.message.id, emoji);
+                                    widget.controller.close?.call();
+                                  },
+                                ),
+                              ),
+                            ),
+                            IgnorePointer(
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 120),
+                                curve: Curves.easeOutBack,
+                                transform: Matrix4.identity()
+                                  ..translate(translateX, translateY)
+                                  ..scale(scale),
+                                transformAlignment: Alignment.bottomCenter,
+                                alignment: Alignment.center,
+                                child: Container(
+                                  width: 32,
+                                  height: 32,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: _hoveredEmojiIndex == index
+                                        ? [
+                                            BoxShadow(
+                                              color: Colors.black.withValues(alpha: 0.35),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 4),
+                                            )
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Image.network(
+                                    imageUrl,
+                                    width: 32,
+                                    height: 32,
+                                    fit: BoxFit.contain,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      return Center(
+                                        child: Text(emoji, style: const TextStyle(fontSize: 22)),
+                                      );
+                                    },
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                    const SizedBox(width: 4),
+                    _ReactionPlusButton(
+                      onTap: widget.onOpenFullPicker,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ReactionPlusButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _ReactionPlusButton({
+    Key? key,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_ReactionPlusButton> createState() => _ReactionPlusButtonState();
+}
+
+class _ReactionPlusButtonState extends State<_ReactionPlusButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isHovered ? 1.08 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: _isHovered ? const Color(0xFF4E4F50) : const Color(0xFF3A3B3C),
+              shape: BoxShape.circle,
+            ),
+            child: const Center(
+              child: Icon(
+                Icons.add_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MessengerEmojiPickerPopupController {
+  Future<void> Function()? close;
+}
+
+class _MessengerEmojiPickerPopup extends StatefulWidget {
+  final _MessengerEmojiPickerPopupController controller;
+  final VoidCallback onDismissed;
+  final void Function(String) onEmojiSelected;
+
+  const _MessengerEmojiPickerPopup({
+    Key? key,
+    required this.controller,
+    required this.onDismissed,
+    required this.onEmojiSelected,
+  }) : super(key: key);
+
+  @override
+  State<_MessengerEmojiPickerPopup> createState() => _MessengerEmojiPickerPopupState();
+}
+
+class _MessengerEmojiPickerPopupState extends State<_MessengerEmojiPickerPopup> with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _slideAnimation;
+
+  final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
+  final ScrollController _scrollController = ScrollController();
+  late final FocusNode _keyboardFocusNode;
+
+  String _searchQuery = '';
+  int _activeCategoryIndex = 0;
+  bool _isScrollingFromCategoryClick = false;
+
+  final List<String> _categories = ['😀', '🐱', '🍔', '⚽', '🚗', '💡', '❤️', '🏳️'];
+  final List<String> _categoryNames = [
+    'Biểu tượng cảm xúc',
+    'Động vật & Tự nhiên',
+    'Đồ ăn & Thức uống',
+    'Hoạt động',
+    'Du lịch & Địa điểm',
+    'Đồ vật',
+    'Biểu tượng',
+    'Cờ'
+  ];
+
+  static const Map<String, List<String>> _categoryEmojis = {
+    '😀': ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '🙃', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😝', '😜', '🤪', '🤨', '🧐', '🤓'],
+    '🐱': ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸'],
+    '🍔': ['🍎', '🍌', '🍇', '🍓', '🍉', '🍕', '🍔', '🍟', '🌭', '🍿', '🍩', '🍪', '🍫', '☕'],
+    '⚽': ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🥅', '🥇', '🏆'],
+    '🚗': ['🚗', '🚕', '🚙', '🚌', '🏎️', '🏎️', '🏍️', '🚲', '✈️', '🚀', '🛸', '🚢', '⚓', '⛺'],
+    '💡': ['💡', '🔦', '🕯️', '🔑', '🔨', '🛠️', '📦', '✏️', '✒️', '📅', '🗑️', '🔒', '🔔', '📢'],
+    '❤️': ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣️', '💕', '💞', '💓'],
+    '🏳️': ['🏁', '🚩', '🎌', '🏴', '🏳️', '🏳️‍🌈', '🏳️‍⚧️', '🇺🇸', '🇻🇳', '🇬🇧', '🇫🇷', '🇯🇵', '🇰🇷', '🇨🇳'],
+  };
+
+  static const Map<String, String> _emojiKeywords = {
+    '👍': 'like, thumbs up, ok, dong y, tot',
+    '❤️': 'love, heart, tim, yeu',
+    '😂': 'laugh, haha, lol, cuoi',
+    '😮': 'wow, o, ngac nhien',
+    '😢': 'sad, cry, khoc, buon',
+    '😡': 'angry, hate, gian, phan no',
+    '👌': 'ok, tot, duoc',
+    '🎉': 'party, celebration, chuc mung, tiec',
+    '🔥': 'fire, hot, lua',
+    '✨': 'star, sparkle, lap lanh',
+    '👀': 'eyes, look, nhin',
+    '💯': '100, perfect, tram diem',
+    '😀': 'smile, happy, cuoi, vui',
+    '😃': 'smile, happy, cuoi, vui',
+    '😄': 'smile, happy, cuoi, vui',
+    '😁': 'smile, happy, grin, cuoi',
+    '😆': 'smile, happy, laugh, cuoi',
+    '😅': 'sweat, laugh, cuoi',
+    '🤣': 'laugh, lol, cuoi',
+    '😊': 'smile, happy, cuoi',
+    '😇': 'angel, cuoi, thien than',
+    '🙂': 'smile, cuoi',
+    '🙃': 'upside down, cuoi',
+    '😉': 'wink, nhay mat',
+    '😌': 'relieved, nhe long',
+    '😍': 'love, heart eyes, yeu',
+    '🥰': 'love, hearts, yeu',
+    '😘': 'kiss, yeu, hon',
+    '🐶': 'dog, puppy, cho',
+    '🐱': 'cat, meow, meo',
+    '🍕': 'pizza, cake',
+    '🍔': 'hamburger, burger, banh mi',
+    '⚽': 'soccer, football, bong da',
+    '🚗': 'car, oto',
+    '💡': 'light bulb, sang kien, den',
+    '🏁': 'flag, start, co',
+    '🇻🇳': 'vietnam, co, quoc ky',
+  };
+
+  // Pre-calculated vertical section heights for scrolling alignment
+  // Category 0 (😀) has 28 emojis = 4 rows. Height = 36 (Header) + 4 * 48 (rows) = 228
+  // Categories 1 to 7 have 14 emojis = 2 rows. Height = 36 (Header) + 2 * 48 (rows) = 132
+  final List<double> _sectionOffsets = [
+    0.0,
+    228.0,
+    360.0,
+    492.0,
+    624.0,
+    756.0,
+    888.0,
+    1020.0,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _slideAnimation = Tween<double>(begin: 8.0, end: 0.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _entranceController.forward();
+    _keyboardFocusNode = FocusNode();
+
+    widget.controller.close = () async {
+      await _entranceController.animateTo(0.0, duration: const Duration(milliseconds: 140), curve: Curves.easeInCubic);
+      widget.onDismissed();
+    };
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _searchFocusNode.requestFocus();
+      }
+    });
+
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    _searchController.dispose();
+    _searchFocusNode.dispose();
+    _keyboardFocusNode.dispose();
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_isScrollingFromCategoryClick || _searchQuery.isNotEmpty) return;
+    final double offset = _scrollController.offset;
+    
+    // Find current category index based on scroll offset
+    int activeIndex = 0;
+    for (int i = 0; i < _sectionOffsets.length; i++) {
+      if (offset >= _sectionOffsets[i] - 20) {
+        activeIndex = i;
+      }
+    }
+
+    if (activeIndex != _activeCategoryIndex) {
+      setState(() {
+        _activeCategoryIndex = activeIndex;
+      });
+    }
+  }
+
+  void _scrollToCategory(int index) {
+    _isScrollingFromCategoryClick = true;
+    setState(() {
+      _activeCategoryIndex = index;
+    });
+
+    _scrollController.animateTo(
+      _sectionOffsets[index],
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOutCubic,
+    ).then((_) => _isScrollingFromCategoryClick = false);
+  }
+
+  List<String> _getFilteredEmojis() {
+    final cleanQuery = _searchQuery.toLowerCase().trim();
+    if (cleanQuery.isEmpty) return [];
+
+    final results = <String>[];
+    for (final list in _categoryEmojis.values) {
+      for (final emoji in list) {
+        final keywords = _emojiKeywords[emoji] ?? '';
+        if (keywords.contains(cleanQuery) || emoji.contains(cleanQuery)) {
+          results.add(emoji);
+        }
+      }
+    }
+    return results.toSet().toList();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final recentEmojis = ['❤️', '😂', '😮', '😢', '😡', '👍'];
+    final filteredResults = _getFilteredEmojis();
+
+    return FocusScope(
+      autofocus: true,
+      child: KeyboardListener(
+        focusNode: _keyboardFocusNode,
+        onKeyEvent: (event) {
+          if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+            widget.controller.close?.call();
+          }
+        },
+        child: SizedBox(
+          width: 360,
+          height: 430, // 420px height + 10px arrow height
+          child: CustomPaint(
+            painter: _EmojiPickerBackgroundPainter(arrowAtBottom: true),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 10), // Offset content upward for bottom arrow
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Column(
+                  children: [
+                    // 1. Search Bar Section
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                      child: Container(
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF3A3B3C),
+                          borderRadius: BorderRadius.circular(22),
+                        ),
+                        child: TextField(
+                          controller: _searchController,
+                          focusNode: _searchFocusNode,
+                          style: const TextStyle(color: Colors.white, fontSize: 14),
+                          onChanged: (val) => setState(() => _searchQuery = val),
+                          decoration: InputDecoration(
+                            hintText: 'Tìm kiếm biểu tượng cảm xúc',
+                            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
+                            prefixIcon: const Icon(Icons.search_rounded, color: Colors.white38, size: 18),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(22),
+                              borderSide: const BorderSide(color: Color(0xFF0084FF), width: 1.5),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    // 2. Main Scrollable Emoji Grid or Search Results
+                    Expanded(
+                      child: _searchQuery.isNotEmpty
+                          ? _buildSearchResults(filteredResults)
+                          : _buildStandardCategoriesList(recentEmojis),
+                    ),
+
+                    // 3. Bottom Category Selector Bar (Hidden when searching)
+                    if (_searchQuery.isEmpty) ...[
+                      Container(
+                        height: 52,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF242526),
+                          border: Border(
+                            top: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.05),
+                              width: 1,
+                            ),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                          children: List.generate(_categories.length, (index) {
+                            final bool isActive = _activeCategoryIndex == index;
+                            return _CategoryBarIcon(
+                              emoji: _categories[index],
+                              isActive: isActive,
+                              onTap: () => _scrollToCategory(index),
+                            );
+                          }),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(List<String> results) {
+    if (results.isEmpty) {
+      return const Center(
+        child: Text(
+          'Không tìm thấy biểu tượng cảm xúc',
+          style: TextStyle(color: Colors.white38, fontSize: 13),
+        ),
+      );
+    }
+
+    return GridView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 7,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        return _EmojiGridItem(
+          emoji: results[index],
+          onTap: () => widget.onEmojiSelected(results[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildStandardCategoriesList(List<String> recentEmojis) {
+    return ListView(
+      controller: _scrollController,
+      padding: EdgeInsets.zero,
+      children: [
+        // Recent Reactions Section ("Cảm xúc của bạn")
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Cảm xúc của bạn',
+                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      'Tùy chỉnh',
+                      style: TextStyle(color: Color(0xFF0084FF), fontSize: 11, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: recentEmojis.map((emoji) {
+                  return _RecentEmojiItem(
+                    emoji: emoji,
+                    onTap: () => widget.onEmojiSelected(emoji),
+                  );
+                }).toList(),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        // Categories & Grids
+        ...List.generate(_categories.length, (catIdx) {
+          final catIcon = _categories[catIdx];
+          final catName = _categoryNames[catIdx];
+          final list = _categoryEmojis[catIcon]!;
+
+          return Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  catName,
+                  style: const TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 8),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  padding: EdgeInsets.zero,
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 7,
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: list.length,
+                  itemBuilder: (context, idx) {
+                    return _EmojiGridItem(
+                      emoji: list[idx],
+                      onTap: () => widget.onEmojiSelected(list[idx]),
+                    );
+                  },
+                ),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class _EmojiGridItem extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const _EmojiGridItem({
+    Key? key,
+    required this.emoji,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_EmojiGridItem> createState() => _EmojiGridItemState();
+}
+
+class _EmojiGridItemState extends State<_EmojiGridItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedScale(
+          scale: _isHovered ? 1.25 : 1.0,
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 120),
+            decoration: BoxDecoration(
+              color: _isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent,
+              shape: BoxShape.circle,
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              widget.emoji,
+              style: const TextStyle(fontSize: 22),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentEmojiItem extends StatefulWidget {
+  final String emoji;
+  final VoidCallback onTap;
+
+  const _RecentEmojiItem({
+    Key? key,
+    required this.emoji,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_RecentEmojiItem> createState() => _RecentEmojiItemState();
+}
+
+class _RecentEmojiItemState extends State<_RecentEmojiItem> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final double translateY = _isHovered ? -6.0 : 0.0;
+    final double scale = _isHovered ? 1.2 : 1.0;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 120),
+          curve: Curves.easeOutCubic,
+          transform: Matrix4.identity()
+            ..translate(0.0, translateY)
+            ..scale(scale),
+          transformAlignment: Alignment.bottomCenter,
+          child: Text(
+            widget.emoji,
+            style: const TextStyle(fontSize: 32),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryBarIcon extends StatefulWidget {
+  final String emoji;
+  final bool isActive;
+  final VoidCallback onTap;
+
+  const _CategoryBarIcon({
+    Key? key,
+    required this.emoji,
+    required this.isActive,
+    required this.onTap,
+  }) : super(key: key);
+
+  @override
+  State<_CategoryBarIcon> createState() => _CategoryBarIconState();
+}
+
+class _CategoryBarIconState extends State<_CategoryBarIcon> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: widget.isActive
+                ? const Color(0xFF0084FF).withValues(alpha: 0.15)
+                : (_isHovered ? Colors.white.withValues(alpha: 0.08) : Colors.transparent),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: widget.isActive ? const Color(0xFF0084FF).withValues(alpha: 0.3) : Colors.transparent,
+              width: 1,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Opacity(
+            opacity: widget.isActive ? 1.0 : (_isHovered ? 0.9 : 0.6),
+            child: Text(
+              widget.emoji,
+              style: const TextStyle(fontSize: 18),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _EmojiPickerBackgroundPainter extends CustomPainter {
+  final bool arrowAtBottom;
+
+  _EmojiPickerBackgroundPainter({required this.arrowAtBottom});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = const Color(0xFF242526)
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final path = Path();
+    const double radius = 18.0;
+    const double arrowW = 18.0;
+    const double arrowH = 10.0;
+
+    if (arrowAtBottom) {
+      final rect = Rect.fromLTWH(0, 0, size.width, size.height - arrowH);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(radius));
+      path.addRRect(rrect);
+
+      final double centerX = size.width / 2;
+      path.moveTo(centerX - arrowW / 2, size.height - arrowH);
+      path.lineTo(centerX, size.height);
+      path.lineTo(centerX + arrowW / 2, size.height - arrowH);
+      path.close();
+    } else {
+      final rect = Rect.fromLTWH(0, arrowH, size.width, size.height - arrowH);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(radius));
+      path.addRRect(rrect);
+
+      final double centerX = size.width / 2;
+      path.moveTo(centerX - arrowW / 2, arrowH);
+      path.lineTo(centerX, 0);
+      path.lineTo(centerX + arrowW / 2, arrowH);
+      path.close();
+    }
+
+    canvas.drawShadow(
+      path.shift(const Offset(0, 4)),
+      Colors.black.withValues(alpha: 0.24),
+      30.0,
+      true,
+    );
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _EmojiPickerBackgroundPainter oldDelegate) {
+    return oldDelegate.arrowAtBottom != arrowAtBottom;
+  }
+}
+
+class _FullEmojiPickerPopup extends StatefulWidget {
+  final _MessengerEmojiPickerPopupController controller;
+  final bool arrowAtBottom;
+  final double arrowX;
+  final ChatMessage message;
+  final String activeId;
+  final WidgetRef ref;
+  final VoidCallback onDismissed;
+
+  const _FullEmojiPickerPopup({
+    Key? key,
+    required this.controller,
+    required this.arrowAtBottom,
+    required this.arrowX,
+    required this.message,
+    required this.activeId,
+    required this.ref,
+    required this.onDismissed,
+  }) : super(key: key);
+
+  @override
+  State<_FullEmojiPickerPopup> createState() => _FullEmojiPickerPopupState();
+}
+
+class _FullEmojiPickerPopupState extends State<_FullEmojiPickerPopup> with SingleTickerProviderStateMixin {
+  late final AnimationController _entranceController;
+  late final Animation<double> _opacityAnimation;
+  late final Animation<double> _scaleAnimation;
+  late final Animation<double> _slideAnimation;
+  late final FocusNode _keyboardFocusNode;
+
+  @override
+  void initState() {
+    super.initState();
+    _entranceController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 180),
+    );
+
+    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.95, end: 1.0).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _slideAnimation = Tween<double>(
+      begin: widget.arrowAtBottom ? 8.0 : -8.0,
+      end: 0.0,
+    ).animate(
+      CurvedAnimation(parent: _entranceController, curve: Curves.easeOutCubic),
+    );
+
+    _entranceController.forward();
+    _keyboardFocusNode = FocusNode();
+
+    widget.controller.close = () async {
+      await _entranceController.animateTo(0.0, duration: const Duration(milliseconds: 140), curve: Curves.easeInCubic);
+      widget.onDismissed();
+    };
+  }
+
+  @override
+  void dispose() {
+    _keyboardFocusNode.dispose();
+    _entranceController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _entranceController,
+      builder: (context, child) {
+        return Opacity(
+          opacity: _opacityAnimation.value,
+          child: Transform.translate(
+            offset: Offset(0, _slideAnimation.value),
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              alignment: widget.arrowAtBottom ? Alignment.bottomCenter : Alignment.topCenter,
+              child: child,
+            ),
+          ),
+        );
+      },
+      child: FocusScope(
+        autofocus: true,
+        child: KeyboardListener(
+          focusNode: _keyboardFocusNode,
+          onKeyEvent: (event) {
+            if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.escape) {
+              widget.controller.close?.call();
+            }
+          },
+          child: SizedBox(
+            width: 280,
+            height: 330, // 320px height + 10px arrow height
+            child: CustomPaint(
+              painter: _TooltipBackgroundPainter(
+                arrowAtBottom: widget.arrowAtBottom,
+                arrowX: widget.arrowX,
+                color: const Color(0xFF1E1E1F),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  top: widget.arrowAtBottom ? 0 : 10,
+                  bottom: widget.arrowAtBottom ? 10 : 0,
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(16),
+                  child: _FullEmojiPickerWidget(
+                    message: widget.message,
+                    activeId: widget.activeId,
+                    ref: widget.ref,
+                    onClose: () {
+                      widget.controller.close?.call();
+                    },
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TooltipBackgroundPainter extends CustomPainter {
+  final bool arrowAtBottom;
+  final double arrowX;
+  final Color color;
+
+  _TooltipBackgroundPainter({
+    required this.arrowAtBottom,
+    required this.arrowX,
+    required this.color,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.fill;
+
+    final borderPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+
+    final path = Path();
+    const double radius = 16.0;
+    const double arrowW = 18.0;
+    const double arrowH = 10.0;
+
+    if (arrowAtBottom) {
+      final rect = Rect.fromLTWH(0, 0, size.width, size.height - arrowH);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(radius));
+      path.addRRect(rrect);
+
+      path.moveTo(arrowX - arrowW / 2, size.height - arrowH);
+      path.lineTo(arrowX, size.height);
+      path.lineTo(arrowX + arrowW / 2, size.height - arrowH);
+      path.close();
+    } else {
+      final rect = Rect.fromLTWH(0, arrowH, size.width, size.height - arrowH);
+      final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(radius));
+      path.addRRect(rrect);
+
+      path.moveTo(arrowX - arrowW / 2, arrowH);
+      path.lineTo(arrowX, 0);
+      path.lineTo(arrowX + arrowW / 2, arrowH);
+      path.close();
+    }
+
+    canvas.drawShadow(
+      path.shift(const Offset(0, 4)),
+      Colors.black.withValues(alpha: 0.24),
+      24.0,
+      true,
+    );
+
+    canvas.drawPath(path, paint);
+    canvas.drawPath(path, borderPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _TooltipBackgroundPainter oldDelegate) {
+    return oldDelegate.arrowAtBottom != arrowAtBottom ||
+        oldDelegate.arrowX != arrowX ||
+        oldDelegate.color != color;
+  }
+}
+

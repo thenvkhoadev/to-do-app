@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_state.dart';
+import 'package:to_do_app/features/social/presentation/widgets/messages/message_draft_state.dart';
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_dialogs.dart';
 
 class MessageSidebar extends ConsumerStatefulWidget {
@@ -47,8 +48,12 @@ class _MessageSidebarState extends ConsumerState<MessageSidebar> {
 
     // Apply Search query filtering
     if (searchQuery.isNotEmpty) {
+      final drafts = ref.watch(messageDraftsProvider);
       filteredThreads = filteredThreads.where((t) {
-        return t.name.toLowerCase().contains(searchQuery.toLowerCase());
+        final matchesName = t.name.toLowerCase().contains(searchQuery.toLowerCase());
+        final draft = drafts[t.id];
+        final matchesDraft = draft != null && draft.draftText.toLowerCase().contains(searchQuery.toLowerCase());
+        return matchesName || matchesDraft;
       }).toList();
     }
 
@@ -925,6 +930,12 @@ class _ConversationTileState extends ConsumerState<_ConversationTile> {
       }
     }
 
+    final draft = ref.watch(messageDraftsProvider)[thread.id];
+    final hasDraft = draft != null && draft.draftText.isNotEmpty;
+    if (hasDraft) {
+      previewText = 'Nháp: ${draft.draftText}';
+    }
+
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
@@ -1028,9 +1039,13 @@ class _ConversationTileState extends ConsumerState<_ConversationTile> {
                                   : Text(
                                       previewText,
                                       style: TextStyle(
-                                        color: thread.unread ? Colors.white : Colors.white38,
+                                        color: hasDraft
+                                            ? const Color(0xFF0084FF)
+                                            : (thread.unread ? Colors.white : Colors.white38),
                                         fontSize: 13,
-                                        fontWeight: thread.unread ? FontWeight.bold : FontWeight.normal,
+                                        fontWeight: hasDraft
+                                            ? FontWeight.w500
+                                            : (thread.unread ? FontWeight.bold : FontWeight.normal),
                                       ),
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,

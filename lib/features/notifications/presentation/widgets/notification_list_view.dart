@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:to_do_app/core/workspace/workspace_provider.dart';
 import 'package:to_do_app/features/notifications/data/models/notification_model.dart';
 import 'package:to_do_app/features/notifications/presentation/providers/notifications_provider.dart';
 import 'package:to_do_app/features/notifications/presentation/widgets/notification_item_tile.dart';
@@ -70,8 +71,17 @@ class _NotificationListViewState extends ConsumerState<NotificationListView> {
     });
   }
 
-  List<NotificationModel> _filterNotifications(List<NotificationModel> rawList) {
+  List<NotificationModel> _filterNotifications(List<NotificationModel> rawList, Workspace activeWorkspace) {
     return rawList.where((notif) {
+      final isSocial = notif.type == 'friend_request' ||
+          notif.type == 'mention' ||
+          notif.type == 'post_like' ||
+          notif.type == 'post_comment';
+      if (activeWorkspace == Workspace.social) {
+        if (!isSocial) return false;
+      } else {
+        if (isSocial) return false;
+      }
       // 1. Search Query filter
       if (_searchQuery.isNotEmpty) {
         final titleMatch = notif.title.toLowerCase().contains(_searchQuery);
@@ -162,6 +172,7 @@ class _NotificationListViewState extends ConsumerState<NotificationListView> {
     final unreadCount = ref.watch(unreadNotificationsCountProvider);
     final actions = ref.read(notificationsActionsProvider);
     final isMuted = ref.watch(muteNotificationsProvider);
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
 
     return Stack(
       children: [
@@ -317,7 +328,7 @@ class _NotificationListViewState extends ConsumerState<NotificationListView> {
             Expanded(
               child: stream.when(
                 data: (rawList) {
-                  final filtered = _filterNotifications(rawList);
+                  final filtered = _filterNotifications(rawList, activeWorkspace);
                   if (filtered.isEmpty) {
                     return const _EmptyState();
                   }

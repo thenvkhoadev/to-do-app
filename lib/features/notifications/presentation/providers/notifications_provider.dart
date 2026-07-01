@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:to_do_app/core/services/app_providers.dart';
+import 'package:to_do_app/core/workspace/workspace_provider.dart';
 import 'package:to_do_app/features/auth/presentation/providers/auth_provider.dart';
 import 'package:to_do_app/features/notifications/data/datasource/notification_remote_datasource.dart';
 import 'package:to_do_app/features/notifications/data/models/notification_model.dart';
@@ -19,7 +20,19 @@ final notificationsStreamProvider = StreamProvider<List<NotificationModel>>((ref
 /// Derives the count of unread notifications.
 final unreadNotificationsCountProvider = Provider<int>((ref) {
   final notifications = ref.watch(notificationsStreamProvider).valueOrNull ?? [];
-  return notifications.where((n) => !n.read).length;
+  final activeWorkspace = ref.watch(activeWorkspaceProvider);
+  return notifications.where((n) {
+    if (n.read) return false;
+    final isSocial = n.type == 'friend_request' ||
+        n.type == 'mention' ||
+        n.type == 'post_like' ||
+        n.type == 'post_comment';
+    if (activeWorkspace == Workspace.social) {
+      return isSocial;
+    } else {
+      return !isSocial;
+    }
+  }).length;
 });
 
 /// Local state provider to mute/unmute notification UI visual alerts.

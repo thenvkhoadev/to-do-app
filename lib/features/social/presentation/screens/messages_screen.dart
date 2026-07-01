@@ -6,6 +6,7 @@ import 'package:to_do_app/features/social/presentation/widgets/messages/message_
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_chat_window.dart';
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_info_panel.dart';
 import 'package:to_do_app/features/social/presentation/widgets/messages/message_dialogs.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart' show DesktopTopbar;
 
 // Provider for Messenger left navigation rail selection
 final messengerRailTabProvider = StateProvider<String>((ref) => 'chats');
@@ -29,8 +30,9 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
     final showCallFullscreen = isCallActive && !isCallMinimized;
     final videoViewer = ref.watch(activeVideoViewerProvider);
     final selectedRailTab = ref.watch(messengerRailTabProvider);
+    final isDesktop = MediaQuery.sizeOf(context).width >= 1200;
 
-    return CallbackShortcuts(
+    final body = CallbackShortcuts(
       bindings: {
         const SingleActivator(LogicalKeyboardKey.keyK, control: true): () {
           ref.read(isSearchFocusedProvider.notifier).state = true;
@@ -119,6 +121,22 @@ class _MessagesScreenState extends ConsumerState<MessagesScreen> {
         ),
       ),
     );
+
+    if (isDesktop) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          const DesktopTopbar(),
+          Expanded(
+            child: ClipRect(
+              child: body,
+            ),
+          ),
+        ],
+      );
+    } else {
+      return body;
+    }
   }
 
   // Re-build Leftmost Navigation Rail

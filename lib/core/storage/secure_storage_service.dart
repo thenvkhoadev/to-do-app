@@ -17,6 +17,16 @@ class SecureStorageService {
     }
   }
 
+  Future<Map<String, String>> readAll() async {
+    try {
+      return await _storage.readAll();
+    } catch (e) {
+      debugPrint('SecureStorage readAll error: $e');
+      await _handleCorruption();
+      return {};
+    }
+  }
+
   Future<void> write(String key, String value) async {
     try {
       await _storage.write(key: key, value: value);

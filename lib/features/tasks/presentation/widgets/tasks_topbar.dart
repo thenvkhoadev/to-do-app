@@ -6,6 +6,7 @@ import 'package:to_do_app/theme/dashboard_theme.dart';
 import 'package:to_do_app/widgets/dashboard/dashboard_shared.dart';
 import 'package:to_do_app/features/streak/presentation/widgets/streak_topbar_button.dart';
 import 'package:to_do_app/features/notifications/presentation/widgets/notification_bell_button.dart';
+import 'package:to_do_app/widgets/dashboard/desktop_dashboard_widgets.dart' show WorkspaceSwitcher;
 
 
 class TasksTopbar extends StatelessWidget {
@@ -38,9 +39,11 @@ class TasksTopbar extends StatelessWidget {
               _TopTab(label: 'All Tasks', selected: true),
               _TopTab(label: 'Team Flux'),
               _TopTab(label: 'Personal'),
+              SizedBox(width: 32),
+              WorkspaceSwitcher(),
               Spacer(),
-              const NotificationBellButton(),
-              const SizedBox(width: 10),
+              NotificationBellButton(),
+              SizedBox(width: 10),
               StreakTopbarButton(),
               SizedBox(width: 14),
               ProfileAvatar(radius: 20),

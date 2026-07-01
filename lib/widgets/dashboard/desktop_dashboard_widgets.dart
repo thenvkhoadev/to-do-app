@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:to_do_app/constants/dashboard_constants.dart';
+import 'package:to_do_app/core/workspace/workspace_provider.dart';
 import 'package:to_do_app/features/ai/presentation/screens/ai_screen.dart';
 import 'package:to_do_app/features/calendar/presentation/screens/calendar_screen.dart';
 import 'package:to_do_app/features/tasks/domain/entities/task_board_item.dart';
@@ -35,9 +36,31 @@ import 'package:to_do_app/features/profile/data/models/user_profile_model.dart';
 import 'package:to_do_app/features/social/presentation/screens/feed_screen.dart';
 import 'package:to_do_app/features/social/presentation/screens/friends_screen.dart';
 import 'package:to_do_app/features/social/presentation/screens/messages_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/stories_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/social_profile_screen.dart';
+import 'package:to_do_app/features/social/presentation/screens/friend_profile_screen.dart';
+import 'package:to_do_app/features/social/presentation/widgets/post_details_dialog.dart';
 import 'package:to_do_app/features/social/presentation/providers/social_providers.dart';
 import 'package:to_do_app/features/social/presentation/widgets/leave_confirmation_dialogs.dart';
 import 'package:to_do_app/widgets/dashboard/social_dropdowns.dart';
+import 'package:to_do_app/features/social/presentation/widgets/messages/message_state.dart';
+import 'package:to_do_app/features/social/presentation/providers/feed_provider.dart';
+
+class SearchSuggestionItem {
+  final String title;
+  final String badge;
+  final IconData icon;
+  final Color accentColor;
+  final VoidCallback onTap;
+
+  SearchSuggestionItem({
+    required this.title,
+    required this.badge,
+    required this.icon,
+    required this.accentColor,
+    required this.onTap,
+  });
+}
 
 class DesktopDashboardLayout extends ConsumerStatefulWidget {
   const DesktopDashboardLayout({super.key, this.initialIndex = 0, this.taskId});
@@ -243,6 +266,7 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
     });
 
     final editingItem = ref.watch(editingTaskProvider);
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
     return Row(
       children: [
         DesktopSidebar(
@@ -393,11 +417,13 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                           key: ValueKey('support'),
                           embeddedInDashboard: true,
                         ),
-                        7 => _ProfilePane(
-                          key: const ValueKey('profile'),
-                          onNewTask: () => setState(() => _selectedIndex = 8),
-                          onProjects: () => setState(() => _selectedIndex = 1),
-                        ),
+                        7 => activeWorkspace == Workspace.social
+                            ? const SocialProfileScreen(key: ValueKey('social-profile'))
+                            : _ProfilePane(
+                                key: const ValueKey('profile'),
+                                onNewTask: () => setState(() => _selectedIndex = 8),
+                                onProjects: () => setState(() => _selectedIndex = 1),
+                              ),
                         8 => NewTasksDesktopLayout(
                           key: const ValueKey('new-task'),
                           onClose: () => setState(() => _selectedIndex = 0),
@@ -425,6 +451,9 @@ class _DesktopDashboardLayoutState extends ConsumerState<DesktopDashboardLayout>
                         ),
                         14 => const MessagesScreen(
                           key: ValueKey('messages'),
+                        ),
+                        15 => const StoriesScreen(
+                          key: ValueKey('stories'),
                         ),
                         _ => _DashboardSectionPlaceholder(
                           index: _selectedIndex,
@@ -783,6 +812,8 @@ class DesktopSidebar extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
+
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
@@ -828,93 +859,122 @@ class DesktopSidebar extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(height: 4),
-                      const Text(
-                        'Deep Work Mode',
-                        style: TextStyle(
+                      Text(
+                        activeWorkspace == Workspace.social ? 'Social Mode' : 'Deep Work Mode',
+                        style: const TextStyle(
                           color: DashboardColors.onSurfaceVariant,
                           fontSize: 12,
                         ),
                       ),
                       const SizedBox(height: 28),
-                      _SidebarItem(
-                        icon: Icons.dashboard_rounded,
-                        label: 'NEXUS AI',
-                        active: selectedIndex == 0,
-                        onTap: () => onSelected(0),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.account_tree_rounded,
-                        label: 'Tasks',
-                        active: selectedIndex == 1,
-                        onTap: () => onSelected(1),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.psychology_rounded,
-                        label: 'Intelligence',
-                        active: selectedIndex == 2,
-                        onTap: () => onSelected(2),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.calendar_month_rounded,
-                        label: 'Calendar',
-                        active: selectedIndex == 3,
-                        onTap: () => onSelected(3),
-                      ),
-                      Divider(color: Colors.white.withValues(alpha: .04), height: 16),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6.0, horizontal: 12.0),
-                        child: Text(
-                          '🌐 SOCIAL',
-                          style: TextStyle(
-                            color: DashboardColors.outline.withValues(alpha: .5),
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.5,
-                          ),
+                      if (activeWorkspace == Workspace.task) ...[
+                        _SidebarItem(
+                          icon: Icons.dashboard_rounded,
+                          label: 'Dashboard',
+                          active: selectedIndex == 0,
+                          onTap: () => onSelected(0),
                         ),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.dynamic_feed_rounded,
-                        label: 'Feed',
-                        active: selectedIndex == 12,
-                        onTap: () => onSelected(12),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.people_rounded,
-                        label: 'Friends',
-                        active: selectedIndex == 13,
-                        onTap: () => onSelected(13),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.forum_rounded,
-                        label: 'Messages',
-                        active: selectedIndex == 14,
-                        onTap: () => onSelected(14),
-                      ),
-                      Divider(color: Colors.white.withValues(alpha: .04), height: 16),
-                      _SidebarItem(
-                        icon: Icons.query_stats_rounded,
-                        label: 'Analytics',
-                        active: selectedIndex == 4,
-                        onTap: () => onSelected(4),
-                      ),
-                      _SidebarItem(
-                        icon: Icons.archive_rounded,
-                        label: 'Archived',
-                        active: selectedIndex == 9,
-                        onTap: () => onSelected(9),
-                      ),
+                        _SidebarItem(
+                          icon: Icons.account_tree_rounded,
+                          label: 'Tasks',
+                          active: selectedIndex == 1,
+                          onTap: () => onSelected(1),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.psychology_rounded,
+                          label: 'Intelligence',
+                          active: selectedIndex == 2,
+                          onTap: () => onSelected(2),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.calendar_month_rounded,
+                          label: 'Calendar',
+                          active: selectedIndex == 3,
+                          onTap: () => onSelected(3),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.query_stats_rounded,
+                          label: 'Analytics',
+                          active: selectedIndex == 4,
+                          onTap: () => onSelected(4),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.archive_rounded,
+                          label: 'Archived',
+                          active: selectedIndex == 9,
+                          onTap: () => onSelected(9),
+                        ),
+                        Divider(color: Colors.white.withValues(alpha: .04), height: 16),
+                        _SidebarItem(
+                          icon: Icons.settings_rounded,
+                          label: 'Settings',
+                          active: selectedIndex == 5,
+                          onTap: () => onSelected(5),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.person_rounded,
+                          label: 'Profile',
+                          active: selectedIndex == 7,
+                          onTap: () => onSelected(7),
+                        ),
+                      ] else ...[
+                        _SidebarItem(
+                          icon: Icons.dynamic_feed_rounded,
+                          label: 'Feed',
+                          active: selectedIndex == 12,
+                          onTap: () => onSelected(12),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.people_rounded,
+                          label: 'Friends',
+                          active: selectedIndex == 13,
+                          onTap: () => onSelected(13),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.forum_rounded,
+                          label: 'Messages',
+                          active: selectedIndex == 14,
+                          onTap: () => onSelected(14),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.menu_book_rounded,
+                          label: 'Stories',
+                          active: selectedIndex == 15,
+                          onTap: () => onSelected(15),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.notifications_rounded,
+                          label: 'Notifications',
+                          active: selectedIndex == 11,
+                          onTap: () => onSelected(11),
+                        ),
+                        _SidebarItem(
+                          icon: Icons.person_rounded,
+                          label: 'Profile',
+                          active: selectedIndex == 7,
+                          onTap: () => onSelected(7),
+                        ),
+                        Divider(color: Colors.white.withValues(alpha: .04), height: 16),
+                        _SidebarItem(
+                          icon: Icons.settings_rounded,
+                          label: 'Settings',
+                          active: selectedIndex == 5,
+                          onTap: () => onSelected(5),
+                        ),
+                      ],
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              GradientButton(
-                label: 'New Task',
-                icon: Icons.add_rounded,
-                expanded: true,
-                onPressed: () => onSelected(8),
-              ),
+              if (activeWorkspace == Workspace.task) ...[
+                const SizedBox(height: 16),
+                GradientButton(
+                  label: 'New Task',
+                  icon: Icons.add_rounded,
+                  expanded: true,
+                  onPressed: () => onSelected(8),
+                ),
+              ],
             ],
           ),
         ),
@@ -982,6 +1042,125 @@ class _SidebarItem extends StatelessWidget {
 
 
 
+class WorkspaceSwitcher extends ConsumerWidget {
+  const WorkspaceSwitcher({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
+
+    return Container(
+      height: 38,
+      width: 188,
+      padding: const EdgeInsets.all(3),
+      decoration: BoxDecoration(
+        color: DashboardColors.surfaceLowest,
+        borderRadius: BorderRadius.circular(19),
+        border: Border.all(
+          color: Colors.white.withValues(alpha: 0.05),
+        ),
+      ),
+      child: Stack(
+        children: [
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 240),
+            curve: Curves.easeOutCubic,
+            left: activeWorkspace == Workspace.task ? 0 : 90,
+            width: 90,
+            top: 0,
+            bottom: 0,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [
+                    DashboardColors.primary,
+                    DashboardColors.secondary,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: DashboardColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTab(
+                context,
+                ref,
+                label: 'Task',
+                icon: Icons.assignment_rounded,
+                isSelected: activeWorkspace == Workspace.task,
+                onTap: () {
+                  ref.read(activeWorkspaceProvider.notifier).setWorkspace(Workspace.task);
+                  context.go('/task/home');
+                },
+              ),
+              _buildTab(
+                context,
+                ref,
+                label: 'Social',
+                icon: Icons.people_rounded,
+                isSelected: activeWorkspace == Workspace.social,
+                onTap: () {
+                  ref.read(activeWorkspaceProvider.notifier).setWorkspace(Workspace.social);
+                  context.go('/social/feed');
+                },
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTab(
+    BuildContext context,
+    WidgetRef ref, {
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 90,
+        child: Center(
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                size: 15,
+                color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.white.withValues(alpha: 0.5),
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class DesktopTopbar extends StatelessWidget {
   const DesktopTopbar({this.onProfileTap, super.key});
 
@@ -1011,8 +1190,14 @@ class DesktopTopbar extends StatelessWidget {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const SearchBarWidget(),
-                      const SizedBox(width: 24),
+                      const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          SearchBarWidget(),
+                          SizedBox(width: 24),
+                          WorkspaceSwitcher(),
+                        ],
+                      ),
                       Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -1041,19 +1226,19 @@ class DesktopTopbar extends StatelessWidget {
   }
 }
 
-class SearchBarWidget extends StatefulWidget {
+class SearchBarWidget extends ConsumerStatefulWidget {
   const SearchBarWidget({super.key});
 
   @override
-  State<SearchBarWidget> createState() => _SearchBarWidgetState();
+  ConsumerState<SearchBarWidget> createState() => _SearchBarWidgetState();
 }
 
-class _SearchBarWidgetState extends State<SearchBarWidget> {
+class _SearchBarWidgetState extends ConsumerState<SearchBarWidget> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
   final _layerLink = LayerLink();
   OverlayEntry? _overlay;
-  List<TasksProjectItem> _suggestions = const [];
+  List<SearchSuggestionItem> _suggestions = const [];
 
   @override
   void initState() {
@@ -1073,19 +1258,157 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 
   void _updateSuggestions(String value) {
     final query = value.trim().toLowerCase();
-    _suggestions =
-        query.isEmpty
-            ? const []
-            : tasksProjectItems
-                .where(
-                  (item) =>
-                      item.kind != TasksProjectCardKind.add &&
-                      (item.title.toLowerCase().contains(query) ||
-                          item.description.toLowerCase().contains(query) ||
-                          item.badge.toLowerCase().contains(query)),
-                )
-                .take(5)
-                .toList();
+    if (query.isEmpty) {
+      setState(() {
+        _suggestions = const [];
+      });
+      _hideSuggestions();
+      return;
+    }
+
+    final activeWorkspace = ref.read(activeWorkspaceProvider);
+    if (activeWorkspace == Workspace.task) {
+      final matches = tasksProjectItems
+          .where(
+            (item) =>
+                item.kind != TasksProjectCardKind.add &&
+                (item.title.toLowerCase().contains(query) ||
+                    item.description.toLowerCase().contains(query) ||
+                    item.badge.toLowerCase().contains(query)),
+          )
+          .take(5)
+          .toList();
+      setState(() {
+        _suggestions = matches.map((item) => SearchSuggestionItem(
+          title: item.title,
+          badge: item.badge,
+          icon: Icons.manage_search_rounded,
+          accentColor: item.accent,
+          onTap: () {
+            _controller.text = item.title;
+            _controller.selection = TextSelection.collapsed(offset: item.title.length);
+            _hideSuggestions();
+            _focusNode.unfocus();
+          },
+        )).toList();
+      });
+    } else {
+      // Social Workspace Search
+      final allUsers = ref.read(allUsersProvider).valueOrNull ?? [];
+      final friends = ref.read(friendsListProvider);
+      final posts = ref.read(feedPostsProvider).valueOrNull ?? [];
+      final threads = ref.read(chatThreadsProvider);
+      
+      final results = <SearchSuggestionItem>[];
+
+      // 1. Search Friends/People
+      for (final user in allUsers) {
+        final name = (user.fullName ?? user.username ?? '').toLowerCase();
+        final email = user.email.toLowerCase();
+        if (name.contains(query) || email.contains(query)) {
+          final isFriend = friends.any((f) => f.id == user.id);
+          results.add(SearchSuggestionItem(
+            title: user.fullName ?? user.username ?? user.email,
+            badge: isFriend ? 'FRIEND' : 'PEOPLE',
+            icon: Icons.person_rounded,
+            accentColor: DashboardColors.primary,
+            onTap: () {
+              _hideSuggestions();
+              _focusNode.unfocus();
+              showDialog(
+                context: context,
+                builder: (context) => Dialog(
+                  backgroundColor: Colors.transparent,
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 800, maxHeight: 600),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(20),
+                      child: FriendProfileScreen(
+                        profile: user,
+                        onBack: () => Navigator.of(context).pop(),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ));
+        }
+      }
+
+      // 2. Search Posts
+      for (final post in posts) {
+        final content = post.content.toLowerCase();
+        if (content.contains(query)) {
+          results.add(SearchSuggestionItem(
+            title: post.content.length > 30 
+                ? '${post.content.substring(0, 30)}...' 
+                : post.content,
+            badge: 'POST',
+            icon: Icons.article_rounded,
+            accentColor: DashboardColors.secondary,
+            onTap: () {
+              _hideSuggestions();
+              _focusNode.unfocus();
+              PostDetailsDialog.show(context, post);
+            },
+          ));
+        }
+      }
+
+      // 3. Search Messages
+      for (final thread in threads) {
+        final name = thread.name.toLowerCase();
+        final lastMsg = thread.messages.isNotEmpty ? thread.messages.last.text.toLowerCase() : '';
+        if (name.contains(query) || lastMsg.contains(query)) {
+          results.add(SearchSuggestionItem(
+            title: thread.name,
+            badge: 'MESSAGE',
+            icon: Icons.forum_rounded,
+            accentColor: DashboardColors.tertiary,
+            onTap: () {
+              _hideSuggestions();
+              _focusNode.unfocus();
+              ref.read(activeThreadIdProvider.notifier).state = thread.id;
+              context.go('/social/messages');
+            },
+          ));
+        }
+      }
+
+      // 4. Search Groups
+      final availableGroups = [
+        'Cộng đồng Flutter Việt Nam',
+        'Đại học Công nghệ - VNU',
+        'Designer & Developer Việt Nam',
+        'AI & Machine Learning Vietnam',
+      ];
+      for (final group in availableGroups) {
+        if (group.toLowerCase().contains(query)) {
+          results.add(SearchSuggestionItem(
+            title: group,
+            badge: 'GROUP',
+            icon: Icons.group_rounded,
+            accentColor: DashboardColors.secondary,
+            onTap: () {
+              _hideSuggestions();
+              _focusNode.unfocus();
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Welcome to $group!'),
+                  backgroundColor: DashboardColors.primaryContainer,
+                ),
+              );
+            },
+          ));
+        }
+      }
+
+      setState(() {
+        _suggestions = results.take(5).toList();
+      });
+    }
+
     if (_suggestions.isEmpty) {
       _hideSuggestions();
     } else {
@@ -1127,14 +1450,6 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
                       for (final item in _suggestions)
                         _SearchSuggestionTile(
                           item: item,
-                          onTap: () {
-                            _controller.text = item.title;
-                            _controller.selection = TextSelection.collapsed(
-                              offset: item.title.length,
-                            );
-                            _hideSuggestions();
-                            _focusNode.unfocus();
-                          },
                         ),
                     ],
                   ),
@@ -1153,6 +1468,11 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 
   @override
   Widget build(BuildContext context) {
+    final activeWorkspace = ref.watch(activeWorkspaceProvider);
+    final hint = activeWorkspace == Workspace.social 
+        ? 'Search people, posts, or messages...' 
+        : 'Search tasks or intelligence...';
+
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
@@ -1172,11 +1492,11 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
             fontSize: 13,
           ),
           cursorColor: DashboardColors.primary,
-          decoration: const InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded, size: 20),
-            prefixIconConstraints: BoxConstraints(minWidth: 44, minHeight: 42),
-            hintText: 'Search tasks or intelligence...',
-            hintStyle: TextStyle(
+          decoration: InputDecoration(
+            prefixIcon: const Icon(Icons.search_rounded, size: 20),
+            prefixIconConstraints: const BoxConstraints(minWidth: 44, minHeight: 42),
+            hintText: hint,
+            hintStyle: const TextStyle(
               color: DashboardColors.onSurfaceVariant,
               fontSize: 13,
             ),
@@ -1193,14 +1513,13 @@ class _SearchBarWidgetState extends State<SearchBarWidget> {
 }
 
 class _SearchSuggestionTile extends StatelessWidget {
-  const _SearchSuggestionTile({required this.item, required this.onTap});
-  final TasksProjectItem item;
-  final VoidCallback onTap;
+  const _SearchSuggestionTile({required this.item});
+  final SearchSuggestionItem item;
 
   @override
   Widget build(BuildContext context) {
     return InkWell(
-      onTap: onTap,
+      onTap: item.onTap,
       borderRadius: BorderRadius.circular(14),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -1210,12 +1529,12 @@ class _SearchSuggestionTile extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: item.accent.withValues(alpha: .14),
+                color: item.accentColor.withValues(alpha: .14),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
-                Icons.manage_search_rounded,
-                color: item.accent,
+                item.icon,
+                color: item.accentColor,
                 size: 18,
               ),
             ),
