@@ -10,6 +10,12 @@ class ConversationDraft {
   final int cursorPosition;
   final int selectionStart;
   final int selectionEnd;
+  final String? replyToId;
+  final String? replyToSenderId;
+  final String? replyToSenderName;
+  final String? replyToText;
+  final String? replyToType;
+  final String? replyToMediaUrl;
 
   ConversationDraft({
     required this.conversationId,
@@ -18,6 +24,12 @@ class ConversationDraft {
     required this.cursorPosition,
     required this.selectionStart,
     required this.selectionEnd,
+    this.replyToId,
+    this.replyToSenderId,
+    this.replyToSenderName,
+    this.replyToText,
+    this.replyToType,
+    this.replyToMediaUrl,
   });
 
   Map<String, dynamic> toJson() => {
@@ -27,6 +39,12 @@ class ConversationDraft {
     'cursorPosition': cursorPosition,
     'selectionStart': selectionStart,
     'selectionEnd': selectionEnd,
+    'replyToId': replyToId,
+    'replyToSenderId': replyToSenderId,
+    'replyToSenderName': replyToSenderName,
+    'replyToText': replyToText,
+    'replyToType': replyToType,
+    'replyToMediaUrl': replyToMediaUrl,
   };
 
   factory ConversationDraft.fromJson(Map<String, dynamic> json) => ConversationDraft(
@@ -36,6 +54,12 @@ class ConversationDraft {
     cursorPosition: json['cursorPosition'] as int? ?? 0,
     selectionStart: json['selectionStart'] as int? ?? 0,
     selectionEnd: json['selectionEnd'] as int? ?? 0,
+    replyToId: json['replyToId'] as String?,
+    replyToSenderId: json['replyToSenderId'] as String?,
+    replyToSenderName: json['replyToSenderName'] as String?,
+    replyToText: json['replyToText'] as String?,
+    replyToType: json['replyToType'] as String?,
+    replyToMediaUrl: json['replyToMediaUrl'] as String?,
   );
 }
 
@@ -117,8 +141,14 @@ class MessageDraftsNotifier extends StateNotifier<Map<String, ConversationDraft>
     required int cursorPosition,
     required int selectionStart,
     required int selectionEnd,
+    String? replyToId,
+    String? replyToSenderId,
+    String? replyToSenderName,
+    String? replyToText,
+    String? replyToType,
+    String? replyToMediaUrl,
   }) async {
-    if (text.trim().isEmpty) {
+    if (text.trim().isEmpty && replyToId == null) {
       await deleteDraft(conversationId);
       return;
     }
@@ -130,10 +160,16 @@ class MessageDraftsNotifier extends StateNotifier<Map<String, ConversationDraft>
       cursorPosition: cursorPosition,
       selectionStart: selectionStart,
       selectionEnd: selectionEnd,
+      replyToId: replyToId,
+      replyToSenderId: replyToSenderId,
+      replyToSenderName: replyToSenderName,
+      replyToText: replyToText,
+      replyToType: replyToType,
+      replyToMediaUrl: replyToMediaUrl,
     );
 
-    state = {...state, conversationId: draft};
-    await _repository.saveDraft(draft);
+    state = {...state, conversationId: draft};   // state ở đây là của MessageDraftsNotifier (StateNotifier), hợp lệ
+    await _repository.saveDraft(draft);           // gọi xuống LocalDraftRepository.saveDraft(ConversationDraft)
   }
 
   Future<void> deleteDraft(String conversationId) async {

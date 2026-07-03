@@ -1,6 +1,7 @@
+import 'package:to_do_app/core/services/app_providers.dart';
 import 'dart:async';
 import 'dart:io';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:record/record.dart';
 import 'package:path_provider/path_provider.dart';
@@ -29,7 +30,11 @@ class ChatMessage {
   final String? fileName;
   final int? fileSize;
   final String? taskId;
-  final String? replyToId;
+  final String? replyToMessageId;
+  final bool isRecalled;
+  final bool isPinned;
+
+  String? get replyToId => replyToMessageId;
 
   const ChatMessage({
     required this.id,
@@ -49,7 +54,9 @@ class ChatMessage {
     this.fileName,
     this.fileSize,
     this.taskId,
-    this.replyToId,
+    this.replyToMessageId,
+    this.isRecalled = false,
+    this.isPinned = false,
   });
 
   ChatMessage copyWith({
@@ -70,7 +77,9 @@ class ChatMessage {
     String? fileName,
     int? fileSize,
     String? taskId,
-    String? replyToId,
+    String? replyToMessageId,
+    bool? isRecalled,
+    bool? isPinned,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -90,7 +99,9 @@ class ChatMessage {
       fileName: fileName ?? this.fileName,
       fileSize: fileSize ?? this.fileSize,
       taskId: taskId ?? this.taskId,
-      replyToId: replyToId ?? this.replyToId,
+      replyToMessageId: replyToMessageId ?? this.replyToMessageId,
+      isRecalled: isRecalled ?? this.isRecalled,
+      isPinned: isPinned ?? this.isPinned,
     );
   }
 }
@@ -188,6 +199,12 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
     // Listen for auth changes to reload threads
     Supabase.instance.client.auth.onAuthStateChange.listen((data) {
       loadRealtimeThreads();
+    });
+    ref.listen<String?>(activeThreadIdProvider, (previous, next) {
+      final storage = ref.read(lastActiveThreadRepositoryProvider);
+      if (next != null) {
+        storage.write(_lastActiveThreadKey, next);
+      }
     });
   }
 
@@ -390,7 +407,7 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
 
       final messagesData = await supabase
           .from('messages')
-          .select('*, message_seen(user_id, seen_at)')
+          .select('*, message_seen(user_id, seen_at), reply_to_message:reply_to_message_id(id, content, sender_id, type, media_url, created_at, file_name, file_size, task_id)')
           .inFilter('conversation_id', conversationIds)
           .isFilter('deleted_at', null)
           .order('created_at', ascending: true);
@@ -490,6 +507,66 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
               ?.map((s) => s['user_id'] as String)
               .toList() ?? [];
 
+          // Map joined reply_to_message if present
+          final replyMap = m['reply_to_message'] as Map<String, dynamic>?;
+          ChatMessage? replyMessageObj;
+          if (replyMap != null) {
+            final replyContent = replyMap['content'] as String? ?? '';
+            final replySenderId = replyMap['sender_id'] as String;
+            final isReplyMe = replySenderId == myUserId;
+            
+            MessageType replyMsgType = MessageType.text;
+            String replyParsedText = replyContent;
+            String? replyMediaUrl = replyMap['media_url'];
+            
+            if (replyMap['type'] != null) {
+              replyMsgType = MessageType.values.firstWhere(
+                (e) => e.name == replyMap['type'],
+                orElse: () => MessageType.text,
+              );
+              if (replyMsgType == MessageType.image) {
+                replyParsedText = 'Đã gửi một hình ảnh';
+              } else if (replyMsgType == MessageType.video) {
+                replyParsedText = 'Đã gửi một video';
+              } else if (replyMsgType == MessageType.gif) {
+                replyParsedText = 'Đã gửi một ảnh động';
+              } else if (replyMsgType == MessageType.voice) {
+                replyParsedText = 'Đã gửi tin nhắn thoại';
+              } else if (replyMsgType == MessageType.file) {
+                replyParsedText = replyMap['file_name'] ?? 'Đã gửi một tệp tin';
+              }
+            } else {
+              if (replyContent.startsWith('[IMAGE]')) {
+                replyMsgType = MessageType.image;
+                replyMediaUrl = replyContent.replaceFirst('[IMAGE]', '');
+                replyParsedText = 'Đã gửi một hình ảnh';
+              } else if (replyContent.startsWith('[VIDEO]')) {
+                replyMsgType = MessageType.video;
+                replyMediaUrl = replyContent.replaceFirst('[VIDEO]', '');
+                replyParsedText = 'Đã gửi một video';
+              } else if (replyContent.startsWith('[GIF]')) {
+                replyMsgType = MessageType.gif;
+                replyMediaUrl = replyContent.replaceFirst('[GIF]', '');
+                replyParsedText = 'Đã gửi một ảnh động';
+              } else if (replyContent.startsWith('[VOICE]')) {
+                replyMsgType = MessageType.voice;
+                replyMediaUrl = replyContent.replaceFirst('[VOICE]', '');
+                replyParsedText = 'Đã gửi tin nhắn thoại';
+              }
+            }
+
+            replyMessageObj = ChatMessage(
+              id: replyMap['id'].toString(),
+              threadId: convId,
+              senderId: isReplyMe ? 'me' : replySenderId,
+              senderName: isReplyMe ? 'Bạn' : recipientName,
+              text: replyParsedText,
+              type: replyMsgType,
+              mediaUrl: replyMediaUrl,
+              timestamp: DateTime.parse(replyMap['created_at'] ?? m['created_at']).toLocal(),
+            );
+          }
+
           return ChatMessage(
             id: m['id'].toString(),
             threadId: convId,
@@ -506,9 +583,29 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
             fileName: m['file_name'],
             fileSize: m['file_size'],
             taskId: m['task_id']?.toString(),
-            replyToId: m['reply_to_id']?.toString(),
+            replyToMessageId: m['reply_to_message_id']?.toString(),
+            replyTo: replyMessageObj,
           );
         }).toList();
+
+        // Resolve replyTo references (fallback / realtime)
+        final List<ChatMessage> resolvedMsgs = [];
+        for (final msg in convMsgs) {
+          if (msg.replyTo == null && msg.replyToMessageId != null) {
+            ChatMessage? repliedMsg;
+            for (final other in convMsgs) {
+              if (other.id == msg.replyToMessageId) {
+                repliedMsg = other;
+                break;
+              }
+            }
+            if (repliedMsg != null) {
+              resolvedMsgs.add(msg.copyWith(replyTo: repliedMsg));
+              continue;
+            }
+          }
+          resolvedMsgs.add(msg);
+        }
 
         newThreads.add(ChatThread(
           id: convId,
@@ -516,12 +613,19 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
           avatarInitials: recipientInitials,
           avatarUrl: avatarUrl,
           online: false,
-          messages: convMsgs,
+          messages: resolvedMsgs,
           recipientId: otherUserId,
         ));
       }
 
       state = newThreads;
+      if (ref.read(activeThreadIdProvider) == null) {
+        final storage = ref.read(lastActiveThreadRepositoryProvider);
+        final lastId = await storage.read(_lastActiveThreadKey);
+        if (lastId != null && newThreads.any((t) => t.id == lastId)) {
+          ref.read(activeThreadIdProvider.notifier).state = lastId;
+        }
+      }
 
       _subscribeToRealtime(conversationIds, myUserId);
       _initPresence(myUserId);
@@ -634,15 +738,31 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
                 fileName: newMsg['file_name'],
                 fileSize: newMsg['file_size'],
                 taskId: newMsg['task_id']?.toString(),
-                replyToId: newMsg['reply_to_id']?.toString(),
+                replyToMessageId: newMsg['reply_to_message_id']?.toString(),
               );
 
               state = state.map((t) {
                 if (t.id == convId) {
                   if (t.messages.any((m) => m.id == chatMsg.id)) return t;
+
+                  // Resolve replyTo reference for this new incoming message!
+                  ChatMessage resolvedChatMsg = chatMsg;
+                  if (chatMsg.replyToMessageId != null) {
+                    ChatMessage? found;
+                    for (final m in t.messages) {
+                      if (m.id == chatMsg.replyToMessageId) {
+                        found = m;
+                        break;
+                      }
+                    }
+                    if (found != null) {
+                      resolvedChatMsg = chatMsg.copyWith(replyTo: found);
+                    }
+                  }
+
                   return t.copyWith(
                     unread: senderId != myUserId,
-                    messages: [...t.messages, chatMsg],
+                    messages: [...t.messages, resolvedChatMsg],
                   );
                 }
                 return t;
@@ -748,7 +868,7 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
       fileName: fileName,
       fileSize: fileSize,
       taskId: taskId,
-      replyToId: replyToId ?? replyTo?.id,
+      replyToMessageId: replyToId ?? replyTo?.id,
     );
 
     state = state.map((t) {
@@ -840,7 +960,7 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
         'file_name': fileName,
         'file_size': fileSize,
         'task_id': sharedTaskId != null && _isValidUuid(sharedTaskId) ? sharedTaskId : null,
-        'reply_to_id': replyToId != null && _isValidUuid(replyToId) ? replyToId : null,
+        'reply_to_message_id': localMsg.replyToMessageId != null && _isValidUuid(localMsg.replyToMessageId!) ? localMsg.replyToMessageId : null,
         'status': 'sent',
       }).select().single();
 
@@ -919,6 +1039,65 @@ class ChatThreadsNotifier extends StateNotifier<List<ChatThread>> {
     state = state.map((t) {
       if (t.id == threadId) {
         final updatedMsgs = t.messages.where((m) => m.id != msgId).toList();
+        return t.copyWith(messages: updatedMsgs);
+      }
+      return t;
+    }).toList();
+  }
+
+  void editMessage(String threadId, String msgId, String newText) {
+    state = state.map((t) {
+      if (t.id == threadId) {
+        final updatedMsgs = t.messages.map((m) {
+          if (m.id == msgId) {
+            return m.copyWith(text: newText);
+          }
+          return m;
+        }).toList();
+        return t.copyWith(messages: updatedMsgs);
+      }
+      return t;
+    }).toList();
+  }
+
+  void recallMessage(String threadId, String msgId) {
+    state = state.map((t) {
+      if (t.id == threadId) {
+        final updatedMsgs = t.messages.map((m) {
+          if (m.id == msgId) {
+            return m.copyWith(isRecalled: true);
+          }
+          return m;
+        }).toList();
+        return t.copyWith(messages: updatedMsgs);
+      }
+      return t;
+    }).toList();
+  }
+
+  void togglePinMessage(String threadId, String msgId) {
+    state = state.map((t) {
+      if (t.id == threadId) {
+        bool isNowPinned = false;
+        final updatedMsgs = t.messages.map((m) {
+          if (m.id == msgId) {
+            isNowPinned = !m.isPinned;
+            return m.copyWith(isPinned: isNowPinned);
+          }
+          return m;
+        }).toList();
+
+        final noticeMsg = ChatMessage(
+          id: 'sys_${DateTime.now().millisecondsSinceEpoch}',
+          threadId: threadId,
+          senderId: 'system',
+          senderName: 'System',
+          text: isNowPinned ? 'Bạn đã ghim một tin nhắn.' : 'Bạn đã bỏ ghim một tin nhắn.',
+          type: MessageType.event,
+          timestamp: DateTime.now(),
+        );
+        updatedMsgs.add(noticeMsg);
+
         return t.copyWith(messages: updatedMsgs);
       }
       return t;
@@ -1236,3 +1415,229 @@ class VoiceRecordingNotifier extends StateNotifier<VoiceRecordingState> {
 
 final isCallActiveProvider = StateProvider<bool>((ref) => false);
 final isCallMinimizedProvider = StateProvider<bool>((ref) => false);
+
+class ChatThemeModel {
+  final String id;
+  final String displayName;
+  final String? subtitle;
+  final List<Color> senderGradient;
+  final Color recipientColor;
+  final List<Color> chatBackgroundGradient;
+  final Color accentColor;
+  
+  const ChatThemeModel({
+    required this.id,
+    required this.displayName,
+    this.subtitle,
+    required this.senderGradient,
+    required this.recipientColor,
+    required this.chatBackgroundGradient,
+    required this.accentColor,
+  });
+}
+
+final availableChatThemes = [
+  const ChatThemeModel(
+    id: 'default',
+    displayName: 'Default',
+    senderGradient: [Color(0xFF0084FF), Color(0xFF0084FF)],
+    recipientColor: Color(0xFF2C2C2E),
+    chatBackgroundGradient: [Color(0xFF1E1F20), Color(0xFF1E1F20)],
+    accentColor: Color(0xFF0084FF),
+  ),
+  const ChatThemeModel(
+    id: 'supergirl',
+    displayName: 'Supergirl',
+    senderGradient: [Color(0xFFDC2626), Color(0xFFB91C1C)],
+    recipientColor: Color(0xFF243B55),
+    chatBackgroundGradient: [Color(0xFF0F172A), Color(0xFF1E293B)],
+    accentColor: Color(0xFFDC2626),
+  ),
+  const ChatThemeModel(
+    id: 'avatar',
+    displayName: 'Avatar: The Last Airbender',
+    subtitle: 'Mùa 2',
+    senderGradient: [Color(0xFF0D5C4B), Color(0xFF0F766E)],
+    recipientColor: Color(0xFF4C3E35),
+    chatBackgroundGradient: [Color(0xFF0D2E27), Color(0xFF111E1B)],
+    accentColor: Color(0xFF0D5C4B),
+  ),
+  const ChatThemeModel(
+    id: 'olivia',
+    displayName: 'Olivia Rodrigo',
+    senderGradient: [Color(0xFF8B5CF6), Color(0xFFA78BFA)],
+    recipientColor: Color(0xFF3B2E4F),
+    chatBackgroundGradient: [Color(0xFF1E132D), Color(0xFF110B1B)],
+    accentColor: Color(0xFF8B5CF6),
+  ),
+  const ChatThemeModel(
+    id: 'football',
+    displayName: 'Chế độ bóng đá',
+    subtitle: 'Trò chơi bắt đầu',
+    senderGradient: [Color(0xFF06B6D4), Color(0xFF3B82F6)],
+    recipientColor: Color(0xFF213226),
+    chatBackgroundGradient: [Color(0xFF0B2415), Color(0xFF09140C)],
+    accentColor: Color(0xFF06B6D4),
+  ),
+  const ChatThemeModel(
+    id: 'backstage',
+    displayName: 'Hậu trường',
+    senderGradient: [Color(0xFFD4AF37), Color(0xFFAA7C11)],
+    recipientColor: Color(0xFF302E2A),
+    chatBackgroundGradient: [Color(0xFF1D1B16), Color(0xFF141310)],
+    accentColor: Color(0xFFD4AF37),
+  ),
+  const ChatThemeModel(
+    id: 'deliboys',
+    displayName: 'Deli Boys',
+    senderGradient: [Color(0xFFF97316), Color(0xFFEF4444)],
+    recipientColor: Color(0xFF3E2D26),
+    chatBackgroundGradient: [Color(0xFF2E1A12), Color(0xFF1E0E08)],
+    accentColor: Color(0xFFF97316),
+  ),
+];
+
+class ThreadThemeNotifier extends StateNotifier<Map<String, String>> {
+  ThreadThemeNotifier() : super({});
+
+  void setTheme(String threadId, String themeId) {
+    state = {...state, threadId: themeId};
+  }
+}
+
+final threadThemeProvider = StateNotifierProvider<ThreadThemeNotifier, Map<String, String>>((ref) {
+  return ThreadThemeNotifier();
+});
+
+class ThreadQuickReactionNotifier extends StateNotifier<Map<String, String>> {
+  ThreadQuickReactionNotifier() : super({});
+
+  void setQuickReaction(String threadId, String emoji) {
+    state = {...state, threadId: emoji};
+  }
+}
+
+final threadQuickReactionProvider = StateNotifierProvider<ThreadQuickReactionNotifier, Map<String, String>>((ref) {
+  return ThreadQuickReactionNotifier();
+});
+
+class ThreadNicknamesNotifier extends StateNotifier<Map<String, Map<String, String>>> {
+  ThreadNicknamesNotifier() : super({});
+
+  void setNickname(String threadId, String userId, String nickname) {
+    final threadMap = Map<String, String>.from(state[threadId] ?? {});
+    if (nickname.trim().isEmpty) {
+      threadMap.remove(userId);
+    } else {
+      threadMap[userId] = nickname;
+    }
+    state = {...state, threadId: threadMap};
+  }
+}
+
+final threadNicknamesProvider = StateNotifierProvider<ThreadNicknamesNotifier, Map<String, Map<String, String>>>((ref) {
+  return ThreadNicknamesNotifier();
+});
+
+enum InfoPanelTab { main, media, permissions, readReceipts }
+
+final infoPanelTabProvider = StateProvider<InfoPanelTab>((ref) => InfoPanelTab.main);
+
+class ThreadMuteDurationNotifier extends StateNotifier<Map<String, String>> {
+  ThreadMuteDurationNotifier() : super({});
+
+  void setMuteDuration(String threadId, String duration) {
+    state = {...state, threadId: duration};
+  }
+}
+
+final threadMuteDurationProvider = StateNotifierProvider<ThreadMuteDurationNotifier, Map<String, String>>((ref) {
+  return ThreadMuteDurationNotifier();
+});
+
+class ThreadDisappearingMessagesNotifier extends StateNotifier<Map<String, String>> {
+  ThreadDisappearingMessagesNotifier() : super({});
+
+  void setDisappearingMessages(String threadId, String stateVal) {
+    state = {...state, threadId: stateVal};
+  }
+}
+
+final threadDisappearingMessagesProvider = StateNotifierProvider<ThreadDisappearingMessagesNotifier, Map<String, String>>((ref) {
+  return ThreadDisappearingMessagesNotifier();
+});
+
+class ThreadReadReceiptsNotifier extends StateNotifier<Map<String, bool>> {
+  ThreadReadReceiptsNotifier() : super({});
+
+  void toggleReadReceipts(String threadId, bool value) {
+    state = {...state, threadId: value};
+  }
+}
+
+final threadReadReceiptsProvider = StateNotifierProvider<ThreadReadReceiptsNotifier, Map<String, bool>>((ref) {
+  return ThreadReadReceiptsNotifier();
+});
+
+class ThreadPermissionsNotifier extends StateNotifier<Map<String, bool>> {
+  ThreadPermissionsNotifier() : super({});
+
+  void toggleAllowSharing(String threadId, bool value) {
+    state = {...state, threadId: value};
+  }
+}
+
+final threadPermissionsProvider = StateNotifierProvider<ThreadPermissionsNotifier, Map<String, bool>>((ref) {
+  return ThreadPermissionsNotifier();
+});
+
+class ChatInputState {
+  final String text;
+  final ChatMessage? replyTo;
+
+  const ChatInputState({this.text = '', this.replyTo});
+}
+
+class ChatInputNotifier extends StateNotifier<Map<String, ChatInputState>> {
+  ChatInputNotifier() : super({});
+
+  void setReplyTo(String threadId, ChatMessage? message) {
+    final current = state[threadId] ?? const ChatInputState();
+    state = {
+      ...state,
+      threadId: ChatInputState(text: current.text, replyTo: message),
+    };
+  }
+
+  void clearReplyTo(String threadId) {
+    final current = state[threadId] ?? const ChatInputState();
+    state = {
+      ...state,
+      threadId: ChatInputState(text: current.text, replyTo: null),
+    };
+  }
+
+  void setText(String threadId, String text) {
+    final current = state[threadId] ?? const ChatInputState();
+    state = {
+      ...state,
+      threadId: ChatInputState(text: text, replyTo: current.replyTo),
+    };
+  }
+}
+
+final chatInputProvider = StateNotifierProvider<ChatInputNotifier, Map<String, ChatInputState>>((ref) {
+  return ChatInputNotifier();
+});
+
+// Thêm vào cuối message_state.dart
+
+final replyingToProvider = StateProvider.family<ChatMessage?, String>(
+  (ref, conversationId) => null,
+);
+
+const _lastActiveThreadKey = 'last_active_thread_id';
+
+final lastActiveThreadRepositoryProvider = Provider((ref) {
+  return ref.watch(secureStorageServiceProvider);
+});
